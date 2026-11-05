@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// `archiveReprintBlockProvider` predicts what `POST /queue/` answers for an
 /// archive: `queue:create`, then `_assert_can_queue_archive` (`print_queue.py`),
@@ -60,6 +61,7 @@ void main() {
       ({Dio dio, CurrentUser me}) user,
     ) async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [currentUserOverride(user.me)],
       );
       addTearDown(container.dispose);
@@ -135,6 +137,7 @@ void main() {
       expect(listed.createdById, user.me.id);
 
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [currentUserOverride(user.me)],
       );
       addTearDown(container.dispose);
@@ -150,6 +153,39 @@ void main() {
       );
       expect(res.statusCode, 200, reason: '${res.data}');
       await admin.delete<dynamic>(Endpoints.queueItem(res.data!['id'] as int));
+    });
+
+    // The server stores no ASAP: the reprint is a plain pending job, and
+    // `insert_at_top` is the only thing that puts it ahead of the queue.
+    test('an ASAP reprint goes ahead of a job already waiting', () async {
+      final waiting =
+          (await admin.post<Map<String, dynamic>>(
+                Endpoints.queue,
+                data: {'archive_id': archiveId, 'manual_start': true},
+              )).data!['id']
+              as int;
+      addTearDown(() => admin.delete<dynamic>(Endpoints.queueItem(waiting)));
+
+      // No printer and no model: the scheduler never starts such a job, so the
+      // reprint stays pending instead of printing on the seeded printer.
+      final [answer] = await replayWrites(
+        admin,
+        recordedWrites('archive_reprint_asap'),
+        ids: {'archive_id': archiveId, 'printer_id': null},
+      );
+      expect(answer.statusCode, 200, reason: '${answer.data}');
+      final reprint = answer.data as Map<String, dynamic>;
+      addTearDown(
+        () => admin.delete<dynamic>(Endpoints.queueItem(reprint['id'] as int)),
+      );
+
+      final behind = (await admin.get<Map<String, dynamic>>(
+        Endpoints.queueItem(waiting),
+      )).data!;
+      expect(reprint['status'], 'pending');
+      expect(reprint['manual_start'], isFalse);
+      expect(reprint['position'], 1);
+      expect(behind['position'], greaterThan(reprint['position'] as int));
     });
 
     test('queue:create with reprint-all is let through', () async {

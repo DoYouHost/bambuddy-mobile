@@ -30,6 +30,7 @@ class _FakeQueueNotifier extends QueueNotifier {
 }
 
 Widget _screen(List<QueueItem> items) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
     noServerProfileOverride,
@@ -73,6 +74,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
           noServerProfileOverride,
@@ -95,6 +97,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => _FakeQueueNotifier(const [])),
           noServerProfileOverride,
@@ -106,6 +109,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(byLogId('queue.orders'), findsNothing);
+  });
+
+  testWidgets(
+    'a queued card carries a chip for a slot printed in another colour',
+    (tester) async {
+      final item = QueueItem.fromJson({
+        ...(readFixture('queue_item.json') as Map<String, dynamic>),
+        'color_substitutions': [
+          {
+            'slot_id': 1,
+            'type': 'PLA',
+            'wanted': '#FF0000',
+            'got': '#0000FF',
+            'tray': 0,
+          },
+        ],
+      });
+
+      await tester.pumpWidget(_screen([item]));
+      await tester.pumpAndSettle();
+
+      final chip = byLogId('queue.color_substitution');
+      expect(chip, findsOneWidget);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.text(pl.colorFamilyBlue), findsOneWidget);
+      expect(find.text(pl.colorFamilyRed), findsOneWidget);
+    },
+  );
+
+  testWidgets('a card of a server without the field has no such chip', (
+    tester,
+  ) async {
+    final item = QueueItem.fromJson(
+      readFixture('queue_item.json') as Map<String, dynamic>,
+    );
+
+    await tester.pumpWidget(_screen([item]));
+    await tester.pumpAndSettle();
+
+    expect(byLogId('queue.color_substitution'), findsNothing);
   });
 
   testWidgets('an empty queue shows a message', (tester) async {
@@ -146,6 +190,7 @@ void main() {
     });
 
     Widget screen({required bool held}) => ProviderScope(
+      retry: neverRetry,
       overrides: [
         queueProvider.overrideWith(() => _FakeQueueNotifier([waiting])),
         noServerProfileOverride,
@@ -196,6 +241,7 @@ void main() {
     final queue = FakeQueue([ownerless]);
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,
@@ -254,6 +300,7 @@ void main() {
     final queue = FakeQueue([crossModel]);
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,
@@ -308,6 +355,7 @@ void main() {
       queue = FakeQueue([pending]);
       commands = _HeldCommands();
       return ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,

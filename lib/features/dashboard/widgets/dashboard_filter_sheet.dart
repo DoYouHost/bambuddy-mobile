@@ -2,6 +2,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/printers/printer_bucket.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../dashboard_filters.dart';
@@ -65,31 +66,30 @@ class _DashboardFilterSheet extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Fixed height so the header never resizes the sheet or
-                  // shifts the title when the Clear button toggles.
-                  SizedBox(
-                    height: 48,
-                    child: Row(
-                      children: [
-                        Text(
-                          l10n.dashboardFilters,
-                          style: theme.textTheme.titleLarge,
+                  // Fixed minimum height so the header never resizes the sheet
+                  // or shifts the title when the Clear button toggles.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: kMinInteractiveDimension,
+                    ),
+                    child: BesideOrBelow(
+                      label: Text(
+                        l10n.dashboardFilters,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      // Keep the button's slot laid out even when inactive,
+                      // so it can't reflow the header.
+                      control: Visibility(
+                        visible: filters.activeCount > 0,
+                        maintainSize: true,
+                        maintainAnimation: true,
+                        maintainState: true,
+                        child: TextButton(
+                          onPressed: () =>
+                              notifier.state = const DashboardFilters(),
+                          child: Text(l10n.filtersClear),
                         ),
-                        const Spacer(),
-                        // Keep the button's slot laid out even when inactive,
-                        // so it can't reflow the row.
-                        Visibility(
-                          visible: filters.activeCount > 0,
-                          maintainSize: true,
-                          maintainAnimation: true,
-                          maintainState: true,
-                          child: TextButton(
-                            onPressed: () =>
-                                notifier.state = const DashboardFilters(),
-                            child: Text(l10n.filtersClear),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: DashSpace.sm),
@@ -176,7 +176,7 @@ class _DashboardFilterSheet extends ConsumerWidget {
                             ascending
                                 ? Icons.arrow_upward
                                 : Icons.arrow_downward,
-                            size: 18,
+                            size: DashIcon.md,
                           ),
                           label: Text(
                             ascending

@@ -14,6 +14,7 @@ import '../../helpers.dart';
 void main() {
   Future<AssignedSpools> resolve(InventoryBackend backend) async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         inventoryBackendOverride(backend),
         inventoryProvider.overrideWith(_Shelf.new),

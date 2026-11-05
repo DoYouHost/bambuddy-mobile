@@ -28,7 +28,7 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
   bool _earlierOpen = false;
 
   void _markRead(String id) {
-    final feed = ref.read(announcementsProvider).valueOrNull;
+    final feed = ref.read(announcementsProvider).value;
     final hit = feed?.items.where((a) => a.id == id).firstOrNull;
     if (hit != null && hit.unread) {
       unawaited(ref.read(announcementsProvider.notifier).markRead(id));
@@ -54,7 +54,7 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
           context,
           title: l10n.announcementsTitle,
           actions: [
-            if ((feed.valueOrNull?.unreadCount ?? 0) > 0)
+            if ((feed.value?.unreadCount ?? 0) > 0)
               IconButton(
                 tooltip: l10n.announcementsMarkAllRead,
                 icon: const Icon(Icons.done_all),
@@ -204,7 +204,7 @@ class AnnouncementTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: () => openWebLink(context, link.toString()),
-                  icon: const Icon(Icons.open_in_new, size: 16),
+                  icon: const Icon(Icons.open_in_new, size: DashIcon.sm),
                   label: Text(text.linkLabel ?? l10n.announcementsReadMore),
                 ).tagged('announcements.link'),
               ),

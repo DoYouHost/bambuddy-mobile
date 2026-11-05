@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../common/outcome_snack.dart';
 import 'controls_providers.dart';
 
 /// Pause, resume or stop a print and tell the user when the server refused —
@@ -24,9 +24,11 @@ Future<void> runPrintAction(
     _ => ActionOutcome.ok,
   };
   if (!context.mounted) return;
-  final msg = result.messageFor(AppLocalizations.of(context));
-  if (msg == null) return;
-  ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
+  snackOutcome(
+    ScaffoldMessenger.of(context),
+    result,
+    AppLocalizations.of(context),
+  );
 }
 
 /// Stop is always behind a confirmation — one tap must not be enough to kill a

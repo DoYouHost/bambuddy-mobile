@@ -39,6 +39,7 @@ void main() {
 
   test('a choice is stored and survives a new scope', () async {
     final first = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(first.dispose);
@@ -50,6 +51,7 @@ void main() {
     await first.read(appearanceProvider.notifier).set(choice);
 
     final second = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(second.dispose);
@@ -58,6 +60,7 @@ void main() {
 
   test('choosing what is already chosen writes nothing', () async {
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(c.dispose);
@@ -74,6 +77,7 @@ void main() {
 
   test('a second choice made while the first saves keeps both', () async {
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(c.dispose);
@@ -97,6 +101,7 @@ void main() {
 
   test('a failed save puts the previous choice back', () async {
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(c.dispose);
@@ -114,6 +119,7 @@ void main() {
 
   test('a failed save does not undo a later choice', () async {
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(c.dispose);
@@ -141,6 +147,7 @@ void main() {
     'a failed save does not undo a later return to the same choice',
     () async {
       final c = ProviderContainer(
+        retry: neverRetry,
         overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
       );
       addTearDown(c.dispose);
@@ -163,6 +170,7 @@ void main() {
 
   test('the brand follows the accent', () async {
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(c.dispose);
@@ -181,6 +189,7 @@ void main() {
     final later = schemesOf(const Color(0xFFD72E7D));
     var reads = 0;
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         settingsRepositoryProvider.overrideWithValue(repo),
         initialSystemSchemesProvider.overrideWithValue(initial),
@@ -214,6 +223,7 @@ void main() {
   testWidgets('a failed read on resume keeps the palette', (tester) async {
     final initial = schemesOf(const Color(0xFF2E7DD7));
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         settingsRepositoryProvider.overrideWithValue(repo),
         initialSystemSchemesProvider.overrideWithValue(initial),

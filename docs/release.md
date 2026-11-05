@@ -22,11 +22,15 @@ Obtainium. `origin` is `DoYouHost/bambuddy-mobile` on GitHub; the recipes call
   and release atomically. Use the SHA, not the branch name: the tip can move
   between the push and the call. Pushing a tag and referring to it at once is a
   race, and it caused about six failed ships.
-- **A release goes out from the checked-out branch, not from `master`.** `_branch`
+- **A stable release goes out from `release/X.Y.Z` and nowhere else**
+  (`_require-release-branch`; the flow is in [branching.md](branching.md)). `_branch`
   (one definition shared by both recipes) reads `git symbolic-ref` and refuses a
-  detached HEAD. `_bump` rebases onto `origin <that branch>`; it skips the rebase
-  only when `ls-remote` returns **2** (no such branch on origin) and aborts on 128
-  (origin unreachable). `release-publish` pushes `HEAD:refs/heads/<that branch>`.
+  detached HEAD. `_bump` fast-forwards onto `origin <that branch>` (`--ff-only`, a
+  rebase would flatten the merge commits a release branch carries); it skips the
+  pull only when `ls-remote` returns **2** (no such branch on origin) and aborts on
+  128 (origin unreachable). `release-publish` pushes `HEAD:refs/heads/<that branch>`,
+  makes sure the draft PR into `master` exists and marks it ready once the release
+  is published.
 - **`gh` takes one item per call** in `release delete` / `delete-asset` (unlike
   `tea`), hence the loops in `purge-assets` and `purge-releases`.
 - **Capture `gh` output into a variable, then filter it.** `gh … | grep -q` under
@@ -75,6 +79,42 @@ listing can hold, and `[screenshots]` in `tool/play.toml` names the ones that go
 the Play listing: changing it makes a different app and loses every install.
 Never "tidy" these strings and never report them as an inconsistency; only links
 are replaced.
+
+## Scheduled workflows are dispatched by Dagu
+
+`server-drift.yml` and `contract-tests.yml` have no `schedule:` trigger. They are
+started through `workflow_dispatch` by [Dagu](https://github.com/dagu-org/dagu) on
+`lxc-dagu` (`http://lxc-dagu.lan:8080`, an LXC on `pv1-rpi4` defined in
+TofuSkierkiV2 `lxc_dagu.tf`).
+
+| DAG | Workflow | When (UTC) |
+|---|---|---|
+| `bambuddy-server-drift` | `server-drift.yml` | Mon 06:37 |
+| `bambuddy-contract-tests` | `contract-tests.yml` | daily 04:23 |
+
+**Why not `schedule:`.** Measured in September and October 2026: GitHub created
+the runs 4–8 hours late and, on 2026-10-05, not at all (`created_at ==
+run_started_at`, so the self-hosted runner was never the delay; moving the minute
+off `:00` changed nothing). GitHub staff call it deliberate load balancing
+([community #196910](https://github.com/orgs/community/discussions/196910),
+[#207346](https://github.com/orgs/community/discussions/207346)). A `schedule:` kept
+as a fallback would make every run a double, so there is none. If `lxc-dagu` is
+down nothing fires: start the workflow by hand from the Actions tab.
+
+**The configuration lives in the Dagu web UI and nowhere else** — Tofu only builds
+the container and installs Dagu:
+
+- **DAGs**: one per workflow, a single `http.request` step doing
+  `POST https://api.github.com/repos/DoYouHost/bambuddy-mobile/actions/workflows/<file>/dispatches`
+  with body `{"ref":"master"}` and headers `Authorization: Bearer ${GITHUB_TOKEN}`,
+  `Accept: application/vnd.github+json`. To change a time, edit `schedule:`;
+  "Start" runs the DAG at once; a non-2xx answer fails the run.
+- **Token**: Profiles → Secret Refs, a `dagu-managed` secret, which Dagu stores
+  encrypted and the DAG reads with `secrets: [{name: GITHUB_TOKEN, ref: <secret
+  ref>}]`, which keeps it masked in the run history (a plain `env`/`dotenv` value
+  would sit in clear text in every run's status). It is a fine-grained PAT owned by
+  `DoYouHost`, scoped to `bambuddy-mobile` only, with **Actions: read and write**.
+  When it expires the runs fail with 401; "Rotate Secret" puts in the new one.
 
 ## Google Play
 

@@ -7,6 +7,7 @@ import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
+import '../common/pick_date_range.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
@@ -81,7 +82,7 @@ class _UserFilterMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final users = ref.watch(statsUsersProvider).valueOrNull ?? const [];
+    final users = ref.watch(statsUsersProvider).value ?? const [];
     if (users.isEmpty) return const SizedBox.shrink();
 
     String labelFor(int? id) {
@@ -149,12 +150,9 @@ class _RangeMenu extends ConsumerWidget {
         initialValue: filter.range,
         onSelected: (range) async {
           if (range == StatsRange.custom) {
-            final now = DateTime.now();
-            final picked = await showDateRangePicker(
-              context: context,
-              firstDate: DateTime(now.year - 5),
-              lastDate: now,
-              initialDateRange: filter.from != null && filter.to != null
+            final picked = await pickDateRange(
+              context,
+              initial: filter.from != null && filter.to != null
                   ? DateTimeRange(start: filter.from!, end: filter.to!)
                   : null,
             );
@@ -204,7 +202,7 @@ class _StatsBody extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.bar_chart_outlined,
-                    size: 48,
+                    size: DashIcon.xxl,
                     color: t.textTertiary,
                   ),
                   const SizedBox(height: DashSpace.md),
@@ -250,7 +248,7 @@ class _StatsBody extends ConsumerWidget {
         ...computed.when(
           loading: () => const [
             SizedBox(height: DashSpace.md),
-            SizedBox(height: 80, child: DashLoading()),
+            SizedBox(height: DashSize.d80, child: DashLoading()),
           ],
           error: (_, _) => const [],
           data: (c) => c.isEmpty
@@ -383,7 +381,11 @@ class _OverviewCard extends StatelessWidget {
             const SizedBox(height: DashSpace.sm),
             Row(
               children: [
-                Icon(Icons.hourglass_empty, size: 14, color: t.textTertiary),
+                Icon(
+                  Icons.hourglass_empty,
+                  size: DashIcon.sm,
+                  color: t.textTertiary,
+                ),
                 const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: Text(l10n.statsEnergyWarmingUp, style: t.microSoft),
@@ -391,10 +393,14 @@ class _OverviewCard extends StatelessWidget {
               ],
             ),
           ],
-          Divider(height: 24, color: t.hairline),
+          Divider(height: DashSize.d24, color: t.hairline),
           Row(
             children: [
-              Icon(Icons.summarize_outlined, size: 28, color: t.accentGreenInk),
+              Icon(
+                Icons.summarize_outlined,
+                size: DashIcon.xl,
+                color: t.accentGreenInk,
+              ),
               const SizedBox(width: DashSpace.md),
               Expanded(child: Text(l10n.statsTotalCost, style: t.body)),
               Text(
@@ -427,7 +433,7 @@ class _StatTile extends StatelessWidget {
     final t = DashTokens.of(context);
     return Row(
       children: [
-        Icon(icon, size: 28, color: t.accentGreenInk),
+        Icon(icon, size: DashIcon.xl, color: t.accentGreenInk),
         const SizedBox(width: DashSpace.md),
         Expanded(
           child: Column(

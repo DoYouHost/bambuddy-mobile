@@ -122,7 +122,11 @@ class _DemoUnavailable extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
+          const Icon(
+            Icons.videocam_off,
+            color: Colors.white54,
+            size: DashIcon.xxl,
+          ),
           const SizedBox(height: DashSpace.md),
           Text(
             text,
@@ -172,8 +176,11 @@ class CameraRetryingBadge extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const SizedBox.square(
-          dimension: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          dimension: DashSize.d16,
+          child: CircularProgressIndicator(
+            strokeWidth: DashStroke.regular,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -194,7 +201,11 @@ class _Message extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
+          const Icon(
+            Icons.videocam_off,
+            color: Colors.white54,
+            size: DashIcon.xxl,
+          ),
           const SizedBox(height: DashSpace.md),
           Text(
             text,

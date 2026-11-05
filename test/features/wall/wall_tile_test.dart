@@ -144,6 +144,7 @@ Future<void> pumpTile(
   Size size = const Size(260, 170),
   Printer printer = _printer,
   bool camera = false,
+  double textScale = 1,
 }) => pumpPhone(
   tester,
   Center(
@@ -159,9 +160,33 @@ Future<void> pumpTile(
     fakeServerProfileOverride(),
     cameraTokenProvider.overrideWith((ref) async => 'tok'),
   ],
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(
+      context,
+    ).copyWith(textScaler: TextScaler.linear(textScale)),
+    child: child!,
+  ),
 );
 
 void main() {
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('a printing tile keeps its caption inside it at text $scale', (
+      tester,
+    ) async {
+      await pumpTile(tester, _printing, textScale: scale, camera: true);
+
+      expect(tester.takeException(), isNull);
+      final tile = tester.getRect(find.byType(WallTile));
+      final name = tester.getRect(find.text('X1C-01'));
+      expect(name.top, greaterThanOrEqualTo(tile.top));
+      expect(name.right, lessThanOrEqualTo(tile.right));
+      expect(
+        tester.getRect(find.text('RUNNING')).right,
+        lessThanOrEqualTo(tile.right),
+      );
+    });
+  }
+
   testWidgets('a print shows its state, percent, time left and layer', (
     tester,
   ) async {

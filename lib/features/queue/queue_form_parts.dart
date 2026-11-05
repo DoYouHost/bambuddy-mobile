@@ -63,7 +63,10 @@ class QueueSectionCard extends StatelessWidget {
     final fold = collapse;
     final heading = title == null
         ? null
-        : Text(title!, style: t.bodyBold.copyWith(letterSpacing: 0.2));
+        : Text(
+            title!,
+            style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
+          );
     final open = fold?.open ?? true;
     // The gap under the title belongs to an open card only.
     EdgeInsets headerPadding({required bool open}) => EdgeInsets.fromLTRB(
@@ -364,6 +367,9 @@ class QueueSubmitAction extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
+  /// The pill's touch height; the bar's 4 dp insets above and below it make 56.
+  static const _height = kMinInteractiveDimension;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -382,8 +388,11 @@ class QueueSubmitAction extends StatelessWidget {
             EdgeInsets.symmetric(horizontal: DashSpace.lg),
           ),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(DashRadius.md),
+            ),
           ),
+          minimumSize: const WidgetStatePropertyAll(Size(64, _height)),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         onPressed: onPressed,

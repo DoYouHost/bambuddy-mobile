@@ -359,11 +359,20 @@ class _SaverBox extends ConsumerWidget {
         gradient: RadialGradient(
           center: Alignment.topLeft,
           radius: 1.2,
-          colors: [color.withValues(alpha: 0.22), _ground],
+          colors: [
+            color.withValues(alpha: DashAlpha.wash),
+            _ground,
+          ],
         ),
-        border: Border.all(color: color.withValues(alpha: 0.85), width: 2),
+        border: Border.all(
+          color: color.withValues(alpha: DashAlpha.heavy),
+          width: DashStroke.regular,
+        ),
         boxShadow: [
-          BoxShadow(color: color.withValues(alpha: 0.18), blurRadius: 18),
+          BoxShadow(
+            color: color.withValues(alpha: DashAlpha.wash),
+            blurRadius: DashBlur.lg,
+          ),
         ],
       ),
       child: Padding(
@@ -409,7 +418,7 @@ class _SaverBox extends ConsumerWidget {
             ),
             child: Center(
               child: Text(
-                '${progress.toStringAsFixed(0)}%',
+                '${status.progressPercent}%',
                 style: t.monoDisplay.copyWith(
                   color: t.textPrimary,
                   fontSize: _percentFont,
@@ -548,7 +557,7 @@ class _RingPainter extends CustomPainter {
     final track = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..color = color.withValues(alpha: 0.14);
+      ..color = color.withValues(alpha: DashAlpha.wash);
     canvas.drawArc(rect, 0, 2 * math.pi, false, track);
     if (value <= 0) return;
     final sweep = 2 * math.pi * value;

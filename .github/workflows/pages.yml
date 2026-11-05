@@ -1,16 +1,10 @@
 name: Pages
 
-# The landing page and the privacy policy used to live on a separate `pages`
-# branch. They now ship from `site/` on master, so a policy change is a normal
-# commit reviewed alongside the code it describes, not a second branch to
-# remember. The privacy policy URL below is registered in the Play Console —
-# treat a broken deploy here as a live-listing problem, not a docs problem.
-#
-#   https://doyouhost.github.io/bambuddy-mobile/
+# Ships `site/` from master. The privacy policy URL is registered in the Play
+# Console, so a broken deploy is a live-listing problem:
 #   https://doyouhost.github.io/bambuddy-mobile/privacy.html
-#
-# The deploy itself is shared with lubelogger-mobile; only the trigger below is
-# ours. Pinned to `master` until app-shared cuts a tag that carries it.
+# The deploy is shared with lubelogger-mobile; pinned to `master` until app-shared
+# cuts a tag that carries it.
 
 on:
   push:
@@ -20,9 +14,7 @@ on:
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
-# Pages deployments are stateful, so a queued run must not overtake a running
-# one. In-progress runs finish rather than being cancelled: a half-applied
-# deploy would take the policy URL down.
+# Never cancel a running deploy: a half-applied one would take the policy URL down.
 concurrency:
   group: pages
   cancel-in-progress: false

@@ -9,17 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 import 'fake_suppliers.dart';
 
-class _Shelf extends InventoryNotifier {
+class _Shelf extends FixedInventory {
   _Shelf([
-    this.spools = const [
+    List<Spool> spools = const [
       Spool(id: 1, material: 'PLA', brand: 'Bambu', suppliers: []),
     ],
-  ]);
-
-  final List<Spool> spools;
-
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: spools);
+  ]) : super(InventoryState(spools: spools));
 }
 
 void main() {
@@ -56,6 +51,30 @@ void main() {
 
   Finder field(String label) =>
       find.ancestor(of: find.text(label), matching: find.byType(TextFormField));
+
+  testWidgets('a save that fails with an unexpected error unlocks the sheet, '
+      'and still reports it', (tester) async {
+    final unreadable = StateError('unreadable answer');
+    final suppliers = FakeSuppliers()..failNextWrite = unreadable;
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+    await tester.tap(byLogId('suppliers.add'));
+    await settle(tester);
+    await tester.enterText(
+      field('${pl.inventorySupplierFieldName} *'),
+      'Extrudr',
+    );
+    await tester.ensureVisible(byLogId('supplier_form.save'));
+    await settle(tester);
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('supplier_form.save'),
+      animated: true,
+    );
+
+    expect(errors.single, same(unreadable));
+    expect(buttonAt(tester, 'supplier_form.save').onPressed, isNotNull);
+  });
 
   testWidgets('no entry at all on a server without suppliers', (tester) async {
     await pumpShelf(tester, FakeSuppliers(supported: false));

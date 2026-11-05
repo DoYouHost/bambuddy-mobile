@@ -30,6 +30,9 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   variants: json['variants'] == null
       ? const []
       : _variantsFromJson(json['variants']),
+  colorSubstitutions: json['color_substitutions'] == null
+      ? const []
+      : _colorSubstitutionsFromJson(json['color_substitutions']),
   archiveHasSlicerAmsMapping:
       json['archive_has_slicer_ams_mapping'] as bool? ?? false,
   errorMessage: json['error_message'] as String?,
@@ -76,3 +79,12 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   createdByUsername: json['created_by_username'] as String?,
   costCenterId: (json['cost_center_id'] as num?)?.toInt(),
 );
+
+ColorSubstitution _$ColorSubstitutionFromJson(Map<String, dynamic> json) =>
+    ColorSubstitution(
+      slotId: (json['slot_id'] as num).toInt(),
+      wanted: json['wanted'] as String,
+      got: json['got'] as String,
+      type: json['type'] as String? ?? '',
+      tray: (json['tray'] as num?)?.toInt(),
+    );

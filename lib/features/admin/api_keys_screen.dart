@@ -105,7 +105,7 @@ class _ApiKeyCard extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.key_outlined, size: 20, color: accent),
+              Icon(Icons.key_outlined, size: DashIcon.md, color: accent),
               const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Column(
@@ -128,7 +128,7 @@ class _ApiKeyCard extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     Icons.delete_outline,
-                    size: 20,
+                    size: DashIcon.md,
                     color: t.dangerInk,
                   ),
                   tooltip: l10n.apiKeysRevoke,
@@ -208,9 +208,7 @@ class _ApiKeyCard extends ConsumerWidget {
       logId: 'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.snack(
-      result.isOk ? l10n.apiKeysRevoked : userWriteMessage(l10n, result),
-    );
+    messenger.snack(userWriteText(l10n, result, l10n.apiKeysRevoked));
   }
 }
 
@@ -255,12 +253,20 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
             padding: const EdgeInsets.all(DashSpace.md),
             decoration: BoxDecoration(
               color: t.subCard,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: SelectableText(
-              apiKey,
-              style: t.monoValue.copyWith(color: t.accentGreenInk),
+            // Read out as one label: the selectable text's own node is a tappable
+            // line under 48 dp, and the Copy button below is the way to take the key.
+            child: Semantics(
+              container: true,
+              label: apiKey,
+              child: ExcludeSemantics(
+                child: SelectableText(
+                  apiKey,
+                  style: t.monoValue.copyWith(color: t.accentGreenInk),
+                ),
+              ),
             ),
           ),
         ],
@@ -275,7 +281,7 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
             await Clipboard.setData(ClipboardData(text: apiKey));
             if (mounted) setState(() => _copied = true);
           },
-          icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
+          icon: Icon(_copied ? Icons.check : Icons.copy, size: DashIcon.md),
           label: Text(_copied ? l10n.apiKeysCopied : l10n.apiKeysCopy),
         ).tagged('api_key_created.copy'),
         FilledButton(

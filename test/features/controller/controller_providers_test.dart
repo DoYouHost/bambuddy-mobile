@@ -8,6 +8,7 @@ Future<ProviderContainer> _container() async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
+    retry: neverRetry,
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
   addTearDown(container.dispose);

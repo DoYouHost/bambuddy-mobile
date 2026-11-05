@@ -95,6 +95,9 @@ class _CapturingRepository extends SlicerRepository {
 
   Map<String, dynamic>? body;
 
+  /// When set, the request fails with it: something the app cannot read.
+  Object? explode;
+
   /// What the finished job reports back, as the server's `SliceResponse`.
   Map<String, dynamic> result = const {
     'library_file_id': 9,
@@ -103,6 +106,7 @@ class _CapturingRepository extends SlicerRepository {
 
   @override
   Future<int> sliceArchive(int archiveId, Map<String, dynamic> request) async {
+    if (explode != null) throw explode!;
     body = request;
     return 7;
   }
@@ -245,6 +249,20 @@ void main() {
     }
     return repo.body!;
   }
+
+  testWidgets('a slice that fails with an unexpected error unlocks the form, '
+      'and still reports it', (tester) async {
+    repo.explode = StateError('unreadable answer');
+    await openSheet(tester);
+    final errors = await tapCapturingErrors(
+      tester,
+      find.text(pl.sliceStart),
+      animated: true,
+    );
+
+    expect(errors.single, isA<StateError>());
+    expect(buttonAt(tester, 'slice.submit').onPressed, isNotNull);
+  });
 
   testWidgets('the process schema decodes while the presets still load', (
     tester,

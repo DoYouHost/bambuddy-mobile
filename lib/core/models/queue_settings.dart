@@ -18,7 +18,11 @@ enum QueueSetting {
   // Post-print outcome confirmation (#1898), Settings → Workflow on the web.
   confirmOutcomeDefault('default_confirm_outcome'),
   confirmOutcomeExternal('confirm_outcome_external_prints'),
-  confirmGoodOnPlateClear('confirm_default_good_on_plate_clear');
+  confirmGoodOnPlateClear('confirm_default_good_on_plate_clear'),
+  // Not a queue setting: how long before a slicer pause the server and this app
+  // warn (#2984). It rides on this block's writer, gate and lock — the same
+  // `PUT /settings/`, key-presence gate and denied-to-API-keys rule.
+  pauseWarningMinutes('pause_warning_minutes', min: 1, max: 120);
 
   const QueueSetting(this.key, {this.min, this.max});
 
@@ -36,6 +40,7 @@ enum QueueSetting {
     preheatSoakSeconds => 300,
     keepWarmBedTemp => 90,
     keepWarmMaxMinutes => 120,
+    pauseWarningMinutes => 5,
     _ => 0,
   };
 }

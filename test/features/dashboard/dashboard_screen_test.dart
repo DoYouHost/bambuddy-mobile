@@ -4,7 +4,10 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/models/external_link.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/smart_plug.dart';
+import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
@@ -17,6 +20,9 @@ import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
+import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
+import 'package:bambuddy_mobile/features/links/external_links_screen.dart'
+    show ExternalLinkBadge;
 import 'package:bambuddy_mobile/features/notifications/finish_photo_providers.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
@@ -28,6 +34,8 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -66,6 +74,7 @@ class _NoopNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {}
   @override
   Future<bool> isAlertActive(int id) async => true;
@@ -155,6 +164,7 @@ List<Override> _overrides(DashboardState state) => [
   inertSmartPlugsOverride,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
+  inertExternalLinksOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),
   // Touched on the very first frame (taking over from a surviving service), so
@@ -166,12 +176,27 @@ List<Override> _overrides(DashboardState state) => [
   ),
 ];
 
+class _PluggedIn extends SmartPlugsNotifier {
+  @override
+  SmartPlugsState build() => const SmartPlugsState(
+    plugs: [SmartPlug(id: 1, name: 'Farm', printerId: 1)],
+    statuses: {
+      1: SmartPlugStatus(
+        state: 'ON',
+        reachable: true,
+        energy: SmartPlugEnergy(power: 120),
+      ),
+    },
+  );
+}
+
 Widget _app(
   DashboardState state, {
   List<Override> extra = const [],
   TextScaler textScaler = TextScaler.noScaling,
 }) => ProviderScope(
-  overrides: [..._overrides(state), ...extra],
+  retry: neverRetry,
+  overrides: layerOverrides([..._overrides(state)], extra),
   child: plApp(
     const DashboardScreen(),
     builder: (context, child) => MediaQuery(
@@ -194,6 +219,7 @@ Widget _routedApp(DashboardState state) {
     ],
   );
   return ProviderScope(
+    retry: neverRetry,
     overrides: _overrides(state),
     child: plRouterApp(router),
   );
@@ -216,6 +242,59 @@ void main() {
     await _prefs.remove('sign_in_reason');
     await _prefs.remove('dashboard_view');
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets(
+      'the power chip is a 48 dp target on the full and the collapsed bar at '
+      'text scale $scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(411, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _app(
+            DashboardState(
+              printers: [
+                for (var i = 1; i <= 8; i++)
+                  PrinterWithStatus(
+                    printer: Printer(id: i, name: 'P$i'),
+                  ),
+              ],
+            ),
+            extra: [smartPlugsProvider.overrideWith(_PluggedIn.new)],
+            textScaler: TextScaler.linear(scale),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        void expectTarget(String bar) {
+          final size = tester.getSize(byLogId('dashboard.power'));
+          expect(size.height, greaterThanOrEqualTo(48), reason: bar);
+          expect(size.width, greaterThanOrEqualTo(48), reason: bar);
+        }
+
+        // Beside the chip the line keeps its room: a Flexible next to a Spacer
+        // halved it and cut the text at 100%. Larger text may ellipsise it, but
+        // never overflow (a RenderFlex error fails the test on its own).
+        if (scale == 1.0) {
+          final line = tester.renderObject<RenderParagraph>(
+            find.descendant(
+              of: find.text(pl.noActivePrints),
+              matching: find.byType(RichText),
+            ),
+          );
+          expect(line.didExceedMaxLines, isFalse);
+        }
+        expectTarget('full bar');
+        await tester.drag(
+          find.byType(CustomScrollView).first,
+          const Offset(0, -2000),
+        );
+        await tester.pumpAndSettle();
+        expectTarget('collapsed bar');
+      },
+    );
+  }
 
   testWidgets(
     'a failed poll shows the banner above the last data, not instead of it',
@@ -287,12 +366,15 @@ void main() {
     WidgetTester tester, {
     DashboardState state = const DashboardState(),
     String? version,
+    List<Override> extra = const [],
     TextScaler textScaler = TextScaler.noScaling,
   }) async {
     await tester.pumpWidget(
       _app(
         state,
-        extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+        extra: layerOverrides([
+          serverVersionLabelProvider.overrideWith((ref) => version),
+        ], extra),
         textScaler: textScaler,
       ),
     );
@@ -301,6 +383,65 @@ void main() {
     // running, so waiting for a still frame never returns.
     await settle(tester);
   }
+
+  group('drawer: linked apps', () {
+    ExternalLink link(int id, int? badge) => ExternalLink(
+      id: id,
+      name: 'App $id',
+      url: 'http://app$id.lan',
+      badgeCount: badge,
+    );
+
+    Future<void> openWith(
+      WidgetTester tester,
+      List<ExternalLink> links, {
+      TextScaler textScaler = TextScaler.noScaling,
+    }) async {
+      // Tall, so the drawer builds every tile: at 200% text the new one sits
+      // below the fold of the default window, and a lazy list does not build it.
+      useLogicalWindow(tester, const Size(360, 3000));
+      await openDrawer(
+        tester,
+        extra: [externalLinksProvider.overrideWith((ref) async => links)],
+        textScaler: textScaler,
+      );
+    }
+
+    testWidgets('shows one tile with the sum of every count', (tester) async {
+      await openWith(tester, [link(1, 3), link(2, null), link(3, 12)]);
+
+      expect(find.text(pl.linkedAppsTitle), findsOneWidget);
+      expect(find.text('15'), findsOneWidget);
+      // One tile however many links: the links themselves are not in the drawer.
+      expect(find.text('App 1'), findsNothing);
+    });
+
+    testWidgets('shows the tile without a count when none is reported', (
+      tester,
+    ) async {
+      await openWith(tester, [link(1, 0), link(2, null)]);
+
+      expect(find.text(pl.linkedAppsTitle), findsOneWidget);
+      expect(find.byType(ExternalLinkBadge), findsNothing);
+    });
+
+    testWidgets('has no tile when there is nothing to open', (tester) async {
+      await openWith(tester, const []);
+
+      expect(find.text(pl.linkedAppsTitle), findsNothing);
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('fits at ${scale * 100}% text', (tester) async {
+        await openWith(tester, [
+          link(1, 1234),
+        ], textScaler: TextScaler.linear(scale));
+
+        expect(find.text(pl.linkedAppsTitle), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
 
   testWidgets(
     'the drawer list does not stretch, the printer list still does',
@@ -448,6 +589,8 @@ void main() {
             serverUiFlagsProvider.overrideWith((ref) async => const {}),
             serverVersionProvider.overrideWith((ref) => null),
             serverVersionLabelProvider.overrideWith((ref) => null),
+            // Warmed with the rest, and not what this test is about.
+            externalLinksProvider.overrideWith((ref) async => const []),
           ],
         ),
       );
@@ -684,6 +827,26 @@ void main() {
         isNull,
       );
     });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the filter sheet header holds title and Clear at text '
+          '$scale', (tester) async {
+        await tester.pumpWidget(
+          _app(farm, textScaler: TextScaler.linear(scale)),
+        );
+        await tester.tap(byLogId('dashboard.filters'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final title = tester.getRect(find.text(pl.dashboardFilters));
+        final clear = tester.getRect(find.text(pl.filtersClear));
+        expect(
+          title.right <= clear.left || clear.top >= title.bottom,
+          isTrue,
+          reason: 'Clear beside the title or under it, never over it',
+        );
+      });
+    }
 
     testWidgets('the sheet picks a location and a sort', (tester) async {
       await pumpFarm(tester);

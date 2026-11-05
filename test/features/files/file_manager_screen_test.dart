@@ -16,9 +16,12 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 import '../queue/queue_form_harness.dart';
 
@@ -259,7 +262,7 @@ void main() {
       await pumpPhone(
         tester,
         const FileManagerScreen(),
-        overrides: [
+        overrides: layerOverrides([
           noServerProfileOverride,
           libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
           printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
@@ -285,8 +288,7 @@ void main() {
             (ref) async => {'billing_enabled': billing},
           ),
           serverSettingsOverride(const {}),
-          ...extra,
-        ],
+        ], extra),
       );
       await tester.pumpAndSettle();
     }
@@ -1109,6 +1111,9 @@ void main() {
       tester,
     ) async {
       await pumpAt(tester, folderId: 3);
+      // The button says what it does here: it cannot add files.
+      expect(find.byTooltip(pl.fmNewFolder), findsOneWidget);
+      expect(find.byTooltip(pl.fmAddFiles), findsNothing);
       await tester.tap(byLogId('files.create'));
       await tester.pumpAndSettle();
       expect(byLogId('files.new_folder'), findsOneWidget);
@@ -1118,6 +1123,97 @@ void main() {
     testWidgets('a writable folder keeps the add button', (tester) async {
       await pumpAt(tester, folderId: 1);
       expect(byLogId('files.create'), findsOneWidget);
+      expect(find.byTooltip(pl.fmAddFiles), findsOneWidget);
+    });
+  });
+
+  group('moving a folder', () {
+    const parent = LibraryFolder(id: 1, name: 'Parent');
+    const other = LibraryFolder(id: 3, name: 'Other');
+    const kid = LibraryFolder(id: 2, name: 'Kid', parentId: 1);
+    const mount = LibraryFolder(id: 4, name: 'NAS', isExternal: true);
+
+    /// Parent is open, so Kid is the folder on screen.
+    Future<RequestLog> pumpParent(
+      WidgetTester tester, {
+      List<LibraryFolder> folders = const [parent, other, kid, mount],
+    }) async {
+      final dio = testDio();
+      mockServer(dio)
+        ..onPut(
+          '/api/v1/library/folders/2',
+          (s) => s.reply(200, {'id': 2, 'name': 'Kid'}),
+          data: Matchers.any,
+        )
+        ..onGet('/api/v1/library/folders', (s) => s.reply(200, <Object>[]))
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, <Object>[]),
+          queryParameters: {'folder_id': 1, 'include_root': false},
+        );
+      final log = captureRequests(dio);
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(allFolders: folders, currentFolderId: 1),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          slicerEnabledProvider.overrideWithValue(const AsyncData(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(true)),
+          libraryFileExtrasProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+      return log;
+    }
+
+    Future<void> openMove(WidgetTester tester) async {
+      await tester.tap(byLogId('files.folder_actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('files.folder.move'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('what the move sends, recorded for the contract test', (
+      tester,
+    ) async {
+      final log = await pumpParent(tester);
+
+      await openMove(tester);
+      await tester.tap(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('Other'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expectSentAsRecorded('library_folder_move', writesOf(log.requests));
+      expect(find.text(pl.fmMoved), findsOneWidget);
+    });
+
+    testWidgets('the picker offers the root and the folders it may use', (
+      tester,
+    ) async {
+      await pumpParent(tester);
+
+      await openMove(tester);
+
+      // Not Kid itself, not its current parent, not the external mount.
+      expect(byLogId('files.move_target'), findsOneWidget);
+      expect(byLogId('files.move_target_root'), findsOneWidget);
     });
   });
 }

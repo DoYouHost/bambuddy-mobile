@@ -1,3 +1,4 @@
+import 'scale_to_fit.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +10,15 @@ import '../dashboard/widgets/printer_card.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
 
-/// The fault count in the top bar, opening the fault view. Absent while the
-/// printer reports none.
+/// The fault count on the Overview's picture, opening the fault view. Absent
+/// while the printer reports none.
 class ControllerFaultChip extends ConsumerWidget {
   const ControllerFaultChip({super.key, required this.printerId});
 
   final int printerId;
+
+  /// A touch target, not the 44 dp of the section headers beside it.
+  static const _height = kMinInteractiveDimension;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,7 +28,7 @@ class ControllerFaultChip extends ConsumerWidget {
     if (count == 0) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final radius = BorderRadius.circular(ControllerSection.headerHeight / 2);
+    final radius = BorderRadius.circular(_height / 2);
     return logTag(
       'controller.faults',
       Semantics(
@@ -33,16 +37,18 @@ class ControllerFaultChip extends ConsumerWidget {
         // The count is spoken as words above, not as a bare digit.
         excludeSemantics: true,
         child: Material(
-          color: t.danger.withValues(alpha: 0.16),
+          color: t.danger.withValues(alpha: DashAlpha.wash),
           shape: RoundedRectangleBorder(
             borderRadius: radius,
-            side: BorderSide(color: t.danger.withValues(alpha: 0.5)),
+            side: BorderSide(
+              color: t.danger.withValues(alpha: DashAlpha.scrim),
+            ),
           ),
           child: InkWell(
             borderRadius: radius,
             onTap: () => showControllerFaults(context, printerId),
             child: SizedBox(
-              height: ControllerSection.headerHeight,
+              height: _height,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
                 child: Row(
@@ -50,7 +56,7 @@ class ControllerFaultChip extends ConsumerWidget {
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
-                      size: DashSpace.xl,
+                      size: controllerIconSize(context, DashSpace.xl),
                       color: t.dangerInk,
                     ),
                     const SizedBox(width: DashSpace.xs),
@@ -170,7 +176,8 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    size: DashSpace.xl,
+                    size: controllerIconSize(context, DashSpace.xl),
+                    applyTextScaling: false,
                     color: t.dangerInk,
                   ),
                   const SizedBox(width: DashSpace.sm),

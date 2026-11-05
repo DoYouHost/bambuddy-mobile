@@ -11,7 +11,7 @@ import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -50,13 +50,13 @@ void main() {
     (s) => s.reply(code, body ?? {'detail': 'Not Found'}),
   );
 
-  void listing() => server
+  void listing({bool hasNext = false}) => server
     ..onGet(
       '/api/v1/manyfold/models',
       (s) => s.reply(200, {
         'total': 2,
         'page': 1,
-        'has_next': false,
+        'has_next': hasNext,
         'has_previous': false,
         'models': [
           {'id': 'm1', 'name': 'Dragon'},
@@ -114,7 +114,7 @@ void main() {
       pumpPhone(
         tester,
         const ModelSourcesScreen(),
-        overrides: [...overrides, ...extra],
+        overrides: layerOverrides([...overrides], extra),
       ).then((_) => tester.pumpAndSettle());
 
   group('the Manyfold tab', () {
@@ -156,6 +156,94 @@ void main() {
     });
   });
 
+  // A fixed tile aspect ratio overflowed the name by 20 dp at 150 % and 38 dp at
+  // 200 %: the square preview grows with the width, the name with the text. The
+  // page buttons below the grid still overflow at 320 dp and 200 %, so that
+  // combination is not asserted here.
+  for (final (width, scale, columns) in [
+    (411.0, 1.0, 2),
+    (411.0, 1.5, 2),
+    (411.0, 2.0, 2),
+    (320.0, 1.0, 2),
+  ]) {
+    testWidgets(
+      'the model tiles at $width dp and text $scale: $columns column(s), none '
+      'overflows',
+      (tester) async {
+        tester.view.physicalSize = Size(width, 2400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        status(200, {'configured': true, 'url': 'http://mf'});
+        listing();
+        await pumpPhone(
+          tester,
+          const ModelSourcesScreen(),
+          overrides: layerOverrides(
+            [...overrides],
+            [currentUserOverride(user({}))],
+          ),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(pl.manyfoldTitle));
+        await tester.pumpAndSettle();
+
+        final tiles = [
+          for (final e in byLogId('manyfold.model').evaluate())
+            tester.getRect(find.byWidget(e.widget)),
+        ];
+        expect(tiles, hasLength(2));
+        expect({for (final r in tiles) r.left.round()}, hasLength(columns));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the paging buttons share the width at text $scale', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      status(200, {'configured': true, 'url': 'http://mf'});
+      listing(hasNext: true);
+      await pumpPhone(
+        tester,
+        const ModelSourcesScreen(),
+        overrides: layerOverrides(
+          [...overrides],
+          [currentUserOverride(user({}))],
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: child!,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(pl.manyfoldTitle));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final prev = tester.getRect(byLogId('manyfold.prev_page'));
+      final next = tester.getRect(byLogId('manyfold.next_page'));
+      expect(next.right, lessThanOrEqualTo(411));
+      expect(prev.width, closeTo(next.width, 0.5), reason: 'equal shares');
+      // Beside each other they fill the row; stacked, each spans it.
+      final spans = next.left > prev.right
+          ? next.right - prev.left
+          : next.width;
+      expect(spans, greaterThan(411 - 2 * 32));
+    });
+  }
+
   testWidgets('a search asks Manyfold once the typing pauses', (tester) async {
     status(200, {'configured': true, 'url': 'http://mf'});
     listing();
@@ -177,7 +265,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'gear');
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Dragon'), findsOneWidget);
-    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+    // The debounce fires and the new key's request starts in this pump; its
+    // answer is delivered by the next one.
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
     expect(find.text(pl.mfNoModels), findsOneWidget);
   });

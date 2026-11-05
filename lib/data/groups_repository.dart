@@ -1,7 +1,7 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/group_summary.dart';
 import '../core/models/group_write.dart';
@@ -19,39 +19,23 @@ class GroupsRepository {
   final Dio _dio;
 
   /// GET /groups/ — every group, by name (`groups.py::list_permissions`).
-  Future<List<GroupSummary>> list() async {
-    try {
-      final res = await _dio.get<List<dynamic>>(Endpoints.groups);
-      return parseJsonList(res.data, GroupSummary.fromJson);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<List<GroupSummary>> list() => guard(() async {
+    return _dio.getList(Endpoints.groups, GroupSummary.fromJson);
+  });
 
   /// GET /groups/{id} — the group with its member list.
-  Future<GroupDetail> get(int groupId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.groupById(groupId),
-      );
-      return GroupDetail.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<GroupDetail> get(int groupId) => guard(() async {
+    return _dio.getObject(Endpoints.groupById(groupId), GroupDetail.fromJson);
+  });
 
   /// GET /groups/permissions — the catalog the permission editor is built
   /// from.
-  Future<PermissionCatalog> permissions() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.groupPermissions,
-      );
-      return PermissionCatalog.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<PermissionCatalog> permissions() => guard(() async {
+    return _dio.getObject(
+      Endpoints.groupPermissions,
+      PermissionCatalog.fromJson,
+    );
+  });
 
   /// POST /groups/ — the group as the server stored it.
   Future<GroupSummary> create(GroupCreateInput body) {

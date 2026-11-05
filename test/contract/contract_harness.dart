@@ -20,11 +20,13 @@ import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/group_write.dart';
 import 'package:bambuddy_mobile/core/models/user_write.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/account_repository.dart';
+import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/groups_repository.dart';
 import 'package:bambuddy_mobile/data/users_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -92,11 +94,14 @@ Future<Map<String, dynamic>> rawLogin() async {
 
 /// Holds back a successful write's answer for a moment before the test sees it.
 ///
-/// Bambuddy commits in `get_db` after the response has been sent (FastAPI's
-/// request-scoped `yield` dependency), so a read issued straight after a write
-/// can miss it: a new row is a 404, an edited one reads its old value. Measured
-/// at about 1 in 300 on 1.2.5, latest and daily; CI hit it in the wear-cost
-/// project test. Reported upstream as maziggy/bambuddy#3320.
+/// Bambuddy up to 1.3.0 commits in `get_db` after the response has been sent
+/// (FastAPI's request-scoped `yield` dependency), so a read issued straight
+/// after a write can miss it: a new row is a 404, an edited one reads its old
+/// value. Measured at about 1 in 300 on 1.2.5 and latest; CI hit it in the
+/// wear-cost project test. Fixed in 1.3.1 (maziggy/bambuddy#3320, `d8375fa`:
+/// every `Depends(get_db)` is `scope="function"`), and still needed for the older
+/// servers the app talks to. `commit_before_response_contract_test.dart` proves
+/// the fix; it cannot rely on this lag, which is shorter than the delay it uses.
 // ponytail: a fixed lag narrows the window and does not close it; a read that
 // must not miss still polls (pollUntil).
 class _CommitLag extends Interceptor {
@@ -193,11 +198,60 @@ Future<void> _quietly(Future<Object?> cleanup) async {
   } on DioException catch (_) {}
 }
 
+/// An API key minted through [owner]'s session, usable at once, and deleted when
+/// the test is over.
+///
+/// The create route only flushes; `get_db` commits after the reply has gone
+/// out, so a key used straight away can still be unknown and answer 401 (1 in
+/// 100 on a throttled container, CI run 36677355174). The listing shows the row
+/// once it is committed, so the helper waits for that.
+Future<CreatedApiKey> mintContractApiKey(
+  Dio owner,
+  Set<ApiKeyScope> scopes, {
+  String name = 'contract probe',
+}) async {
+  final keys = ApiKeysRepository(owner);
+  final created = await keys.create(
+    ApiKeyCreateInput(name: name, scopes: scopes),
+  );
+  addTearDown(
+    () => _quietly(
+      owner.delete<dynamic>(
+        Endpoints.apiKeyById(created.apiKey.id),
+        options: Options(validateStatus: (_) => true),
+      ),
+    ),
+  );
+  await pollUntil(
+    'key ${created.apiKey.id} to be committed',
+    () async =>
+        (await keys.list()).any((k) => k.id == created.apiKey.id) ? true : null,
+    within: const Duration(seconds: 10),
+    every: const Duration(milliseconds: 100),
+  );
+  return created;
+}
+
+/// A client that authenticates the way a key-configured app does: the
+/// `X-API-Key` header and no bearer token at all.
+Dio apiKeyClient(String key) =>
+    commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
+      ..options.headers['X-API-Key'] = key;
+
+/// [apiKeyClient] on a key just minted by [owner] with [scopes].
+Future<Dio> contractApiKeyDio(
+  Dio owner,
+  Set<ApiKeyScope> scopes, {
+  String name = 'contract probe',
+}) async =>
+    apiKeyClient((await mintContractApiKey(owner, scopes, name: name)).key);
+
 /// The app's providers on top of [dio], for a test that has to follow a
 /// reading through the same chain a screen does rather than through one
 /// repository. Disposed with the test.
 ProviderContainer contractContainer(Dio dio) {
   final container = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       fakeServerProfileOverride(),
       apiClientProvider.overrideWithValue(

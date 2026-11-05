@@ -267,14 +267,14 @@ class _PrinterFileManagerScreenState
       }
     } on PrinterDownloadFailure catch (e) {
       _recordPreparedDownload(e.reason.name);
-      if (mounted) _snack(_prepareFailureText(e, l10n));
+      if (mounted) _snack(prepareFailureText(e, l10n));
     } on AppApiException catch (e) {
       showApiFailure(
         mounted ? ScaffoldMessenger.of(context) : null,
         e,
         l10n,
         action: 'printer_files.download',
-        message: _downloadFailure(e, l10n),
+        message: downloadRefusalText(e, l10n),
       );
     } finally {
       // The save dialog copies the file on the platform side and returns only
@@ -378,32 +378,6 @@ class _PrinterFileManagerScreenState
     );
   }
 
-  String _prepareFailureText(
-    PrinterDownloadFailure failure,
-    AppLocalizations l10n,
-  ) => switch (failure.reason) {
-    PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
-    // The server's own sentence names the limit or the file it stopped on,
-    // which is worth more than the generic line — see
-    // [PrinterDownloadFailure.detail] on why it is not localized.
-    PrinterDownloadStopped.failed =>
-      failure.detail ?? l10n.pfmDownloadPrepareFailed,
-    PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
-  };
-
-  /// The three refusals the download routes explain in a way the user can act
-  /// on: the bundle exceeds what the server will build, the server has no disk
-  /// space to build it in, or it ran past its own preparation ceiling. Null for
-  /// everything else, which keeps the shared wording — and null on older
-  /// servers too, which answer none of these.
-  String? _downloadFailure(AppApiException e, AppLocalizations l10n) =>
-      switch (e.statusCode) {
-        413 => l10n.pfmDownloadTooLarge,
-        504 => l10n.pfmDownloadTookTooLong,
-        507 => l10n.pfmDownloadNoServerSpace,
-        _ => null,
-      };
-
   Future<void> _delete() async {
     if (_selected.isEmpty || _busy) return;
     final l10n = AppLocalizations.of(context);
@@ -419,38 +393,43 @@ class _PrinterFileManagerScreenState
     if (!confirmed || !mounted) return;
 
     setState(() => _busy = true);
-    final repo = ref.read(printerFilesRepositoryProvider);
-    var deleted = 0;
-    final failures = <AppApiException>[];
-    for (final path in paths) {
-      try {
-        await repo.deleteFile(widget.printerId, path);
-        deleted++;
-      } on AppApiException catch (e) {
-        failures.add(e);
+    try {
+      final repo = ref.read(printerFilesRepositoryProvider);
+      var deleted = 0;
+      final failures = <AppApiException>[];
+      for (final path in paths) {
+        try {
+          await repo.deleteFile(widget.printerId, path);
+          deleted++;
+        } on AppApiException catch (e) {
+          failures.add(e);
+        }
       }
-    }
-    // Each refusal is its own call and worth its own record, but only the last
-    // one's wording becomes the snack — and none of it is delivered if the
-    // screen went away while the batch ran. Recording them all as told would
-    // say a dozen people were stopped where one message appeared, or none.
-    final delivered = mounted;
-    for (var i = 0; i < failures.length; i++) {
-      recordActionFailure(
-        failures[i],
-        action: 'printer_files.delete',
-        shown: delivered && i == failures.length - 1,
+      // Each refusal is its own call and worth its own record, but only the last
+      // one's wording becomes the snack — and none of it is delivered if the
+      // screen went away while the batch ran. Recording them all as told would
+      // say a dozen people were stopped where one message appeared, or none.
+      final delivered = mounted;
+      for (var i = 0; i < failures.length; i++) {
+        recordActionFailure(
+          failures[i],
+          action: 'printer_files.delete',
+          shown: delivered && i == failures.length - 1,
+        );
+      }
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _snack(
+        failures.isEmpty
+            ? l10n.pfmDeleted(deleted)
+            : failures.last.localized(l10n),
       );
+      await _load();
+      await _loadStorage();
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
-    if (!mounted) return;
-    setState(() => _busy = false);
-    _snack(
-      failures.isEmpty
-          ? l10n.pfmDeleted(deleted)
-          : failures.last.localized(l10n),
-    );
-    await _load();
-    await _loadStorage();
   }
 
   void _snack(String message) =>
@@ -540,13 +519,11 @@ class _PrinterFileManagerScreenState
       );
 
   Widget _quickNav(DashTokens t, AppLocalizations l10n) => SizedBox(
-    height: 48,
+    height: DashSize.d48,
     child: ListView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: DashSpace.gutter,
-        vertical: DashSpace.sm,
-      ),
+      // No vertical padding: the chip's 48 dp touch area needs the whole bar.
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
       children: [
         for (final (path, tab) in _quickDirs)
           Padding(
@@ -558,7 +535,7 @@ class _PrinterFileManagerScreenState
               showCheckmark: false,
               backgroundColor: t.subCard,
               side: BorderSide(color: t.subCardBorder),
-              selectedColor: t.accentGreen.withValues(alpha: 0.18),
+              selectedColor: t.accentGreen.withValues(alpha: DashAlpha.wash),
               labelStyle: t.label.copyWith(
                 color: _path == path ? t.accentGreenInk : t.textSecondary,
               ),
@@ -836,7 +813,7 @@ class _PrinterFileManagerScreenState
                         padding: const EdgeInsets.only(right: DashSpace.sm),
                         child: Text(label, style: t.monoLabel),
                       ),
-                    DashSpinner(size: 20, value: _downloadProgress),
+                    DashSpinner(size: DashSize.d20, value: _downloadProgress),
                     // Only while the server is still pulling files. Once
                     // the transfer starts there is nothing worth stopping:
                     // the bytes are coming off the server's own disk, and
@@ -899,7 +876,7 @@ class _PrinterFileManagerScreenState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 48, color: tokens.textTertiary),
+          Icon(icon, size: DashIcon.xxl, color: tokens.textTertiary),
           const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: tokens.bodySoft),
           if (action != null) ...[const SizedBox(height: DashSpace.lg), action],

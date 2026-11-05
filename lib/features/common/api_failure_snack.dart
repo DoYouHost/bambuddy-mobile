@@ -21,7 +21,7 @@ export '../../core/api/action_failure.dart' show recordActionFailure;
 /// "server returned error 409". Everything else falls through to it.
 ///
 /// Do **not** use it on an outcome a notifier handed back: that was recorded
-/// when it was built, and `messageFor` is its wording.
+/// when it was built, and `messageFor` is its wording. `snackOutcome` says it.
 void showApiFailure(
   ScaffoldMessengerState? messenger,
   AppApiException error,

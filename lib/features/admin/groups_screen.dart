@@ -86,7 +86,7 @@ class GroupCard extends StatelessWidget {
     final accent = group.isSystem ? t.accentOrange : t.accentBlue;
     // The tile's tint and border take the vivid swatch; the icon inside it is
     // ink, and the warm one is the only accent whose vivid form fails there.
-    final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlue;
+    final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlueInk;
 
     return TappableCard(
       id: 'groups.group',
@@ -95,15 +95,21 @@ class GroupCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: DashSize.d40,
+            height: DashSize.d40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.16),
+              color: accent.withValues(alpha: DashAlpha.wash),
               shape: BoxShape.circle,
-              border: Border.all(color: accent.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: accent.withValues(alpha: DashAlpha.outline),
+              ),
             ),
-            child: Icon(Icons.group_outlined, size: 20, color: accentInk),
+            child: Icon(
+              Icons.group_outlined,
+              size: DashIcon.md,
+              color: accentInk,
+            ),
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(

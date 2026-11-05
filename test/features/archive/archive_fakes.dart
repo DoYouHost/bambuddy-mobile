@@ -26,7 +26,7 @@ class FakeArchives implements ArchiveRepository {
 
   /// Whether the server stored a verdict, and what it refuses it with.
   bool applied = true;
-  AppApiException? error;
+  Object? error;
 
   /// Set before a verdict to leave it in flight until completed.
   Completer<void>? held;
@@ -52,7 +52,7 @@ class FakeArchives implements ArchiveRepository {
   }
 
   @override
-  Future<Archive> byId(int archiveId) async => archive!;
+  Future<Archive> byId(int archiveId, {int? runId}) async => archive!;
 
   @override
   Future<({Archive archive, bool applied})> setVerdict(
@@ -60,6 +60,7 @@ class FakeArchives implements ArchiveRepository {
     PrintVerdict? verdict, {
     String? reason,
     bool clearReason = false,
+    int? runId,
   }) async {
     if (error != null) throw error!;
     sent.add((verdict: verdict, reason: reason, clearReason: clearReason));

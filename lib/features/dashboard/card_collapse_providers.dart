@@ -17,6 +17,7 @@ class PrinterCardsCollapsedByDefaultNotifier extends Notifier<bool> {
     await ref
         .read(settingsRepositoryProvider)
         .savePrinterCardsCollapsed(collapsed);
+    if (!ref.mounted) return;
     state = collapsed;
   }
 }

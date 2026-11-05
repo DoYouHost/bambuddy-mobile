@@ -58,7 +58,7 @@ class SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 19, color: t.accentGreenInk),
+              Icon(icon, size: DashIcon.md, color: t.accentGreenInk),
               const SizedBox(width: DashSpace.sm),
               Expanded(child: Text(title, style: t.titleSm)),
               ?action,
@@ -84,7 +84,7 @@ Widget sectionCardAction({
   required String label,
   required VoidCallback onPressed,
 }) => TextButton.icon(
-  icon: Icon(icon, size: 18),
+  icon: Icon(icon, size: DashIcon.md),
   label: Text(label),
   onPressed: onPressed,
 ).tagged(id);
@@ -134,7 +134,7 @@ class ProjectFilesSection extends ConsumerWidget {
           if (folders.isEmpty) {
             return _emptyHint(context, l10n.projectFilesEmpty);
           }
-          final files = filesAsync.valueOrNull ?? const <LibraryFile>[];
+          final files = filesAsync.value ?? const <LibraryFile>[];
           return Column(
             children: [
               for (final folder in folders)
@@ -166,7 +166,7 @@ class ProjectFilesSection extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
 
     final linked =
-        (ref.read(projectFoldersProvider(projectId)).valueOrNull ??
+        (ref.read(projectFoldersProvider(projectId)).value ??
                 const <LibraryFolder>[])
             .map((f) => f.id)
             .toSet();
@@ -320,7 +320,7 @@ class _FolderTile extends StatelessWidget {
                 leading: LibraryThumbnail(
                   fileId: f.id,
                   hasThumbnail: f.thumbnailPath != null,
-                  size: 44,
+                  size: DashSize.d48,
                 ),
                 title: Text(
                   f.displayName,
@@ -527,19 +527,22 @@ class ProjectBomSection extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       // Completion is derived from quantity_acquired >= quantity_needed, so the
       // checkbox sets acquired to needed (done) or 0 (not done).
-      leading: Checkbox(
-        value: item.isComplete,
-        activeColor: t.accentGreen,
-        checkColor: t.onAccent,
-        onChanged: (v) => ref
-            .read(projectBomProvider(projectId).notifier)
-            .edit(
-              item.id,
-              BomItemInput(
-                name: item.name,
-                quantityAcquired: (v ?? false) ? item.quantityNeeded : 0,
+      leading: Semantics(
+        label: item.name,
+        child: Checkbox(
+          value: item.isComplete,
+          activeColor: t.accentGreen,
+          checkColor: t.onAccent,
+          onChanged: (v) => ref
+              .read(projectBomProvider(projectId).notifier)
+              .edit(
+                item.id,
+                BomItemInput(
+                  name: item.name,
+                  quantityAcquired: (v ?? false) ? item.quantityNeeded : 0,
+                ),
               ),
-            ),
+        ),
       ).tagged('project.bom_done'),
       title: Text(
         item.name,

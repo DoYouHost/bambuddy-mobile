@@ -41,6 +41,7 @@ void main() {
   setUp(() {
     version = _ScriptedVersion();
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         serverVersionServiceProvider.overrideWithValue(version),
@@ -168,7 +169,7 @@ void main() {
     final answer = container.read(gate);
 
     expect(answer.hasError, isTrue);
-    expect(answer.valueOrNull, isNull);
+    expect(answer.value, isNull);
   });
 
   test('unversioned, no probe: whenUnknown at once', () {

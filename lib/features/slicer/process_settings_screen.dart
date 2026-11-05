@@ -97,7 +97,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
-    final catalog = ref.watch(processSchemaProvider).valueOrNull;
+    final catalog = ref.watch(processSchemaProvider).value;
     final presetValues = ref.watch(presetValuesProvider(widget.preset));
 
     // Both have to be in hand before the first field is drawn: a field seeded
@@ -133,7 +133,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     if (count == 0) return const SizedBox.shrink();
     return TextButton.icon(
       onPressed: () => _revertAll(catalog, values),
-      icon: const Icon(Icons.restart_alt, size: 18),
+      icon: const Icon(Icons.restart_alt, size: DashIcon.md),
       label: Text(_l10n.processSettingsRevertAll(count)),
     ).tagged('process_settings.revert_all');
   }
@@ -250,7 +250,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
 
   Widget _pageSelector(List<ProcessPage> pages, ProcessPage? active) {
     return SizedBox(
-      height: 44,
+      height: DashSize.d48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
@@ -306,14 +306,14 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.info_outline,
-            size: 18,
+            size: DashIcon.md,
             color: theme.colorScheme.onSecondaryContainer,
           ),
           const SizedBox(width: DashSpace.sm),
@@ -501,35 +501,40 @@ class _OptionRow extends StatelessWidget {
     final theme = Theme.of(context);
     final modified = isModified(option, value, presetValue);
 
+    final name = Text(
+      option.label,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: enabled
+            ? theme.colorScheme.onSurface
+            : theme.colorScheme.onSurfaceVariant.withValues(
+                alpha: DashAlpha.scrim,
+              ),
+      ),
+    );
     final label = Row(
       children: [
         Expanded(
-          child: Text(
-            option.label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: enabled
-                  ? theme.colorScheme.onSurface
-                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            ),
-          ),
+          // A dimmed label says so to the reader as well: it is the label of a
+          // disabled control, and an inactive component has no contrast minimum
+          // (WCAG 1.4.3, and the framework's guideline skips disabled nodes).
+          child: enabled ? name : Semantics(enabled: false, child: name),
         ),
         if (modified)
           Padding(
             padding: const EdgeInsets.only(left: DashSpace.sm),
             child: Icon(
               Icons.circle,
-              size: 8,
+              size: DashIcon.xs,
               color: theme.colorScheme.primary,
             ),
           ),
         SizedBox(
-          width: 36,
+          width: kMinInteractiveDimension,
           child: modified
               ? IconButton(
-                  icon: const Icon(Icons.undo, size: 18),
-                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.undo, size: DashIcon.md),
                   tooltip: l10n.processSettingsRevert,
                   onPressed: onRevert,
                 ).tagged('process_settings.revert')
@@ -549,9 +554,14 @@ class _OptionRow extends StatelessWidget {
             ? Row(
                 children: [
                   Expanded(child: label),
-                  Switch(
-                    value: _asBool(),
-                    onChanged: enabled ? (v) => onChanged(v) : null,
+                  // The row's text is a node of its own beside the switch, so
+                  // the switch is named here.
+                  Semantics(
+                    label: option.label,
+                    child: Switch(
+                      value: _asBool(),
+                      onChanged: enabled ? (v) => onChanged(v) : null,
+                    ),
                   ).tagged('process_settings.option_bool'),
                 ],
               )

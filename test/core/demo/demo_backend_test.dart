@@ -13,12 +13,14 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
+import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/data/external_links_repository.dart';
 import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -42,6 +44,9 @@ import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipeline_presets.dart';
 import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/core/models/profile_default.dart';
+import 'package:bambuddy_mobile/data/profile_defaults_repository.dart';
+import 'package:bambuddy_mobile/core/models/spool_preset_override.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
@@ -117,6 +122,16 @@ void main() {
       final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));
     });
+
+    test(
+      'the failed rack job shows a colour substitution, no other does',
+      () async {
+        final items = await QueueRepository(dio).fetchHistory();
+        final withSub = items.where((i) => i.colorSubstitutions.isNotEmpty);
+        expect(withSub.map((i) => i.id), [104]);
+        expect(withSub.single.colorSubstitutions.single.slotId, 1);
+      },
+    );
 
     test('the print on the X1 is the printing row of the queue', () async {
       // The Printers tab and the queue describe one demo, so the job the
@@ -775,6 +790,84 @@ void main() {
       expect(users, hasLength(3));
       expect(users.map((u) => u.username), contains(DemoConfig.username));
     });
+
+    test('the multi-plate print has every print of its own', () async {
+      final repo = ArchiveRepository(dio);
+      final multi = (await repo.list()).firstWhere((a) => a.plateId != null);
+
+      final runs = await repo.runs(multi.id);
+
+      expect(runs, hasLength(multi.runCount));
+      expect(runs.map((r) => r.plateId).toSet(), {1, 2});
+      expect(
+        runs.where((r) => r.status == 'completed'),
+        hasLength(multi.successfulRunCount),
+      );
+      expect(
+        runs.where((r) => r.status == 'failed'),
+        hasLength(multi.failedRunCount),
+      );
+      expect(
+        runs.first.photos,
+        multi.photos,
+        reason: 'the latest print holds them',
+      );
+      expect(runs.every((r) => r.estimateSeconds != null), isTrue);
+      expect(runs.any((r) => r.notes != null), isTrue);
+      expect(await repo.runsCapability.supported, isTrue);
+    });
+
+    test('the duplicate demo archive merges into the oldest', () async {
+      final repo = ArchiveRepository(dio);
+      expect(await repo.mergeCount(), 1);
+      final group = (await repo.mergePreview()).single;
+      expect(group.mergeable, isTrue);
+      expect(group.survivor.name, 'Handle');
+      final before = (await repo.list()).length;
+
+      final result = await repo.merge([group.survivor.id, 12345]);
+
+      expect(result.merged, [group.survivor.id]);
+      expect(result.skipped.single.reason, 'not_a_group');
+      expect((await repo.list()).length, before - 1);
+      expect(await repo.runs(group.survivor.id), hasLength(2));
+      expect(await repo.mergeCount(), 0);
+    });
+
+    test('the calendar reads this month\'s prints', () async {
+      final repo = ArchiveRepository(dio);
+      final now = DateTime.now();
+      final rows = await repo.printsBetween(
+        DateTime(now.year, now.month - 1),
+        DateTime(now.year, now.month + 1, 0),
+      );
+
+      expect(rows, isNotEmpty);
+      expect(rows!.every((r) => r.archiveId != null), isTrue);
+      expect(await repo.printsCapability.supported, isTrue);
+    });
+
+    test('a verdict for one print leaves the others alone', () async {
+      final repo = ArchiveRepository(dio);
+      final multi = (await repo.list()).firstWhere((a) => a.plateId != null);
+      final failed = (await repo.runs(
+        multi.id,
+      )).firstWhere((r) => r.status == 'failed');
+
+      final result = await repo.setVerdict(
+        multi.id,
+        PrintVerdict.reject,
+        runId: failed.id,
+      );
+
+      expect(result.applied, isTrue);
+      final after = await repo.runs(multi.id);
+      expect(
+        after.firstWhere((r) => r.id == failed.id).userVerdict,
+        PrintVerdict.reject,
+      );
+      expect(after.first.userVerdict, isNot(PrintVerdict.reject));
+    });
   });
 
   group('print log', () {
@@ -846,8 +939,10 @@ void main() {
     test('list + status + control round-trip', () async {
       final repo = SmartPlugsRepository(dio);
       final plugs = await repo.fetchPlugs();
-      expect(plugs, hasLength(2));
+      expect(plugs, hasLength(3));
       expect(plugs.first.printerId, 1);
+      // The dual-nozzle H2D has one, so its controller overview is the fullest.
+      expect(plugs.last.printerId, 6);
       final status = await repo.fetchStatus(1);
       expect(status!.isOn, isTrue);
       expect(status.powerW, greaterThan(0));
@@ -1366,6 +1461,25 @@ void main() {
     });
   });
 
+  group('external links', () {
+    test(
+      'parse, with a count, none, a count past 99 and no field at all',
+      () async {
+        final links = await ExternalLinksRepository(dio).fetch();
+
+        expect(links.map((l) => l.name), [
+          'Bambuddy Orders',
+          'Spoolman',
+          'Home Assistant',
+          'Print farm wiki',
+        ]);
+        expect(links.map((l) => l.badge), [3, 0, 128, 0]);
+        expect(links.map((l) => l.badgeCount), [3, 0, 128, null]);
+        expect(links.every((l) => l.address.isNotEmpty), isTrue);
+      },
+    );
+  });
+
   group('projects', () {
     test('list, detail, bom, timeline', () async {
       final repo = ProjectsRepository(dio);
@@ -1427,6 +1541,22 @@ void main() {
       final stats = await repo.stats();
       expect(stats.totalFiles, all.length);
       expect(await repo.listTrash(), isEmpty);
+    });
+
+    test('a folder moves into another one and back to the root', () async {
+      final repo = LibraryRepository(dio);
+
+      await repo.moveFolder(2, parentId: 1);
+      expect(
+        (await repo.listFolders()).firstWhere((f) => f.id == 2).parentId,
+        1,
+      );
+
+      await repo.moveFolder(2);
+      expect(
+        (await repo.listFolders()).firstWhere((f) => f.id == 2).parentId,
+        isNull,
+      );
     });
   });
 
@@ -2607,6 +2737,202 @@ void main() {
       );
       expect(created.suppliers!.every((l) => !l.isPurchaseSource), isTrue);
       await source.deleteSpool(created.id);
+    });
+  });
+
+  group('profile defaults', () {
+    final defaults = ProfileDefaultsRepository(
+      dio,
+      () async => InventoryBackend.native,
+    );
+    final source = NativeInventorySource(dio);
+
+    test('lists an all-colours default with a K profile and a colour-only '
+        'one', () async {
+      final rows = await defaults.list();
+
+      final all = rows.firstWhere((r) => r.id == 1);
+      expect(all.product.colorName, isEmpty);
+      expect(all.slicerFilament, 'GFA00');
+      expect(all.presets.single.printerModel, 'X1C');
+      expect(all.kProfiles, hasLength(1));
+      expect(rows.firstWhere((r) => r.id == 2).product.colorName, 'Red');
+      // Ordered by product, the all-colours row before its colours.
+      expect(
+        rows.indexWhere((r) => r.id == 1) < rows.indexWhere((r) => r.id == 2),
+        isTrue,
+      );
+    });
+
+    test('resolves a product, a colour of it, and nothing for another', () async {
+      final blue = await defaults.resolve(
+        const ProfileProduct(
+          brand: 'bambu lab',
+          material: 'pla',
+          subtype: 'BASIC',
+          colorName: 'Blue',
+        ),
+      );
+      expect(blue!.slicerFilament, 'GFA00');
+      expect(blue.presets.single.printerModel, 'X1C');
+
+      // The colour row has no preset of its own, so it lays nothing over the base.
+      final red = await defaults.resolve(
+        const ProfileProduct(
+          brand: 'Bambu Lab',
+          material: 'PLA',
+          subtype: 'Basic',
+          colorName: 'Red',
+        ),
+      );
+      expect(red!.slicerFilament, 'GFA00');
+
+      expect(
+        await defaults.resolve(const ProfileProduct(material: 'ASA')),
+        isNull,
+      );
+      await expectLater(
+        defaults.resolve(const ProfileProduct(material: '')),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 422),
+        ),
+      );
+    });
+
+    test('a save replaces the product it names, whatever its case', () async {
+      const product = ProfileProduct(material: 'Demo-Save', brand: 'Acme');
+      final first = await defaults.save(
+        const ProfileDefaultDraft(
+          product: product,
+          slicerFilament: 'A',
+          kProfiles: [
+            {'printer_id': 1, 'k_value': 0.04},
+          ],
+        ),
+      );
+      addTearDown(() => defaults.delete(first.id));
+
+      final second = await defaults.save(
+        const ProfileDefaultDraft(
+          product: ProfileProduct(material: 'demo-save', brand: ' ACME '),
+          slicerFilament: 'B',
+        ),
+      );
+
+      expect(second.id, first.id);
+      expect(second.slicerFilament, 'B');
+      // A replacement: the K profile the second body left out is gone.
+      expect(second.kProfiles, isEmpty);
+      final rows = await defaults.list();
+      expect(
+        rows.where((r) => r.product.matchKey == product.matchKey),
+        hasLength(1),
+      );
+    });
+
+    test('a save with the same model twice is refused', () async {
+      await expectLater(
+        defaults.save(
+          const ProfileDefaultDraft(
+            product: ProfileProduct(material: 'Demo-Dup'),
+            presets: [
+              SpoolPresetOverride(printerModel: 'X1C'),
+              SpoolPresetOverride(printerModel: 'X1C'),
+            ],
+          ),
+        ),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 422),
+        ),
+      );
+    });
+
+    test('a new spool of the product starts with the default and a spool '
+        'with its own preset keeps it', () async {
+      final plain = await source.createSpool(
+        const SpoolDraft(material: 'PLA', brand: 'Bambu Lab', subtype: 'Basic'),
+      );
+      final own = await source.createSpool(
+        const SpoolDraft(
+          material: 'PLA',
+          brand: 'Bambu Lab',
+          subtype: 'Basic',
+          slicerFilament: 'GFA05',
+        ),
+      );
+      final other = await source.createSpool(const SpoolDraft(material: 'ASA'));
+      addTearDown(() async {
+        for (final s in [plain, own, other]) {
+          await source.deleteSpool(s.id);
+        }
+      });
+
+      final spools = {for (final s in await source.fetchSpools()) s.id: s};
+      expect(spools[plain.id]!.slicerFilament, 'GFA00');
+      expect(
+        (await source.fetchPresetOverrides(plain.id)).single.printerModel,
+        'X1C',
+      );
+      expect(spools[own.id]!.slicerFilament, 'GFA05');
+      expect(spools[other.id]!.slicerFilament, isNull);
+      expect(await source.fetchPresetOverrides(other.id), isEmpty);
+    });
+
+    test(
+      'apply fills what active spools lack, once, and counts them',
+      () async {
+        const product = ProfileProduct(material: 'Demo-Apply');
+        final a = await source.createSpool(
+          const SpoolDraft(material: 'Demo-Apply'),
+        );
+        final b = await source.createSpool(
+          const SpoolDraft(material: 'demo-apply'),
+        );
+        final archived = await source.createSpool(
+          const SpoolDraft(material: 'Demo-Apply'),
+        );
+        await source.archiveSpool(archived.id);
+        addTearDown(() async {
+          for (final s in [a, b, archived]) {
+            await source.deleteSpool(s.id);
+          }
+        });
+        final saved = await defaults.save(
+          const ProfileDefaultDraft(
+            product: product,
+            slicerFilament: 'GFA00',
+            presets: [SpoolPresetOverride(printerModel: 'H2D')],
+          ),
+        );
+        addTearDown(() => defaults.delete(saved.id));
+
+        expect(await defaults.apply(saved.id), 2);
+        expect(await defaults.apply(saved.id), 0);
+
+        expect(
+          (await source.fetchPresetOverrides(a.id)).single.printerModel,
+          'H2D',
+        );
+        expect(await source.fetchPresetOverrides(archived.id), isEmpty);
+      },
+    );
+
+    test('delete removes the default, and a second one is a 404', () async {
+      final saved = await defaults.save(
+        const ProfileDefaultDraft(
+          product: ProfileProduct(material: 'Demo-Del'),
+        ),
+      );
+
+      await defaults.delete(saved.id);
+
+      expect((await defaults.list()).where((r) => r.id == saved.id), isEmpty);
+      await expectLater(
+        defaults.delete(saved.id),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
     });
   });
 }

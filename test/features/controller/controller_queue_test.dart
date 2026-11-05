@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
@@ -13,6 +14,7 @@ import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/controller/controller_prints.dart';
 import 'package:bambuddy_mobile/features/controller/controller_queue.dart';
+import 'package:bambuddy_mobile/features/common/color_catalog.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
@@ -356,6 +358,39 @@ void main() {
       expect(find.text('Job 11'), findsOneWidget);
     });
 
+    // The view polls every ten seconds; a bar for each failed poll would
+    // come and go with them.
+    testWidgets('a poll that failed leaves the jobs and says nothing', (
+      tester,
+    ) async {
+      final failing = _RefreshFails([_job(11)]);
+      await open(tester, const [], fake: failing, warm: true);
+
+      expect(failing.refreshes, greaterThan(0));
+      expect(find.text('Job 11'), findsOneWidget);
+      expect(find.text(pl.connectFailed), findsNothing);
+      expect(byLogId('controller.queue.retry'), findsNothing);
+    });
+
+    testWidgets('a tap on Refresh that failed says so, which a poll does not', (
+      tester,
+    ) async {
+      final failing = _RefreshFails([_job(11)]);
+      await open(tester, const [], fake: failing, warm: true);
+      expect(find.byType(SnackBar), findsNothing);
+
+      await tester.tap(byLogId('controller.queue.refresh'));
+      await settle(tester);
+
+      expect(
+        find.text(
+          const ApiException(AppErrorCode.connectionError).localized(pl),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Job 11'), findsOneWidget);
+    });
+
     testWidgets('opening the view refreshes the queue once it is built', (
       tester,
     ) async {
@@ -426,7 +461,7 @@ void main() {
               spools: const <int, SlotSpool>{},
             ),
           ),
-          mappingColorCatalogProvider.overrideWith(
+          colorNameCatalogProvider.overrideWith(
             (ref) async => ColorCatalog.empty,
           ),
           mappingFilamentNamesProvider.overrideWith((ref) async => const {}),
@@ -466,7 +501,7 @@ class _WritingQueue extends FakeQueue {
   @override
   Future<void> refresh() async {
     refreshes++;
-    state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
+    state = const AsyncLoading<List<QueueItem>>();
     state = AsyncData(await build());
   }
 }
@@ -487,6 +522,22 @@ class _FailsFirstQueue extends _WritingQueue {
   }
 }
 
+/// A queue whose refresh fails; Riverpod keeps the jobs it had as the value.
+class _RefreshFails extends FakeQueue {
+  _RefreshFails(super.items);
+
+  int refreshes = 0;
+
+  @override
+  Future<void> refresh() async {
+    refreshes++;
+    state = AsyncError<List<QueueItem>>(
+      const ApiException(AppErrorCode.connectionError),
+      StackTrace.empty,
+    );
+  }
+}
+
 /// A queue whose refresh never answers, as on a connection that hangs.
 class _SlowQueue extends FakeQueue {
   _SlowQueue(super.items);
@@ -496,7 +547,7 @@ class _SlowQueue extends FakeQueue {
   @override
   Future<void> refresh() {
     refreshes++;
-    state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
+    state = const AsyncLoading<List<QueueItem>>();
     return Completer<void>().future;
   }
 }

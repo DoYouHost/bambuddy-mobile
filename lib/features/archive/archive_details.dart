@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
+import '../../core/format/fixed_format.dart';
+import '../../core/format/money_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,7 +21,7 @@ String? archivePrinterLabel(Archive archive, Map<int, String> names) =>
 
 final archivePrinterNamesProvider = Provider.autoDispose<Map<int, String>>(
   (ref) => {
-    for (final p in ref.watch(printersForPickerProvider).valueOrNull ?? [])
+    for (final p in ref.watch(printersForPickerProvider).value ?? [])
       p.id: p.name,
   },
 );
@@ -29,7 +31,7 @@ String archiveGrams(double grams) => '${grams.toStringAsFixed(1)} g';
 
 /// Money as the web card prints it, always to two decimals.
 String archiveMoney(String currency, double amount) =>
-    formatMoney(currency, amount.toStringAsFixed(2));
+    formatMoneyValue(currency, amount);
 
 /// The time badge's text and tone, `time_accuracy - 100` signed: green within
 /// ±5 %, blue when the print beat the estimate, orange when it ran over — the
@@ -44,7 +46,7 @@ String archiveMoney(String currency, double amount) =>
     return (text: text, fill: t.accentGreen, ink: t.accentGreenInk);
   }
   return accuracy > 105
-      ? (text: text, fill: t.accentBlue, ink: t.accentBlue)
+      ? (text: text, fill: t.accentBlue, ink: t.accentBlueInk)
       : (text: text, fill: t.accentOrange, ink: t.accentOrangeInk);
 }
 
@@ -176,11 +178,23 @@ class ArchiveHeaderChips extends ConsumerWidget {
             ? _Chip(text: l10n.archiveFileTypeGcode, ink: t.accentGreenInk)
             : _Chip(text: l10n.archiveFileTypeSource, ink: t.accentOrangeInk),
         if (project != null && project.isNotEmpty)
-          _Chip(text: project, ink: t.accentBlue),
+          _Chip(text: project, ink: t.accentBlueInk),
         if (archive.runCount > 1)
           _Chip(
             text: l10n.archiveRunCount(archive.runCount),
             ink: t.accentOrangeInk,
+          ),
+        // How the prints ended, as the web's archive header counts them:
+        // whenever there is one to count, a single print included.
+        if (archive.successfulRunCount > 0)
+          _Chip(
+            text: l10n.archiveGoodCount(archive.successfulRunCount),
+            ink: t.accentGreenInk,
+          ),
+        if (archive.failedRunCount > 0)
+          _Chip(
+            text: l10n.archiveFailedCount(archive.failedRunCount),
+            ink: t.dangerInk,
           ),
       ],
     );
@@ -199,8 +213,8 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ink.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(color: ink.withValues(alpha: DashAlpha.scrim)),
       ),
       child: Text(
         text,
@@ -255,7 +269,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -305,8 +319,8 @@ class ArchiveStatsPanel extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
             decoration: BoxDecoration(
-              color: badge.fill.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
+              color: badge.fill.withValues(alpha: DashAlpha.wash),
+              borderRadius: BorderRadius.circular(DashRadius.sm),
             ),
             child: Text(
               badge.text,
@@ -332,7 +346,8 @@ class ArchiveStatsPanel extends ConsumerWidget {
     final height = archive.layerHeight;
     final parts = [
       if (layers != null && layers > 0) l10n.archiveLayerCount(layers),
-      if (height != null && height > 0) '${_trimZeros(height)} mm',
+      if (height != null && height > 0)
+        '${trimFixedZeros(height.toStringAsFixed(3))} mm',
     ];
     if (parts.isEmpty) return null;
     return _Stat(icon: Icons.layers_outlined, text: parts.join(' · '));
@@ -466,9 +481,6 @@ class ArchiveStatsPanel extends ConsumerWidget {
 
   static const _iconSize = 16.0;
 }
-
-String _trimZeros(double v) =>
-    v.toStringAsFixed(3).replaceFirst(RegExp(r'\.?0+$'), '');
 
 class _Stat extends StatelessWidget {
   const _Stat({required this.icon, required this.text});

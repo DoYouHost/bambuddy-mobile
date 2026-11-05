@@ -1,5 +1,7 @@
 import 'package:app_util/app_util.dart';
 
+import 'value_equality.dart';
+
 /// One filament slot a model needs, from `.../filament-requirements`
 /// (`{filaments: [{slot_id, type, color, tray_info_idx, used_grams,
 /// used_meters, used_in_plate, nozzle_id?}]}`). A multicolor 3MF yields several; the slice request maps
@@ -89,7 +91,7 @@ class FilamentRequirement {
 
 /// One filament group's hotend requirement on a nozzle-rack plate, from a
 /// filament's `group` object (server `RackGroup.group_dicts`).
-class RackGroup {
+class RackGroup with ValueEquality {
   const RackGroup({
     this.onRack = false,
     this.nozzleDiameter = '',
@@ -121,17 +123,12 @@ class RackGroup {
   final String filamentColor;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is RackGroup &&
-          other.onRack == onRack &&
-          other.nozzleDiameter == nozzleDiameter &&
-          other.volumeType == volumeType &&
-          other.filamentColor == filamentColor;
-
-  @override
-  int get hashCode =>
-      Object.hash(onRack, nozzleDiameter, volumeType, filamentColor);
+  List<Object?> get props => [
+    onRack,
+    nozzleDiameter,
+    volumeType,
+    filamentColor,
+  ];
 }
 
 /// Whether the server actually discriminated between used and unused slots.

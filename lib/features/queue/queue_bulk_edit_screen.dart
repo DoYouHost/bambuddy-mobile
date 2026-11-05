@@ -93,18 +93,20 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _saving = true);
-    final (:outcome, :result) = await ref
-        .read(queueProvider.notifier)
-        .bulkUpdate(widget.itemIds, _changes);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    final failure = queueWriteMessage(l10n, outcome);
-    if (failure != null || result == null) {
-      if (failure != null) messenger.snack(failure);
-      return;
+    try {
+      final (:outcome, :result) = await ref
+          .read(queueProvider.notifier)
+          .bulkUpdate(widget.itemIds, _changes);
+      if (!mounted) return;
+      setState(() => _saving = false);
+      snackQueueOutcome(messenger, outcome, l10n);
+      if (!outcome.isOk || result == null) return;
+      messenger.snack(queueBulkSummary(l10n, result));
+      navigator.pop(true);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    messenger.snack(queueBulkSummary(l10n, result));
-    navigator.pop(true);
   }
 
   @override
@@ -145,7 +147,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   }
 
   Widget _printerSection(AppLocalizations l10n) {
-    final printers = ref.watch(allPrintersProvider).valueOrNull ?? const [];
+    final printers = ref.watch(allPrintersProvider).value ?? const [];
     return QueueSectionCard(
       tone: QueueSectionTone.target,
       title: l10n.queueEditPrinter,
@@ -190,8 +192,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
       permissionProvider(Permissions.printersControl),
     );
     final offersInjection =
-        (ref.watch(gcodeSnippetModelsProvider).valueOrNull ?? const {})
-            .isNotEmpty;
+        (ref.watch(gcodeSnippetModelsProvider).value ?? const {}).isNotEmpty;
     return QueueSectionCard(
       tone: QueueSectionTone.schedule,
       title: l10n.queueBulkQueueOptions,
@@ -233,8 +234,9 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   Widget _printOptionsSection(AppLocalizations l10n) {
     final triState = ref.watch(triStateCalibrationProvider).orFalse;
     // The web shows the nozzle offset when any printer has two nozzles.
-    final hasDualNozzle = (ref.watch(allPrintersProvider).valueOrNull ?? [])
-        .any((p) => p.nozzleCount == 2);
+    final hasDualNozzle = (ref.watch(allPrintersProvider).value ?? []).any(
+      (p) => p.nozzleCount == 2,
+    );
     return QueueSectionCard(
       tone: QueueSectionTone.options,
       title: l10n.queueEditPrintOptions,

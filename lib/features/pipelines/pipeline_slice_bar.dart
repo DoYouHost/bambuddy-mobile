@@ -56,7 +56,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     }
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
+    final pipelines = ref.watch(pipelinesProvider).value ?? const [];
     final canSave =
         ref.watch(canWritePipelinesProvider).orFalse && _selectionComplete;
 
@@ -92,8 +92,11 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   icon: _saving
-                      ? const DashSpinner(size: 16)
-                      : const Icon(Icons.bookmark_add_outlined, size: 18),
+                      ? const DashSpinner(size: DashSize.d16)
+                      : const Icon(
+                          Icons.bookmark_add_outlined,
+                          size: DashIcon.md,
+                        ),
                   label: Text(l10n.pipelineSaveAs),
                   onPressed: canSave && !_saving && !widget.busy ? _save : null,
                 ).tagged('slice.pipeline_save'),
@@ -114,8 +117,8 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
       widget.filaments.every((f) => f != null);
 
   Future<void> _pick() async {
-    final pipelines = ref.read(pipelinesProvider).valueOrNull ?? const [];
-    final catalog = ref.read(slicerPresetsProvider).valueOrNull;
+    final pipelines = ref.read(pipelinesProvider).value ?? const [];
+    final catalog = ref.read(slicerPresetsProvider).value;
     // Both read before the sheet, like every other action in this file: the
     // sheet is an await, and `onApply` below rebuilds the form that owns this
     // bar, so neither is safe to look up off `context` afterwards.

@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -32,8 +33,7 @@ class PrinterLocationsRepository {
   /// why, and the screen is additive.
   Future<List<PrinterLocation>> list() => capability.watching(
     () async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.printerLocations);
-      return parseJsonList(res.data, PrinterLocation.fromJson);
+      return _dio.getList(Endpoints.printerLocations, PrinterLocation.fromJson);
     },
     absent: () => const [],
     observing: treat404AsAbsent,

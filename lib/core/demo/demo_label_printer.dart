@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../network/label_printer_discovery.dart';
+import 'demo_result.dart';
 
 /// The label print server of the demo: a printer that is "found on the
 /// network", answers `/info` and takes a job, so the whole path — search,
@@ -58,7 +59,7 @@ DemoResult _handle(String method, Uri uri, Object? body) {
       },
     );
   }
-  return (status: 404, body: {'detail': 'Not Found'});
+  return demoNotFound();
 }
 
 /// `POST /print`: the checks of the real server that a label can fail on in
@@ -70,7 +71,7 @@ DemoResult _print(FormData form) {
       if (f.key == 'files') f.value,
   ];
   if (files.isEmpty) {
-    return (status: 422, body: {'detail': 'files: field required'});
+    return demoRefuse(422, 'files: field required');
   }
   final copies =
       int.tryParse(
@@ -78,7 +79,7 @@ DemoResult _print(FormData form) {
       ) ??
       0;
   if (copies < 1 || copies > 50) {
-    return (status: 422, body: {'detail': 'copies must be 1 to 50'});
+    return demoRefuse(422, 'copies must be 1 to 50');
   }
   for (final file in files) {
     final name = file.filename ?? 'labels.pdf';

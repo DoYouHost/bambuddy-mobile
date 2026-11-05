@@ -38,6 +38,8 @@
   "addPrinterIp": "Adres IP",
   "addPrinterSerial": "Numer seryjny",
   "addPrinterAccessCode": "Kod dostępu",
+  "addPrinterRevealAccessCode": "Pokaż kod dostępu",
+  "addPrinterHideAccessCode": "Ukryj kod dostępu",
   "addPrinterModel": "Model",
   "addPrinterModelOptional": "Opcjonalnie",
   "addPrinterModelNone": "Nie ustawiono",
@@ -187,10 +189,9 @@
   "ctrlMoveHome": "Bazuj osie",
   "ctrlMoveHomeStarted": "Rozpoczęto bazowanie",
   "ctrlMoveStep": "Krok",
-  "ctrlMoveZ": "Z (szczelina)",
+  "ctrlMoveZ": "Z",
   "ctrlMoveZUp": "W górę",
   "ctrlMoveZDown": "W dół",
-  "ctrlMoveZToolhead": "Z (głowica)",
   "ctrlMoveZUnknownDirection": "Kierunek osi Z tej drukarki zależy od wersji serwera, której nie udało się potwierdzić, dlatego ruch w osi Z jest tu wyłączony. Zaktualizuj serwer albo otwórz panel ponownie, gdy serwer będzie osiągalny.",
   "ctrlMoveZNoModel": "Ta drukarka nie ma ustawionego modelu w Bambuddy, więc aplikacja nie wie, czy oś Z przesuwa stół, czy głowicę, i ruch w osi Z jest tu wyłączony. Ustaw model drukarki w Bambuddy, aby go używać.",
   "ctrlMoveExtrude": "Wytłocz",
@@ -201,6 +202,22 @@
     "placeholders": {
       "d": {
         "type": "int"
+      }
+    }
+  },
+  "ctrlMoveAxisPlus": "Ruch {axis}, kierunek dodatni",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "Ruch {axis}, kierunek ujemny",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
       }
     }
   },
@@ -316,6 +333,13 @@
   "plugStateOff": "Wyłączone",
   "queueEmpty": "Kolejka jest pusta",
   "queueAmsFromSlicer": "AMS ze slicera",
+  "queueColorSubstitution": "Slot {slot}: wydrukowano w kolorze {got}, plik wymaga {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} slot} few{{count} sloty} many{{count} slotów} other{{count} sloty}}",
+  "queueColorSubstitutionTitle": "Wydrukowano w innym kolorze",
+  "queueColorSubstitutionWhy": "Nie było szpuli w kolorze z pliku albo slot wybrano ręcznie.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "queueColorSubstitutionPrinted": "Wydrukowano w",
+  "queueColorSubstitutionWanted": "Plik wymaga",
   "queueAnyOfModels": "Dowolny z: {models}",
   "@queueAnyOfModels": {
     "placeholders": {
@@ -706,7 +730,6 @@
   "sensorHistoryError": "Nie udało się wczytać historii",
   "amsHistoryRecordingInfo": "Zapisywane co 5 minut, gdy drukarka jest połączona",
   "heaterHistoryTitle": "Historia temperatur",
-  "heaterHistoryOpen": "Historia temperatur",
   "heaterHistoryReading": "Odczyt",
   "heaterHistoryTarget": "Zadana",
   "heaterHistoryRecordingInfo": "Zapisywane co minutę, gdy drukarka jest połączona",
@@ -722,7 +745,6 @@
   "widgetStatusPrinting": "Drukuje",
   "widgetStatusPaused": "Wstrzymano",
   "widgetStatusFinished": "Zakończono",
-  "widgetStatusFailed": "Błąd",
   "widgetStatusIdle": "Bezczynna",
   "widgetStatusOffline": "Offline",
   "widgetStatusError": "Błąd",
@@ -801,10 +823,16 @@
   "twoFactorBack": "Zaloguj się na inne konto",
   "twoFactorSessionNote": "Aplikacja nie odnowi sesji z 2FA sama, więc po jej wygaśnięciu zapyta ponownie. Klucz API nie wygasa i pomija ten krok.",
   "tryDemo": "Wypróbuj wersję demo",
+  "customCaImport": "Importuj certyfikat CA",
+  "customCaTrusted": "Zaufany CA: {name}",
+  "customCaRemove": "Usuń certyfikat CA",
+  "customCaInvalid": "Ten plik nie zawiera certyfikatu",
+  "customCaPickFailed": "Nie udało się otworzyć pliku",
   "scanApiKeyTitle": "Zeskanuj klucz API",
   "scanApiKeyHint": "Skieruj aparat na kod QR z kluczem API",
   "cameraPermissionTitle": "Potrzebny dostęp do aparatu",
   "cameraPermissionBody": "Zezwól na dostęp do aparatu, aby skanować kody QR.",
+  "scannerTorch": "Latarka",
   "errMissingUrl": "Podaj adres serwera",
   "errMissingApiKey": "Podaj klucz API",
   "errMissingCredentials": "Podaj login i hasło",
@@ -815,7 +843,7 @@
   "errForbiddenDetail": "Brak uprawnień: {reason}",
   "errApiKeyOwnerDisabled": "Konto właściciela tego klucza API zostało wyłączone lub usunięte — klucz będzie odrzucany, dopóki to konto nie wróci.",
   "errBadResponse": "Serwer odpowiedział błędem {code}",
-  "errBadCertificate": "Nieprawidłowy certyfikat TLS (self-signed nieobsługiwany w v1)",
+  "errBadCertificate": "Certyfikat serwera nie jest zaufany",
   "errConnection": "Błąd połączenia",
   "errMalformedResponse": "Nieprawidłowa odpowiedź serwera",
   "errInvalidCredentials": "Nieprawidłowy login lub hasło",
@@ -865,6 +893,36 @@
   "notifExtrasHeader": "Szczegóły",
   "notifFinishPhotoTitle": "Zdjęcie skończonego wydruku",
   "notifFinishPhotoDesc": "Dokłada do powiadomienia o zakończeniu lub błędzie zdjęcie, które serwer robi po wydruku — gdy tylko dojdzie",
+  "alarmHeader": "Alarm",
+  "alarmTitle": "Budź mnie alarmem",
+  "alarmDesc": "Dzwoni na ekranie blokady, aż go wyłączysz",
+  "alarmEvtFinished": "Wydruk zakończony",
+  "alarmEvtFinishedDesc": "Wydruk skończył się powodzeniem",
+  "alarmEvtBlocked": "Wydruk zatrzymany przez błąd",
+  "alarmEvtBlockedDesc": "Błąd wstrzymał lub przerwał wydruk albo wydruk się nie udał",
+  "alarmEvtDrying": "Suszenie zakończone",
+  "alarmEvtDryingDesc": "Cykl suszenia w AMS dobiegł końca",
+  "alarmWindowTitle": "Tylko w wybranych godzinach",
+  "alarmWindowDesc": "Poza tymi godzinami alarm nie dzwoni",
+  "alarmWindowFrom": "Od",
+  "alarmWindowTo": "Do",
+  "alarmRingFor": "Dzwoni przez {minutes} min",
+  "alarmRingForDesc": "Potem sam ucichnie",
+  "alarmMinutes": "{minutes} min",
+  "alarmStop": "Stop",
+  "alarmTest": "Testuj alarm",
+  "alarmTestBody": "Tak brzmi alarm",
+  "alarmTestFailed": "Alarm nie mógł zadzwonić. Sprawdź, czy powiadomienia są włączone.",
+  "alarmFullScreenNeeded": "Bez zgody alarm nie zasłoni ekranu blokady",
+  "alarmFullScreenAllow": "Zezwól",
+  "alarmHoursHeader": "Godziny",
+  "alarmLengthHeader": "Jak długo",
+  "alarmSettingsSubtitle": "Co go uruchamia, w jakich godzinach i na jak długo",
+  "alarmExcludedLocationsHeader": "Wykluczone lokalizacje",
+  "alarmExcludedPrintersHeader": "Wykluczone drukarki",
+  "alarmExcludeLocationDesc": "Żadna drukarka stąd nie włączy alarmu",
+  "alarmExcludePrinterDesc": "Ta drukarka nigdy nie włączy alarmu",
+  "alarmExcludedWithLocation": "Wykluczona razem z lokalizacją {location}",
   "notifThresholdsHeader": "Progi",
   "notifEvtStarted": "Wydruk rozpoczęty",
   "notifEvtStartedDesc": "Gdy rozpoczyna się wydruk",
@@ -889,6 +947,17 @@
   "notifEvtBedCooled": "Stół wystygł",
   "notifEvtBedCooledDesc": "Gdy stół wystygnie po wydruku",
   "notifBedCooledThreshold": "Stół wystygł poniżej {temp}°C",
+  "printPauseAtLayer": "warstwa {layer}",
+  "printPauseA11yIn": "Następna pauza za {duration}, na warstwie {layer}",
+  "printPauseA11yLayer": "Następna pauza na warstwie {layer}",
+  "serverSettingsPauseWarningSubtitle": "Ile przed pauzą ostrzegać",
+  "pauseWarningTitle": "Ostrzeżenie o pauzie",
+  "pauseWarningLabel": "Ostrzegaj {duration} przed pauzą",
+  "pauseWarningDesc": "Ustawienie serwera: wyznacza też, kiedy ostrzega sam serwer, i obowiązuje na każdym urządzeniu.",
+  "notifEvtPauseUpcoming": "Zbliża się pauza",
+  "notifEvtPauseUpcomingDesc": "Ostrzega przed pauzą wstawioną w slicerze",
+  "notifPauseUpcomingTitle": "Zbliża się pauza",
+  "notifPauseUpcomingBody": "{name}: pauza za {minutes, plural, =0{mniej niż minutę} one{{minutes} minutę} few{{minutes} minuty} other{{minutes} minut}}, warstwa {layer}",
   "notifHumidityThreshold": "Wilgotność AMS powyżej {value}%",
   "notifLowFilamentThreshold": "Niski filament poniżej {percent}%",
   "notifEventsMenu": "Zdarzenia powiadomień",
@@ -1060,7 +1129,24 @@
   "inventoryPrinterPresetDefault": "Jak na szpuli",
   "inventoryPrinterPresetNozzle": "{model} · dysza {diameter}",
   "inventoryPrinterPresetsLoadFailed": "Nie odczytano — zapis ich nie ruszy.",
-  "inventoryPrinterPresetsSaveFailed": "Szpula zapisana, presety wg modelu — nie.",
+  "inventoryProfileDefaultPrefilled": "Wypełniono z ustawień domyślnych dla {product}",
+  "inventoryProfileDefaultUse": "Użyj jako domyślnych",
+  "inventoryProfileDefaultFor": "dla {product}",
+  "inventoryProfileDefaultNeedsMaterial": "Najpierw podaj materiał",
+  "inventoryProfileDefaultScope": "Dotyczy",
+  "inventoryProfileDefaultAllColors": "Wszystkie kolory",
+  "inventoryProfileDefaultColorOnly": "Tylko {color}",
+  "inventoryProfileDefaultSaveFailed": "Szpula zapisana, ustawienia domyślne — nie.",
+  "serverSettingsProfileDefaultsSubtitle": "Od czego startują nowe szpule",
+  "profileDefaultsTitle": "Ustawienia domyślne profili",
+  "profileDefaultsDescription": "Zapisz je przełącznikiem „Użyj jako domyślnych” w formularzu szpuli. Zastosowanie uzupełnia tylko to, czego szpulom brakuje.",
+  "profileDefaultsEmpty": "Nie zapisano jeszcze ustawień domyślnych",
+  "profileDefaultsApply": "Zastosuj do szpul",
+  "profileDefaultsApplied": "{count, plural, =0{Żadna szpula tego nie potrzebowała} one{Uzupełniono {count} szpulę} few{Uzupełniono {count} szpule} other{Uzupełniono {count} szpul}}",
+  "profileDefaultsDeleteTitle": "Usunąć te ustawienia domyślne?",
+  "profileDefaultsDeleteBody": "{product}: nowe szpule przestaną z nich startować. Szpule, które już je dostały, je zachowują.",
+  "profileDefaultsModelPresets": "{count, plural, one{{count} preset wg modelu} few{{count} presety wg modelu} other{{count} presetów wg modelu}}",
+  "profileDefaultsKProfiles": "{count, plural, one{{count} profil K} few{{count} profile K} other{{count} profili K}}",
   "inventoryFieldMaterial": "Materiał",
   "inventoryFieldBrand": "Marka",
   "inventoryFieldSubtype": "Wariant",
@@ -1129,8 +1215,6 @@
   "inventorySpoolArchived": "Zarchiwizowano szpulę",
   "inventorySpoolRestored": "Przywrócono szpulę",
   "inventoryUsageReset": "Wyzerowano licznik",
-  "inventorySaveFailed": "Nie udało się zapisać szpuli",
-  "inventoryActionFailed": "Operacja nie powiodła się",
   "inventoryUnassign": "Odepnij",
   "inventoryAssign": "Przypisz do slotu",
   "inventoryAssignPrinter": "Drukarka",
@@ -1612,6 +1696,7 @@
   },
   "fmVariantsGone": "Ta grupa już nie istnieje",
   "fmUpload": "Wgraj plik",
+  "fmAddFiles": "Dodaj pliki",
   "fmUploading": "Wgrywanie…",
   "fmUploaded": "Wgrano {name}",
   "@fmUploaded": {
@@ -1820,7 +1905,7 @@
   "mwInLibrary": "W bibliotece",
   "mwImported": "Zaimportowano do biblioteki",
   "mwAlreadyInLibrary": "Już jest w bibliotece",
-  "mwViewInFiles": "Pokaż w menedżerze plików",
+  "mwViewInFiles": "Otwórz pliki",
   "mwRecentImports": "Ostatnie importy",
   "mwNoRecent": "Brak ostatnich importów",
   "mwOpenOnMakerworld": "Otwórz w MakerWorld",
@@ -1833,6 +1918,8 @@
   "cloudCredsNote": "Zaloguj się kontem Bambu Lab. Dane logowania służą wyłącznie do pobierania modeli z MakerWorld.",
   "cloudEmail": "E-mail",
   "cloudPassword": "Hasło",
+  "cloudShowPassword": "Pokaż hasło",
+  "cloudHidePassword": "Ukryj hasło",
   "cloudRegionGlobal": "Globalny",
   "cloudRegionChina": "Chiny",
   "cloudSignIn": "Zaloguj",
@@ -3701,6 +3788,8 @@
   "announcementsTitle": "Ogłoszenia",
   "announcementsUnread": "Nieprzeczytane ogłoszenia: {count}",
   "announcementsEmpty": "Na razie nie ma żadnych ogłoszeń.",
+  "linkedAppsTitle": "Powiązane aplikacje",
+  "linkedAppsEmpty": "Brak powiązanych aplikacji.",
   "announcementsEarlier": "Wcześniejsze ({count})",
   "announcementsNew": "Nowe",
   "announcementsReadMore": "Czytaj więcej",
@@ -3747,5 +3836,203 @@
   "tipsTrimTitle": "Przycinanie timelapse'a",
   "tipsTrimBody": "Przeciągnij uchwyty na pasku klatek; stuknij albo przeciągnij w innym miejscu, żeby przesunąć znacznik odtwarzania.",
   "tipsWallTitle": "Tryb ściany",
-  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany."
+  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany.",
+  "archiveRunsTitle": "Historia wydruków",
+  "archiveRunsEmpty": "Ten plik nie został jeszcze wydrukowany.",
+  "archiveRunsBeforeLog": "Wydrukowano, zanim Bambuddy zaczęło rejestrować każdy wydruk: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Brak jeszcze wydruków tej płyty.",
+  "archiveRunsAllPlates": "Wszystkie płyty",
+  "archiveRunPlate": "Płyta {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drukarka usunięta",
+  "archiveRunWithEstimate": "{value} (szac. {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} wobec {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} z {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Rozpoczęto / zakończono",
+  "archiveRunEnergy": "Energia",
+  "archiveRunFailureReason": "Przyczyna niepowodzenia",
+  "archiveRunStartedBy": "Uruchomił(a)",
+  "archiveRunNote": "Notatka do tego wydruku",
+  "archiveRunVideo": "Film timelapse",
+  "archiveRunPhotos": "Zdjęcia ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Udane: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Nieudane: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Ustaw wynik",
+  "archiveRunChangeOutcome": "Zmień wynik",
+  "archiveRunAddNote": "Dodaj notatkę",
+  "archiveRunEditNote": "Edytuj notatkę",
+  "archiveRunNoteSaved": "Notatka zapisana",
+  "archivePlatesTitle": "Płyty",
+  "archivePlateEstimate": "Szacunek {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Ostatni wydruk a szacunek: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Drukuj tę płytę",
+  "archiveShowPlatePrints": "Pokaż jej wydruki",
+  "archiveRunReprint": "Wydrukuj ponownie",
+  "archiveMergeBanner": "{count, plural, =1{1 grupa zduplikowanych archiwów} few{{count} grupy zduplikowanych archiwów} many{{count} grup zduplikowanych archiwów} other{{count} grupy zduplikowanych archiwów}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Scal",
+  "archiveMergeDismiss": "Odrzuć",
+  "archiveMergeMenu": "Scal duplikaty",
+  "archiveMergeTitle": "Scal zduplikowane archiwa",
+  "archiveMergeEffectKeep": "Najstarsze archiwum każdej grupy pozostaje i przejmuje wszystkie wydruki pozostałych archiwów, wraz z ich zdjęciami, filmami i plikami.",
+  "archiveMergeEffectLinks": "Pozostałe znikają z archiwów; ich stare linki otwierają archiwum, do którego zostały scalone.",
+  "archiveMergeEffectMoney": "Obciążenia portfela i rezerwacje budżetu pozostają tam, gdzie zostały zaksięgowane.",
+  "archiveMergeNone": "Brak duplikatów do scalenia.",
+  "archiveMergeMember": "{name} · utworzono {date} · {count, plural, =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Pozostaje",
+  "archiveMergeWaiting": "Na razie pominięte",
+  "archiveMergeLeftOut": "Pominięte przy scalaniu",
+  "archiveMergeSkipBusy": "W użyciu: drukowane, w kolejce lub właśnie wydrukowane. Spróbuj później.",
+  "archiveMergeSkipConflicting": "Archiwa zawierają różne pliki źródłowe, pliki projektu lub filmy. Najpierw zachowaj jedno ręcznie.",
+  "archiveMergeSkipFailed": "Scalanie nie powiodło się.",
+  "archiveMergeSkipNotAGroup": "To już nie jest grupa duplikatów.",
+  "archiveMergeAction": "{count, plural, =1{Scal 1 grupę} few{Scal {count} grupy} many{Scal {count} grup} other{Scal {count} grupy}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Tego nie można cofnąć w aplikacji.",
+  "archiveMergeDone": "{count, plural, =1{Scalono 1 grupę.} few{Scalono {count} grupy.} many{Scalono {count} grup.} other{Scalono {count} grupy.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Scalone: {count}. Pominięte: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Widok kalendarza",
+  "archiveListView": "Widok listy",
+  "archiveCalendarToday": "Dzisiaj",
+  "archiveCalendarPrevious": "Poprzedni miesiąc",
+  "archiveCalendarNext": "Następny miesiąc",
+  "archiveCalendarPrints": "Wydruki w tym miesiącu",
+  "archiveCalendarSuccessful": "Udane",
+  "archiveCalendarFailed": "Nieudane",
+  "archiveCalendarNoPrints": "Brak wydruków tego dnia",
+  "archiveCalendarSelectDay": "Wybierz dzień, aby zobaczyć jego wydruki",
+  "archiveCalendarDay": "{date}: {count, plural, =0{brak wydruków} =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

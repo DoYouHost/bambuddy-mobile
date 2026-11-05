@@ -173,9 +173,9 @@ class _ProjectCard extends StatelessWidget {
           ProjectCoverImage(
             projectId: project.id,
             hasCover: project.hasCover,
-            width: 64,
-            height: 64,
-            borderRadius: BorderRadius.circular(16),
+            width: DashSize.d64,
+            height: DashSize.d64,
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             cacheBust: project.createdAt,
           ),
           const SizedBox(width: DashSpace.md),
@@ -211,7 +211,7 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 const SizedBox(height: DashSpace.sm),
                 if (project.progressPercent != null) ...[
-                  DashProgressBar(value: fraction, height: 6),
+                  DashProgressBar(value: fraction, height: DashSize.d8),
                   const SizedBox(height: DashSpace.sm),
                 ],
                 Text(counts.join(' · '), style: t.monoLabel),

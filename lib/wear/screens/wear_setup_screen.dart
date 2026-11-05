@@ -123,7 +123,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// it is worth a look: a phone that switched servers used to reconfigure the
   /// watch silently, and nothing on the watch said which server it was on.
   List<Widget> _offerSection(AppLocalizations l10n, WatchConfig offer) => [
-    Text(l10n.wearFromPhone, textAlign: TextAlign.center, style: WearText.body),
+    wearBodyLine(l10n.wearFromPhone),
     const SizedBox(height: DashSpace.xs),
     Text(
       offer.profile.displayName,
@@ -190,11 +190,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       style: WearText.section,
     ),
     const SizedBox(height: DashSpace.sm),
-    Text(
-      l10n.wearSetupPhoneBody,
-      textAlign: TextAlign.center,
-      style: WearText.body,
-    ),
+    wearBodyLine(l10n.wearSetupPhoneBody),
     if (_phoneEmpty || _phoneError != null) ...[
       const SizedBox(height: DashSpace.sm),
       Text(
@@ -216,11 +212,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       ),
     if (_phoneHasApp == false) ...[
       const SizedBox(height: WearSpace.betweenGroups),
-      Text(
-        l10n.wearPhoneAppMissing,
-        textAlign: TextAlign.center,
-        style: WearText.body,
-      ),
+      wearBodyLine(l10n.wearPhoneAppMissing),
       const SizedBox(height: WearSpace.inGroup),
       FilledButton(
         onPressed: busy ? null : () => _installOnPhone(below),
@@ -244,10 +236,13 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// explanation.
   Future<void> _startDemo() {
     setState(() => _phoneError = null);
+    // Nothing on this screen watches the controller, and an autoDispose one is
+    // gone before its sign-in finishes unless something listens.
+    final keepAlive = ref.listenManual(setupControllerProvider, (_, _) {});
     return run(
       () => ref.read(setupControllerProvider.notifier).enterDemo(),
       onError: (error) => setState(() => _phoneError = error),
-    );
+    ).whenComplete(keepAlive.close);
   }
 
   /// Look for what the phone last latched and *offer* it. A live push is picked

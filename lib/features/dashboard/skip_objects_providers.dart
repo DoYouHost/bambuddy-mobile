@@ -17,19 +17,19 @@ const skipObjectsPollInterval = Duration(seconds: 5);
 
 /// Printable objects for one printer, kept fresh while the skip screen is open.
 /// Auto-disposes when the screen closes (timer cancelled with it).
-final skipObjectsProvider =
-    AutoDisposeAsyncNotifierProviderFamily<
-      SkipObjectsNotifier,
-      PrintableObjects,
-      int
-    >(SkipObjectsNotifier.new);
+final skipObjectsProvider = AsyncNotifierProvider.autoDispose
+    .family<SkipObjectsNotifier, PrintableObjects, int>(
+      SkipObjectsNotifier.new,
+    );
 
-class SkipObjectsNotifier
-    extends AutoDisposeFamilyAsyncNotifier<PrintableObjects, int> {
+class SkipObjectsNotifier extends AsyncNotifier<PrintableObjects> {
+  SkipObjectsNotifier(this.arg);
+
+  final int arg;
   Timer? _timer;
 
   @override
-  Future<PrintableObjects> build(int arg) async {
+  Future<PrintableObjects> build() async {
     ref.watch(serverProfileProvider);
     _timer = Timer.periodic(skipObjectsPollInterval, (_) => _poll());
     ref.onDispose(() => _timer?.cancel());
@@ -52,11 +52,13 @@ class SkipObjectsNotifier
   /// Manual refresh (pull-to-refresh / after a skip). [reload] re-reads objects
   /// from the 3MF, used when the list is empty after a restart.
   Future<void> refresh({bool reload = false}) async {
-    state = await AsyncValue.guard(
+    final next = await AsyncValue.guard(
       () => ref
           .read(skipObjectsRepositoryProvider)
           .fetchObjects(arg, reload: reload),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 
   /// Skip one or more objects in a single request, then refresh so their

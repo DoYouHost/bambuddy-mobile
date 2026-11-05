@@ -130,6 +130,12 @@ void main() {
       expect(QueueSettings.patch(QueueSetting.preheatSoakSeconds, -1), {
         'preheat_soak_seconds': 0,
       });
+      expect(QueueSettings.patch(QueueSetting.pauseWarningMinutes, 0), {
+        'pause_warning_minutes': 1,
+      });
+      expect(QueueSettings.patch(QueueSetting.pauseWarningMinutes, 500), {
+        'pause_warning_minutes': 120,
+      });
     });
 
     test('the ranges are the server\'s own', () {
@@ -146,6 +152,7 @@ void main() {
           'preheat_soak_seconds': [0, 1800],
           'queue_keep_warm_bed_temp': [40, 110],
           'queue_keep_warm_max_minutes': [5, 480],
+          'pause_warning_minutes': [1, 120],
         },
       );
     });

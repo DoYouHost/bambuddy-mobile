@@ -17,7 +17,7 @@ class ModelSourcesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final status = ref.watch(manyfoldStatusProvider).valueOrNull;
+    final status = ref.watch(manyfoldStatusProvider).value;
     final manyfold = ref.watch(manyfoldTabShownProvider) && status != null;
     final title = dashAppBar(context, title: l10n.modelSourcesTitle);
     if (!manyfold) {

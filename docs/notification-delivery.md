@@ -3,7 +3,7 @@
 The rules for *when* to alert are in [notification-rules.md](notification-rules.md).
 This is what happens to an alert once it exists: the contract of
 `NotificationService`, the finish photo that arrives after it, the buttons on
-it, and which HMS faults count at all. The code keeps one line per rule.
+it, which HMS faults count at all, and the alarm. The code keeps one line per rule.
 `lib/core/notifications/`.
 
 ## The alert contract (`NotificationService`)
@@ -189,6 +189,102 @@ Riverpod or the UI.
   padded into one: `HmsError.ecode` would compose 16 hex out of a 32-bit value
   that means something else, which is how a link lands on a page about a
   different fault. Those get bambuddy's own answer, the HMS index.
+
+## The alarm (`PrintAlarm.kt`)
+
+When the alarm rings is in [notification-rules.md](notification-rules.md#the-alarm-61).
+This is how: `PrintMonitor` calls `AlarmRinger` (`lib/core/notifications/alarm_ringer.dart`),
+a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
+`OngoingNotificationHost`) and on `MainActivity`'s (permission and test button).
+
+- **Its own activity, not `flutter_local_notifications`.** The plugin aims a
+  full-screen intent only at the launcher activity, and `MainActivity` shown over the
+  keyguard would hand the whole app, stopping a print included, to anyone holding the
+  locked phone. `AlarmActivity` is a `FlutterActivity` on a Dart entry point of its
+  own, `alarmMain` (in `lib/main.dart` for the same AOT reason as `wearRelayMain`),
+  which builds only `AlarmScreen` (`lib/features/alarm/alarm_screen.dart`): the app's
+  look — dark, the user's accent, the logo — every alarm still ringing with its
+  printer's name, and one Stop, nothing that leads into the app. `PrintAlarm` keeps
+  that list (`ringing`), and a Stop on one notification drops its alarm from the
+  screen, which closes with the last. The printer's name is also the notification's
+  sub-text. It runs in its own task (`taskAffinity`, `singleInstance`, out of
+  recents) and talks to the native side over `…/alarm_screen` (`content`, `stop`, and
+  `show` pushed when another alarm reaches the screen already up).
+- **On an awake, unlocked phone Android does not launch the full-screen intent**; it
+  shows the alarm as a heads-up, whose Stop is the notification's own. A second alarm
+  arriving while the screen is up but the phone is not locked comes as a heads-up over
+  it for the same reason.
+- **The sound is `PrintAlarm`'s own player**, not the notification's: a looping
+  `MediaPlayer` on the default alarm tone at `USAGE_ALARM` (plays on a silenced phone
+  at alarm volume), one player shared by every alarm ringing, released with the last. The
+  notification sits on `print_alarm_player`, which vibrates (`FLAG_INSISTENT` loops it;
+  the app has no `VIBRATE` permission of its own) and makes no sound. Why not the
+  notification's sound: the system plays one notification sound at a time, and the
+  next noisy notification of **any** app took over the loop for good — measured on the
+  AVD (`anotherAppsNotificationDoesNotCutTheLoop`), and the reason 0.17.2-dev.4 went
+  quiet after a print. It rings with or without the full-screen permission; opening
+  the shade no longer silences it, only a stop does.
+- **The fallback is the old way, kept as a channel.** The player first asks for the
+  audio focus. Android refuses it to an app with no visible activity and no foreground
+  service (`Audio focus request blocked by hardening` in logcat, already on the API 35
+  AVD; see [foreground-service.md](foreground-service.md#trap-ahead-background-audio-android-17)),
+  and a tone that will not prepare fails the same way. Then the notification goes on
+  `print_alarm` (renamed "Print alarm (system sound)"), whose `USAGE_ALARM` sound the
+  system plays with `FLAG_INSISTENT`, so the alarm is never silent — only cuttable as
+  before. While one alarm rings on the fallback, the next ones join it: two tones at
+  once otherwise. A player that errors mid-ring is replaced, or every alarm moves to
+  the fallback. Sound and usage are frozen once a channel exists, hence two ids. The
+  user silences the alarm by switching `print_alarm_player` off in the system
+  settings, which the player respects.
+- **The event's own notification goes out silent while the alarm rings**
+  (`showAlert(silent: true)`, from `PrintMonitor._ringAlarm`'s result): a second tone
+  over the alarm, and on the fallback it would mute or cut the alarm's sound (Android
+  mutes an app's second noisy post within a second, `Muting recently noisy` in logcat).
+  When the alarm does not ring (off, excluded, outside the hours), the notification
+  rings as usual.
+- **Four ways it stops**, each reported to the bug-report log as `alarm_stop`
+  ([logging-guide.md](logging-guide.md)): Stop on the screen, which stops every printer's alarm,
+  since the screen lists them all; Stop on the notification, which stops its own
+  (`AlarmStopReceiver`, also the delete intent where Android lets an ongoing
+  notification be swiped away); and the timeout. The timeout is `setTimeoutAfter`
+  plus a main-looper timer, whichever comes first (a no-op below API 26 for the first).
+  Removing the notification fires its delete intent, usually ahead of the timer, so
+  `AlarmStopReceiver` reports a stop at or past the deadline as `timeout`, not as the
+  user's. The timer stalls while
+  the CPU sleeps, so each alarm keeps its deadline and the screen stops every one past
+  it on its next `onResume` (`stopExpired`, the fourth). A new ring under the same id restarts the
+  timeout.
+- **The full-screen permission** (`USE_FULL_SCREEN_INTENT`) is not granted by default
+  on Android 14+ to an app that is not a clock or a phone. The settings show a note
+  with a button to `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` while it is missing,
+  asked again on every resume. Without it Android shows the alarm as a heads-up
+  notification, still ringing. Play needs a declaration ([play-compliance.md](play-compliance.md)).
+- **The settings** are a screen of their own (`AlarmSettingsScreen`, `/settings/alarm`,
+  an entry under app settings), not part of the notification screen: the alarm has its
+  own switches and does not follow the notification ones. Excluded locations are the
+  distinct `location` values of the printers listed; a printer in an excluded location
+  reads as excluded and cannot be switched back on its own.
+- **Test alarm** in the settings rings for one minute through the same path, so the
+  user hears the volume and sees whether the screen comes up. It can only be tested
+  with the app open; the real thing comes from the service.
+- **Phone only.** The watch manifest strips the permission, the activity and the
+  receiver; `tool/check_wear_apk.py` asserts it.
+- **Device test:** `PrintAlarmTest` (`android/app/src/androidTestMobile/kotlin/…`, phone flavor only, run by
+  `just test-device`): the player on the soundless channel and the fallback on the
+  sounding one (`refuseFocusForTest`), a second alarm joining an alarm already on the
+  fallback rather than starting the player, the player
+  playing as `USAGE_ALARM` with the ringer on silent and through another app's
+  notification (read from `dumpsys audio`), the player released with the last stop and
+  past every deadline (`clockOffsetForTest`), the notification's flags, the screen over
+  a swipe lock screen, each stop path and the one-minute timeout. The player's tests
+  bring `MainActivity` up first: the test process has no foreground service, so its
+  focus would be refused. A player that errors mid-ring is not covered.
+- **Doze, measured on the API 35 emulator** with `tool/fake_bambuddy.dart` (`print`,
+  screen off, then `finish`): screen off only, 60 s and 10 min into a forced deep idle
+  (`dumpsys battery unplug`, `deviceidle force-idle`) all posted the alarm within one
+  `dumpsys` poll (under 0.5 s) and had the screen up at 0.6 s. The service's process
+  keeps its network in Doze, so the socket delivers at once. Not covered: a real
+  device's OEM battery manager, and hours rather than minutes of idle.
 
 ## Testing an alert without printing
 

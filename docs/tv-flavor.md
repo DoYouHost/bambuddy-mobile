@@ -1,6 +1,7 @@
 # TV flavor and wall mode — plan and decisions
 
-Status: **planning only, nothing implemented.** Written 2026-09-28 from a
+Status: **wall mode (§13) is built** in `lib/features/wall/`; the **`tv` flavor
+(§1–§12) is a plan only, nothing of it exists.** Written 2026-09-28 from a
 planning discussion with the maintainer. Tracked on purpose (not under the
 gitignored `docs/plans/`) so the decisions below survive between sessions.
 
@@ -343,13 +344,12 @@ The Ambient Mode page adds that automatic playback and animations must not set
    if `DreamService` comes back).
 4. Whether "never" is an available screensaver setting on target devices (B).
 5. Vega OS vs Fire OS — confirm which current Fire TV devices can sideload.
-6. ~~Camera grid in the MVP or after it~~ — settled by D10: it *is* the MVP.
-7. TV credential: `can_read_status` API key (D4, pairing as in §5) or a
+6. TV credential: `can_read_status` API key (D4, pairing as in §5) or a
    `camwall` token (§3)? Or the key for the full app plus nothing else? Decide
    before phase 3.
-8. If the Play review rejects the always-on camera wall: APK-only TV, or drop
+7. If the Play review rejects the always-on camera wall: APK-only TV, or drop
    the TV flavor?
-9. Tizen (Samsung TVs): assessed 2026-09-28, deferred. flutter-tizen supports
+8. Tizen (Samsung TVs): assessed 2026-09-28, deferred. flutter-tizen supports
    Tizen 6.0+ (2021+ TVs) and has Tizen ports of our key plugins, but it is a
    separate toolchain (`.tpk`), distribution is Samsung TV Seller Office only
    (partner status outside the US, review "more than 4 weeks"), and there is no
@@ -412,11 +412,8 @@ user is already signed in to, with the credentials it already has.
   - **Keep screen awake** (D14) — on by default, since an always-on wall is
     the point of the mode; off lets the device's own screen timeout apply
     while the wall is shown.
-  - Which printers appear (like the TV's hidden list). New work: no
-    hidden-printer setting exists in the app yet; a new prefs key.
+  - Which printers appear (like the TV's hidden list).
   - Tiles show live video or status only.
-  - ~~Queue + errors panel shown or hidden~~ — dropped by D21: the panel is
-    always there, as the rail or expanded.
   - These settings open inside the panel, not over the wall (D19).
 
 ### 13.2 Behaviour
@@ -494,60 +491,14 @@ user is already signed in to, with the credentials it already has.
   owner mode.
 - Not on the watch.
 
-### 13.3 Work items
+### 13.3 Still provisional
 
-- `lib/features/wall/` — screen, tile/overlay widget, queue + errors panel,
-  providers (reuse the dashboard's printer state, `QueueRepository`, the HMS
-  catalogue and `mjpeg_view.dart`).
-- Keep-screen-on channel handlers in `MainActivity.kt` + a Dart wrapper;
-  immersive toggle scoped to the screen.
-- New work the code does not have yet:
-  - `MjpegView`: keep the connection when only the token changed (§13.2).
-  - Snapshot fallback: an `Endpoints` constant for
-    `GET /printers/{id}/camera/snapshot` and a polling tile.
-  - Queue poll while the wall is visible.
-  - Hidden-printer setting (prefs key + picker).
-  - Burn-in shift timer.
-- l10n in 5 locales (`just l10n-check`), `logTag` ids `wall.*`, `log-coverage`
-  at zero.
-- Tests: tile overlay states (printing, paused, idle, fault, offline, no
-  camera, live paused), grid + panel at landscape phone and tablet sizes and
-  at large system text, panel empty/overflow states, panel collapsed/expanded
-  on each side of the width threshold, the rail's counts, the remembered
-  choice, orientation locked on
-  enter and restored on exit (including when `/setup` replaces the wall),
-  keep-screen on/off on enter/exit and on toggling the setting (fake channel),
-  dashboard still mounted under the wall, a token-only URL change not
-  reopening the stream, reconnect paths.
-- Docs: store listing mention (5 languages), `docs/logging-guide.md` ids.
+Values in the code that no measurement has confirmed yet; change them from the
+D12 measurement and real devices, not from a guess:
 
-### 13.4 Estimate
+- the rail threshold (`panelExpandedFromWidth`, 960 dp);
+- a refused stream asked for again after 60 s (`restreamAfter`);
+- the burn-in step (3 min round four offsets of 2 px).
 
-| Step | Estimate |
-|---|---|
-| Measurement spike (D12): N simultaneous MJPEG streams on emulator profiles + against a real server; keep-screen-on channel | 1–2 days |
-| Tile/overlay widget + grid + settings | 2–3 days |
-| Queue + errors panel and the shared layout (D13) | 2 days |
-| Keep-screen-on, immersive, resilience (reconnects, token-only URL change in `MjpegView`, JWT expiry exit path) | 1–2 days |
-| Snapshot fallback, queue poll, hidden printers, burn-in shift | 2–3 days |
-| l10n, log tags, tests | 1–2 days |
-| **Total** | **~2–3 weeks** |
-
-### 13.5 Open for wall mode
-
-1. ~~Keep-screen-on mechanism~~ — settled by D11 (own channel).
-2. Live-tile limits and the snapshot fallback interval — numbers from the D12
-   measurement; recorded here once measured.
-3. ~~Grid only or with a panel~~ — settled by D13 (panel from the start).
-4. ~~Panel in portrait~~ — no portrait (D15).
-5. ~~Panel on narrow phones~~ — settled by D16 (collapsed below a threshold,
-   expandable).
-6. The D16 width threshold — pick from the spike screenshots.
-7. ~~Error order~~ — settled by D17.
-8. ~~Queue poll interval~~ — settled by D18.
-9. Provisional values in the code, to confirm with the D12 measurement and
-   the spike screenshots: the rail threshold (`panelExpandedFromWidth`, 960
-   dp), a refused stream asked for again after 60 s (`restreamAfter`), the
-   burn-in step (3 min round four offsets of 2 px). The snapshot interval
-   (8 s) is the server's own camera wall's, not a guess.
-10. ~~"Panel shown or hidden"~~ — dropped by D21.
+The snapshot interval (8 s) is the server's own camera wall's, not a guess. The
+live-tile limits (D12) are recorded here once measured.

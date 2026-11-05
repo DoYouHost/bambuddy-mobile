@@ -1,3 +1,4 @@
+import 'scale_to_fit.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
@@ -101,10 +102,9 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final async = ref.watch(fileManagerProvider);
     // Kept while a refresh is under way, so the grid does not blink out.
-    final state = async.valueOrNull;
+    final state = async.value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -116,28 +116,20 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
           onUpload: state == null ? null : () => _upload(state),
         ),
         const SizedBox(height: DashSpace.md),
-        Expanded(
-          child: Container(
-            decoration: t.cardBox,
-            padding: const EdgeInsets.all(DashSpace.sm),
-            // The error first: a failed refresh or a failed step into a folder
-            // keeps the listing it came from as `valueOrNull`, and showing that
-            // would leave the user looking at the old folder with no word.
-            child: switch ((state, async)) {
-              (_, AsyncError(:final error)) => ControllerListFailure(
-                error: error,
-                retryId: 'controller.files.retry',
-                onRetry: () => ref.invalidate(fileManagerProvider),
-              ),
-              (final s?, _) => _Grid(
-                state: s,
-                printerId: widget.printerId,
-                refreshing: async.isLoading,
-                // What a tap would act on is about to change.
-                locked: async.isLoading || _uploading,
-              ),
-              _ => const Center(child: CircularProgressIndicator()),
-            },
+        ControllerListBody<FileManagerState>(
+          async: async,
+          value: state,
+          retryId: 'controller.files.retry',
+          onRetry: () => ref.invalidate(fileManagerProvider),
+          // The error first: a failed refresh or a failed step into a folder
+          // keeps the listing it came from as `value`, and showing that would
+          // leave the user looking at the old folder with no word.
+          onFailure: ControllerListFailureMode.replace,
+          grid: (s) => _Grid(
+            state: s,
+            printerId: widget.printerId,
+            // What a tap would act on is about to change.
+            locked: async.isLoading || _uploading,
           ),
         ),
       ],
@@ -336,12 +328,16 @@ class _QueryChip extends StatelessWidget {
           borderRadius: radius,
           onTap: onTap,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 40),
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             decoration: BoxDecoration(
-              color: t.accentInk.withValues(alpha: 0.12),
+              color: t.accentInk.withValues(alpha: DashAlpha.faint),
               borderRadius: radius,
-              border: Border.all(color: t.accentInk.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: t.accentInk.withValues(alpha: DashAlpha.outline),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -357,7 +353,7 @@ class _QueryChip extends StatelessWidget {
                 const SizedBox(width: DashSpace.xs),
                 Icon(
                   Icons.close_rounded,
-                  size: DashSpace.lg,
+                  size: controllerIconSize(context, DashSpace.lg),
                   color: t.accentInk,
                 ),
               ],
@@ -441,13 +437,11 @@ class _Grid extends ConsumerWidget {
   const _Grid({
     required this.state,
     required this.printerId,
-    required this.refreshing,
     required this.locked,
   });
 
   final FileManagerState state;
   final int printerId;
-  final bool refreshing;
 
   /// Nothing opens: a listing is on its way, or a file is being sent.
   final bool locked;
@@ -456,9 +450,7 @@ class _Grid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(fileManagerProvider.notifier);
-    final model = ref.watch(
-      controllerPrinterProvider(printerId).select((p) => p.item?.printer.model),
-    );
+    final model = ref.watch(controllerModelProvider(printerId));
     // A search or a tag filter spans the whole library, so the folders of the
     // directory the user stands in would be noise beside its results.
     final folders = state.isSearching || state.isTagFiltering
@@ -484,34 +476,21 @@ class _Grid extends ConsumerWidget {
             : l10n.fmEmpty,
       );
     }
-    return Column(
-      children: [
-        if (refreshing) const LinearProgressIndicator(),
-        Expanded(
-          child: GridView.builder(
-            gridDelegate: controllerTileGrid(context),
-            itemCount: folders.length + files.length,
-            itemBuilder: (context, i) => i < folders.length
-                ? _FolderTile(
-                    folder: folders[i],
-                    onTap: locked
-                        ? null
-                        : () => notifier.openFolder(folders[i].id),
-                  )
-                : _FileTile(
-                    file: files[i - folders.length],
-                    printerModel: model,
-                    onTap: locked
-                        ? null
-                        : () => _openFile(
-                            context,
-                            ref,
-                            files[i - folders.length],
-                          ),
-                  ),
-          ),
-        ),
-      ],
+    return GridView.builder(
+      gridDelegate: controllerTileGrid(context),
+      itemCount: folders.length + files.length,
+      itemBuilder: (context, i) => i < folders.length
+          ? _FolderTile(
+              folder: folders[i],
+              onTap: locked ? null : () => notifier.openFolder(folders[i].id),
+            )
+          : _FileTile(
+              file: files[i - folders.length],
+              printerModel: model,
+              onTap: locked
+                  ? null
+                  : () => _openFile(context, ref, files[i - folders.length]),
+            ),
     );
   }
 
@@ -558,12 +537,12 @@ class _FolderTile extends StatelessWidget {
         width: controllerThumbSize,
         height: controllerThumbSize,
         decoration: BoxDecoration(
-          color: t.warning.withValues(alpha: 0.14),
+          color: t.warning.withValues(alpha: DashAlpha.wash),
           borderRadius: BorderRadius.circular(DashSpace.md),
         ),
         child: Icon(
           Icons.folder_rounded,
-          size: DashSpace.xxl,
+          size: controllerIconSize(context, DashSpace.xxl),
           color: t.warningInk,
         ),
       ),

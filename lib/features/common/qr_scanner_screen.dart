@@ -92,23 +92,24 @@ class _QrScannerScreenState<T extends Object>
           elevation: 0,
           title: Text(
             widget.title,
-            style: t.display.copyWith(letterSpacing: -0.3),
+            style: t.display.copyWith(letterSpacing: DashTracking.tight),
           ),
           actions: [
-            IconButton(
-              onPressed: () => _controller.toggleTorch(),
-              icon: ValueListenableBuilder<MobileScannerState>(
-                valueListenable: _controller,
-                builder: (context, state, _) => Icon(
-                  state.torchState == TorchState.on
-                      ? Icons.flash_on
-                      : Icons.flash_off,
-                  color: state.torchState == TorchState.on
-                      ? t.accentGreen
-                      : t.textPrimary,
-                ),
-              ),
-            ).tagged('scanner.torch'),
+            ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _controller,
+              builder: (context, state, _) {
+                final on = state.torchState == TorchState.on;
+                return IconButton(
+                  onPressed: () => _controller.toggleTorch(),
+                  tooltip: AppLocalizations.of(context).scannerTorch,
+                  isSelected: on,
+                  icon: Icon(
+                    on ? Icons.flash_on : Icons.flash_off,
+                    color: on ? t.accentGreen : t.textPrimary,
+                  ),
+                ).tagged('scanner.torch');
+              },
+            ),
           ],
         ),
       ),
@@ -126,11 +127,14 @@ class _QrScannerScreenState<T extends Object>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 240,
-                  height: 240,
+                  width: DashSize.d240,
+                  height: DashSize.d240,
                   decoration: BoxDecoration(
-                    border: Border.all(color: t.accentGreen, width: 3),
-                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: t.accentGreen,
+                      width: DashStroke.heavy,
+                    ),
+                    borderRadius: BorderRadius.circular(DashRadius.lg),
                   ),
                 ),
                 const SizedBox(height: DashSpace.xl),
@@ -143,7 +147,7 @@ class _QrScannerScreenState<T extends Object>
                     textAlign: TextAlign.center,
                     style: t.titleMd.copyWith(
                       shadows: const [
-                        Shadow(blurRadius: 8, color: Colors.black),
+                        Shadow(blurRadius: DashBlur.md, color: Colors.black),
                       ],
                     ),
                   ),
@@ -183,7 +187,7 @@ class _ScannerError extends StatelessWidget {
             Icon(
               denied ? Icons.no_photography_outlined : Icons.error_outline,
               color: t.textSecondary,
-              size: 56,
+              size: DashIcon.xxl,
             ),
             const SizedBox(height: DashSpace.lg),
             Text(

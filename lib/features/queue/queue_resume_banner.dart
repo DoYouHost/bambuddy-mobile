@@ -27,13 +27,13 @@ class QueueResumeBanners extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final skipped = ref.watch(queueSkippedProvider).valueOrNull ?? const [];
+    final skipped = ref.watch(queueSkippedProvider).value ?? const [];
     final printers = gateBlockedPrinters(
       skipped,
       fallbackName: (id) => l10n.statsPrinterFallback('$id'),
     );
     final models = ref.watch(permissionProvider(Permissions.queueUpdateAll))
-        ? gateBlockedModels(ref.watch(queueProvider).valueOrNull ?? const [])
+        ? gateBlockedModels(ref.watch(queueProvider).value ?? const [])
         : const <GateBlockedModel>[];
     if (printers.isEmpty && models.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -49,8 +49,11 @@ class QueueResumeBanners extends ConsumerWidget {
               final (:outcome, :restored) = await providers
                   .read(queueProvider.notifier)
                   .resumeAfterFailure(printer.printerId);
-              messenger.snack(
-                queueWriteMessage(l10n, outcome) ?? l10n.queueResumed(restored),
+              snackQueueOutcome(
+                messenger,
+                outcome,
+                l10n,
+                ok: l10n.queueResumed(restored),
               );
             },
           ),
@@ -63,8 +66,11 @@ class QueueResumeBanners extends ConsumerWidget {
                   .read(queueProvider.notifier)
                   .resumeModelAfterFailure(m.model);
               // Nothing is restored here: the jobs never left the queue.
-              messenger.snack(
-                queueWriteMessage(l10n, outcome) ?? l10n.queueResumed(0),
+              snackQueueOutcome(
+                messenger,
+                outcome,
+                l10n,
+                ok: l10n.queueResumed(0),
               );
             },
           ),
@@ -111,9 +117,11 @@ class _ResumeBanner extends StatelessWidget {
             DashSpace.xs,
           ),
           decoration: BoxDecoration(
-            color: t.accentOrange.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+            color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
+            border: Border.all(
+              color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+            ),
           ),
           // One line and one word on the button: what happened and what to do
           // about it. The confirmation says the rest.
@@ -121,7 +129,7 @@ class _ResumeBanner extends StatelessWidget {
             children: [
               Icon(
                 Icons.warning_amber_rounded,
-                size: 20,
+                size: DashIcon.md,
                 color: t.accentOrangeInk,
               ),
               const SizedBox(width: DashSpace.sm),

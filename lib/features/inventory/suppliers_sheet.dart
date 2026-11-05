@@ -107,7 +107,7 @@ class _SupplierRow extends ConsumerWidget {
     // server's number includes archived spools (and Spoolman rows in native
     // mode), so "3 spools" opened onto a list of 2. Each count here is exactly
     // what its link shows.
-    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
     final here = [
       for (final s in spools)
         if (_suppliedBy(s)) s,
@@ -119,7 +119,7 @@ class _SupplierRow extends ConsumerWidget {
       minimumSize: Size.zero,
     );
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(DashRadius.xl),
       side: BorderSide(color: t.subCardBorder),
     );
     return Padding(
@@ -302,9 +302,9 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
     final container = ProviderScope.containerOf(context);
     final draft = SupplierDraft(
       name: _c['name']!.text.trim(),
-      website: _trimmedField(_c, 'website'),
-      customerNumber: _trimmedField(_c, 'customerNumber'),
-      note: _trimmedField(_c, 'note'),
+      website: trimmedOrNull(_c['website']!.text),
+      customerNumber: trimmedOrNull(_c['customerNumber']!.text),
+      note: trimmedOrNull(_c['note']!.text),
     );
     setState(() => _saving = true);
     try {
@@ -331,6 +331,9 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
       if (!_nameTaken) {
         showApiFailure(messenger, e, l10n, action: 'supplier_form.save');
       }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -431,7 +434,7 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
                   child: _saving
-                      ? DashSpinner(size: 20, color: t.onAccent)
+                      ? DashSpinner(size: DashSize.d20, color: t.onAccent)
                       : Text(l10n.inventorySave),
                 ).tagged('supplier_form.save'),
               ),

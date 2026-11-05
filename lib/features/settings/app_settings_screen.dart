@@ -54,17 +54,20 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 segments: [
                   ButtonSegment(
                     value: _Section.phone,
-                    icon: const Icon(Icons.smartphone_outlined, size: 16),
+                    icon: const Icon(
+                      Icons.smartphone_outlined,
+                      size: DashIcon.sm,
+                    ),
                     label: Text(l10n.appSettingsPhone),
                   ),
                   ButtonSegment(
                     value: _Section.watch,
-                    icon: const Icon(Icons.watch_outlined, size: 16),
+                    icon: const Icon(Icons.watch_outlined, size: DashIcon.sm),
                     label: Text(l10n.watchSettingsTitle),
                   ),
                   ButtonSegment(
                     value: _Section.labelPrinter,
-                    icon: const Icon(Icons.label_outline, size: 16),
+                    icon: const Icon(Icons.label_outline, size: DashIcon.sm),
                     label: Text(l10n.appSettingsLabelPrinter),
                   ),
                 ],
@@ -158,6 +161,15 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         subtitle: l10n.appSettingsNotificationsSubtitle,
         onTap: () => context.push('/settings/notifications'),
         id: 'app_settings.notifications',
+      ),
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.alarmHeader),
+      SettingsEntryTile(
+        icon: Icons.alarm_rounded,
+        title: l10n.alarmTitle,
+        subtitle: l10n.alarmSettingsSubtitle,
+        onTap: () => context.push('/settings/alarm'),
+        id: 'app_settings.alarm',
       ),
       // The tour's own copy of this screen would start a tour in a tour.
       if (ref.watch(tourBeaconProvider) == null) ...[
@@ -260,8 +272,8 @@ class AccentDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 16,
-    height: 16,
+    width: DashSize.d16,
+    height: DashSize.d16,
     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
 }

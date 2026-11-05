@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_location.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printer_locations_repository.dart';
@@ -7,7 +8,9 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/locations/printer_locations_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
@@ -39,6 +42,16 @@ final _farm = [
   _printer(4, 'Spare', null),
 ];
 
+/// A server answer the app cannot read: the write fails with something that is
+/// not an `AppApiException`.
+class _UnreadableLocations extends PrinterLocationsRepository {
+  _UnreadableLocations(super.dio);
+
+  @override
+  Future<PrinterLocation> create(PrinterLocationDraft draft) async =>
+      throw StateError('unreadable answer');
+}
+
 void main() {
   late RequestLog sent;
   late DioAdapter adapter;
@@ -47,6 +60,8 @@ void main() {
     WidgetTester tester, {
     AuthMode authMode = AuthMode.none,
     CurrentUser? user,
+    double textScale = 1,
+    PrinterLocationsRepository Function(Dio dio)? repoOn,
   }) async {
     final dio = testDio();
     adapter = mockServer(dio);
@@ -58,14 +73,45 @@ void main() {
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         printerLocationsRepositoryProvider.overrideWithValue(
-          PrinterLocationsRepository(dio),
+          repoOn?.call(dio) ?? PrinterLocationsRepository(dio),
         ),
         fixedDashboardOverride(DashboardState(printers: _farm)),
         inertStatusesOverride,
         if (user != null) currentUserOverride(user),
       ],
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
     );
     await tester.pumpAndSettle();
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the selection bar holds its count and buttons at text '
+        '$scale', (tester) async {
+      tester.view.physicalSize = const Size(411, 4000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpScreen(tester, textScale: scale);
+      await tester.tap(byLogId('locations.printer_select'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final move = tester.getRect(byLogId('locations.move_selected'));
+      expect(move.right, lessThanOrEqualTo(411));
+      if (scale == 2.0) {
+        final count = tester.getRect(find.text(pl.printerLocationsSelected(1)));
+        expect(
+          move.top,
+          greaterThanOrEqualTo(count.bottom),
+          reason: 'the buttons go under the count and share the full width',
+        );
+        expect(move.width, greaterThan(411 / 2 - 40));
+      }
+    });
   }
 
   testWidgets('lists the locations with their counts and the printers '
@@ -237,6 +283,22 @@ void main() {
     expect(find.text('Workshop'), findsOneWidget);
     expect(byLogId('locations.new'), findsNothing);
     expect(byLogId('locations.printer_select'), findsNothing);
+  });
+
+  testWidgets('a save that fails with an unexpected error unlocks the form, '
+      'and still reports it', (tester) async {
+    await pumpScreen(tester, repoOn: _UnreadableLocations.new);
+
+    await tester.tap(byLogId('locations.new'));
+    await tester.pumpAndSettle();
+    await tester.enterText(byLogId('location_form.name'), 'Garage');
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('location_form.save'),
+    );
+
+    expect(errors.single, isA<StateError>());
+    expect(buttonAt(tester, 'location_form.save').onPressed, isNotNull);
   });
 
   testWidgets('a name already taken is shown on the name field', (

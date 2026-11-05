@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/queue_item.dart';
@@ -16,6 +15,7 @@ import '../dashboard/ws_providers.dart';
 import '../orders/orders_providers.dart';
 import 'queue_actions.dart';
 import 'queue_bulk_edit_screen.dart';
+import 'color_substitution_chip.dart';
 import 'queue_edit_screen.dart';
 import 'queue_history.dart';
 import 'queue_item_view.dart';
@@ -140,7 +140,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
 
     // Pending prints (excluding currently printing) — "start next" button
     // visibility depends on their presence.
-    final items = async.valueOrNull ?? const <QueueItem>[];
+    final items = async.value ?? const <QueueItem>[];
     final queued = [
       for (final i in items)
         if (i.statusKind != QueueItemStatusKind.printing) i,
@@ -246,27 +246,27 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
           child: TabBarView(
             controller: _tabs,
             children: [
-              Column(
-                children: [
-                  const QueueResumeBanners(),
-                  Expanded(
-                    child: dashAsync(
-                      context,
-                      async,
-                      onRetry: () => ref.read(queueProvider.notifier).refresh(),
-                      data: (items) => RefreshIndicator(
-                        onRefresh: () =>
-                            ref.read(queueProvider.notifier).refresh(),
-                        child: items.isEmpty
-                            ? EmptyStateView(
+              dashAsync(
+                context,
+                async,
+                onRetry: () => ref.read(queueProvider.notifier).refresh(),
+                data: (items) => RefreshIndicator(
+                  onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+                  child: items.isEmpty
+                      // Nothing to scroll, so the banners sit above the message.
+                      ? Column(
+                          children: [
+                            const QueueResumeBanners(),
+                            Expanded(
+                              child: EmptyStateView(
                                 message: l10n.queueEmpty,
                                 icon: Icons.playlist_add_check,
-                              )
-                            : _QueueList(items: items),
-                      ),
-                    ),
-                  ),
-                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : _QueueList(items: items),
+                ),
               ),
               const QueueHistoryView(),
             ],
@@ -280,7 +280,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
   /// are dropped only once something was applied: a refused edit keeps them, so
   /// the user can change one setting and send it again.
   Future<void> _bulkEdit(Set<int> picked) async {
-    final items = ref.read(queueProvider).valueOrNull ?? const <QueueItem>[];
+    final items = ref.read(queueProvider).value ?? const <QueueItem>[];
     final ids = [
       for (final i in items)
         if (picked.contains(i.id)) i.id,
@@ -321,38 +321,40 @@ class _QueueList extends ConsumerWidget {
     ];
     final offset = pinned.length;
 
-    // The top inset goes above the pinned cards, not into the list: inside the
-    // list it also sat between the printing card and the next one, which made
-    // that one gap twice the others.
-    return Padding(
-      padding: const EdgeInsets.only(top: DashSpace.sm),
-      child: Column(
-        children: [
-          for (final it in pinned) _QueueCard(item: it, pinned: true),
-          Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.only(bottom: DashSpace.sm),
-              physics: const AlwaysScrollableScrollPhysics(),
-              // No default long-press drag — reorder only via explicit handle on left
-              // side of tile.
-              buildDefaultDragHandles: false,
-              itemCount: reorderable.length,
-              onReorderItem: (oldIndex, newIndex) async {
-                ref.read(tourBeaconProvider)?.signal('queue.reorder');
-                final messenger = ScaffoldMessenger.of(context);
-                final result = await ref
-                    .read(queueProvider.notifier)
-                    .reorder(oldIndex + offset, newIndex + offset);
-                _snackFailure(messenger, l10n, result);
-              },
-              itemBuilder: (context, i) => _QueueCard(
-                key: ValueKey(reorderable[i].id),
-                item: reorderable[i],
-                dragIndex: i,
-              ),
-            ),
-          ),
-        ],
+    // The resume banners and the printing cards are the list's header, so they
+    // scroll away with it: with several printers running, fixed rows would take
+    // the whole screen. The top inset goes above them, not into the list: inside
+    // the list it also sat between the printing card and the next one, which
+    // made that one gap twice the others.
+    return ReorderableListView.builder(
+      header: Padding(
+        padding: const EdgeInsets.only(top: DashSpace.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const QueueResumeBanners(),
+            for (final it in pinned) _QueueCard(item: it, pinned: true),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
+      physics: const AlwaysScrollableScrollPhysics(),
+      // No default long-press drag — reorder only via explicit handle on left
+      // side of tile.
+      buildDefaultDragHandles: false,
+      itemCount: reorderable.length,
+      onReorderItem: (oldIndex, newIndex) async {
+        ref.read(tourBeaconProvider)?.signal('queue.reorder');
+        final messenger = ScaffoldMessenger.of(context);
+        final result = await ref
+            .read(queueProvider.notifier)
+            .reorder(oldIndex + offset, newIndex + offset);
+        snackQueueOutcome(messenger, result, l10n);
+      },
+      itemBuilder: (context, i) => _QueueCard(
+        key: ValueKey(reorderable[i].id),
+        item: reorderable[i],
+        dragIndex: i,
       ),
     );
   }
@@ -410,14 +412,16 @@ class _QueueCard extends ConsumerWidget {
           padding: const EdgeInsets.all(DashSpace.lg),
           decoration: BoxDecoration(
             gradient: selected ? null : t.cardGradient,
-            color: selected ? t.accentGreen.withValues(alpha: 0.14) : null,
-            borderRadius: BorderRadius.circular(22),
+            color: selected
+                ? t.accentGreen.withValues(alpha: DashAlpha.wash)
+                : null,
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             // The printing card wears a green-tinted border; only a pick is filled.
             border: Border.all(
               color: selected
-                  ? t.accentGreen.withValues(alpha: 0.5)
+                  ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                   : pinned
-                  ? t.accentGreen.withValues(alpha: 0.3)
+                  ? t.accentGreen.withValues(alpha: DashAlpha.soft)
                   : t.cardBorder,
             ),
           ),
@@ -437,18 +441,18 @@ class _QueueCard extends ConsumerWidget {
               // A tick in place of the picture, as the archive marks a pick.
               if (selected)
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: DashSize.d56,
+                  height: DashSize.d56,
                   decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(16),
+                    color: t.accentGreen.withValues(alpha: DashAlpha.wash),
+                    borderRadius: BorderRadius.circular(DashRadius.lg),
                   ),
                   child: Icon(Icons.check, color: t.accentGreenInk),
                 )
               else
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: QueueThumbnail(item: item, size: 56),
+                  borderRadius: BorderRadius.circular(DashRadius.lg),
+                  child: QueueThumbnail(item: item, size: DashSize.d56),
                 ),
               const SizedBox(width: DashSpace.md),
               Expanded(
@@ -498,8 +502,8 @@ class _QueueCard extends ConsumerWidget {
           vertical: DashSpace.xs,
         ),
         decoration: BoxDecoration(
-          color: t.danger.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(22),
+          color: t.danger.withValues(alpha: DashAlpha.wash),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
         ),
         child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
@@ -520,7 +524,7 @@ class _QueueCard extends ConsumerWidget {
         final result = await ref.read(queueProvider.notifier).delete(item.id);
         // The swipe hits `DELETE`, which refuses a row that started printing
         // between the list being drawn and the finger arriving.
-        _snackFailure(messenger, l10n, result);
+        snackQueueOutcome(messenger, result, l10n);
       },
       child: card,
     ).tagged('queue.swipe_delete').tourTarget('queue.swipe_delete.${item.id}');
@@ -572,6 +576,7 @@ class _Subtitle extends ConsumerWidget {
                 ),
                 accent: t.textTertiary,
               ),
+            ColorSubstitutionChip(item: item),
           ],
         ),
         if (parts.isNotEmpty)
@@ -626,15 +631,20 @@ class _Chip extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: neutral ? t.subCard : accent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(20),
+        color: neutral ? t.subCard : accent.withValues(alpha: DashAlpha.wash),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(
-          color: neutral ? t.subCardBorder : accent.withValues(alpha: 0.4),
+          color: neutral
+              ? t.subCardBorder
+              : accent.withValues(alpha: DashAlpha.outline),
         ),
       ),
       child: Text(
         label,
-        style: t.micro.copyWith(color: accent, letterSpacing: 0.2),
+        style: t.micro.copyWith(
+          color: accent,
+          letterSpacing: DashTracking.label,
+        ),
       ),
     );
   }
@@ -712,7 +722,7 @@ class _QueueActions extends ConsumerWidget {
             // no mapping then — saving [] would clear the stored one.
             if (mapping == null || mapping.isEmpty) return;
             final r = await notifier.saveMapping(item.id, mapping);
-            messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
+            snackQueueOutcome(messenger, r, l10n, ok: l10n.mappingSaved);
             return;
           }
 
@@ -819,17 +829,4 @@ class _QueueActions extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Says nothing on success: the change is already visible in the list.
-/// Says nothing when [result] succeeded — the row leaving the list is the
-/// confirmation — and otherwise what [queueWriteMessage] made of the refusal.
-void _snackFailure(
-  ScaffoldMessengerState messenger,
-  AppLocalizations l10n,
-  ActionOutcome result,
-) {
-  final text = queueWriteMessage(l10n, result);
-  if (text == null) return;
-  messenger.snack(text);
 }

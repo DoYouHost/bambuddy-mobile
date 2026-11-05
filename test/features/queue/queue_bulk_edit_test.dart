@@ -29,6 +29,7 @@ void main() {
     ],
     CurrentUser? user,
   }) => ProviderScope(
+    retry: neverRetry,
     overrides: [
       noServerProfileOverride,
       queueProvider.overrideWith(() => queue ?? _BulkQueue()),
@@ -89,6 +90,22 @@ void main() {
     expect(queue.calls.single.$1, [4, 9]);
     expect(queue.calls.single.$2, {'timelapse': true, 'vibration_cali': false});
   });
+
+  testWidgets(
+    'an apply that fails with an unexpected error unlocks the screen, '
+    'and still reports it',
+    (tester) async {
+      final unreadable = StateError('unreadable answer');
+      await open(tester, screen(queue: _BulkQueue(explode: unreadable)));
+
+      await tester.tap(choice('queue_bulk.timelapse', pl.commonOn));
+      await tester.pump();
+      final errors = await tapCapturingErrors(tester, apply());
+
+      expect(errors.single, same(unreadable));
+      expect(applyEnabled(tester), isTrue);
+    },
+  );
 
   testWidgets('tapping the picked value again leaves the setting alone', (
     tester,
@@ -300,9 +317,12 @@ void main() {
 /// A queue that records the bulk edits it was asked for instead of sending
 /// them: the ids and the body the changes would put on the wire.
 class _BulkQueue extends QueueNotifier {
-  _BulkQueue({this.refusal});
+  _BulkQueue({this.refusal, this.explode});
 
   final AppApiException? refusal;
+
+  /// A write that fails with something the app cannot read.
+  final Object? explode;
   final calls = <(List<int>, Map<String, dynamic>)>[];
 
   @override
@@ -313,6 +333,7 @@ class _BulkQueue extends QueueNotifier {
     List<int> itemIds,
     QueueBulkChanges changes,
   ) async {
+    if (explode != null) throw explode!;
     final error = refusal;
     if (error != null) return (outcome: ActionFailed(error), result: null);
     calls.add((itemIds, changes.toJson(triState: true)));

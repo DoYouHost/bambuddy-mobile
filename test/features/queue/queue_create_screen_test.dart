@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 
 /// Three plates, as a 3MF sliced for a plate farm answers.
@@ -74,6 +75,7 @@ void main() {
     expect(capturedBody?['insert_at_top'], true);
     expect(capturedBody?['manual_start'], false);
     expect(capturedBody?.containsKey('scheduled_time'), isFalse);
+    expectSentAsRecorded('archive_reprint_asap', writesOf(sentRequests));
   });
 
   // The gap this closes: the server starts a job on `plate_id or 1`, so a

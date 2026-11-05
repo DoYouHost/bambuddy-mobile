@@ -67,6 +67,25 @@ table", which the app would have to duplicate.
 `queue_keep_warm_bed_temp` is **not** greyed out when keep-warm is off: it is also the bed
 temperature preheat falls back to when a chamber-heated job's metadata carries none.
 
+### Pause warning
+
+`pause_warning_minutes` (server #2984, 1 to 120, default 5) is how long before a slicer
+pause the **server** sends its own "Pause Coming Up" alert, and the lead time the app's
+own pause alert uses too. It is a server setting, so it lives in the hub
+(`PauseWarningScreen`), and it borrows the queue block's machinery whole: it is a
+`QueueSetting`, written one key at a time, offered only when `GET /settings` answers the
+key, and locked by `queueSettingsLockProvider` — which is also why the screen reuses the
+queue screen's two read-only sentences.
+
+- **An API key reads it and never writes it.** The value is no secret (only the
+  `SETTINGS_SECRETS` fields are blanked for a key), so a key and an account without
+  `settings:update` see the same slider, greyed, with the value the server holds and the
+  sentence that says why. An account that may write gets the live slider.
+- **The server's alert and the app's are two alerts.** Whether the server's reaches the
+  user depends on a notification provider configured there
+  (`on_print_pause_upcoming`, `NOTIFICATIONS_UPDATE`, not writable with a key), which the
+  app neither reads nor assumes.
+
 ## Pipelines
 
 Since server 1.2.5.3 (commit `a4795c5c`) an API key can read and run slicer pipelines,

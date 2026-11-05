@@ -1,3 +1,5 @@
+import '../models/value_equality.dart';
+
 /// A server capability the app has to gate, because an older bambuddy either
 /// refuses it or — worse — accepts the request and silently ignores it.
 ///
@@ -94,6 +96,28 @@ enum ServerFeature {
   /// `last_dried_at` on its update (#2863). The update key is taken and ignored
   /// below it.
   spoolLastDried,
+
+  /// `/inventory/profile-defaults/*` — the slicer preset, presets per model and
+  /// K profiles a new spool of a product starts with (#1326).
+  profileDefaults,
+
+  /// `move` on the two slot-assignment routes: the spool leaves its old slot in
+  /// the same commit. Taken and ignored below it, which leaves it in two slots.
+  assignmentMove,
+
+  /// Each print of an archive keeps its own note, photos, video and verdict: a
+  /// `notes` key on `PATCH /print-log/{id}` and `run_id` on `PATCH
+  /// /archives/{id}`. Both are taken and ignored below it.
+  archiveRuns,
+
+  /// `/archives/merge-count`, `merge-preview` and `merge`: duplicate archives
+  /// of one file merged into one. An older server answers 422 (its
+  /// `/archives/{archive_id}` takes the path), never a silent drop.
+  archiveMerge,
+
+  /// `/archives/prints`: every print that ended in a date range, the archive
+  /// calendar's source. An older server answers 422 (path capture as above).
+  archiveCalendar,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -103,7 +127,7 @@ enum ServerFeature {
 /// Parsing and ordering mirror `updates.py::parse_version` / `is_newer_version`
 /// so that "newer" means here what it means there — including the rule that a
 /// release outranks any prerelease of the same base.
-class ServerVersion implements Comparable<ServerVersion> {
+class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
   const ServerVersion({
     required this.raw,
     required this.major,
@@ -201,6 +225,11 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.spoolSuppliers: (1, 2, 6, 0),
     ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
+    ServerFeature.profileDefaults: (1, 2, 6, 0),
+    ServerFeature.assignmentMove: (1, 3, 1, 0),
+    ServerFeature.archiveRuns: (1, 3, 1, 0),
+    ServerFeature.archiveMerge: (1, 3, 1, 0),
+    ServerFeature.archiveCalendar: (1, 3, 1, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].
@@ -227,7 +256,16 @@ class ServerVersion implements Comparable<ServerVersion> {
   /// Highest chamber target the server will accept, in °C — the one gate no
   /// observation can settle, since the only probe would be a real command
   /// heating somebody's chamber. See `docs/server-gates.md`.
-  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
+  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65)
+      ? chamberMaxTargetRaisedC
+      : chamberMaxTargetLegacyC;
+
+  /// The ceiling before the server raised it (1.2.6), and what an unknown
+  /// version is assumed to take.
+  static const chamberMaxTargetLegacyC = 60;
+
+  /// The ceiling from 1.2.6.
+  static const chamberMaxTargetRaisedC = 65;
 
   List<int> get _base => [major, minor, patch, micro];
 
@@ -255,18 +293,14 @@ class ServerVersion implements Comparable<ServerVersion> {
   bool operator <(ServerVersion other) => compareTo(other) < 0;
 
   @override
-  bool operator ==(Object other) =>
-      other is ServerVersion &&
-      other.major == major &&
-      other.minor == minor &&
-      other.patch == patch &&
-      other.micro == micro &&
-      other.isPrerelease == isPrerelease &&
-      other.prereleaseNum == prereleaseNum;
-
-  @override
-  int get hashCode =>
-      Object.hash(major, minor, patch, micro, isPrerelease, prereleaseNum);
+  List<Object?> get props => [
+    major,
+    minor,
+    patch,
+    micro,
+    isPrerelease,
+    prereleaseNum,
+  ];
 
   @override
   String toString() => raw;

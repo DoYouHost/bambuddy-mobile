@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printable_object.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -111,6 +113,7 @@ void main() {
     int layerNum = 2,
     ObjectPickMask? mask,
     Size? landscape,
+    double textScale = 1,
   }) async {
     // The test window defaults to 800×600 (wider than tall) — the square plate
     // preview (AspectRatio 1) would then claim the whole viewport height, and
@@ -134,6 +137,12 @@ void main() {
         ),
         objectPickMaskProvider(1).overrideWith((ref) async => mask),
       ],
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
     );
     await tester.pumpAndSettle();
     return repo;
@@ -188,6 +197,44 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a skip that fails with an unexpected error leaves the bar usable, '
+    'and the error is still reported',
+    (tester) async {
+      final repo = await pumpScreen(tester);
+      repo.error = StateError('unreadable answer');
+      await tapRow(tester, 'Divider_left.stl');
+
+      // The skip carries on after the confirmation closes, in the zone of the
+      // tap that opened it, so the whole flow is captured together.
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(find.text(pl.skipObjectsSkip));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.text(pl.skipObjectsSkip),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }, (e, _) => errors.add(e));
+      repo.error = null;
+      await tester.tap(find.text(pl.skipObjectsSkip));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.skipObjectsSkip),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(errors.single, isA<StateError>());
+      expect(repo.skipCalls.length, 2, reason: 'the retry went out');
+    },
+  );
+
   testWidgets('tapping the same row again deselects the object', (
     tester,
   ) async {
@@ -201,6 +248,43 @@ void main() {
     expect(find.text(pl.skipObjectsSkip), findsNothing);
     expect(repo.skipCalls, isEmpty);
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('an object row holds its id badge and name at text $scale', (
+      tester,
+    ) async {
+      await pumpScreen(tester, textScale: scale);
+      await tester.scrollUntilVisible(
+        find.text('Divider_left.stl'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(tester.takeException(), isNull);
+      final tile = tester.getRect(find.text('Divider_left.stl'));
+      final row = find.ancestor(
+        of: find.text('Divider_left.stl'),
+        matching: find.byType(InkWell),
+      );
+      final badge = tester.getRect(
+        find.descendant(of: row, matching: find.text('421')),
+      );
+      expect(
+        badge.right,
+        lessThan(tile.left),
+        reason: 'the id badge sits left of the name',
+      );
+      if (scale == 2.0) {
+        final hint = tester.getRect(find.text(pl.skipObjectsMatchHint));
+        final counter = tester.getRect(find.text(pl.skipObjectsCounter(0, 2)));
+        expect(
+          counter.top,
+          greaterThanOrEqualTo(hint.bottom),
+          reason: 'the counter drops under the texts instead of squeezing them',
+        );
+      }
+    });
+  }
 
   testWidgets('in landscape the plate and the list sit side by side', (
     tester,

@@ -5,12 +5,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:app_report_client/app_report_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/custom_ca.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
 import 'core/api/observed_capability.dart';
@@ -44,11 +46,13 @@ import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
 import 'data/finance_repository.dart';
+import 'data/external_links_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
+import 'data/profile_defaults_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/announcements_repository.dart';
@@ -74,6 +78,13 @@ import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
 import 'data/timelapse_repository.dart';
 import 'data/users_repository.dart';
+
+/// Riverpod 3 retries a provider that throws an `Exception` up to ten times with
+/// a growing delay, and `ApiException` is one. Here a failed read is an answer to
+/// show (an error view with a refresh button, a gate that stays closed), so it
+/// would hold every screen on a spinner for ~13 s instead. Every root scope and
+/// container passes this; nested ones inherit it.
+Duration? neverRetry(int retryCount, Object error) => null;
 
 /// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -138,6 +149,7 @@ class BgMonitoringNotifier extends Notifier<bool> {
 
   Future<void> set(bool enabled) async {
     await ref.read(settingsRepositoryProvider).saveBgMonitoringEnabled(enabled);
+    if (!ref.mounted) return;
     state = enabled;
   }
 }
@@ -157,6 +169,7 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> _save(NotificationPrefs prefs) async {
     await ref.read(settingsRepositoryProvider).saveNotificationPrefs(prefs);
+    if (!ref.mounted) return;
     state = prefs;
   }
 
@@ -177,6 +190,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> setLowFilamentThreshold(int value) =>
       _save(state.copyWith(lowFilamentThreshold: value));
+
+  Future<void> setAlarm(AlarmPrefs alarm) =>
+      _save(state.copyWith(alarm: alarm));
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
@@ -246,6 +262,28 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
   ref.onDispose(sender.dispose);
   return sender;
 });
+
+/// The CA the user imported for their server (#62); `main` applied the stored
+/// one before the first request.
+final customCaProvider = NotifierProvider<CustomCaNotifier, CustomCa?>(
+  CustomCaNotifier.new,
+);
+
+class CustomCaNotifier extends Notifier<CustomCa?> {
+  @override
+  CustomCa? build() => ref.read(settingsRepositoryProvider).loadCustomCa();
+
+  Future<void> set(CustomCa? ca) async {
+    await ref.read(settingsRepositoryProvider).saveCustomCa(ca);
+    trustCustomCa(ca);
+    state = ca;
+    // Dio keeps the `HttpClient` it made on its first request, so a retry after
+    // importing would still distrust the server. The API client follows through
+    // `authServiceProvider`. Invalidated rather than watched: watching would make
+    // every Dio depend on preferences.
+    ref.invalidate(bareDioProvider);
+  }
+}
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());
 
@@ -332,14 +370,18 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
     await settings.markTourDue();
-    state = profile;
+    if (ref.mounted) state = profile;
   }
 
   /// "Logout / change server": clear profile and all secrets.
   Future<void> clear() async {
-    await ref.read(settingsRepositoryProvider).clearProfile();
-    await ref.read(credentialsStoreProvider).clearAll();
-    state = null;
+    // Both stores are read first: logging out clears the secrets even if this
+    // provider is gone by the time the first write returns.
+    final settings = ref.read(settingsRepositoryProvider);
+    final credentials = ref.read(credentialsStoreProvider);
+    await settings.clearProfile();
+    await credentials.clearAll();
+    if (ref.mounted) state = null;
   }
 }
 
@@ -427,13 +469,15 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
   /// Re-reads `GET /auth/me`. Group membership and permissions can change on
   /// the server while the app is open.
   Future<void> refresh() async {
-    state = const AsyncLoading<CurrentUser?>().copyWithPrevious(state);
-    state = await AsyncValue.guard(() async {
+    state = const AsyncLoading<CurrentUser?>();
+    final next = await AsyncValue.guard(() async {
       final profile = ref.read(serverProfileProvider);
       if (profile == null) return null;
       if (profile.authMode == AuthMode.none && !profile.isDemo) return null;
       return ref.read(accountRepositoryProvider).me();
     });
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 
@@ -444,7 +488,7 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// and permissions").
 final permissionProvider = Provider.family<bool, String>(
   (ref, permission) =>
-      ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
+      ref.watch(currentUserProvider).value?.can(permission) ?? true,
 );
 
 /// Whether the current user is an admin. Unknown identity answers `true`, as in
@@ -452,7 +496,7 @@ final permissionProvider = Provider.family<bool, String>(
 /// refused every administrative route — pair it with
 /// [identifiedPermissionProvider].
 final isAdminProvider = Provider<bool>(
-  (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
+  (ref) => ref.watch(currentUserProvider).value?.isAdmin ?? true,
 );
 
 /// Whether a *known* identity holds [permission] — the gate on the entry points into
@@ -463,7 +507,7 @@ final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
   }
-  final user = ref.watch(currentUserProvider).valueOrNull;
+  final user = ref.watch(currentUserProvider).value;
   return user != null && user.can(p);
 });
 
@@ -717,7 +761,8 @@ final defaultConfirmOutcomeProvider = serverGate<bool>(
 /// (docs/providers.md, "Versions").
 final chamberMaxTargetProvider = Provider<int>(
   (ref) =>
-      ref.watch(serverVersionProvider).valueOrNull?.chamberMaxTargetC ?? 60,
+      ref.watch(serverVersionProvider).value?.chamberMaxTargetC ??
+      ServerVersion.chamberMaxTargetLegacyC,
 );
 
 /// Whether library files can be grouped as cross-model alternatives and queued
@@ -745,6 +790,13 @@ final processOverridesProvider = capabilityGate(
 final labelStartingPositionProvider = capabilityGate(
   (ref) =>
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
+);
+
+/// Whether moving a spool may be one request (`move` on the assignment, server
+/// #1574) instead of an unassign and an assign. Version-only: an older server
+/// ignores the field without a word.
+final assignmentMoveProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).assignmentMoveCapability,
 );
 
 /// Whether the label sheet may choose the printed lines and a PNG output
@@ -870,8 +922,8 @@ final serverUiFlagsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
 /// being the only source a non-admin can read; false until either answers.
 final billingEnabledProvider = Provider.autoDispose<bool>(
   (ref) => _billingFrom(
-    ref.watch(serverUiFlagsProvider).valueOrNull,
-    ref.watch(serverSettingsProvider).valueOrNull,
+    ref.watch(serverUiFlagsProvider).value,
+    ref.watch(serverSettingsProvider).value,
   ),
 );
 
@@ -941,7 +993,8 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   /// only mean the read did not land (docs/providers.md, "Server settings").
   Future<void> refresh() async {
     final fresh = await ref.read(serverSettingsRepositoryProvider).fetch();
-    if (fresh.isNotEmpty || (state.valueOrNull ?? const {}).isEmpty) {
+    if (!ref.mounted) return;
+    if (fresh.isNotEmpty || (state.value ?? const {}).isEmpty) {
       state = AsyncValue.data(fresh);
     }
   }
@@ -992,7 +1045,7 @@ Provider<AsyncValue<bool>> capabilityGate(
   if (feature == null) return AsyncData(latch.whenUnknown);
   final version = ref.watch(serverVersionProvider);
   if (!version.hasValue && !version.hasError) return inFlight;
-  return AsyncData(version.valueOrNull?.supports(feature) ?? latch.whenUnknown);
+  return AsyncData(version.value?.supports(feature) ?? latch.whenUnknown);
 });
 
 extension AsyncGate on AsyncValue<bool> {
@@ -1001,7 +1054,7 @@ extension AsyncGate on AsyncValue<bool> {
   /// loading — [settledGate] would wait on that forever. Both sides are
   /// evaluated (see "Combining" in `docs/server-gates.md`).
   AsyncValue<bool> and(AsyncValue<bool> other) {
-    if (valueOrNull == false || other.valueOrNull == false) {
+    if (value == false || other.value == false) {
       return const AsyncData(false);
     }
     if (hasError) return this;
@@ -1042,7 +1095,7 @@ Future<T> settledGate<T>(
 /// is hidden while the settings are in flight (docs/providers.md, "Server settings").
 Provider<T> serverValue<T>(T Function(Map<String, dynamic>) read) =>
     Provider<T>(
-      (ref) => read(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
+      (ref) => read(ref.watch(serverSettingsProvider).value ?? const {}),
     );
 
 /// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server
@@ -1115,6 +1168,11 @@ final makerworldRecentImportsProvider =
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
 
+/// The server's sidebar links and their counts, read only.
+final externalLinksRepositoryProvider = Provider<ExternalLinksRepository>(
+  (ref) => ExternalLinksRepository(ref.watch(apiClientProvider).dio),
+);
+
 /// Announcements from the Bambuddy maintainers.
 final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
   (ref) => AnnouncementsRepository(ref.watch(apiClientProvider).dio),
@@ -1177,6 +1235,23 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
     ref.watch(serverVersionServiceProvider),
   );
 });
+
+/// Profile defaults: what a new spool of a product starts with. Not
+/// `autoDispose`, like [inventoryRepositoryProvider]: its latch has to outlive
+/// the form that first asked.
+final profileDefaultsRepositoryProvider = Provider<ProfileDefaultsRepository>(
+  (ref) => ProfileDefaultsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(inventoryRepositoryProvider).backend,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server has profile defaults. Read by the spool form, which
+/// fills itself from one and offers to save one, and by the settings hub.
+final profileDefaultsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(profileDefaultsRepositoryProvider).capability,
+);
 
 /// Service minting the camera stream token (the live view; on servers older
 /// than #3025 also every other `?token=` image). Rebuilt with client on profile

@@ -1,4 +1,9 @@
+import 'dart:async';
+
+import 'dart:ui' show Tristate;
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
+import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
@@ -274,11 +279,41 @@ void main() {
     expect(find.text(pl.archiveOpenLink), findsOneWidget);
   });
 
+  group('header chips', () {
+    testWidgets('a single good print is counted, as the web counts it', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        ArchiveHeaderChips(
+          archive: _part.copyWith(runCount: 1, successfulRunCount: 1),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.archiveGoodCount(1)), findsOneWidget);
+      expect(find.text(pl.archiveFailedCount(0)), findsNothing);
+      expect(find.text(pl.archiveRunCount(1)), findsNothing);
+    });
+
+    testWidgets('a file never printed has neither count', (tester) async {
+      await _pump(tester, ArchiveHeaderChips(archive: _part));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.archiveGoodCount(0)), findsNothing);
+    });
+  });
+
   group('verdict thumbs', () {
     late FakeArchives repo;
     var rejected = 0;
 
-    Future<void> open(WidgetTester tester, Archive archive) async {
+    Future<void> open(
+      WidgetTester tester,
+      Archive archive, {
+      bool perPrint = false,
+      Future<List<PrintLogEntry>> Function()? runs,
+    }) async {
       repo = FakeArchives(archive: archive);
       rejected = 0;
       SharedPreferences.setMockInitialValues({});
@@ -295,12 +330,77 @@ void main() {
           printOutcomeSupportedProvider.overrideWithValue(
             const AsyncData(true),
           ),
+          archiveRunsSupportedProvider.overrideWithValue(AsyncData(perPrint)),
+          if (runs != null)
+            archiveRunsProvider.overrideWith((ref, id) => runs()),
         ],
       );
       await tester.pumpAndSettle();
     }
 
     Finder thumb(String label) => find.byTooltip(label);
+
+    final judged = testArchive(
+      userVerdict: PrintVerdict.good,
+    ).copyWith(runCount: 2);
+    final row = PrintLogEntry(
+      id: 1,
+      status: 'completed',
+      createdAt: DateTime(2026, 11),
+    );
+
+    // There the latest print's verdict is on its own row in the print history.
+    testWidgets('a print history with rows takes the line\'s place', (
+      tester,
+    ) async {
+      await open(tester, judged, perPrint: true, runs: () async => [row]);
+
+      expect(thumb(pl.outcomeGood), findsNothing);
+    });
+
+    // `runCount` says rows are coming, so the line does not flash up and away
+    // (and take a tap meant for no print in particular) while they load.
+    testWidgets('while the history loads, the line waits on runCount', (
+      tester,
+    ) async {
+      final never = Completer<List<PrintLogEntry>>();
+      await open(tester, judged, perPrint: true, runs: () => never.future);
+      expect(thumb(pl.outcomeGood), findsNothing);
+
+      await open(
+        tester,
+        judged.copyWith(runCount: 0),
+        perPrint: true,
+        runs: () => Completer<List<PrintLogEntry>>().future,
+      );
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
+
+    testWidgets('an empty print history keeps the line', (tester) async {
+      await open(tester, judged, perPrint: true, runs: () async => const []);
+
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
+
+    testWidgets('a print history that failed to load keeps the line', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        judged,
+        perPrint: true,
+        runs: () async =>
+            throw const ApiException(AppErrorCode.badResponse, statusCode: 500),
+      );
+
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
+
+    testWidgets('an older server keeps the line, rows or not', (tester) async {
+      await open(tester, judged, runs: () async => [row]);
+
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
 
     testWidgets('a thumb up records a good part', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
@@ -323,6 +423,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.sent.single.verdict, isNull);
+    });
+
+    testWidgets('the chosen thumb says it is selected, to a screen reader', (
+      tester,
+    ) async {
+      // A `Semantics` around an `IconButton` never reaches its node, so the state
+      // went unannounced until it moved inside the button.
+      final handle = tester.ensureSemantics();
+      await open(tester, testArchive(userVerdict: PrintVerdict.good));
+
+      Tristate selected(String label) => tester
+          .getSemantics(thumb(label))
+          .getSemanticsData()
+          .flagsCollection
+          .isSelected;
+
+      expect(selected(pl.outcomeGood), Tristate.isTrue);
+      expect(selected(pl.outcomeReject), Tristate.isFalse);
+      handle.dispose();
     });
 
     testWidgets('a thumb down records the reject and asks why', (tester) async {

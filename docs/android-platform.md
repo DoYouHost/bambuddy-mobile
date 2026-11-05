@@ -2,8 +2,8 @@
 
 Things that live in `android/` or depend on the Android version, device or
 renderer, and that the code alone does not explain: the Android 16 Live Update,
-the camera stream's ANR history, the home-screen widgets and the overscroll
-stutter. The watch's own platform notes are in [wear-os.md](wear-os.md). Where a
+the camera stream's ANR history, the home-screen widgets, the overscroll
+stutter and a server behind a private CA. The watch's own platform notes are in [wear-os.md](wear-os.md). Where a
 number is a measurement it says on what setup it was taken; none of them was
 re-run when this file was written.
 
@@ -197,3 +197,55 @@ device, pull and parse: a raster frame is `AcquireNextImageKHR` to
 thread (no `1.ui`), and a second `N.raster` in the process is the foreground
 service's engine. Release builds emit no Flutter trace events, but the
 Android/Vulkan markers are enough.
+
+## A server behind a private CA (#62)
+
+**Why a CA installed on the phone does not help.** Every request goes through
+`dart:io`: Dio, the WebSocket, the MJPEG stream and `Image.network`. `dart:io`
+keeps its own copy of the system roots and never reads the Android user store. It
+also ignores `network_security_config`. A reverse proxy signed by the user's own
+root CA therefore fails with `CERTIFICATE_VERIFY_FAILED` even when Chrome on the
+same phone trusts it.
+
+**What we do instead.** Google's guidance for an unknown CA is to trust that one
+issuer on top of the system roots (`base-config` with the extra CA plus `system`).
+Trusting every user-installed CA is shown only under `debug-overrides`. We follow
+the first, at run time, because the CA differs per user. The setup screen imports
+one file, PEM or DER (`lib/features/setup/custom_ca_row.dart`). `CustomCa.parse`
+keeps only its `CERTIFICATE` blocks, so a private key picked by mistake is never
+stored. The certificate lives in SharedPreferences under `custom_ca`; it is public,
+not a secret.
+
+**Where it applies.** `HttpOverrides.global` is per isolate, so each isolate that
+talks to the server calls `trustCustomCa` before its first request:
+
+- **UI isolate:** `main()`.
+- **Foreground service, notification-button and watch-relay isolates:**
+  `buildBackgroundApiClient`. Dio creates its `HttpClient` lazily, so trust set
+  there is in time.
+- **The watch:** the relay through the phone needs nothing of its own. For the
+  direct-REST fallback the phone sends its CA with the server config
+  (`WatchConfigCodec`, `caName` and `caPem`), again whenever it changes, and
+  `PendingWatchConfig.adopt` stores it; a config without one clears the watch's.
+  `main_wear.dart` trusts the stored CA at start. The watch cannot import one
+  itself.
+
+**Traps.**
+
+- **A client keeps the trust it was created with.** Setting the CA
+  invalidates `bareDioProvider`, so a retry after importing gets a fresh client.
+  It does not watch `customCaProvider`: that would make every Dio depend on
+  preferences. The
+  `Image.network` client is one per isolate, so a CA changed while the app runs
+  reaches images only after a restart.
+- **Dio's error type.** Dio reports an untrusted certificate as a connection
+  error. `mapDioException` turns a `HandshakeException` carrying
+  `CERTIFICATE_VERIFY_FAILED` into a `NetworkException` with
+  `AppErrorCode.badCertificate`. Other handshake failures,
+  such as plain http on an https port, stay connection errors.
+- **The CA is trusted for every host the app contacts,** as `base-config` would
+  be, not only the server. A custom anchor also skips Certificate Transparency.
+- **Never add a `badCertificateCallback` that returns true.**
+
+`test/core/api/custom_ca_test.dart` proves the trust against a real TLS server on
+127.0.0.1 (fixtures in `test/fixtures/tls/`; the CA's key was discarded).

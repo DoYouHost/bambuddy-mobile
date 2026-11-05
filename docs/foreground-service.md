@@ -99,5 +99,36 @@ the app stops working for everyone with a server on the LAN (most users). Users
 connecting through a public domain are unaffected. A new permission is a maintainer
 decision — see "Stop and ask: security" in AGENTS.md.
 
+Google Play adds a second step (policy announcement of 2026-10-29): an app targeting
+API 37+ must also submit a **Local Network declaration** in Play Console to use the
+permission. Raising the target is therefore two jobs — the manifest and runtime
+request, and the declaration — and the declaration must go in before the upload that
+raises the target. Tracked in [play-compliance.md](play-compliance.md#play-policy).
+
+## Trap ahead: background audio (Android 17)
+
+Android 17 lets an app in the background play sound or take the audio focus only while
+it runs a foreground service that is not `shortService`; playback outside that fails
+**silently**, the focus request with `AUDIOFOCUS_REQUEST_FAILED`
+([bg-audio](https://developer.android.com/about/versions/17/changes/bg-audio)). The
+print alarm's own player depends on it: it rings from this service's process
+([notification-delivery.md](notification-delivery.md#the-alarm-printalarmkt)). The API 35
+AVD already refuses the focus to a process with neither (`Audio focus request blocked
+by hardening`), so the alarm asks for the focus first and falls back to the system-played
+notification sound when refused.
+
+**From targetSdk 37 the service must also hold while-in-use capabilities**, or the app the
+exact-alarm permission (for `USAGE_ALARM` only). The service starts from `onPause`,
+inside the visibility grace period (above), and never at boot (`autoRunOnBoot: false`);
+AOSP's `ActiveServices` grants while-in-use for a start in that grace period, **unverified
+on Android 17** — read `allowWhileInUsePermissionInFgs` in `dumpsys activity services`
+before relying on it. A service that `RestartReceiver` brings back in the background has
+no while-in-use. Without it the alarm rings on the fallback: audible, but cut by the next
+noisy notification of another app. Before
+raising the target, decide whether that is acceptable or whether to add
+`SCHEDULE_EXACT_ALARM` (special access the user grants, denied by default since Android 14;
+`USE_EXACT_ALARM` is reserved for clock and calendar apps on Play). A new permission is a
+maintainer decision.
+
 Related: [notification-delivery.md](notification-delivery.md),
 [server-contract-traps.md](server-contract-traps.md).

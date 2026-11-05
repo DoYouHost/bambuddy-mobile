@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/media_auth.dart';
 import '../core/models/timelapse.dart';
@@ -25,10 +26,10 @@ class TimelapseRepository {
   static const _processTimeout = Duration(minutes: 15);
 
   Future<TimelapseInfo> info(int archiveId) => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
+    return _dio.getObject(
       Endpoints.archiveTimelapseInfo(archiveId),
+      TimelapseInfo.fromJson,
     );
-    return TimelapseInfo.fromJson(res.data ?? const {});
   });
 
   /// [count] frames, each [width] pixels wide — the server caps them at 30
@@ -39,11 +40,11 @@ class TimelapseRepository {
     int count = 14,
     int width = 160,
   }) => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
+    return _dio.getObject(
       Endpoints.archiveTimelapseThumbnails(archiveId),
-      queryParameters: {'count': count, 'width': width},
+      TimelapseFilmstrip.fromJson,
+      query: {'count': count, 'width': width},
     );
-    return TimelapseFilmstrip.fromJson(res.data ?? const {});
   });
 
   /// Re-encodes the recording in place. [trimEnd] null keeps the tail.
@@ -81,14 +82,19 @@ class TimelapseRepository {
   /// Takes the media [auth] because this is the one route of the four that
   /// reads `?token=` instead of the Bearer header. The `X-API-Key` variant of
   /// that credential is already on this client from the interceptor.
+  ///
+  /// [runId] downloads that print's own video instead of the archive's.
   Future<String?> downloadTo(
     int archiveId, {
+    int? runId,
     required MediaAuth auth,
     required String savePath,
     void Function(int received, int total)? onProgress,
   }) => streamDownload(
     _dio,
-    Endpoints.archiveTimelapse(archiveId),
+    runId == null
+        ? Endpoints.archiveTimelapse(archiveId)
+        : Endpoints.archiveRunTimelapse(archiveId, runId),
     savePath,
     queryParameters: auth.query,
     // A hundred-megabyte recording over a slow LAN outlasts the default, and

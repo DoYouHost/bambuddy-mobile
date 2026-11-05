@@ -60,6 +60,7 @@ void main() {
 
   ProviderContainer makeContainer() {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         serverProfileProvider.overrideWith(_TestProfileNotifier.new),
         accountRepositoryProvider.overrideWithValue(account),

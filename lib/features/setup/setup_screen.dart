@@ -12,6 +12,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/qr_scanner_screen.dart';
 import 'api_key_qr.dart';
+import 'custom_ca_row.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
 
@@ -172,7 +173,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       onPressed: state.busy ? null : _fillDemo,
                       icon: Icon(
                         Icons.play_circle_outline,
-                        size: 18,
+                        size: DashIcon.md,
                         color: t.textSecondary,
                       ),
                       label: Text(l10n.tryDemo),
@@ -180,13 +181,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         foregroundColor: t.textSecondary,
                         textStyle: const TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontSize: DashFontSize.body,
+                          fontWeight: DashWeight.semibold,
                         ),
                       ),
                     ),
                   ),
                 ),
+                CustomCaRow(enabled: !state.busy),
                 if (state.busy)
                   const Padding(
                     padding: EdgeInsets.all(DashSpace.lg),
@@ -271,7 +273,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             else
               FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
           ],
-          style: t.monoHeadline.copyWith(letterSpacing: 4),
+          style: t.monoHeadline.copyWith(letterSpacing: DashTracking.wide),
           decoration: dashFieldDecoration(
             t,
             labelText: l10n.twoFactorCodeLabel,
@@ -285,7 +287,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           'setup.two_factor_send_email',
           TextButton.icon(
             onPressed: state.busy ? null : controller.sendTwoFactorEmailCode,
-            icon: Icon(Icons.mail_outline, size: 18, color: t.textSecondary),
+            icon: Icon(
+              Icons.mail_outline,
+              size: DashIcon.md,
+              color: t.textSecondary,
+            ),
             label: Text(
               state.emailCodeSent
                   ? l10n.twoFactorResendEmail
@@ -295,8 +301,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               foregroundColor: t.textSecondary,
               textStyle: const TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: DashFontSize.body,
+                fontWeight: DashWeight.semibold,
               ),
             ),
           ),
@@ -326,8 +332,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               foregroundColor: t.textSecondary,
               textStyle: const TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: DashFontSize.body,
+                fontWeight: DashWeight.semibold,
               ),
             ),
             child: Text(l10n.twoFactorBack),

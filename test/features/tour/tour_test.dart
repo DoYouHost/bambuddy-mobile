@@ -319,6 +319,7 @@ void main() {
       // when the finger lifts.
       final beacon = TourBeacon((_) {});
       Widget tree({required bool proxy}) => ProviderScope(
+        retry: neverRetry,
         overrides: [tourBeaconProvider.overrideWithValue(beacon)],
         child: Directionality(
           textDirection: TextDirection.ltr,

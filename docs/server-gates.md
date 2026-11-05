@@ -220,6 +220,19 @@ carries for the whole fleet. A route pair, so `InventoryRepository` prefers the
 404. Being early costs a section offering to write where the write would 404, so
 the spool form hides it until this says yes.
 
+### profileDefaults — 1.2.6 (server #1326)
+
+`/inventory/profile-defaults` (list, `PUT` save, `DELETE /{id}`), `/resolve` and
+`POST /{id}/apply` with its Spoolman twin — what a new spool of a product starts
+with. The server lays a default on every spool it creates whether or not the app
+knows about it, so the gate only decides whether the app *offers* to read, save and
+manage one. A route family, so `ProfileDefaultsRepository` prefers the answers: the
+listing and `resolve` look no row up, so their 404 and 403 both hide the feature;
+the writes settle nothing (a 404 there is a default that is gone, a 403 a missing
+`inventory:update`). Measured on `:latest` (1.2.5.7): the routes 404. Being early
+costs a switch row in the spool form on a 1.2.6 beta older than the commit, until
+the form's first `resolve` 404s and the latch closes.
+
 ### libraryQueueTarget — 1.2.5.6 (server #3112, commit 70b42d1c)
 
 `printer_id` / `target_model` on `POST /library/files/add-to-queue` — a bulk
@@ -456,6 +469,66 @@ Test trap: a repository built **without** a version service reads `supported == 
 from the start, so a "404 means no route" assertion passes without a single request. Give
 it a `ServerVersionService` with a mocked version, and mutation-check.
 
+## The demo backend
+
+`lib/core/demo/demo_backend.dart` is an in-process server (the API client swaps to it, and
+nothing leaves the device). It has to present **every** feature the app has, the newest
+included, because it is what a reviewer, the guided tour and a first-time user see.
+
+### Rules
+
+- **A feature built for a new server contract ships its demo in the same branch**: the
+  routes, the observed keys the gate reads, and seed data rich enough for every state the
+  screen has. Not a follow-up. A feature built without it is invisible in the demo, because
+  its gate stays closed (suppliers once did: no `suppliers` key on the spools, no routes).
+- **The demo's reported server version must never be what hides a feature.** Gates are
+  settled by observation first (above), so serve the key or
+  route the gate observes.
+- **Demo copy must be true.** Describe the feature; never invent claims about firmware or
+  hardware.
+- Read the real demo data before writing a fixture that points at its ids; the ids below
+  are what the fixtures use.
+- Stateful features get a stateful demo (`DemoFinance` in
+  `lib/core/demo/demo_finance.dart` for billing), so a write is visible on the next read.
+- A route family the demo answers should filter like the server does. `GET /queue/` used to
+  ignore `status`; it filters now, which the resume banner relies on.
+
+### Slicer
+
+`use_slicer_api` is `true`; with `false`, half of the pipelines feature is unreachable
+(Slice and "Run pipeline" both hang on it). Rules that are easy to break:
+
+- `GET /slicer/preset-values` values are **strings** (`'0.2'`, `'15%'`); a number makes the
+  panel treat the field as changed by the user on open. The `standard` tier deliberately has
+  no entry, so it answers `sidecar_outdated`, the only path to "defaults from the schema,
+  and why".
+- `/library/files/{id}/plates`: a `.3mf` carries `embedded_printer` (spelled as in
+  `/slicer/presets`) and the **key** `design_overrides`; a non-3MF omits the key, and the
+  absence is the signal that "slice as designed" is not on offer.
+- Slice jobs are computed from the clock. `DemoBackend.sliceSeconds` (default 9) is public
+  so tests need not wait; restore it in `addTearDown`. It is longer than the dialog's 1.5 s
+  poll on purpose: a job already finished by the first poll never shows a stage or a
+  percentage. The result row is created once, on the first poll that finds the job done.
+- Library ids: 1 to 5 are sliced output, 6 to 9 are sliceable sources (9 is a STEP file);
+  a completed slice adds rows from id 20 up.
+
+### Pictures
+
+Thumbnails, photos and camera frames are bundled as WebP under `assets/demo/{thumbs,photos,camera}/`
+(about 1.3 MB) and **pruned from the watch APK** (`wearPrunedAssetPaths` in
+`android/app/build.gradle.kts`, paired with `tool/check_wear_apk.py`, which fails if the
+path reaches the watch).
+
+- The picture key sits in the fixture's own `thumbnail_path` (`archive/demo/<key>.png`),
+  `photos` (`<key>.jpg`) and `cover_image_filename`. `DemoBackend.pictureFor(route)` maps an
+  image route to `thumbs/<key>` or `photos/<key>`, and to null where the real server would
+  send nothing (STEP files, an offline printer, an idle printer's cover).
+- `demoAssetFor` (in `demo_backend.dart`, phone only) is what `MediaImage` reads, because
+  the app loads images outside Dio and the demo's HTTP adapter cannot answer them.
+- Camera: `DemoBackend.cameraFrames(id)` returns a 12-frame loop for printer 1 while it
+  prints and a still otherwise; `DemoCameraFeed` (`lib/features/camera/`) plays it in
+  `CameraView` and `WallCamera`.
+
 ## Adding a gate
 
 1. Find out what an older server actually does: refuse (422/400), 404 the route,
@@ -478,6 +551,8 @@ it a `ServerVersionService` with a mocked version, and mutation-check.
 7. Tests: the latch in the repository test, with a mocked version service — a
    latch test without one reads `false` from the start and proves nothing; the
    screen with `gate.overrideWithValue(const AsyncData(...))`.
+8. The demo serves the key or route the gate observes, in the same branch
+   ([The demo backend](#the-demo-backend)).
 
 ### apiKeyNotificationScope — 1.2.6 (server commit 6855d65d)
 
@@ -508,6 +583,63 @@ from the commit on, and the Spoolman listing merges it in, so an inventory with
 a single spool answers before any supplier route is asked. Being early costs a
 1.2.6b1 daily older than the commit one 404 on the listing and a supplier entry
 that disappears with it; nothing is written to a server that could drop it.
+
+### assignmentMove — 1.3.1 (server #1574, commit 96c90de)
+
+`move` on `POST /inventory/assignments` and `POST /spoolman/inventory/slot-assignments`:
+the spool leaves every other slot in the same commit as the new one. Without it a
+move is two requests (`DELETE` the old slot, `POST` the new one) with a manual
+put-back when the second fails.
+
+`SpoolAssignmentCreate` and `SpoolSlotAssignmentRequest` forbid no extra fields,
+so an older server takes `move`, says nothing and assigns the spool a second
+time: it ends up in two slots. The reply is the same assignment either way, so
+nothing can be observed and the row decides. The commit landed on `dev` on
+2026-10-27 while `APP_VERSION` still read 1.3.0b1; the bump to 1.3.1b1 came the
+next day, so the row is 1.3.1 and a 1.3.0b1 daily that already has it is merely
+sent the two-request path, which works on every server. Being early is the costly
+side here (a spool in two slots), being late costs nothing, which is why the
+threshold is not 1.3.0.
+
+### archiveRuns — 1.3.1 (archive redesign, commits 809eaf4 and d43bf57)
+
+Each print of an archive keeps its own note, finish photos, video and verdict.
+`GET /archives/{id}/runs` itself is older (#1378, on 1.2.5) and lists the prints
+on every server; what is new is the keys on each row and two writes: `notes` on
+`PATCH /print-log/{id}` and `run_id` on `PATCH /archives/{id}`.
+
+Both writes are silent drops below it. `PrintLogEntryUpdate` and `ArchiveUpdate`
+forbid no extra fields, so an older server stores no note, and gives a verdict
+sent with `run_id` to the archive, which is its latest print (measured on
+1.2.5.7 by `ws_archive_runs_contract_test.dart`). The runs listing answers it
+first: `PrintLogEntrySchema` sends a `photos` key on every row from the redesign
+on, null or not, so `ArchiveRepository.runsCapability` observes it on the first
+row. An archive with no prints says nothing, and the row decides. Being early
+costs a note that does not stay and a verdict on the wrong print.
+
+### archiveMerge — 1.3.1 (archive redesign P2, commit 926957f)
+
+`GET /archives/merge-count`, `GET /archives/merge-preview` and `POST /archives/merge`:
+archives of one file, owner and project merged into the oldest. All three take
+`archives:update_all` and `archives:delete_all` together. The count settles
+`ArchiveRepository.mergeCapability`: a 403 is a session without both rights, and an
+older server answers **422**, not 404, because `/archives/{archive_id}` takes the path
+and fails to parse `merge-count` as an id (measured on 1.2.5.7). Being early costs
+nothing visible: the count reads 0 and no entry is shown.
+
+On a contract stack a group is always held back as `busy`: an upload counts as just
+printed for half an hour (`archive_merge.py::_JUST_PRINTED`). The demo carries one
+mergeable group (a second "Handle" archive) for the merge itself.
+
+### archiveCalendar — 1.3.1 (archive redesign P4, commit d43bf57)
+
+`GET /archives/prints`: every print of the archives the caller sees that ended in a
+range of calendar days (`tz` is the device's zone, as for the statistics). An older
+server answers 422 for the same reason as `merge-count`, and
+`ArchiveRepository.printsBetween` then returns null and records the absence in
+`printsCapability`. That is not a missing feature: the calendar places each printed
+archive as its one print, which is all an older server can say (it logs runs but has
+no route that lists them by day). Being early costs one 422 and that fallback.
 
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 

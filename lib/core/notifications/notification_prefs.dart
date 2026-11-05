@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+import 'alarm_prefs.dart';
+
+export 'alarm_prefs.dart';
+
 /// Local notification types that [PrintMonitor] can detect from WS `printer_status` frames.
 /// Intentionally omits queue events and bambuddy server features (quiet hours, digests, providers) —
 /// only includes what can be inferred locally from printer status.
@@ -28,6 +32,11 @@ enum NotifEvent {
   /// one. Source: the `kill_switch_triggered` and `billing_charge_failed`
   /// frames, which only a server with billing on sends.
   billingAlert,
+
+  /// A pause the slicer put into the print is as many minutes away as the server's `pause_warning_minutes`.
+  /// Source: `next_pause` on the status frames (server #2984), so it needs
+  /// no route and works with an API key.
+  pauseUpcoming,
 }
 
 /// User's notification preferences: which events trigger notifications and with what thresholds.
@@ -43,6 +52,7 @@ class NotificationPrefs {
     this.bedCooledTemp = defaultBedCooledTemp,
     this.amsHumidityThreshold = defaultAmsHumidity,
     this.lowFilamentThreshold = defaultLowFilament,
+    this.alarm = AlarmPrefs.defaults,
   });
 
   /// Master switch for all event alerts. When false, [isOn] returns false for
@@ -60,6 +70,10 @@ class NotificationPrefs {
   /// rather than in [enabled], and the download it costs is opt-out for anyone
   /// watching their data.
   final bool finishPhoto;
+
+  /// The alarm (#61). Independent of [alertsEnabled] and [enabled]: it is its
+  /// own switch, and an alarm with its notification turned off is a choice.
+  final AlarmPrefs alarm;
 
   /// Threshold for "bed cooled": alert when bed temperature falls below (°C).
   final int bedCooledTemp;
@@ -86,6 +100,9 @@ class NotificationPrefs {
     NotifEvent.outcomeRequest,
     // On: both mean money or a print went wrong without anybody asking.
     NotifEvent.billingAlert,
+    // On: the print stands still and waits for somebody at the pause, and
+    // missing it costs more than a warning nobody needed.
+    NotifEvent.pauseUpcoming,
   };
 
   static const NotificationPrefs defaults = NotificationPrefs(
@@ -123,6 +140,7 @@ class NotificationPrefs {
     int? bedCooledTemp,
     int? amsHumidityThreshold,
     int? lowFilamentThreshold,
+    AlarmPrefs? alarm,
   }) => NotificationPrefs(
     alertsEnabled: alertsEnabled ?? this.alertsEnabled,
     finishPhoto: finishPhoto ?? this.finishPhoto,
@@ -130,6 +148,7 @@ class NotificationPrefs {
     bedCooledTemp: bedCooledTemp ?? this.bedCooledTemp,
     amsHumidityThreshold: amsHumidityThreshold ?? this.amsHumidityThreshold,
     lowFilamentThreshold: lowFilamentThreshold ?? this.lowFilamentThreshold,
+    alarm: alarm ?? this.alarm,
   );
 
   /// Toggles a single event and returns a new object.
@@ -153,6 +172,7 @@ class NotificationPrefs {
     'bedCooledTemp': bedCooledTemp,
     'amsHumidityThreshold': amsHumidityThreshold,
     'lowFilamentThreshold': lowFilamentThreshold,
+    'alarm': alarm.toJson(),
   };
 
   String encode() => jsonEncode(toJson());
@@ -202,6 +222,7 @@ class NotificationPrefs {
         json['lowFilamentThreshold'],
         defaultLowFilament,
       ),
+      alarm: AlarmPrefs.fromJson(json['alarm']),
     );
   }
 

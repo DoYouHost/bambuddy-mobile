@@ -10,6 +10,7 @@ library;
 import 'dart:convert';
 
 import 'package:app_util/app_util.dart';
+import 'value_equality.dart';
 
 /// Where a preset came from. The order is the picker's own — a preset the user
 /// imported outranks one Bambu happens to ship.
@@ -28,7 +29,7 @@ enum AmsPresetSource {
 }
 
 /// One selectable filament preset.
-class AmsFilamentPreset {
+class AmsFilamentPreset with ValueEquality {
   const AmsFilamentPreset({
     required this.source,
     required this.id,
@@ -115,12 +116,7 @@ class AmsFilamentPreset {
   String get sourceKey => source.name;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AmsFilamentPreset && other.source == source && other.id == id;
-
-  @override
-  int get hashCode => Object.hash(source, id);
+  List<Object?> get props => [source, id];
 
   @override
   String toString() => 'AmsFilamentPreset($pickerId, $name)';

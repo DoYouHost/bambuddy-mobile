@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
@@ -31,12 +32,15 @@ import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
 import '../../common/api_failure_snack.dart';
+import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';
 import '../../common/plate_clear.dart';
+import '../../common/speed_name.dart';
 import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
+import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
@@ -59,7 +63,6 @@ import '../../../core/theme/dash_theme.dart';
 import 'ams_slot_config_sheet.dart';
 import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
-import 'temp_gauge.dart';
 import '../../../core/diagnostics/filament_material.dart';
 import '../../tour/tour_beacon.dart';
 
@@ -405,7 +408,7 @@ class _CardShell extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
           border: Border.all(color: tokens.cardBorder),
         ),
         child: child,
@@ -438,19 +441,19 @@ class _IconSquare extends StatelessWidget {
     final Color fill;
     if (tint != null) {
       color = tint;
-      fill = tint.withValues(alpha: 0.14);
+      fill = tint.withValues(alpha: DashAlpha.wash);
     } else if (offline) {
       color = tokens.textTertiary;
-      fill = tokens.textTertiary.withValues(alpha: 0.10);
+      fill = tokens.textTertiary.withValues(alpha: DashAlpha.faint);
     } else {
       color = tokens.accentGreenInk;
-      fill = tokens.accentGreen.withValues(alpha: 0.14);
+      fill = tokens.accentGreen.withValues(alpha: DashAlpha.wash);
     }
     return DashIconTile(
       icon: icon,
       size: _HeaderLine.glyphSquare,
-      radius: 11,
-      iconSize: 18,
+      radius: DashRadius.md,
+      iconSize: DashIcon.md,
       ink: color,
       fill: fill,
     );
@@ -662,7 +665,7 @@ class _NameText extends StatelessWidget {
       maxLines: 1,
       softWrap: false,
       overflow: TextOverflow.ellipsis,
-      style: tokens.display.copyWith(letterSpacing: -0.3),
+      style: tokens.display.copyWith(letterSpacing: DashTracking.tight),
     );
   }
 }

@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,15 +37,19 @@ void main() {
           path: '/settings/notifications',
           builder: (_, _) => const Scaffold(body: Text('NOTIFICATIONS')),
         ),
+        GoRoute(
+          path: '/settings/alarm',
+          builder: (_, _) => const Scaffold(body: Text('ALARM')),
+        ),
       ],
     );
     late ProviderContainer container;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        retry: neverRetry,
+        overrides: layerOverrides([
           sharedPreferencesProvider.overrideWithValue(prefs),
-          ...extra,
-        ],
+        ], extra),
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
@@ -115,6 +120,15 @@ void main() {
     expect(find.text('NOTIFICATIONS'), findsOneWidget);
   });
 
+  testWidgets('the alarm has an entry of its own', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.tap(find.text(pl.alarmTitle));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ALARM'), findsOneWidget);
+  });
+
   testWidgets('every control is named for the log', (tester) async {
     await pumpScreen(tester);
 
@@ -126,6 +140,7 @@ void main() {
         'app_settings.collapse_printer_cards',
         'app_settings.wall_keep_awake',
         'app_settings.notifications',
+        'app_settings.alarm',
       ]),
     );
   });

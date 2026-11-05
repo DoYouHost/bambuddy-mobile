@@ -26,7 +26,7 @@ class _ControlsActions extends ConsumerWidget {
         padding: const EdgeInsets.only(top: DashSpace.md),
         child: Row(
           children: [
-            Icon(Icons.lock_outline, size: 16, color: t.textSecondary),
+            Icon(Icons.lock_outline, size: DashIcon.sm, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
             Flexible(
               child: Text(
@@ -49,6 +49,11 @@ class _ControlsActions extends ConsumerWidget {
 
     // Primary lifecycle only (pause/resume/stop); speed moved under "Details"
     // (see [_SpeedControlTile]). Idle → nothing to show → hide entirely.
+    final labels = [
+      if (activePrint) l10n.ctrlPause,
+      if (paused) l10n.ctrlResume,
+      if (printing) l10n.ctrlStop,
+    ];
     final buttons = <Widget>[
       if (activePrint)
         _LifecycleButton(
@@ -80,7 +85,7 @@ class _ControlsActions extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.md),
-      child: _ControlsGrid(buttons: buttons),
+      child: _ControlsGrid(buttons: buttons, labels: labels),
     );
   }
 
@@ -128,7 +133,7 @@ class _LightSwitchRow extends ConsumerWidget {
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           'controls.light',
@@ -140,9 +145,11 @@ class _LightSwitchRow extends ConsumerWidget {
                 vertical: DashSpace.lg,
               ),
               decoration: BoxDecoration(
-                color: t.accentGreen.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: t.accentGreen.withValues(alpha: 0.3)),
+                color: t.accentGreen.withValues(alpha: DashAlpha.faint),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
+                border: Border.all(
+                  color: t.accentGreen.withValues(alpha: DashAlpha.soft),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -155,7 +162,7 @@ class _LightSwitchRow extends ConsumerWidget {
                       children: [
                         Icon(
                           on ? Icons.lightbulb : Icons.lightbulb_outline,
-                          size: 18,
+                          size: DashIcon.md,
                           color: t.accentGreenInk,
                         ),
                         const SizedBox(width: DashSpace.sm),
@@ -170,7 +177,7 @@ class _LightSwitchRow extends ConsumerWidget {
                   ),
                   const SizedBox(width: DashSpace.md),
                   busy
-                      ? const DashSpinner(size: 20)
+                      ? const DashSpinner(size: DashSize.d20)
                       : PillSwitch(on: on, tokens: t),
                 ],
               ),
@@ -191,10 +198,7 @@ class _LightSwitchRow extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setLight(printerId, on: on);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 }
 
@@ -253,7 +257,9 @@ class _SmartPlugButton extends ConsumerWidget {
       tooltip: tip,
       icon: on ? Icons.power : Icons.power_off,
       color: fg,
-      borderColor: on ? t.accentGreen.withValues(alpha: 0.5) : t.subCardBorder,
+      borderColor: on
+          ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
+          : t.subCardBorder,
       onPressed: canControl ? () => _onToggle(context, ref, plug, !on) : null,
     );
   }
@@ -297,18 +303,18 @@ class _HeaderIconButton extends StatelessWidget {
       IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon, size: DashIcon.md),
         // The 34 dp box is the look; the target around it is Material's 48.
         style: IconButton.styleFrom(
           tapTargetSize: MaterialTapTargetSize.padded,
           backgroundColor: t.subCard,
           foregroundColor: fg,
-          disabledForegroundColor: fg.withValues(alpha: 0.4),
+          disabledForegroundColor: fg.withValues(alpha: DashAlpha.outline),
           fixedSize: const Size(34, 34),
           minimumSize: const Size(34, 34),
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             side: BorderSide(color: borderColor ?? t.subCardBorder),
           ),
         ),
@@ -317,40 +323,31 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-const _btnSpinner = DashSpinner(size: 16);
+const _btnSpinner = DashSpinner(size: DashIcon.md);
 
 /// Arranges control buttons in a 2-column grid; solo button takes full width.
 class _ControlsGrid extends StatelessWidget {
-  const _ControlsGrid({required this.buttons});
+  const _ControlsGrid({required this.buttons, required this.labels});
 
   final List<Widget> buttons;
 
+  /// What each button paints, for the measurement that decides the columns.
+  final List<String> labels;
+
   @override
   Widget build(BuildContext context) {
-    const gap = 8.0;
-    final rows = <Widget>[];
-    for (var i = 0; i < buttons.length; i += 2) {
-      final end = i + 2 > buttons.length ? buttons.length : i + 2;
-      final pair = buttons.sublist(i, end);
-      rows.add(
-        Row(
-          children: [
-            for (var j = 0; j < pair.length; j++) ...[
-              if (j > 0) const SizedBox(width: gap),
-              Expanded(child: pair[j]),
-            ],
-          ],
-        ),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: gap),
-          rows[i],
-        ],
-      ],
+    final style = DashTokens.of(context).bodyBold;
+    // Side by side only while the widest label fits its button on one line;
+    // otherwise one per row, as wide as the card. A label that wraps inside half
+    // a card breaks mid-word, and an Expanded pair overflowed at 200 % text.
+    final widest = labels
+        .map((label) => textWidth(context, label, style))
+        .fold<double>(0, max);
+    return ContentGrid(
+      minTileWidth:
+          widest + _LifecycleButton.chrome(MediaQuery.textScalerOf(context)),
+      maxColumns: buttons.length,
+      children: buttons,
     );
   }
 }
@@ -376,17 +373,27 @@ class _LifecycleButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool danger;
 
+  /// Width the button spends besides its label: the padding, the 1 dp border,
+  /// the icon (which follows the text scale) and the gap after it.
+  static double chrome(TextScaler scaler) =>
+      2 * DashSpace.md +
+      2 * _borderWidth +
+      scaler.scale(DashIcon.md) +
+      DashSpace.sm;
+
+  static const _borderWidth = 1.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final scheme = Theme.of(context).colorScheme;
     final fg = danger ? scheme.error : t.textPrimary;
     final border = danger
-        ? scheme.error.withValues(alpha: 0.5)
+        ? scheme.error.withValues(alpha: DashAlpha.scrim)
         : t.subCardBorder;
     return Material(
       color: t.subCard,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: logTag(
         id,
@@ -402,13 +409,13 @@ class _LifecycleButton extends StatelessWidget {
               horizontal: DashSpace.md,
             ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: border),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
+              border: Border.all(color: border, width: _borderWidth),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
+                busy ? _btnSpinner : Icon(icon, size: DashIcon.md, color: fg),
                 const SizedBox(width: DashSpace.sm),
                 Text(label, style: t.bodyBold.copyWith(color: fg)),
               ],
@@ -448,18 +455,23 @@ class _SpeedControlTile extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.md),
-      child: Row(
-        children: [
-          Icon(Icons.speed, size: 16, color: t.textSecondary),
-          const SizedBox(width: DashSpace.sm),
-          Text(l10n.ctrlSpeed, style: t.body.copyWith(color: t.textSecondary)),
-          const Spacer(),
-          _SpeedControl(
-            level: speedLevel,
-            busy: pending.isBusy(ControlAction.speed),
-            onSelected: (mode) => _setSpeed(context, ref, mode),
-          ),
-        ],
+      child: BesideOrBelow(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.speed, size: DashIcon.sm, color: t.textSecondary),
+            const SizedBox(width: DashSpace.sm),
+            Text(
+              l10n.ctrlSpeed,
+              style: t.body.copyWith(color: t.textSecondary),
+            ),
+          ],
+        ),
+        control: _SpeedControl(
+          level: speedLevel,
+          busy: pending.isBusy(ControlAction.speed),
+          onSelected: (mode) => _setSpeed(context, ref, mode),
+        ),
       ),
     );
   }
@@ -470,10 +482,7 @@ class _SpeedControlTile extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setSpeed(printerId, mode);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 }
 
@@ -493,7 +502,7 @@ class _SpeedControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final label = _speedName(l10n, level) ?? l10n.ctrlSpeed;
+    final label = speedName(l10n, level) ?? l10n.ctrlSpeed;
 
     return PopupMenuButton<int>(
       enabled: !busy,
@@ -506,17 +515,19 @@ class _SpeedControl extends StatelessWidget {
             checked: level == m,
             // Named by level: which speed was chosen is the record, and the
             // level is the printer's own scale, not the user's data.
-            child: logTag('controls.speed.$m', Text(_speedName(l10n, m)!)),
+            child: logTag('controls.speed.$m', Text(speedName(l10n, m)!)),
           ),
       ],
       child: Container(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(
           horizontal: DashSpace.md,
           vertical: DashSpace.md,
         ),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(color: t.subCardBorder),
         ),
         child: Row(
@@ -524,21 +535,17 @@ class _SpeedControl extends StatelessWidget {
           children: [
             busy
                 ? _btnSpinner
-                : Icon(Icons.speed, size: 18, color: t.textSecondary),
+                : Icon(Icons.speed, size: DashIcon.md, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
             Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
-            Icon(Icons.arrow_drop_down, size: 18, color: t.textSecondary),
+            Icon(
+              Icons.arrow_drop_down,
+              size: DashIcon.md,
+              color: t.textSecondary,
+            ),
           ],
         ),
       ),
     ).tagged('controls.speed');
   }
 }
-
-String? _speedName(AppLocalizations l10n, int? level) => switch (level) {
-  1 => l10n.speedSilent,
-  2 => l10n.speedStandard,
-  3 => l10n.speedSport,
-  4 => l10n.speedLudicrous,
-  _ => null,
-};

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:app_util/app_util.dart';
 
 import 'demo_labels.dart';
+import 'demo_result.dart';
 
 /// The demo's Manyfold library (#1471): a connected install with two pages of
 /// models, every file state the model view draws (importable, already in the
@@ -89,7 +90,7 @@ class DemoManyfold {
     final at1 = s.length > 1 ? s[1] : null;
     switch (at1) {
       case 'status':
-        return _ok({
+        return demoOk({
           'configured': _config['configured'],
           'url': _config['configured'] == true ? _config['url'] : '',
         });
@@ -105,18 +106,18 @@ class DemoManyfold {
           };
           return (status: 204, body: null);
         }
-        return _ok(_config);
+        return demoOk(_config);
       case 'models':
         if (_config['configured'] != true) return _notConfigured();
         if (s.length == 2) return _list(q);
-        final model = _models.where((e) => e['id'] == s[2]).firstOrNull;
+        final model = rowById(_models, s[2]);
         if (model == null) {
           return _refuse(404, 'manyfold_not_found', 'Model not found');
         }
         if (s.length > 3 && s[3] == 'preview') return _preview(model);
-        return _ok(_detail(model));
+        return demoOk(_detail(model));
     }
-    return (status: 404, body: {'detail': 'Not Found'});
+    return demoNotFound();
   }
 
   /// `(file name, error)` of [fileId] in [modelId], for the backend's import.
@@ -124,7 +125,7 @@ class DemoManyfold {
     if (_config['configured'] != true) {
       return (name: null, error: _notConfigured());
     }
-    final model = _models.where((e) => e['id'] == modelId).firstOrNull;
+    final model = rowById(_models, modelId);
     final file = (model?['files'] as List?)
         ?.cast<Map<String, dynamic>>()
         .where((f) => f['id'] == fileId)
@@ -152,9 +153,9 @@ class DemoManyfold {
             (m['name'] as String).toLowerCase().contains(query))
           {'id': m['id'], 'name': m['name']},
     ];
-    final page = (int.tryParse(q['page'] ?? '') ?? 1).clamp(1, 100000);
+    final page = intQuery(q, 'page', 1).clamp(1, 100000);
     final start = (page - 1) * _pageSize;
-    return _ok({
+    return demoOk({
       'total': hits.length,
       'page': page,
       'has_next': start + _pageSize < hits.length,
@@ -227,11 +228,11 @@ class DemoManyfold {
       'has_client_secret': true,
       'configured': true,
     };
-    return _ok(_config);
+    return demoOk(_config);
   }
 
   DemoResult _test(Object body) =>
-      _validate(body) ?? _ok({'model_count': _models.length});
+      _validate(body) ?? demoOk({'model_count': _models.length});
 
   /// What `update_config` and `test_config` refuse before signing in.
   DemoResult? _validate(Object body) {
@@ -251,8 +252,6 @@ class DemoManyfold {
 
   static bool _importable(Map<String, dynamic> file) =>
       const {'model/3mf', 'model/stl', 'model/step'}.contains(file['mime']);
-
-  static DemoResult _ok(Object? body) => (status: 200, body: body);
 
   static DemoResult _notConfigured() =>
       _refuse(409, 'manyfold_not_configured', 'Manyfold is not set up');

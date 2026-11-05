@@ -15,6 +15,7 @@ class PlateInfo {
     this.printTimeSeconds,
     this.filamentUsedGrams,
     this.bedType,
+    this.filaments = const [],
   });
 
   /// Null when the row carries no usable plate number: `index` is what the
@@ -39,6 +40,14 @@ class PlateInfo {
       printTimeSeconds: toIntOrNull(value['print_time_seconds']),
       filamentUsedGrams: toDoubleOrNull(value['filament_used_grams']),
       bedType: toStringOrNull(value['bed_type']),
+      filaments: [
+        if (value['filaments'] case final List rows)
+          for (final f in rows.whereType<Map>())
+            (
+              type: toStringOrNull(f['type']) ?? '',
+              color: toStringOrNull(f['color']) ?? '',
+            ),
+      ],
     );
   }
 
@@ -83,6 +92,10 @@ class PlateInfo {
   /// Build plate the designer sliced for (e.g. "Textured PEI Plate"). Archive
   /// route only.
   final String? bedType;
+
+  /// What the slicer loaded for this plate, by slot (`slice_info.config`); the
+  /// archive page's plate card shows a dot and the type of each.
+  final List<({String type, String color})> filaments;
 }
 
 /// Everything `GET …/plates` answers: the plates of one 3MF, the two flags the

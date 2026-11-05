@@ -19,7 +19,7 @@ class _InfoRow extends StatelessWidget {
     Widget item(IconData icon, String text, Color color) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color),
+        Icon(icon, size: DashIcon.sm, color: color),
         const SizedBox(width: DashSpace.sm),
         Text(text, style: t.monoLabel.copyWith(color: color)),
       ],
@@ -31,26 +31,31 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.hairline)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (dbm != null)
-            item(
-              _wifiIcon(dbm),
-              '$dbm dBm',
-              _wifiColor(t, Theme.of(context).colorScheme, dbm),
-            )
-          else
-            const SizedBox.shrink(),
-          if (doorOpen != null)
-            item(
-              doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
-              (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
-              doorOpen ? t.accentOrangeInk : t.textTertiary,
-            )
-          else
-            const SizedBox.shrink(),
-        ],
+      // A Wrap, not a Row: at 200 % text the two readings no longer fit side by
+      // side, and the second goes to its own line instead of overflowing. The door
+      // alone stays at the end, where the Row put it.
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: dbm == null
+              ? WrapAlignment.end
+              : WrapAlignment.spaceBetween,
+          runSpacing: DashSpace.sm,
+          children: [
+            if (dbm != null)
+              item(
+                _wifiIcon(dbm),
+                '$dbm dBm',
+                _wifiColor(t, Theme.of(context).colorScheme, dbm),
+              ),
+            if (doorOpen != null)
+              item(
+                doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
+                (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
+                doorOpen ? t.accentOrangeInk : t.textTertiary,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -107,7 +112,7 @@ class _FirmwareLine extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (update) ...[
-              Icon(Icons.system_update, size: 12, color: color),
+              Icon(Icons.system_update, size: DashIcon.xs, color: color),
               const SizedBox(width: DashSpace.xs),
             ],
             Flexible(
@@ -116,8 +121,8 @@ class _FirmwareLine extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: DashTokens.fontMono,
-                  fontSize: 11.5,
-                  fontWeight: update ? FontWeight.w700 : FontWeight.w600,
+                  fontSize: DashFontSize.label,
+                  fontWeight: update ? DashWeight.bold : DashWeight.semibold,
                   color: color,
                 ),
               ),
@@ -187,16 +192,17 @@ class _PrintPanel extends StatelessWidget {
       if (remaining != null && remaining > 0)
         PrintMetaItem(
           icon: Icons.flag_outlined,
-          text: l10n.eta(_etaTime(DateTimeFormats.of(context), remaining)),
+          text: l10n.eta(etaClock(DateTimeFormats.of(context), remaining)),
         ),
       if (status.layerNum != null && status.totalLayers != null)
         PrintMetaItem(
           icon: Icons.layers_outlined,
           text: '${status.layerNum}/${status.totalLayers}',
         ),
+      ?pauseMetaItem(context, l10n, status),
     ];
 
-    final stage = _preparingStage(status);
+    final stage = status.preparingStage;
     final showStage = stage != null;
 
     final nameBlock = Column(
@@ -215,7 +221,7 @@ class _PrintPanel extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.autorenew, size: 14, color: t.accentGreenInk),
+              Icon(Icons.autorenew, size: DashIcon.sm, color: t.accentGreenInk),
               const SizedBox(width: DashSpace.xs),
               Flexible(
                 child: Text(
@@ -234,7 +240,7 @@ class _PrintPanel extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -252,10 +258,16 @@ class _PrintPanel extends StatelessWidget {
           const SizedBox(height: DashSpace.md),
           Row(
             children: [
-              Expanded(child: _PrintProgressBar(status: status, height: 6)),
+              Expanded(
+                child: _PrintProgressBar(
+                  status: status,
+                  height: DashSize.d8,
+                  showPause: true,
+                ),
+              ),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: DashSpace.md),
-                Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
+                Text('${status.progressPercent}%', style: t.monoValue),
               ],
             ],
           ),
@@ -269,30 +281,39 @@ class _PrintPanel extends StatelessWidget {
   }
 }
 
-/// The stage a print is still preparing through (heating, bed levelling), or
-/// `null` once it prints. While there is one, the bar runs indeterminate and no
-/// percentage is shown — a 0% there reads as a stalled job.
-String? _preparingStage(PrinterStatus status) {
-  final stage = status.stgCurName?.trim();
-  return status.isPreparing && stage != null && stage.isNotEmpty ? stage : null;
-}
-
 /// The print's progress bar, shared by the print panel and the collapsed card.
 class _PrintProgressBar extends StatelessWidget {
-  const _PrintProgressBar({required this.status, required this.height});
+  const _PrintProgressBar({
+    required this.status,
+    required this.height,
+    this.showPause = false,
+  });
 
   final PrinterStatus status;
   final double height;
 
+  /// Marks the next pause on the bar. Only the print panel does: the collapsed
+  /// card has no row to say what the tick is.
+  final bool showPause;
+
   @override
   Widget build(BuildContext context) {
     final progress = status.progress;
-    return DashProgressBar(
-      value: _preparingStage(status) != null || progress == null
+    final bar = DashProgressBar(
+      value: status.preparingStage != null || progress == null
           ? null
           : (progress / 100).clamp(0.0, 1.0),
       height: height,
     );
+    // Not on the indeterminate bar of a printer still preparing: it has no
+    // scale for a tick to sit on.
+    return showPause && status.preparingStage == null
+        ? PauseTick(
+            fraction: pauseTickFraction(status),
+            barHeight: height,
+            child: bar,
+          )
+        : bar;
   }
 }
 
@@ -309,7 +330,7 @@ class _CoverThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final placeholder = ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       child: Image.asset(
         _placeholderAsset,
         key: const ValueKey('cover_placeholder'),
@@ -330,7 +351,7 @@ class _CoverThumbnail extends StatelessWidget {
       path: url,
       width: _size,
       height: _size,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       imageKey: const ValueKey('cover_network'),
       // The card's cover is a picture of the print, and a missing one is not
       // news worth an icon of its own — the same plate outline stands in for
@@ -340,7 +361,57 @@ class _CoverThumbnail extends StatelessWidget {
   }
 }
 
-/// 2-column grid of temperature gauge tiles. Tiles are tappable to set targets
+/// Two columns, or one when a tile of the two-column grid could not hold its
+/// digits at this text size: the digits keep their full size, so it is the grid
+/// that gives way. The widest reading is measured, not the one on screen, so the
+/// layout does not jump between one column and two when a nozzle passes 100 °C:
+/// `000°` for a nozzle or the bed, and for the chamber `00°` after its air-duct
+/// glyph (the server's ceiling is 65 °C). The label line is measured the same
+/// way: the widest of [labels] beside the arrow and `000°` in [setpoint].
+int tempGridColumns({
+  required double width,
+  required TextStyle digits,
+  List<String> labels = const [],
+  TextStyle? label,
+  TextStyle? setpoint,
+  required TextScaler scaler,
+  required TextDirection textDirection,
+  required bool airductGlyph,
+}) {
+  const spacing = DashSpace.sm;
+  double measure(String text, [TextStyle? style]) => (TextPainter(
+    text: TextSpan(text: text, style: style ?? digits),
+    textDirection: textDirection,
+    textScaler: scaler,
+  )..layout()).width;
+  final glyph = scaler.scale(DashIcon.md) + DashSpace.xs;
+  final widest = airductGlyph
+      ? [
+          measure('000°'),
+          glyph + measure('00°'),
+        ].reduce((a, b) => a > b ? a : b)
+      : measure('000°');
+  final inner = (width - spacing) / 2 - tileChrome;
+  if (widest > inner) return 1;
+  if (label == null || setpoint == null) return 2;
+  final setpointWidth =
+      DashSpace.xs +
+      scaler.scale(DashIcon.xs) +
+      DashSpace.xs +
+      measure('000°', setpoint);
+  final widestLabel = labels.fold<double>(
+    0,
+    (w, text) => w > measure(text, label) ? w : measure(text, label),
+  );
+  return widestLabel + setpointWidth > inner ? 1 : 2;
+}
+
+/// Padding and border a temperature tile spends sideways: 12 dp of padding and
+/// 1 dp of border on each side.
+const tileChrome = 2 * (DashSpace.md + 1);
+
+/// Grid of temperature tiles, two columns where the digits fit (see
+/// [tempGridColumns]). Tiles are tappable to set targets
 /// (see [_GaugeTile]); [printerId]/[model] are threaded down for the command
 /// and capability gating.
 class _TempGrid extends StatelessWidget {
@@ -367,17 +438,25 @@ class _TempGrid extends StatelessWidget {
     final hasSecondNozzle = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
-    // Built once for the whole grid: every tile's chart glyph opens the same
-    // sheet, which switches between all of this printer's recorded sensors.
-    final historyKinds = _heaterKindOptions(
-      readings,
-      AppLocalizations.of(context),
-    );
-
+    final tokens = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final digits = tokens.monoDisplay.copyWith(height: 1.0);
+    final airduct = readings.any((r) => r.kind == TempKind.chamber);
     return LayoutBuilder(
       builder: (context, constraints) {
-        const spacing = 8.0;
-        final tileWidth = (constraints.maxWidth - spacing) / 2;
+        const spacing = DashSpace.sm;
+        final columns = tempGridColumns(
+          width: constraints.maxWidth,
+          digits: digits,
+          labels: [for (final r in readings) r.label(l10n).toUpperCase()],
+          label: tokens.micro.copyWith(letterSpacing: DashTracking.label),
+          setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
+          scaler: MediaQuery.textScalerOf(context),
+          textDirection: Directionality.of(context),
+          airductGlyph: airduct,
+        );
+        final tileWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
@@ -395,7 +474,6 @@ class _TempGrid extends StatelessWidget {
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
-                  historyKinds: historyKinds,
                 ),
               ),
           ],
@@ -505,7 +583,7 @@ class _FanCell extends ConsumerWidget {
     // Optimistic overlay until real status catches up.
     final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.
-    final valueColor = shown > 0 ? tokens.accentBlue : tokens.textPrimary;
+    final valueColor = shown > 0 ? tokens.accentBlueInk : tokens.textPrimary;
 
     final cell = Container(
       padding: const EdgeInsets.symmetric(
@@ -514,7 +592,7 @@ class _FanCell extends ConsumerWidget {
       ),
       decoration: BoxDecoration(
         color: tokens.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: tokens.subCardBorder),
       ),
       child: Column(
@@ -541,7 +619,7 @@ class _FanCell extends ConsumerWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: logTag(
         // Per fan, under the key the server itself uses ('part'/'aux'/'aux2'/
@@ -599,14 +677,16 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
-    final result = await ref
-        .read(controlsProvider.notifier)
-        .setFanSpeed(widget.printerId, widget.fan, speed);
-    if (!mounted) return;
-    navigator.pop();
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await ref
+          .read(controlsProvider.notifier)
+          .setFanSpeed(widget.printerId, widget.fan, speed);
+      if (!mounted) return;
+      navigator.pop();
+      snackOutcome(messenger, result, l10n);
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
   }
 
@@ -637,8 +717,8 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   _speed == 0 ? l10n.ctrlOff : '$_speed%',
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
-                    fontSize: 44,
-                    fontWeight: FontWeight.w700,
+                    fontSize: DashFontSize.numeral,
+                    fontWeight: DashWeight.bold,
                     color: accent,
                   ),
                 ),
@@ -649,6 +729,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   _StepButton(
                     icon: Icons.remove,
                     id: 'fan.step_down',
+                    label: '−1%',
                     onTap: () => _bump(-1),
                   ),
                   Expanded(
@@ -662,6 +743,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   _StepButton(
                     icon: Icons.add,
                     id: 'fan.step_up',
+                    label: '+1%',
                     onTap: () => _bump(1),
                   ),
                 ],

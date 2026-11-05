@@ -5,10 +5,22 @@ import '../../../core/theme/dash_theme.dart';
 
 /// Print-panel metadata item (remaining/ETA/layers): mono text with a leading icon.
 class PrintMetaItem extends StatelessWidget {
-  const PrintMetaItem({super.key, required this.icon, required this.text});
+  const PrintMetaItem({
+    super.key,
+    required this.icon,
+    required this.text,
+    this.color,
+    this.semanticLabel,
+  });
 
   final IconData icon;
   final String text;
+
+  /// Paints the icon and the text in this colour instead of the secondary one.
+  final Color? color;
+
+  /// What a screen reader says instead of the icon and the text.
+  final String? semanticLabel;
 
   static const _iconSize = 14.0;
   static const _iconGap = 4.0;
@@ -42,10 +54,11 @@ class PrintMetaItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Row(
+    final tint = color ?? t.textSecondary;
+    final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: _iconSize, color: t.textSecondary),
+        Icon(icon, size: _iconSize, color: tint),
         const SizedBox(width: _iconGap),
         // Flexible for the case [PrintMetaRow] cannot design its way out of: a
         // system font size at which no item fits any column. Cut short beats
@@ -53,13 +66,17 @@ class PrintMetaItem extends StatelessWidget {
         Flexible(
           child: Text(
             text,
-            style: resolveStyle(context),
+            style: resolveStyle(context).copyWith(color: tint),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
     );
+    final label = semanticLabel;
+    return label == null
+        ? row
+        : Semantics(label: label, excludeSemantics: true, child: row);
   }
 }
 

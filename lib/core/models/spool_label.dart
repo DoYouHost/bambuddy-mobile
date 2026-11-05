@@ -9,6 +9,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
+import 'json_utils.dart';
+
 /// Label stock the server can render onto. Wire values must match the
 /// backend's `LabelRequest.template` literals exactly — anything else is a 400.
 ///
@@ -83,7 +85,7 @@ enum SpoolLabelField {
   static const defaults = {brand, material, hex, name, location, qr, spoolId};
 
   static SpoolLabelField? fromWire(Object? wire) =>
-      values.where((f) => f.wire == wire).firstOrNull;
+      enumByWire(values, wire, (f) => f.wire);
 }
 
 /// What the server answers with: a PDF, or PNG images of it.
@@ -96,7 +98,7 @@ enum SpoolLabelFormat {
   final String wire;
 
   static SpoolLabelFormat fromName(Object? name) =>
-      values.where((f) => f.name == name).firstOrNull ?? pdf;
+      enumByName(values, name) ?? pdf;
 }
 
 /// Resolutions the server rasterises at (`dpi` is a `Literal[203, 300, 600]`;

@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/models/spool_preset_override.dart';
@@ -10,6 +11,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -322,7 +324,7 @@ void main() {
       newSpool: true,
       inventory: fake,
       models: const ['P1S'],
-      writeFails: Exception('boom'),
+      writeFails: const ApiException(AppErrorCode.badResponse, statusCode: 500),
       presets: const [
         SlicerPreset(
           source: 'cloud',
@@ -343,12 +345,42 @@ void main() {
     // pick still in it.
     expect(fake.writes, ['create']);
     expect(find.text('Bambu PLA Basic @BBL P1S'), findsOneWidget);
-    // Named for what failed, not the generic "could not save".
-    expect(find.text(pl.inventoryPrinterPresetsSaveFailed), findsOneWidget);
 
     await tester.tap(saveButton());
     await settle(tester);
 
+    expect(fake.writes, ['create', 'update:7']);
+  });
+
+  testWidgets('a bug in a preset write is not worded away, and the form '
+      'unlocks', (tester) async {
+    final fake = _FakeInventory();
+    await openForm(
+      tester,
+      newSpool: true,
+      inventory: fake,
+      models: const ['P1S'],
+      writeFails: Exception('boom'),
+      presets: const [
+        SlicerPreset(
+          source: 'cloud',
+          id: '1',
+          name: 'Bambu PLA Basic @BBL P1S',
+        ),
+      ],
+    );
+    await tester.tap(find.text(pl.inventoryPrinterPresetDefault));
+    await settle(tester);
+    await tester.tap(find.text('Bambu PLA Basic @BBL P1S'));
+    await settle(tester);
+
+    final errors = await tapCapturingErrors(tester, saveButton());
+
+    // It reaches the bug report as an uncaught error instead of a snack.
+    expect(errors.single, isA<Exception>());
+    expect(find.byType(SnackBar), findsNothing);
+    // And the form is not left locked behind it: a second tap writes again.
+    await tapCapturingErrors(tester, saveButton());
     expect(fake.writes, ['create', 'update:7']);
   });
 
@@ -364,6 +396,7 @@ void main() {
       ).thenAnswer((_) async => const []);
       final gate = StateProvider<AsyncValue<bool>>((_) => const AsyncLoading());
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           inventoryRepositoryProvider.overrideWithValue(repo),
           presetOverridesSupportedProvider.overrideWith(
@@ -391,6 +424,7 @@ void main() {
     // completes would leave it waiting instead.
     final repo = _MockRepo();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         inventoryRepositoryProvider.overrideWithValue(repo),
         presetOverridesSupportedProvider.overrideWithValue(

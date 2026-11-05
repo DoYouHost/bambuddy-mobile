@@ -210,7 +210,7 @@ Future<bool?> _confirmOutcomeForCreate(
   required bool sticky,
 }) async {
   final gate = providers.read(queueOutcomeProvider);
-  if (gate.valueOrNull == false) return null;
+  if (gate.value == false) return null;
   if (choice != null) return choice;
   if (sticky) return true;
   if (!gate.orFalse) return null;

@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -22,7 +21,6 @@ void main() {
     late int printerId;
     late String serial;
     Map<String, dynamic>? settingsBefore;
-    final keyIds = <int>[];
     final stamp = DateTime.now().millisecondsSinceEpoch;
 
     Future<void> putSpoolman(Map<String, dynamic> settings) =>
@@ -51,27 +49,13 @@ void main() {
     });
 
     tearDownAll(() async {
-      try {
-        for (final id in keyIds) {
-          await dio
-              .delete<dynamic>(
-                '/api/v1/api-keys/$id',
-                options: Options(validateStatus: (_) => true),
-              )
-              .catchError(
-                (Object _) =>
-                    Response<dynamic>(requestOptions: RequestOptions()),
-              );
-        }
-      } finally {
-        // Every other contract test reads the built-in inventory. Unread, the
-        // setting was never changed either.
-        if (settingsBefore case final before?) {
-          await putSpoolman({
-            'spoolman_enabled': before['spoolman_enabled'] ?? 'false',
-            'spoolman_url': before['spoolman_url'] ?? '',
-          });
-        }
+      // Every other contract test reads the built-in inventory. Unread, the
+      // setting was never changed either.
+      if (settingsBefore case final before?) {
+        await putSpoolman({
+          'spoolman_enabled': before['spoolman_enabled'] ?? 'false',
+          'spoolman_url': before['spoolman_url'] ?? '',
+        });
       }
     });
 
@@ -242,24 +226,10 @@ void main() {
     });
 
     test('an API key with manage-inventory can assign by slot', () async {
-      final keys = ApiKeysRepository(dio);
-      final created = await keys.create(
-        const ApiKeyCreateInput(
-          name: 'contract: spoolman',
-          scopes: {ApiKeyScope.readStatus, ApiKeyScope.manageInventory},
-        ),
-      );
-      keyIds.add(created.apiKey.id);
-      await pollUntil(
-        'key ${created.apiKey.id} to be committed',
-        () async => (await keys.list()).any((k) => k.id == created.apiKey.id)
-            ? true
-            : null,
-        within: const Duration(seconds: 10),
-        every: const Duration(milliseconds: 100),
-      );
-      final keyed = commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
-        ..options.headers['X-API-Key'] = created.key;
+      final keyed = await contractApiKeyDio(dio, {
+        ApiKeyScope.readStatus,
+        ApiKeyScope.manageInventory,
+      }, name: 'contract: spoolman');
       final spool = await newSpool();
 
       expect(await detectInventoryBackend(keyed), InventoryBackend.spoolman);
@@ -380,6 +350,22 @@ void main() {
         expect(slots.map((a) => (a.amsId, a.trayId)), [(0, 3)]);
       },
     );
+
+    // No print runs on the seeded stack, so no charge is ever recorded; what
+    // this pins is the route's reachability and our reading of its absence.
+    test('a spool never printed with has an empty usage history', () async {
+      final spool = await newSpool();
+
+      expect(await source.fetchUsage(spool.id), isEmpty);
+
+      // Older servers answer 404 for the route, newer ones 200 with a list;
+      // `fetchUsage` must not turn either into an error.
+      final raw = await dio.get<dynamic>(
+        '/api/v1/spoolman/inventory/spools/${spool.id}/usage',
+        options: Options(validateStatus: (_) => true),
+      );
+      expect(raw.statusCode, anyOf(200, 404));
+    });
 
     test('switched off, the server is the built-in inventory again', () async {
       // Last on purpose: nothing after it needs Spoolman, and tearDownAll puts

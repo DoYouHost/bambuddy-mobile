@@ -13,7 +13,7 @@ import '../../l10n/error_messages.dart';
 /// state"). A gate that would rather show its control while loading belongs in
 /// `ObservedCapability.whenUnknown`.
 extension AsyncFlag on AsyncValue<bool> {
-  bool get orFalse => valueOrNull ?? false;
+  bool get orFalse => value ?? false;
 
   /// [orFalse] for a control that would rather be disabled than missing while
   /// the server has not answered. See [ControlOffer].
@@ -294,9 +294,31 @@ class BusyLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const DashSpinner(size: 16),
+      const DashSpinner(size: DashSize.d16),
       const SizedBox(width: DashSpace.sm),
       Expanded(child: Text(label, style: DashTokens.of(context).bodySoft)),
     ],
+  );
+}
+
+/// An [EmptyStateView] filling what a sliver list leaves of the viewport.
+///
+/// Not `scrollable`: the screen's own scroll view keeps pull-to-refresh, and a
+/// viewport inside a viewport throws on layout (`SliverFillRemaining` asks its
+/// child for an intrinsic height).
+class SliverEmptyState extends StatelessWidget {
+  const SliverEmptyState({
+    super.key,
+    required this.message,
+    required this.icon,
+  });
+
+  final String message;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => SliverFillRemaining(
+    hasScrollBody: false,
+    child: EmptyStateView(message: message, icon: icon, scrollable: false),
   );
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/printer.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/settings/controller_prefs.dart';
@@ -56,6 +57,22 @@ final controllerPrinterProvider = Provider.autoDispose
       }
       return (rosterKnown: true, item: null);
     });
+
+/// The printer's record, without its live status: a status frame rebuilds a
+/// watcher of [controllerPrinterProvider], not one of this.
+final controllerPrinterInfoProvider = Provider.autoDispose
+    .family<Printer?, int>(
+      (ref, printerId) => ref.watch(
+        controllerPrinterProvider(printerId).select((p) => p.item?.printer),
+      ),
+    );
+
+/// The printer's model, `null` while the printer is unknown.
+final controllerModelProvider = Provider.autoDispose.family<String?, int>(
+  (ref, printerId) => ref.watch(
+    controllerPrinterInfoProvider(printerId).select((p) => p?.model),
+  ),
+);
 
 /// The printer's active HMS errors, as the dashboard card would list them — none
 /// for a printer that is not connected, whose codes are last-known.

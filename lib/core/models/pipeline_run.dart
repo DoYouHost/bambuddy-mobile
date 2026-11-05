@@ -16,41 +16,34 @@ import 'slicer_pipeline.dart';
 /// Why a pipeline cannot (or should not) run, per
 /// `services/pipeline_eligibility.py`.
 enum EligibilityIssueKind {
-  printerNotSet,
-  printerNotFound,
-  printerDisabled,
-  printerOffline,
-  filamentTypeMismatch,
-  filamentColorMismatch,
-  amsSlotMissing,
+  printerNotSet('printer_not_set'),
+  printerNotFound('printer_not_found'),
+  printerDisabled('printer_disabled'),
+  printerOffline('printer_offline'),
+  filamentTypeMismatch('filament_type_mismatch'),
+  filamentColorMismatch('filament_color_mismatch'),
+  amsSlotMissing('ams_slot_missing'),
 
   /// The pipeline's filament preset sits on a tier the server cannot read
   /// statically (cloud / orca_cloud / standard). Advisory — the run proceeds.
-  filamentUnverified,
+  filamentUnverified('filament_unverified'),
 
   /// `printer_class` target with no printer of that model in the install.
-  noClassMatches,
+  noClassMatches('no_class_matches'),
 
   /// `printer_class` target with no model class picked yet.
-  classNotSet,
+  classNotSet('class_not_set'),
 
   /// A kind this build does not know. Shown as its raw string rather than
   /// hidden, so a newer server's reason still reaches the user.
-  unknown;
+  unknown('');
 
-  static EligibilityIssueKind parse(String? raw) => switch (raw) {
-    'printer_not_set' => EligibilityIssueKind.printerNotSet,
-    'printer_not_found' => EligibilityIssueKind.printerNotFound,
-    'printer_disabled' => EligibilityIssueKind.printerDisabled,
-    'printer_offline' => EligibilityIssueKind.printerOffline,
-    'filament_type_mismatch' => EligibilityIssueKind.filamentTypeMismatch,
-    'filament_color_mismatch' => EligibilityIssueKind.filamentColorMismatch,
-    'ams_slot_missing' => EligibilityIssueKind.amsSlotMissing,
-    'filament_unverified' => EligibilityIssueKind.filamentUnverified,
-    'no_class_matches' => EligibilityIssueKind.noClassMatches,
-    'class_not_set' => EligibilityIssueKind.classNotSet,
-    _ => EligibilityIssueKind.unknown,
-  };
+  const EligibilityIssueKind(this.wire);
+
+  final String wire;
+
+  static EligibilityIssueKind parse(String? raw) =>
+      enumByWire(values, raw, (k) => k.wire) ?? unknown;
 }
 
 /// One eligibility complaint (`EligibilityIssueResponse`).
@@ -180,44 +173,27 @@ class EligibilityReport {
 
 /// Lifecycle of a whole run (`PipelineRunResponse.status`).
 enum PipelineRunStatus {
-  queued,
-  slicing,
-  dispatching,
-  inProgress,
-  completed,
-  failed,
+  queued('queued'),
+  slicing('slicing'),
+  dispatching('dispatching'),
+  inProgress('in_progress'),
+  completed('completed'),
+  failed('failed'),
 
   /// Some copies made it, some did not — the state `retry-failed` exists for.
-  partialFailure,
-  cancelled,
-  unknown;
+  partialFailure('partial_failure'),
+  cancelled('cancelled'),
+  unknown(null);
 
-  static PipelineRunStatus parse(String? raw) => switch (raw) {
-    'queued' => PipelineRunStatus.queued,
-    'slicing' => PipelineRunStatus.slicing,
-    'dispatching' => PipelineRunStatus.dispatching,
-    'in_progress' => PipelineRunStatus.inProgress,
-    'completed' => PipelineRunStatus.completed,
-    'failed' => PipelineRunStatus.failed,
-    'partial_failure' => PipelineRunStatus.partialFailure,
-    'cancelled' => PipelineRunStatus.cancelled,
-    _ => PipelineRunStatus.unknown,
-  };
+  const PipelineRunStatus(this.wire);
 
   /// The value the `status` query parameter takes. [unknown] has none — it
   /// stands for a status this build has not heard of, so there is nothing to
   /// ask the server for.
-  String? get wire => switch (this) {
-    PipelineRunStatus.queued => 'queued',
-    PipelineRunStatus.slicing => 'slicing',
-    PipelineRunStatus.dispatching => 'dispatching',
-    PipelineRunStatus.inProgress => 'in_progress',
-    PipelineRunStatus.completed => 'completed',
-    PipelineRunStatus.failed => 'failed',
-    PipelineRunStatus.partialFailure => 'partial_failure',
-    PipelineRunStatus.cancelled => 'cancelled',
-    PipelineRunStatus.unknown => null,
-  };
+  final String? wire;
+
+  static PipelineRunStatus parse(String? raw) =>
+      enumByWire(values, raw, (s) => s.wire ?? '') ?? unknown;
 
   /// Every status the dashboard may filter by, in the order a run passes
   /// through them.
@@ -245,27 +221,23 @@ enum PipelineRunStatus {
 
 /// Lifecycle of one copy (`PipelineJobResponse.status`).
 enum PipelineJobStatus {
-  pending,
+  pending('pending'),
 
   /// Sliced and waiting for a printer of the target class to free up.
-  awaitingPrinter,
-  queued,
-  printing,
-  completed,
-  failed,
-  cancelled,
-  unknown;
+  awaitingPrinter('awaiting_printer'),
+  queued('queued'),
+  printing('printing'),
+  completed('completed'),
+  failed('failed'),
+  cancelled('cancelled'),
+  unknown('');
 
-  static PipelineJobStatus parse(String? raw) => switch (raw) {
-    'pending' => PipelineJobStatus.pending,
-    'awaiting_printer' => PipelineJobStatus.awaitingPrinter,
-    'queued' => PipelineJobStatus.queued,
-    'printing' => PipelineJobStatus.printing,
-    'completed' => PipelineJobStatus.completed,
-    'failed' => PipelineJobStatus.failed,
-    'cancelled' => PipelineJobStatus.cancelled,
-    _ => PipelineJobStatus.unknown,
-  };
+  const PipelineJobStatus(this.wire);
+
+  final String wire;
+
+  static PipelineJobStatus parse(String? raw) =>
+      enumByWire(values, raw, (s) => s.wire) ?? unknown;
 
   bool get isTerminal =>
       this == completed || this == failed || this == cancelled;

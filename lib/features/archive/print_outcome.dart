@@ -12,6 +12,7 @@ import '../../core/api/api_exceptions.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../../core/app_context.dart';
+import 'archive_providers.dart';
 import 'outcome_sheet.dart';
 
 /// Whether this server records a user's verdict on a printed part (#1898).
@@ -98,13 +99,13 @@ class ArchiveVerdictMark extends StatelessWidget {
         decoration: BoxDecoration(
           // Opaque, so the mark reads the same over any thumbnail.
           color: Color.alphaBlend(
-            tone.withValues(alpha: 0.25),
+            tone.withValues(alpha: DashAlpha.soft),
             t.overlaySurface,
           ),
           shape: BoxShape.circle,
-          border: Border.all(color: tone.withValues(alpha: 0.6)),
+          border: Border.all(color: tone.withValues(alpha: DashAlpha.strong)),
         ),
-        child: Icon(icon, size: 13, color: ink),
+        child: Icon(icon, size: DashIcon.xs, color: ink),
       ),
     );
   }
@@ -141,6 +142,18 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
   Widget build(BuildContext context) {
     final archive = widget.archive;
     if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
+    // Where each print takes its own verdict, the latest print's sits on its
+    // row in the print history; this line would only say it a second time.
+    // While that history loads, `runCount` says whether rows are coming (it
+    // counts the same table), so the line does not flash up and away; a failed
+    // or empty history leaves it the one place the verdict can be given.
+    if (ref.watch(archiveRunsSupportedProvider).orFalse) {
+      final runs = ref.watch(archiveRunsProvider(archive.id));
+      final rowsShown = runs.hasValue
+          ? runs.value!.isNotEmpty
+          : !runs.hasError && archive.runCount > 0;
+      if (rowsShown) return const SizedBox.shrink();
+    }
     // A verdict the archive carries proves the server keeps them; only the
     // question of a missing one waits for the gate.
     final supported = ref.watch(printOutcomeSupportedProvider).orFalse;
@@ -213,34 +226,32 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
     };
     final label = good ? l10n.outcomeGood : l10n.outcomeReject;
     final onPressed = writable && !_saving ? () => _choose(choice) : null;
+    // The state goes inside the button: a `Semantics` around an `IconButton` is
+    // sealed off from its node, which is the one a screen reader focuses.
+    final mark = Semantics(selected: chosen, child: Icon(icon));
     final button = chosen
         ? IconButton.filled(
             onPressed: onPressed,
+            tooltip: label,
             style: IconButton.styleFrom(
               backgroundColor: fill,
               foregroundColor: good ? t.onAccent : t.onDanger,
-              disabledBackgroundColor: fill.withValues(alpha: 0.5),
+              disabledBackgroundColor: fill.withValues(alpha: DashAlpha.scrim),
               disabledForegroundColor: good ? t.onAccent : t.onDanger,
             ),
-            icon: Icon(icon),
+            icon: mark,
           )
         : IconButton.outlined(
             onPressed: onPressed,
+            tooltip: label,
             style: IconButton.styleFrom(
               foregroundColor: ink,
-              side: BorderSide(color: fill.withValues(alpha: 0.5)),
+              side: BorderSide(color: fill.withValues(alpha: DashAlpha.scrim)),
             ),
-            icon: Icon(icon),
+            icon: mark,
           );
-    return Semantics(
-      label: label,
-      selected: chosen,
-      child: Tooltip(
-        message: label,
-        child: button.tagged(
-          good ? 'archive.verdict_good' : 'archive.verdict_reject',
-        ),
-      ),
+    return button.tagged(
+      good ? 'archive.verdict_good' : 'archive.verdict_reject',
     );
   }
 

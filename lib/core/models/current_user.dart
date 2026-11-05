@@ -154,6 +154,11 @@ abstract final class Permissions {
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';
 
+  /// The server's sidebar links, read-only here. An API key holds it as
+  /// `can_read_status`; creating, editing and deleting a link is outside the key
+  /// scope allowlist (`core/auth.py`).
+  static const externalLinksRead = 'external_links:read';
+
   /// Editing a printer, which is what every Printer Locations write asks for
   /// (`routes/printer_locations.py`). **An API-key session never holds it**: it
   /// is outside the key scope allowlist, so the screen is read-only for a key
@@ -209,6 +214,10 @@ abstract final class Permissions {
   /// `can_manage_archives` covers both.
   static const archivesUpdateOwn = 'archives:update_own';
   static const archivesUpdateAll = 'archives:update_all';
+
+  /// Deleting anyone's archive. With [archivesUpdateAll] it is what merging
+  /// duplicate archives takes (`archives.py::merge_archives`).
+  static const archivesDeleteAll = 'archives:delete_all';
 
   /// Queueing an archive again — reprint and add to queue alike — on top of
   /// [queueCreate]: reprint-all for any print, reprint-own for the caller's own

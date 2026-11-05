@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +14,9 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'archive_media_sheet.dart';
+import 'archive_merge_sheet.dart';
 import '../common/api_failure_snack.dart';
+import '../common/search_debouncer.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
 import '../common/print_thumbnail.dart';
@@ -27,9 +27,12 @@ import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
+import 'archive_calendar.dart';
 import 'archive_details.dart';
 import 'archive_filament_edit.dart';
+import 'archive_plates.dart';
 import 'archive_providers.dart';
+import 'archive_runs.dart';
 import 'outcome_sheet.dart';
 import 'print_outcome.dart';
 import '../common/web_link.dart';
@@ -46,7 +49,7 @@ class ArchiveScreen extends ConsumerStatefulWidget {
 }
 
 class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 200));
 
   /// Purge-stats choice from the delete dialog, carried from `confirmDismiss`
   /// to `onDismissed` (only one swipe is in flight at a time).
@@ -56,6 +59,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   final Set<int> _selected = {};
 
   bool get _selectionMode => _selected.isNotEmpty;
+
+  /// The month calendar instead of the list (the web's calendar view). Not
+  /// kept across visits: the list is what the tab is for.
+  bool _calendar = false;
 
   void _toggleSelect(int id) {
     setState(() {
@@ -67,7 +74,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   /// Selects every archive currently passing the filters, not the whole list.
   void _selectAllVisible() {
-    final all = ref.read(archiveProvider).valueOrNull ?? const [];
+    final all = ref.read(archiveProvider).value ?? const [];
     final filters = ref.read(archiveFiltersProvider);
     final visible = applyArchiveFilters(all, filters);
     setState(() => _selected.addAll(visible.map((a) => a.id)));
@@ -75,22 +82,21 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 
   /// Search is a client-side filter; debounce only to avoid re-filtering the
   /// whole list on every keystroke.
   void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 200), () {
+    _debounce.run(q, (trimmed) {
       final notifier = ref.read(archiveFiltersProvider.notifier);
-      notifier.state = notifier.state.copyWith(query: q.trim());
+      notifier.state = notifier.state.copyWith(query: trimmed);
     });
   }
 
   void _openFilters() {
-    final all = ref.read(archiveProvider).valueOrNull ?? const [];
+    final all = ref.read(archiveProvider).value ?? const [];
     dashSurfaceSheet<void>(
       context,
       builder: (_) => _ArchiveFilterSheet(archives: all),
@@ -99,6 +105,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Read here, not in the menu's builder, which runs outside this build.
+    final mergeOffered = archiveMergeOffered(ref);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(archiveProvider);
     final filters = ref.watch(archiveFiltersProvider);
@@ -149,12 +157,22 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                 context,
                 title: l10n.navArchive,
                 actions: [
+                  IconButton(
+                    icon: Icon(
+                      _calendar ? Icons.view_list : Icons.calendar_month,
+                    ),
+                    tooltip: _calendar
+                        ? l10n.archiveListView
+                        : l10n.archiveCalendarView,
+                    onPressed: () => setState(() => _calendar = !_calendar),
+                  ).tagged('archive.view_toggle'),
                   logTag(
                     'archive.menu',
                     PopupMenuButton<String>(
                       onSelected: (v) {
                         if (v == 'purge') _purgeOlder();
                         if (v == 'print_log') context.push('/print-log');
+                        if (v == 'merge') showArchiveMergeSheet(context);
                       },
                       // Tag on the child: a wrapped `PopupMenuItem` is no
                       // longer a `PopupMenuEntry`.
@@ -173,6 +191,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                             Text(l10n.archivePurgeOlder),
                           ),
                         ),
+                        if (mergeOffered)
+                          PopupMenuItem(
+                            value: 'merge',
+                            child: logTag(
+                              'archive.menu.merge',
+                              Text(l10n.archiveMergeMenu),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -212,20 +238,24 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     // pushed down is a row the user has to hunt for again.
                     if (!_selectionMode)
                       const SliverToBoxAdapter(child: _No3mfBanner()),
+                    if (!_selectionMode)
+                      const SliverToBoxAdapter(child: ArchiveMergeBanner()),
                     if (all.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateView(
-                          message: l10n.archiveEmpty,
-                          icon: Icons.inventory_2_outlined,
-                        ),
+                      SliverEmptyState(
+                        message: l10n.archiveEmpty,
+                        icon: Icons.inventory_2_outlined,
                       )
                     else if (items.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateView(
-                          message: l10n.archiveNoMatches,
-                          icon: Icons.search_off,
+                      SliverEmptyState(
+                        message: l10n.archiveNoMatches,
+                        icon: Icons.search_off,
+                      )
+                    else if (_calendar)
+                      SliverToBoxAdapter(
+                        child: ArchiveCalendar(
+                          archives: items,
+                          printerId: filters.printerId,
+                          onOpen: _openSheet,
                         ),
                       )
                     else
@@ -286,6 +316,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
         onReject: () => _rejectReason(archive),
+        onRunPhotos: (photos) => _openPhotos(archive, only: photos),
+        onRunVideo: (runId) => _openTimelapse(archive, runId: runId),
+        onReprintPlate: (plate) => _reprint(archive, plate: plate),
       ),
     );
   }
@@ -326,9 +359,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           vertical: DashSpace.xs,
         ),
         decoration: BoxDecoration(
-          color: t.danger.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: t.danger.withValues(alpha: 0.4)),
+          color: t.danger.withValues(alpha: DashAlpha.wash),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
+          border: Border.all(
+            color: t.danger.withValues(alpha: DashAlpha.outline),
+          ),
         ),
         child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
@@ -522,11 +557,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Timelapse: closes the sheet and opens the full-screen player.
-  void _openTimelapse(Archive archive) {
+  /// Timelapse: closes the sheet and opens the full-screen player — on one
+  /// print's own video when [runId] is given.
+  void _openTimelapse(Archive archive, {int? runId}) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/timelapse?archive=${archive.id}&name=$name');
+    context.push(
+      Uri(
+        path: '/timelapse',
+        queryParameters: {
+          'archive': '${archive.id}',
+          'run': ?runId?.toString(),
+          'name': archive.displayName,
+        },
+      ).toString(),
+    );
   }
 
   /// Media: swaps this sheet for the one that lists everything the print has,
@@ -547,11 +591,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Photos: closes the sheet and opens the full-screen viewer.
-  void _openPhotos(Archive archive) {
+  /// Photos: closes the sheet and opens the full-screen viewer — on [only]
+  /// these when one print's photos are asked for.
+  void _openPhotos(Archive archive, {List<String>? only}) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/archive/photos?archive=${archive.id}&name=$name');
+    context.push(
+      Uri(
+        path: '/archive/photos',
+        queryParameters: {
+          'archive': '${archive.id}',
+          'name': archive.displayName,
+          'photo': ?only,
+        },
+      ).toString(),
+    );
   }
 
   /// Reprint: printer selection → confirmation → enqueue at top of the
@@ -560,11 +613,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// item. Initiates a physical print, so always behind a confirmation dialog.
   /// Reprint: the print form, opened on ASAP so it goes ahead of the queue —
   /// the intent behind "reprint" is "print this one next".
-  Future<void> _reprint(Archive archive) async {
+  ///
+  /// [plate] starts it on that plate instead of the one the archive last ran.
+  Future<void> _reprint(Archive archive, {int? plate}) async {
     Navigator.pop(context);
     await openQueueCreate(
       context,
-      draft: archiveQueueDraft(archive),
+      draft: archiveQueueDraft(
+        plate == null ? archive : archive.copyWith(plateId: plate),
+      ),
       schedule: QueueScheduleType.asap,
     );
   }
@@ -613,7 +670,7 @@ class _No3mfBanner extends ConsumerWidget {
     // answer it already has while it recomputes, and the banner has to go the
     // moment the X is tapped.
     if (ref.watch(no3mfDismissedProvider)) return const SizedBox.shrink();
-    final warning = ref.watch(no3mfWarningProvider).valueOrNull;
+    final warning = ref.watch(no3mfWarningProvider).value;
     if (warning == null || !warning.hasFallback) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context);
@@ -650,16 +707,18 @@ class _No3mfBanner extends ConsumerWidget {
           DashSpace.md,
         ),
         decoration: BoxDecoration(
-          color: t.accentOrange.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+          color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
+          border: Border.all(
+            color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
               Icons.warning_amber_rounded,
-              size: 20,
+              size: DashIcon.md,
               color: t.accentOrangeInk,
             ),
             const SizedBox(width: DashSpace.md),
@@ -676,7 +735,7 @@ class _No3mfBanner extends ConsumerWidget {
                       'archive.no3mf_docs',
                       TextButton.icon(
                         onPressed: () => openWebLink(context, docs),
-                        icon: const Icon(Icons.open_in_new, size: 14),
+                        icon: const Icon(Icons.open_in_new, size: DashIcon.sm),
                         label: Text(
                           reason == No3mfReason.internalStorage
                               ? l10n.archiveNo3mfDocsWhy
@@ -686,7 +745,7 @@ class _No3mfBanner extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                             horizontal: DashSpace.sm,
                           ),
-                          visualDensity: VisualDensity.compact,
+                          minimumSize: const Size(0, kMinInteractiveDimension),
                           foregroundColor: t.accentOrangeInk,
                         ),
                       ),
@@ -698,10 +757,9 @@ class _No3mfBanner extends ConsumerWidget {
             logTag(
               'archive.no3mf_dismiss',
               IconButton(
-                icon: const Icon(Icons.close, size: 18),
+                icon: const Icon(Icons.close, size: DashIcon.md),
                 tooltip: l10n.archiveNo3mfDismiss,
                 color: t.textTertiary,
-                visualDensity: VisualDensity.compact,
                 onPressed: () =>
                     ref.read(no3mfDismissedProvider.notifier).dismiss(),
               ),
@@ -745,19 +803,19 @@ class _ArchiveCard extends StatelessWidget {
         child: logTag(
           'archive.card',
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.14)
+                    ? t.accentGreen.withValues(alpha: DashAlpha.wash)
                     : t.subCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(
                   color: selected
-                      ? t.accentGreen.withValues(alpha: 0.5)
+                      ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                       : t.subCardBorder,
                 ),
               ),
@@ -765,18 +823,23 @@ class _ArchiveCard extends StatelessWidget {
                 children: [
                   selected
                       ? Container(
-                          width: 52,
-                          height: 52,
+                          width: DashSize.d56,
+                          height: DashSize.d56,
                           decoration: BoxDecoration(
-                            color: t.accentGreen.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(14),
+                            color: t.accentGreen.withValues(
+                              alpha: DashAlpha.wash,
+                            ),
+                            borderRadius: BorderRadius.circular(DashRadius.lg),
                           ),
                           child: Icon(Icons.check, color: t.accentGreenInk),
                         )
                       : Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            PrintThumbnail(archiveId: archive.id, size: 52),
+                            PrintThumbnail(
+                              archiveId: archive.id,
+                              size: DashSize.d56,
+                            ),
                             Positioned(
                               left: -4,
                               top: -4,
@@ -817,7 +880,7 @@ class _ArchiveCard extends StatelessWidget {
                       IconButton(
                         icon: Icon(
                           archive.isFavorite ? Icons.star : Icons.star_border,
-                          size: 20,
+                          size: DashIcon.md,
                           color: archive.isFavorite
                               ? t.accentOrangeInk
                               : t.textTertiary,
@@ -825,13 +888,16 @@ class _ArchiveCard extends StatelessWidget {
                         tooltip: archive.isFavorite
                             ? AppLocalizations.of(context).archiveUnfavorite
                             : AppLocalizations.of(context).archiveFavorite,
-                        visualDensity: VisualDensity.compact,
                         onPressed: onToggleFavorite,
                       ),
                     )
                   else if (archive.isFavorite) ...[
                     const SizedBox(width: DashSpace.sm),
-                    Icon(Icons.star, size: 18, color: t.accentOrangeInk),
+                    Icon(
+                      Icons.star,
+                      size: DashIcon.md,
+                      color: t.accentOrangeInk,
+                    ),
                   ],
                 ],
               ),
@@ -865,13 +931,17 @@ class _PlateBadge extends StatelessWidget {
         padding: const EdgeInsets.all(DashSpace.xs),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DashRadius.sm),
           border: Border.all(color: t.subCardBorder),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grid_view_outlined, size: 12, color: t.textSecondary),
+            Icon(
+              Icons.grid_view_outlined,
+              size: DashIcon.xs,
+              color: t.textSecondary,
+            ),
             const SizedBox(width: DashSpace.xs),
             Text('$plate', style: t.monoMicro.copyWith(color: t.textSecondary)),
           ],
@@ -913,7 +983,7 @@ class _MediaBadges extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.xs),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: badges),
@@ -922,7 +992,7 @@ class _MediaBadges extends StatelessWidget {
 
   Widget _badge(IconData icon, Color color, String label) => Semantics(
     label: label,
-    child: Icon(icon, size: 12, color: color),
+    child: Icon(icon, size: DashIcon.xs, color: color),
   );
 }
 
@@ -937,10 +1007,16 @@ class _ArchiveSheet extends ConsumerWidget {
     required this.onRunPipeline,
     required this.onDelete,
     required this.onReject,
+    required this.onRunPhotos,
+    required this.onRunVideo,
+    required this.onReprintPlate,
   });
 
   final Archive archive;
   final VoidCallback onReject;
+  final ValueChanged<List<String>> onRunPhotos;
+  final ValueChanged<int?> onRunVideo;
+  final ValueChanged<int?> onReprintPlate;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
@@ -959,7 +1035,7 @@ class _ArchiveSheet extends ConsumerWidget {
     final archive =
         ref
             .watch(archiveProvider)
-            .valueOrNull
+            .value
             ?.where((a) => a.id == this.archive.id)
             .firstOrNull ??
         this.archive;
@@ -981,7 +1057,7 @@ class _ArchiveSheet extends ConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    PrintThumbnail(archiveId: archive.id, size: 72),
+                    PrintThumbnail(archiveId: archive.id, size: DashSize.d72),
                     const SizedBox(width: DashSpace.md),
                     Expanded(
                       child: Column(
@@ -1037,6 +1113,18 @@ class _ArchiveSheet extends ConsumerWidget {
                 ArchiveFilamentRow(archive: archive),
                 ArchiveStatsPanel(archive: archive),
                 ArchiveTagsAndNote(archive: archive),
+                ArchivePlatesSection(
+                  archive: archive,
+                  onPhotos: onRunPhotos,
+                  onVideo: onRunVideo,
+                  onPrintPlate: onReprintPlate,
+                ),
+                ArchiveRunsSection(
+                  archive: archive,
+                  onPhotos: onRunPhotos,
+                  onVideo: onRunVideo,
+                  onReprint: onReprintPlate,
+                ),
                 ArchiveFooter(archive: archive),
                 ArchiveLinkButton(archive: archive),
                 SizedBox(
@@ -1156,7 +1244,7 @@ class _SliceArchiveButton extends ConsumerWidget {
     final caps = sidecar == ControlOffer.offered
         ? ref.watch(archiveCapabilitiesProvider(archive.id))
         : null;
-    final sliceable = caps?.valueOrNull?.sliceable;
+    final sliceable = caps?.value?.sliceable;
     final l10n = AppLocalizations.of(context);
     // The buttons are disabled in three ways, and two of them owe the user a
     // line. Silence belongs only to the answer that is still on its way.
@@ -1237,7 +1325,7 @@ class _ReasonedButton extends StatelessWidget {
             Text(label),
             if (why != null) ...[
               const SizedBox(width: DashSpace.sm),
-              const Icon(Icons.info_outline, size: 18),
+              const Icon(Icons.info_outline, size: DashIcon.md),
             ],
           ],
         ),
@@ -1348,6 +1436,7 @@ class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(context, _purgeStats),
             child: Text(l10n.archiveDelete),
@@ -1409,7 +1498,7 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final canDelete = _preview.valueOrNull?.isEmpty == false;
+    final canDelete = _preview.value?.isEmpty == false;
 
     return AlertDialog(
       title: Text(l10n.archivePurgeTitle),
@@ -1490,6 +1579,7 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
             ),
             onPressed: canDelete
                 ? () => Navigator.pop(context, (
@@ -1520,8 +1610,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(archiveFiltersProvider);
     final notifier = ref.read(archiveFiltersProvider.notifier);
-    final printers =
-        ref.watch(printersForPickerProvider).valueOrNull ?? const [];
+    final printers = ref.watch(printersForPickerProvider).value ?? const [];
 
     final materials = <String>{
       for (final a in archives) ...filamentTypeTokens(a.filamentType),
@@ -1555,7 +1644,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
             // toggles; the button keeps its slot via Visibility.maintainSize so
             // its appearance can't reflow the sheet content.
             SizedBox(
-              height: 48,
+              height: DashSize.d48,
               child: Row(
                 children: [
                   Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
@@ -1613,7 +1702,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                 FilterChip(
                   avatar: Icon(
                     filters.favoritesOnly ? Icons.star : Icons.star_border,
-                    size: 18,
+                    size: DashIcon.md,
                   ),
                   label: Text(l10n.archiveFilterFavorites),
                   selected: filters.favoritesOnly,
@@ -1683,32 +1772,33 @@ class _ArchiveFilterSheet extends ConsumerWidget {
 
             if (colors.isNotEmpty) ...[
               const SizedBox(height: DashSpace.lg),
-              Row(
-                children: [
-                  FilterGroupLabel(label: l10n.archiveFilterColors),
-                  const Spacer(),
-                  if (filters.colors.length > 1)
-                    // OR/AND only matters once several colors are picked.
-                    SegmentedButton<ColorFilterMode>(
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
+              if (filters.colors.length > 1)
+                BesideOrBelow(
+                  label: FilterGroupLabel(label: l10n.archiveFilterColors),
+                  // OR/AND only matters once several colors are picked.
+                  control: SegmentedButton<ColorFilterMode>(
+                    style: const ButtonStyle(
+                      minimumSize: WidgetStatePropertyAll(
+                        Size(0, kMinInteractiveDimension),
                       ),
-                      segments: [
-                        ButtonSegment(
-                          value: ColorFilterMode.or,
-                          label: Text(l10n.archiveColorModeAny),
-                        ),
-                        ButtonSegment(
-                          value: ColorFilterMode.and,
-                          label: Text(l10n.archiveColorModeAll),
-                        ),
-                      ],
-                      selected: {filters.colorMode},
-                      onSelectionChanged: (s) =>
-                          notifier.state = filters.copyWith(colorMode: s.first),
                     ),
-                ],
-              ),
+                    segments: [
+                      ButtonSegment(
+                        value: ColorFilterMode.or,
+                        label: Text(l10n.archiveColorModeAny),
+                      ),
+                      ButtonSegment(
+                        value: ColorFilterMode.and,
+                        label: Text(l10n.archiveColorModeAll),
+                      ),
+                    ],
+                    selected: {filters.colorMode},
+                    onSelectionChanged: (s) =>
+                        notifier.state = filters.copyWith(colorMode: s.first),
+                  ),
+                )
+              else
+                FilterGroupLabel(label: l10n.archiveFilterColors),
               const SizedBox(height: DashSpace.xs),
               _ColorSwatchWrap(
                 colors: colors.toList(),
@@ -1768,12 +1858,12 @@ class _ColorSwatchWrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    // Each swatch brings its own 48 dp touch cell, so the wrap adds no gaps.
     return Wrap(
-      spacing: DashSpace.md,
-      runSpacing: DashSpace.md,
       children: [
         for (final hex in colors)
           _ColorSwatch(
+            hex: hex,
             color: colorFromHex(hex),
             selected: selected.contains(hex),
             accent: t.accentGreen,
@@ -1787,6 +1877,7 @@ class _ColorSwatchWrap extends StatelessWidget {
 
 class _ColorSwatch extends StatelessWidget {
   const _ColorSwatch({
+    required this.hex,
     required this.color,
     required this.selected,
     required this.accent,
@@ -1794,6 +1885,8 @@ class _ColorSwatch extends StatelessWidget {
     required this.onTap,
   });
 
+  /// The filament colour code, which is the swatch's name for a screen reader.
+  final String hex;
   final Color? color;
   final bool selected;
   final Color accent;
@@ -1806,24 +1899,47 @@ class _ColorSwatch extends StatelessWidget {
     final checkColor = (color != null && color!.computeLuminance() > 0.5)
         ? Colors.black
         : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: selected ? accent : border,
-            width: selected ? 3 : 1,
+    return logTag(
+      'archive.filter_color',
+      selected: selected,
+      Tooltip(
+        message: hex,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: SizedBox.square(
+            dimension: kMinInteractiveDimension,
+            child: Center(
+              child: Container(
+                width: DashSize.d32,
+                height: DashSize.d32,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected ? accent : border,
+                    width: selected ? DashStroke.heavy : DashStroke.hairline,
+                  ),
+                ),
+                child: color == null
+                    ? Icon(
+                        Icons.help_outline,
+                        size: DashIcon.sm,
+                        applyTextScaling: false,
+                        color: checkColor,
+                      )
+                    : (selected
+                          ? Icon(
+                              Icons.check,
+                              size: DashIcon.sm,
+                              applyTextScaling: false,
+                              color: checkColor,
+                            )
+                          : null),
+              ),
+            ),
           ),
         ),
-        child: color == null
-            ? Icon(Icons.help_outline, size: 18, color: checkColor)
-            : (selected
-                  ? Icon(Icons.check, size: 18, color: checkColor)
-                  : null),
       ),
     );
   }

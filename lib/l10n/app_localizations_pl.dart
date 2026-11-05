@@ -131,6 +131,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get addPrinterAccessCode => 'Kod dostępu';
 
   @override
+  String get addPrinterRevealAccessCode => 'Pokaż kod dostępu';
+
+  @override
+  String get addPrinterHideAccessCode => 'Ukryj kod dostępu';
+
+  @override
   String get addPrinterModel => 'Model';
 
   @override
@@ -554,16 +560,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlMoveStep => 'Krok';
 
   @override
-  String get ctrlMoveZ => 'Z (szczelina)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'W górę';
 
   @override
   String get ctrlMoveZDown => 'W dół';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (głowica)';
 
   @override
   String get ctrlMoveZUnknownDirection =>
@@ -585,6 +588,16 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String ctrlMoveMm(int d) {
     return '$d mm';
+  }
+
+  @override
+  String ctrlMoveAxisPlus(String axis) {
+    return 'Ruch $axis, kierunek dodatni';
+  }
+
+  @override
+  String ctrlMoveAxisMinus(String axis) {
+    return 'Ruch $axis, kierunek ujemny';
   }
 
   @override
@@ -773,6 +786,42 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueAmsFromSlicer => 'AMS ze slicera';
+
+  @override
+  String queueColorSubstitution(int slot, String got, String wanted) {
+    return 'Slot $slot: wydrukowano w kolorze $got, plik wymaga $wanted';
+  }
+
+  @override
+  String queueColorSubstitutionSlots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sloty',
+      many: '$count slotów',
+      few: '$count sloty',
+      one: '$count slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueColorSubstitutionTitle => 'Wydrukowano w innym kolorze';
+
+  @override
+  String get queueColorSubstitutionWhy =>
+      'Nie było szpuli w kolorze z pliku albo slot wybrano ręcznie.';
+
+  @override
+  String queueColorSubstitutionSlot(int slot) {
+    return 'Slot $slot';
+  }
+
+  @override
+  String get queueColorSubstitutionPrinted => 'Wydrukowano w';
+
+  @override
+  String get queueColorSubstitutionWanted => 'Plik wymaga';
 
   @override
   String queueAnyOfModels(String models) {
@@ -1828,9 +1877,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get heaterHistoryTitle => 'Historia temperatur';
 
   @override
-  String get heaterHistoryOpen => 'Historia temperatur';
-
-  @override
   String get heaterHistoryReading => 'Odczyt';
 
   @override
@@ -1877,9 +1923,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get widgetStatusFinished => 'Zakończono';
-
-  @override
-  String get widgetStatusFailed => 'Błąd';
 
   @override
   String get widgetStatusIdle => 'Bezczynna';
@@ -2052,6 +2095,23 @@ class AppLocalizationsPl extends AppLocalizations {
   String get tryDemo => 'Wypróbuj wersję demo';
 
   @override
+  String get customCaImport => 'Importuj certyfikat CA';
+
+  @override
+  String customCaTrusted(String name) {
+    return 'Zaufany CA: $name';
+  }
+
+  @override
+  String get customCaRemove => 'Usuń certyfikat CA';
+
+  @override
+  String get customCaInvalid => 'Ten plik nie zawiera certyfikatu';
+
+  @override
+  String get customCaPickFailed => 'Nie udało się otworzyć pliku';
+
+  @override
   String get scanApiKeyTitle => 'Zeskanuj klucz API';
 
   @override
@@ -2063,6 +2123,9 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get cameraPermissionBody =>
       'Zezwól na dostęp do aparatu, aby skanować kody QR.';
+
+  @override
+  String get scannerTorch => 'Latarka';
 
   @override
   String get errMissingUrl => 'Podaj adres serwera';
@@ -2102,8 +2165,7 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get errBadCertificate =>
-      'Nieprawidłowy certyfikat TLS (self-signed nieobsługiwany w v1)';
+  String get errBadCertificate => 'Certyfikat serwera nie jest zaufany';
 
   @override
   String get errConnection => 'Błąd połączenia';
@@ -2294,6 +2356,107 @@ class AppLocalizationsPl extends AppLocalizations {
       'Dokłada do powiadomienia o zakończeniu lub błędzie zdjęcie, które serwer robi po wydruku — gdy tylko dojdzie';
 
   @override
+  String get alarmHeader => 'Alarm';
+
+  @override
+  String get alarmTitle => 'Budź mnie alarmem';
+
+  @override
+  String get alarmDesc => 'Dzwoni na ekranie blokady, aż go wyłączysz';
+
+  @override
+  String get alarmEvtFinished => 'Wydruk zakończony';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Wydruk skończył się powodzeniem';
+
+  @override
+  String get alarmEvtBlocked => 'Wydruk zatrzymany przez błąd';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Błąd wstrzymał lub przerwał wydruk albo wydruk się nie udał';
+
+  @override
+  String get alarmEvtDrying => 'Suszenie zakończone';
+
+  @override
+  String get alarmEvtDryingDesc => 'Cykl suszenia w AMS dobiegł końca';
+
+  @override
+  String get alarmWindowTitle => 'Tylko w wybranych godzinach';
+
+  @override
+  String get alarmWindowDesc => 'Poza tymi godzinami alarm nie dzwoni';
+
+  @override
+  String get alarmWindowFrom => 'Od';
+
+  @override
+  String get alarmWindowTo => 'Do';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Dzwoni przez $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Potem sam ucichnie';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Stop';
+
+  @override
+  String get alarmTest => 'Testuj alarm';
+
+  @override
+  String get alarmTestBody => 'Tak brzmi alarm';
+
+  @override
+  String get alarmTestFailed =>
+      'Alarm nie mógł zadzwonić. Sprawdź, czy powiadomienia są włączone.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Bez zgody alarm nie zasłoni ekranu blokady';
+
+  @override
+  String get alarmFullScreenAllow => 'Zezwól';
+
+  @override
+  String get alarmHoursHeader => 'Godziny';
+
+  @override
+  String get alarmLengthHeader => 'Jak długo';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Co go uruchamia, w jakich godzinach i na jak długo';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Wykluczone lokalizacje';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Wykluczone drukarki';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Żadna drukarka stąd nie włączy alarmu';
+
+  @override
+  String get alarmExcludePrinterDesc => 'Ta drukarka nigdy nie włączy alarmu';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Wykluczona razem z lokalizacją $location';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Progi';
 
   @override
@@ -2367,6 +2530,59 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String notifBedCooledThreshold(int temp) {
     return 'Stół wystygł poniżej $temp°C';
+  }
+
+  @override
+  String printPauseAtLayer(int layer) {
+    return 'warstwa $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Następna pauza za $duration, na warstwie $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Następna pauza na warstwie $layer';
+  }
+
+  @override
+  String get serverSettingsPauseWarningSubtitle => 'Ile przed pauzą ostrzegać';
+
+  @override
+  String get pauseWarningTitle => 'Ostrzeżenie o pauzie';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Ostrzegaj $duration przed pauzą';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Ustawienie serwera: wyznacza też, kiedy ostrzega sam serwer, i obowiązuje na każdym urządzeniu.';
+
+  @override
+  String get notifEvtPauseUpcoming => 'Zbliża się pauza';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Ostrzega przed pauzą wstawioną w slicerze';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Zbliża się pauza';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minut',
+      few: '$minutes minuty',
+      one: '$minutes minutę',
+      zero: 'mniej niż minutę',
+    );
+    return '$name: pauza za $_temp0, warstwa $layer';
   }
 
   @override
@@ -2771,8 +2987,97 @@ class AppLocalizationsPl extends AppLocalizations {
       'Nie odczytano — zapis ich nie ruszy.';
 
   @override
-  String get inventoryPrinterPresetsSaveFailed =>
-      'Szpula zapisana, presety wg modelu — nie.';
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Wypełniono z ustawień domyślnych dla $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Użyj jako domyślnych';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'dla $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial => 'Najpierw podaj materiał';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Dotyczy';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Wszystkie kolory';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Tylko $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Szpula zapisana, ustawienia domyślne — nie.';
+
+  @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'Od czego startują nowe szpule';
+
+  @override
+  String get profileDefaultsTitle => 'Ustawienia domyślne profili';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Zapisz je przełącznikiem „Użyj jako domyślnych” w formularzu szpuli. Zastosowanie uzupełnia tylko to, czego szpulom brakuje.';
+
+  @override
+  String get profileDefaultsEmpty => 'Nie zapisano jeszcze ustawień domyślnych';
+
+  @override
+  String get profileDefaultsApply => 'Zastosuj do szpul';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Uzupełniono $count szpul',
+      few: 'Uzupełniono $count szpule',
+      one: 'Uzupełniono $count szpulę',
+      zero: 'Żadna szpula tego nie potrzebowała',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle => 'Usunąć te ustawienia domyślne?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product: nowe szpule przestaną z nich startować. Szpule, które już je dostały, je zachowują.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presetów wg modelu',
+      few: '$count presety wg modelu',
+      one: '$count preset wg modelu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count profili K',
+      few: '$count profile K',
+      one: '$count profil K',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get inventoryFieldMaterial => 'Materiał';
@@ -2933,12 +3238,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryUsageReset => 'Wyzerowano licznik';
-
-  @override
-  String get inventorySaveFailed => 'Nie udało się zapisać szpuli';
-
-  @override
-  String get inventoryActionFailed => 'Operacja nie powiodła się';
 
   @override
   String get inventoryUnassign => 'Odepnij';
@@ -4107,6 +4406,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmUpload => 'Wgraj plik';
 
   @override
+  String get fmAddFiles => 'Dodaj pliki';
+
+  @override
   String get fmUploading => 'Wgrywanie…';
 
   @override
@@ -4579,7 +4881,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Już jest w bibliotece';
 
   @override
-  String get mwViewInFiles => 'Pokaż w menedżerze plików';
+  String get mwViewInFiles => 'Otwórz pliki';
 
   @override
   String get mwRecentImports => 'Ostatnie importy';
@@ -4609,6 +4911,12 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get cloudPassword => 'Hasło';
+
+  @override
+  String get cloudShowPassword => 'Pokaż hasło';
+
+  @override
+  String get cloudHidePassword => 'Ukryj hasło';
 
   @override
   String get cloudRegionGlobal => 'Globalny';
@@ -9441,6 +9749,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get announcementsEmpty => 'Na razie nie ma żadnych ogłoszeń.';
 
   @override
+  String get linkedAppsTitle => 'Powiązane aplikacje';
+
+  @override
+  String get linkedAppsEmpty => 'Brak powiązanych aplikacji.';
+
+  @override
   String announcementsEarlier(int count) {
     return 'Wcześniejsze ($count)';
   }
@@ -9636,4 +9950,269 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany.';
+
+  @override
+  String get archiveRunsTitle => 'Historia wydruków';
+
+  @override
+  String get archiveRunsEmpty => 'Ten plik nie został jeszcze wydrukowany.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Wydrukowano, zanim Bambuddy zaczęło rejestrować każdy wydruk: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty => 'Brak jeszcze wydruków tej płyty.';
+
+  @override
+  String get archiveRunsAllPlates => 'Wszystkie płyty';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Drukarka usunięta';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (szac. $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value wobec $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value z $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Rozpoczęto / zakończono';
+
+  @override
+  String get archiveRunEnergy => 'Energia';
+
+  @override
+  String get archiveRunFailureReason => 'Przyczyna niepowodzenia';
+
+  @override
+  String get archiveRunStartedBy => 'Uruchomił(a)';
+
+  @override
+  String get archiveRunNote => 'Notatka do tego wydruku';
+
+  @override
+  String get archiveRunVideo => 'Film timelapse';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Zdjęcia ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Udane: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Nieudane: $count';
+  }
+
+  @override
+  String get archiveRunSetOutcome => 'Ustaw wynik';
+
+  @override
+  String get archiveRunChangeOutcome => 'Zmień wynik';
+
+  @override
+  String get archiveRunAddNote => 'Dodaj notatkę';
+
+  @override
+  String get archiveRunEditNote => 'Edytuj notatkę';
+
+  @override
+  String get archiveRunNoteSaved => 'Notatka zapisana';
+
+  @override
+  String get archivePlatesTitle => 'Płyty';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Szacunek $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Ostatni wydruk a szacunek: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Drukuj tę płytę';
+
+  @override
+  String get archiveShowPlatePrints => 'Pokaż jej wydruki';
+
+  @override
+  String get archiveRunReprint => 'Wydrukuj ponownie';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grupy zduplikowanych archiwów',
+      many: '$count grup zduplikowanych archiwów',
+      few: '$count grupy zduplikowanych archiwów',
+      one: '1 grupa zduplikowanych archiwów',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Scal';
+
+  @override
+  String get archiveMergeDismiss => 'Odrzuć';
+
+  @override
+  String get archiveMergeMenu => 'Scal duplikaty';
+
+  @override
+  String get archiveMergeTitle => 'Scal zduplikowane archiwa';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'Najstarsze archiwum każdej grupy pozostaje i przejmuje wszystkie wydruki pozostałych archiwów, wraz z ich zdjęciami, filmami i plikami.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'Pozostałe znikają z archiwów; ich stare linki otwierają archiwum, do którego zostały scalone.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Obciążenia portfela i rezerwacje budżetu pozostają tam, gdzie zostały zaksięgowane.';
+
+  @override
+  String get archiveMergeNone => 'Brak duplikatów do scalenia.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wydruku',
+      many: '$count wydruków',
+      few: '$count wydruki',
+      one: '1 wydruk',
+    );
+    return '$name · utworzono $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Pozostaje';
+
+  @override
+  String get archiveMergeWaiting => 'Na razie pominięte';
+
+  @override
+  String get archiveMergeLeftOut => 'Pominięte przy scalaniu';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'W użyciu: drukowane, w kolejce lub właśnie wydrukowane. Spróbuj później.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'Archiwa zawierają różne pliki źródłowe, pliki projektu lub filmy. Najpierw zachowaj jedno ręcznie.';
+
+  @override
+  String get archiveMergeSkipFailed => 'Scalanie nie powiodło się.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'To już nie jest grupa duplikatów.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Scal $count grupy',
+      many: 'Scal $count grup',
+      few: 'Scal $count grupy',
+      one: 'Scal 1 grupę',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody => 'Tego nie można cofnąć w aplikacji.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Scalono $count grupy.',
+      many: 'Scalono $count grup.',
+      few: 'Scalono $count grupy.',
+      one: 'Scalono 1 grupę.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Scalone: $count. Pominięte: $left.';
+  }
+
+  @override
+  String get archiveCalendarView => 'Widok kalendarza';
+
+  @override
+  String get archiveListView => 'Widok listy';
+
+  @override
+  String get archiveCalendarToday => 'Dzisiaj';
+
+  @override
+  String get archiveCalendarPrevious => 'Poprzedni miesiąc';
+
+  @override
+  String get archiveCalendarNext => 'Następny miesiąc';
+
+  @override
+  String get archiveCalendarPrints => 'Wydruki w tym miesiącu';
+
+  @override
+  String get archiveCalendarSuccessful => 'Udane';
+
+  @override
+  String get archiveCalendarFailed => 'Nieudane';
+
+  @override
+  String get archiveCalendarNoPrints => 'Brak wydruków tego dnia';
+
+  @override
+  String get archiveCalendarSelectDay =>
+      'Wybierz dzień, aby zobaczyć jego wydruki';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wydruku',
+      many: '$count wydruków',
+      few: '$count wydruki',
+      one: '1 wydruk',
+      zero: 'brak wydruków',
+    );
+    return '$date: $_temp0';
+  }
 }

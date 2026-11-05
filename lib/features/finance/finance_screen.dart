@@ -1,9 +1,9 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
+import '../../core/format/money_format.dart';
 import '../../core/models/cost_center.dart';
 import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/wallet.dart';
@@ -68,7 +68,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         : ref.watch(myCostCentersProvider);
     final Map<int, String> names = {
       if (admin)
-        for (final u in ref.watch(statsUsersProvider).valueOrNull ?? const [])
+        for (final u in ref.watch(statsUsersProvider).value ?? const [])
           u.id: u.username,
     };
     final canPickUsers = names.isNotEmpty;
@@ -226,7 +226,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       ? l10n.financeTransactions
                       : l10n.financeRecentTransactions,
                 ),
-                _filters(l10n, centers.valueOrNull ?? const []),
+                _filters(l10n, centers.value ?? const []),
                 const SizedBox(height: DashSpace.md),
                 dashAsyncStrip(
                   context,
@@ -237,7 +237,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                     t,
                     state,
                     ledger,
-                    {for (final c in centers.valueOrNull ?? const []) c.id: c},
+                    {for (final c in centers.value ?? const []) c.id: c},
                     userNames: allLedger ? names : null,
                     canModify: admin && canModify,
                   ),
@@ -318,7 +318,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             ),
         const SizedBox(height: DashSpace.md),
         if (state.loadingMore)
-          const DashSpinner(size: 22)
+          const DashSpinner(size: DashSize.d24)
         else if (state.hasMore)
           logTag(
             'finance.load_more',
@@ -386,7 +386,7 @@ class _SectionHeader extends StatelessWidget {
 /// `-$1.50`: the sign leads, the symbol follows it, two decimals.
 String _money(String currency, double amount, {bool plus = false}) {
   final sign = amount < 0 ? '-' : (plus && amount > 0 ? '+' : '');
-  return '$sign${formatMoney(currency, amount.abs().toStringAsFixed(2))}';
+  return '$sign${formatMoneyValue(currency, amount.abs())}';
 }
 
 class _BalanceCard extends ConsumerWidget {
@@ -476,7 +476,7 @@ class _CostCenterTile extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -558,7 +558,7 @@ class _CostCenterTile extends ConsumerWidget {
             const SizedBox(height: DashSpace.sm),
             DashProgressBar(
               value: spent,
-              height: 6,
+              height: DashSize.d8,
               color: spent >= 1 ? t.dangerInk : null,
             ),
           ],
@@ -618,7 +618,7 @@ class _TransactionTile extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(

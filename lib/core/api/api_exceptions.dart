@@ -1,3 +1,5 @@
+import 'dart:io' show HandshakeException;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
@@ -127,6 +129,24 @@ Future<T> guard<T>(Future<T> Function() body) async {
   }
 }
 
+/// [guard] for a read where some statuses only mean "nothing here" and answer
+/// [absent]: 404 by default (a route an older server lacks), and whatever else
+/// the caller names in [statuses] — 403 for a session the server refuses. Any
+/// other status, and a failure with no response at all, is mapped as [guard]
+/// does: an unreachable server is not an empty feed.
+Future<T> guardAbsent<T>(
+  Future<T> Function() body,
+  T absent, {
+  Set<int> statuses = const {404},
+}) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    if (statuses.contains(e.response?.statusCode)) return absent;
+    throw mapDioException(e);
+  }
+}
+
 /// [guard] for a route that enforces a rule the app does not re-implement, so
 /// the 400 or 422 keeps the sentence explaining it — see
 /// [mapDioExceptionKeepingDetail].
@@ -249,7 +269,17 @@ AppApiException mapDioException(DioException e) {
   // The same reduction `HttpProbe` records with: no host, no query, and no
   // segment the user named.
   final path = loggablePath(e.requestOptions.uri.path);
-  return switch (classifyDioException(e)) {
+  // Dio files an untrusted certificate under a connection error (it names one
+  // only for its own `validateCertificate`), and the remedy is not the address
+  // but the CA (#62). Other handshake failures — plain http on an https port —
+  // stay connection errors.
+  final error = e.error;
+  final untrusted =
+      error is HandshakeException &&
+      (error.osError?.message.contains('CERTIFICATE_VERIFY_FAILED') ?? false);
+  return switch (untrusted
+      ? DioFailure.badCertificate
+      : classifyDioException(e)) {
     DioFailure.unreachable => NetworkException(
       AppErrorCode.serverUnreachable,
       detail: e.message,

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/announcement.dart';
 
@@ -12,21 +13,11 @@ class AnnouncementsRepository {
 
   /// [AnnouncementFeed.hidden] on a server without the route (404). The
   /// handler raises no 404 of its own, so that answer only means "absent".
-  Future<AnnouncementFeed> fetch() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(Endpoints.announcements);
-      return AnnouncementFeed.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return AnnouncementFeed.hidden;
-      throw mapDioException(e);
-    }
-  }
+  Future<AnnouncementFeed> fetch() => guardAbsent(() async {
+    return _dio.getObject(Endpoints.announcements, AnnouncementFeed.fromJson);
+  }, AnnouncementFeed.hidden);
 
-  Future<void> markRead(String id) async {
-    try {
-      await _dio.post<void>(Endpoints.announcementRead(id));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> markRead(String id) => guard(() async {
+    await _dio.post<void>(Endpoints.announcementRead(id));
+  });
 }

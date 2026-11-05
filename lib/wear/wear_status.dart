@@ -2,27 +2,27 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/format/duration_format.dart';
 import '../core/models/printer_status.dart';
+import '../core/notifications/hms_catalog.dart';
+import '../core/printers/printer_bucket.dart';
 import '../l10n/app_localizations.dart';
 
 /// Normalized printer state for the watch UI. Kept intentionally coarse — the
-/// watch only needs a glanceable label/color and which control buttons to show.
-enum WearState { offline, printing, paused, finished, failed, idle }
+/// watch only needs a glanceable label/color; which buttons to show follows the
+/// job ([PrinterStatus.isJobActive]), not this.
+enum WearState { offline, printing, paused, finished, error, idle }
 
-/// Derives a [WearState] from a (possibly null) [PrinterStatus]. Mirrors the
-/// derivation used by the home widget / dashboard so the watch reads the same.
-WearState wearStateOf(PrinterStatus? s) {
-  if (s == null || s.connected == false) return WearState.offline;
-  if (s.isPaused) return WearState.paused;
-  if (s.isPrinting) return WearState.printing;
-  switch (s.state?.toUpperCase()) {
-    case 'FINISH':
-    case 'FINISHED':
-      return WearState.finished;
-    case 'FAILED':
-      return WearState.failed;
-  }
-  return WearState.idle;
-}
+/// The watch's name for the printer's bucket — the one classification
+/// ([classifyPrinter], the web's) every surface reads, so the watch never says
+/// something else than the phone's filter or the widget.
+WearState wearStateOf(PrinterStatus? s) =>
+    switch (classifyPrinter(s, describe: HmsCatalog.instance.describe)) {
+      PrinterStatusBucket.offline => WearState.offline,
+      PrinterStatusBucket.printing => WearState.printing,
+      PrinterStatusBucket.paused => WearState.paused,
+      PrinterStatusBucket.finished => WearState.finished,
+      PrinterStatusBucket.error => WearState.error,
+      PrinterStatusBucket.idle || PrinterStatusBucket.all => WearState.idle,
+    };
 
 extension WearStateView on WearState {
   /// Same wording as the home-screen widget statuses.
@@ -31,7 +31,7 @@ extension WearStateView on WearState {
     WearState.printing => l10n.widgetStatusPrinting,
     WearState.paused => l10n.widgetStatusPaused,
     WearState.finished => l10n.widgetStatusFinished,
-    WearState.failed => l10n.widgetStatusFailed,
+    WearState.error => l10n.widgetStatusError,
     WearState.idle => l10n.widgetStatusIdle,
   };
 
@@ -42,7 +42,7 @@ extension WearStateView on WearState {
     WearState.printing => scheme.primary,
     WearState.paused => const Color(0xFFFFB300),
     WearState.finished => const Color(0xFF42A5F5),
-    WearState.failed => const Color(0xFFEF5350),
+    WearState.error => const Color(0xFFEF5350),
     WearState.idle => const Color(0xFF90A4AE),
   };
 }

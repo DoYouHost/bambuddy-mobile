@@ -32,6 +32,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           archiveRepositoryProvider.overrideWithValue(repo),
           sharedPreferencesProvider.overrideWithValue(prefs),
@@ -196,6 +197,26 @@ void main() {
 
     expect(find.byType(OutcomeSheet), findsOneWidget);
     expect(find.text(pl.outcomeSavedGood), findsNothing);
+  });
+
+  testWidgets('a save that fails with an unexpected error unlocks the sheet, '
+      'and still reports it', (tester) async {
+    await open(tester, testArchive(confirmRequested: true));
+    repo.error = StateError('unreadable answer');
+
+    final errors = await tapCapturingErrors(
+      tester,
+      find.text(pl.outcomeGood).last,
+    );
+    repo.error = null;
+    await tapText(tester, pl.outcomeGood);
+
+    expect(errors.single, isA<StateError>());
+    expect(
+      repo.sent.single.verdict,
+      PrintVerdict.good,
+      reason: 'the second try goes out: the sheet was not left locked',
+    );
   });
 
   // The sheet's navigator outlives the sheet: popping it after a dismissal

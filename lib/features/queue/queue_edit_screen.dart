@@ -22,6 +22,8 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../slicer/slice_providers.dart';
+import '../common/color_catalog.dart';
+import '../common/color_dot.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
 import 'job_cost_providers.dart';
@@ -245,7 +247,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final async = watch
         ? ref.watch(gcodeSnippetModelsProvider)
         : ref.read(gcodeSnippetModelsProvider);
-    return async.valueOrNull ?? const {};
+    return async.value ?? const {};
   }
 
   /// Whether the form may offer G-code injection at all.
@@ -260,7 +262,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final async = watch
         ? ref.watch(allPrintersProvider)
         : ref.read(allPrintersProvider);
-    for (final p in async.valueOrNull ?? const []) {
+    for (final p in async.value ?? const []) {
       if (p.id == _printerId) return p.model;
     }
     return null;
@@ -302,7 +304,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     // Loaded with the form, so the overrides name their colours on save.
-    ref.watch(mappingColorCatalogProvider);
+    ref.watch(colorNameCatalogProvider);
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -355,8 +357,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Row(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: QueueThumbnail(item: it, size: 52),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
+          child: QueueThumbnail(item: it, size: DashSize.d56),
         ),
         const SizedBox(width: DashSpace.md),
         Expanded(
@@ -380,7 +382,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- Target: Specific Printer / Any <model> ---
   Widget _targetSection(AppLocalizations l10n, DashTokens t) {
-    final printers = ref.watch(allPrintersProvider).valueOrNull ?? const [];
+    final printers = ref.watch(allPrintersProvider).value ?? const [];
     final models = distinctPrinterModels(printers);
     final locations = <String>{
       for (final p in printers)
@@ -683,7 +685,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             mapping: mappingKey(_amsMapping),
           )),
         )
-        .valueOrNull;
+        .value;
   }
 
   int get _costCopies => widget._isCreate ? _copies : 1;
@@ -722,7 +724,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
   String? _selectedPrinterName(int printerId) {
-    for (final p in ref.read(allPrintersProvider).valueOrNull ?? const []) {
+    for (final p in ref.read(allPrintersProvider).value ?? const []) {
       if (p.id == printerId) return p.name;
     }
     return null;
@@ -809,31 +811,37 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
     final source = _plateSource;
     if (source == null) return null;
-    final plates =
-        ref.watch(plateListProvider(source)).valueOrNull ?? PlateList.none;
+    final plates = ref.watch(plateListProvider(source)).value ?? PlateList.none;
     if (!plates.isMultiPlate) return null;
 
     final current = plates.byIndex(_plateId);
     final label = current == null
         ? l10n.queueEditPlateSelected(_plateId ?? 1)
         : plateLabel(l10n, current);
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: Row(
-        children: [
-          Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Text(
-              widget._isCreate
-                  ? label
-                  : l10n.queueEditPlateFixed(_plateId ?? 1),
-              style: t.body,
+    final row = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+        child: Row(
+          children: [
+            Icon(
+              Icons.layers_outlined,
+              color: t.textSecondary,
+              size: DashIcon.md,
             ),
-          ),
-          if (widget._isCreate)
-            Icon(Icons.chevron_right, color: t.textTertiary),
-        ],
+            const SizedBox(width: DashSpace.md),
+            Expanded(
+              child: Text(
+                widget._isCreate
+                    ? label
+                    : l10n.queueEditPlateFixed(_plateId ?? 1),
+                style: t.body,
+              ),
+            ),
+            if (widget._isCreate)
+              Icon(Icons.chevron_right, color: t.textTertiary),
+          ],
+        ),
       ),
     );
 
@@ -844,7 +852,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           title: l10n.queueEditPlate,
           child: widget._isCreate
               ? InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(DashRadius.md),
                   onTap: () => _pickPlate(plates),
                   child: row,
                 ).tagged('queue_edit.plate')
@@ -888,7 +896,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             onTap: printerId == null
                 ? null
                 : () async {
@@ -934,25 +942,34 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                       setState(() => _amsMapping = mapping);
                     }
                   },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-              child: Row(
-                children: [
-                  Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
-                  const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: Text(
-                      printerId == null
-                          ? l10n.queueEditMappingNeedsPrinter
-                          : (mapped > 0
-                                ? l10n.queueEditMappingSummary(mapped)
-                                : l10n.queueEditMappingAuto),
-                      style: t.body,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.bento_outlined,
+                      color: t.textSecondary,
+                      size: DashIcon.md,
                     ),
-                  ),
-                  if (printerId != null)
-                    Icon(Icons.chevron_right, color: t.textTertiary),
-                ],
+                    const SizedBox(width: DashSpace.md),
+                    Expanded(
+                      child: Text(
+                        printerId == null
+                            ? l10n.queueEditMappingNeedsPrinter
+                            : (mapped > 0
+                                  ? l10n.queueEditMappingSummary(mapped)
+                                  : l10n.queueEditMappingAuto),
+                        style: t.body,
+                      ),
+                    ),
+                    if (printerId != null)
+                      Icon(Icons.chevron_right, color: t.textTertiary),
+                  ],
+                ),
               ),
             ),
           ).tagged('queue_edit.mapping'),
@@ -984,7 +1001,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   plate: _plateId ?? 1,
                 )),
               )
-              .valueOrNull ??
+              .value ??
           const [];
     }
     if (it.libraryFileId != null) {
@@ -996,7 +1013,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   plate: _plateId ?? 1,
                 )),
               )
-              .valueOrNull ??
+              .value ??
           const [];
     }
     return const [];
@@ -1065,7 +1082,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   .watch(
                     availableFilamentsProvider((model, _targetLocation ?? '')),
                   )
-                  .valueOrNull ??
+                  .value ??
               const <AvailableFilament>[]);
     final reqs = _requirements();
     return QueueSectionCard(
@@ -1187,8 +1204,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   }
 
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
-    final catalog =
-        ref.read(mappingColorCatalogProvider).valueOrNull ?? ColorCatalog.empty;
+    final catalog = ref.readColorNames();
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
       final ov = _overrides[r.slotId];
@@ -1461,20 +1477,23 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final label = _scheduledTime == null
         ? l10n.queueEditPickTime
         : DateTimeFormats.of(context).dateTime(_scheduledTime!);
-    return Row(
-      children: [
-        Icon(Icons.event_outlined, color: t.textSecondary),
-        const SizedBox(width: DashSpace.md),
-        Expanded(child: Text(label, style: t.monoValue)),
-        OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: t.textPrimary,
-            side: BorderSide(color: t.cardBorder),
-          ),
-          onPressed: _pickScheduledTime,
-          child: Text(l10n.queueEditPickTime),
-        ).tagged('queue_edit.pick_time'),
-      ],
+    return BesideOrBelow(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.event_outlined, color: t.textSecondary),
+          const SizedBox(width: DashSpace.md),
+          Flexible(child: Text(label, style: t.monoValue)),
+        ],
+      ),
+      control: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: t.textPrimary,
+          side: BorderSide(color: t.cardBorder),
+        ),
+        onPressed: _pickScheduledTime,
+        child: Text(l10n.queueEditPickTime),
+      ).tagged('queue_edit.pick_time'),
     );
   }
 
@@ -1508,32 +1527,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     _heldForReview = ref.read(awaitingReviewProvider);
     setState(() => _saving = true);
-    _logGcodeInjection();
-    _sentMapping = _modelMode ? null : await _matchMapping();
+    try {
+      _logGcodeInjection();
+      _sentMapping = _modelMode ? null : await _matchMapping();
 
-    final result = await ref
-        .read(queueProvider.notifier)
-        .runOnRepository(
-          widget._isCreate ? _create : _update,
-          widget._isCreate ? 'queue_edit.create' : 'queue_edit.save',
-        );
+      final result = await ref
+          .read(queueProvider.notifier)
+          .runOnRepository(
+            widget._isCreate ? _create : _update,
+            widget._isCreate ? 'queue_edit.create' : 'queue_edit.save',
+          );
 
-    // Remember the toggles only once a job was really created with them.
-    // Editing an existing item is about THAT item — treating it as "what I print
-    // with" would let a one-off tweak follow the user into every later job.
-    if (widget._isCreate && result.isOk) {
-      await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      // Remember the toggles only once a job was really created with them.
+      // Editing an existing item is about THAT item — treating it as "what I print
+      // with" would let a one-off tweak follow the user into every later job.
+      if (widget._isCreate && result.isOk) {
+        await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      }
+
+      if (!mounted) return;
+      setState(() => _saving = false);
+      final ok = !widget._isCreate
+          ? l10n.queueEditSaved
+          : (_orderRefused
+                ? l10n.queueEditOrderRefused
+                : l10n.queueCreateAdded);
+      snackQueueOutcome(messenger, result, l10n, ok: ok);
+      // Create pops `true` — its caller (a list of archives or files) refreshes
+      // what it shows only when something was really added.
+      if (result.isOk) navigator.pop(widget._isCreate);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-
-    if (!mounted) return;
-    setState(() => _saving = false);
-    final ok = !widget._isCreate
-        ? l10n.queueEditSaved
-        : (_orderRefused ? l10n.queueEditOrderRefused : l10n.queueCreateAdded);
-    messenger.snack(queueWriteMessage(l10n, result) ?? ok);
-    // Create pops `true` — its caller (a list of archives or files) refreshes
-    // what it shows only when something was really added.
-    if (result.isOk) navigator.pop(widget._isCreate);
   }
 
   /// The web's rule for the filament overrides when the target model or the
@@ -1578,7 +1604,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         printers: ref.read(printersRepositoryProvider),
         printerId: printerId,
         startFrom: _amsMapping ?? const [],
-        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).value,
       );
     } on Object {
       // A lost session surfaces on the write itself; the mapping only rides
@@ -1611,7 +1637,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final server = watch
         ? ref.watch(defaultConfirmOutcomeProvider)
         : ref.read(defaultConfirmOutcomeProvider);
-    return server.valueOrNull ?? false;
+    return server.value ?? false;
   }
 
   bool get _confirmOutcomeUnanswered =>
@@ -1624,7 +1650,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// rewrite what another client set meanwhile.
   bool? get _confirmOutcomeUpdate {
     final choice = _confirmOutcomeChoice;
-    if (ref.read(queueOutcomeProvider).valueOrNull == false) return null;
+    if (ref.read(queueOutcomeProvider).value == false) return null;
     return choice == widget.item.confirmOutcome ? null : choice;
   }
 
@@ -1862,35 +1888,39 @@ class _CheckRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final enabled = onChanged != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: enabled ? () => onChanged!(!value) : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: Row(
-          children: [
-            Checkbox(
-              value: value,
-              activeColor: t.accentGreen,
-              onChanged: onChanged == null
-                  ? null
-                  : (v) => onChanged!(v ?? false),
-            ),
-            Icon(
-              icon,
-              size: 18,
-              color: enabled ? t.textSecondary : t.textTertiary,
-            ),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Text(
-                label,
-                style: enabled
-                    ? t.body
-                    : t.body.copyWith(color: t.textTertiary),
+    // One node for the row: the box beside its text is otherwise a tappable
+    // node of its own with no label.
+    return MergeSemantics(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(DashRadius.md),
+        onTap: enabled ? () => onChanged!(!value) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+          child: Row(
+            children: [
+              Checkbox(
+                value: value,
+                activeColor: t.accentGreen,
+                onChanged: onChanged == null
+                    ? null
+                    : (v) => onChanged!(v ?? false),
               ),
-            ),
-          ],
+              Icon(
+                icon,
+                size: DashIcon.md,
+                color: enabled ? t.textSecondary : t.textTertiary,
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Text(
+                  label,
+                  style: enabled
+                      ? t.body
+                      : t.body.copyWith(color: t.textTertiary),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ).tagged(id);
@@ -1928,13 +1958,13 @@ class _Dropdown<T> extends StatelessWidget {
           style: MenuStyle(
             backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
             surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-            elevation: const WidgetStatePropertyAll(8),
+            elevation: const WidgetStatePropertyAll(DashElevation.raised),
             padding: const WidgetStatePropertyAll(
               EdgeInsets.symmetric(vertical: DashSpace.sm),
             ),
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 side: BorderSide(color: t.overlayBorder),
               ),
             ),
@@ -1976,20 +2006,24 @@ class _Dropdown<T> extends StatelessWidget {
     return MenuItemButton(
       onPressed: onTap,
       leadingIcon: swatch != null
-          ? _SwatchDot(color: swatch, ring: selected ? t.accentGreenInk : null)
+          ? ColorDot(
+              color: swatch,
+              size: DashSize.d20,
+              ring: selected ? t.accentGreenInk : null,
+            )
           : Icon(
               selected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              size: 18,
+              size: DashIcon.md,
               color: selected ? t.accentGreenInk : t.textTertiary,
             ),
       style: MenuItemButton.styleFrom(
         foregroundColor: t.textPrimary,
         textStyle: const TextStyle(
           fontFamily: DashTokens.fontUi,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
+          fontSize: DashFontSize.title,
+          fontWeight: DashWeight.semibold,
         ),
       ),
       child: Text(label),
@@ -2005,9 +2039,9 @@ class _Dropdown<T> extends StatelessWidget {
   }) {
     return Material(
       color: t.groupCard,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(
@@ -2015,13 +2049,13 @@ class _Dropdown<T> extends StatelessWidget {
             vertical: DashSpace.md,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             border: Border.all(color: t.groupCardBorder),
           ),
           child: Row(
             children: [
               if (swatch != null) ...[
-                _SwatchDot(color: swatch),
+                ColorDot(color: swatch, size: DashSize.d20),
                 const SizedBox(width: DashSpace.md),
               ],
               Expanded(
@@ -2039,30 +2073,6 @@ class _Dropdown<T> extends StatelessWidget {
           ),
         ),
       ).tagged('queue_edit.picker', expanded: isOpen),
-    );
-  }
-}
-
-/// Small round colour swatch used in filament dropdowns.
-class _SwatchDot extends StatelessWidget {
-  const _SwatchDot({required this.color, this.ring});
-  final Color color;
-  final Color? ring;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      width: 18,
-      height: 18,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: ring ?? t.hairline,
-          width: ring != null ? 2 : 1,
-        ),
-      ),
     );
   }
 }

@@ -9,7 +9,6 @@ import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
 import 'wear_fleet_cache.dart';
 import 'wear_ongoing.dart';
-import 'wear_status.dart';
 import 'wear_transport.dart';
 
 /// Config the phone has pushed but the watch has not adopted — either it has no
@@ -34,7 +33,15 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   /// profile so the app re-routes. Rethrows what secure storage threw, and a failure
   /// leaves the offer standing (docs/wear-fleet-poll.md, "Adopting a pushed config").
   Future<void> adopt(WatchConfig config) async {
+    // Before the profile, so a failed write never leaves a stored server whose CA
+    // is missing. Unchanged is skipped: the set rebuilds every API client, and
+    // the relay listener with them.
+    if (ref.read(customCaProvider)?.pem != config.ca?.pem) {
+      await ref.read(customCaProvider.notifier).set(config.ca);
+      if (!ref.mounted) return;
+    }
     await ref.read(watchConfigSyncProvider).apply(config);
+    if (!ref.mounted) return;
     state = null;
     // Only a changed profile is worth the invalidate: it rebuilds the transport and
     // disposes the relay's reply listener under a request already on the bridge.
@@ -99,7 +106,7 @@ final wearFleetProvider =
       WearFleetNotifier.new,
     );
 
-class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
+class WearFleetNotifier extends AsyncNotifier<WearFleet> {
   Timer? _timer;
 
   /// Which run of this notifier is the current one, bumped by every build and every
@@ -182,12 +189,7 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
     final relaying =
         ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
     final active =
-        fleet?.printers.any(
-          (p) => switch (wearStateOf(p.status)) {
-            WearState.printing || WearState.paused => true,
-            _ => false,
-          },
-        ) ??
+        fleet?.printers.any((p) => p.status?.isJobActive ?? false) ??
         // Unknown fleet (fetch failed) → poll fast to recover quickly.
         true;
     // Also slower after a failed poll that left a frame on screen (docs/wear-fleet-poll.md, "Cadence").
@@ -210,7 +212,7 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   void pollInBackground() {
     _paused = false;
     _background = true;
-    _scheduleNext(state.valueOrNull);
+    _scheduleNext(state.value);
   }
 
   /// Back to the foreground cadence from the next [refresh] on.
@@ -249,14 +251,14 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
     // A fired tick cannot be cancelled; the epoch makes the older poll give way.
     final epoch = ++_epoch;
     // Whether this run has confirmed what is on screen; a cached frame has not.
-    final unconfirmed = state.valueOrNull?.stale ?? false;
+    final unconfirmed = state.value?.stale ?? false;
     final next = await AsyncValue.guard(() => _fetch(epoch));
     if (!_current(epoch)) return;
 
     if (next.hasError && state.hasValue && !unconfirmed) {
       // Confirmed data survives a dropped poll: one bad tick should not blank a
       // screen that was right a moment ago.
-      _scheduleNext(state.valueOrNull, afterFailure: true);
+      _scheduleNext(state.value, afterFailure: true);
       return;
     }
 
@@ -268,28 +270,30 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
       if (_background) _scheduleNext(null);
       return;
     }
-    _scheduleNext(next.valueOrNull);
+    _scheduleNext(next.value);
   }
 }
 
 /// What a screen should draw out of [wearFleetProvider]: an error is always the
 /// answer, never the old frame Riverpod keeps behind it (docs/wear-fleet-poll.md, "WearFleetView.drawable").
 extension WearFleetView on AsyncValue<WearFleet> {
-  WearFleet? get drawable => hasError ? null : valueOrNull;
+  WearFleet? get drawable => hasError ? null : value;
 }
 
 /// Controller for the watch actions. Stateless facade over the transport;
 /// callers manage their own in-flight/error UI.
+///
+/// Holds the transport itself, not the provider's `Ref`: a screen reads this
+/// provider once and awaits, and by then nothing listens, so autoDispose has
+/// closed the `Ref` (Riverpod 3 throws on a use after that).
 final wearActionsProvider = Provider.autoDispose<WearActions>(
-  (ref) => WearActions(ref),
+  (ref) => WearActions(ref.watch(wearTransportProvider)),
 );
 
 class WearActions {
-  WearActions(this._ref);
+  WearActions(this._transport);
 
-  final Ref _ref;
-
-  WearTransport get _transport => _ref.read(wearTransportProvider);
+  final WearTransport _transport;
 
   Future<void> pause(int printerId) => _transport.pause(printerId);
 

@@ -75,7 +75,7 @@ void main() {
       ink,
       DashTokens.of(
         tester.element(find.byType(ModelSourcesScreen)),
-      ).accentGreenInk.withValues(alpha: 0.6),
+      ).accentGreenInk.withValues(alpha: DashAlpha.strong),
     );
   });
 }

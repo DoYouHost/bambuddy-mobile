@@ -332,6 +332,18 @@ abstract class AppLocalizations {
   /// **'Access code'**
   String get addPrinterAccessCode;
 
+  /// No description provided for @addPrinterRevealAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Show access code'**
+  String get addPrinterRevealAccessCode;
+
+  /// No description provided for @addPrinterHideAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide access code'**
+  String get addPrinterHideAccessCode;
+
   /// No description provided for @addPrinterModel.
   ///
   /// In en, this message translates to:
@@ -1103,7 +1115,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlMoveZ.
   ///
   /// In en, this message translates to:
-  /// **'Z (bed gap)'**
+  /// **'Z'**
   String get ctrlMoveZ;
 
   /// No description provided for @ctrlMoveZUp.
@@ -1117,12 +1129,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Down'**
   String get ctrlMoveZDown;
-
-  /// No description provided for @ctrlMoveZToolhead.
-  ///
-  /// In en, this message translates to:
-  /// **'Z (toolhead)'**
-  String get ctrlMoveZToolhead;
 
   /// No description provided for @ctrlMoveZUnknownDirection.
   ///
@@ -1159,6 +1165,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{d} mm'**
   String ctrlMoveMm(int d);
+
+  /// No description provided for @ctrlMoveAxisPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {axis}, positive direction'**
+  String ctrlMoveAxisPlus(String axis);
+
+  /// No description provided for @ctrlMoveAxisMinus.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {axis}, negative direction'**
+  String ctrlMoveAxisMinus(String axis);
 
   /// No description provided for @ctrlPause.
   ///
@@ -1441,6 +1459,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AMS from slicer'**
   String get queueAmsFromSlicer;
+
+  /// One line on a queue or history row: a slot printed from a spool of another colour than the file asked for. Colours are names, or hex codes when two names would be alike.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} printed in {got}, the file asks for {wanted}'**
+  String queueColorSubstitution(int slot, String got, String wanted);
+
+  /// No description provided for @queueColorSubstitutionSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} slot} other{{count} slots}}'**
+  String queueColorSubstitutionSlots(int count);
+
+  /// No description provided for @queueColorSubstitutionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed in another colour'**
+  String get queueColorSubstitutionTitle;
+
+  /// No description provided for @queueColorSubstitutionWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'No spool in the file\'s colour was loaded, or the slot was picked by hand.'**
+  String get queueColorSubstitutionWhy;
+
+  /// No description provided for @queueColorSubstitutionSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot}'**
+  String queueColorSubstitutionSlot(int slot);
+
+  /// No description provided for @queueColorSubstitutionPrinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed in'**
+  String get queueColorSubstitutionPrinted;
+
+  /// No description provided for @queueColorSubstitutionWanted.
+  ///
+  /// In en, this message translates to:
+  /// **'File asks for'**
+  String get queueColorSubstitutionWanted;
 
   /// No description provided for @queueAnyOfModels.
   ///
@@ -2996,12 +3056,6 @@ abstract class AppLocalizations {
   /// **'Temperature history'**
   String get heaterHistoryTitle;
 
-  /// No description provided for @heaterHistoryOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Temperature history'**
-  String get heaterHistoryOpen;
-
   /// No description provided for @heaterHistoryReading.
   ///
   /// In en, this message translates to:
@@ -3091,12 +3145,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finished'**
   String get widgetStatusFinished;
-
-  /// No description provided for @widgetStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get widgetStatusFailed;
 
   /// No description provided for @widgetStatusIdle.
   ///
@@ -3380,6 +3428,36 @@ abstract class AppLocalizations {
   /// **'Try the demo'**
   String get tryDemo;
 
+  /// No description provided for @customCaImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import CA certificate'**
+  String get customCaImport;
+
+  /// No description provided for @customCaTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted CA: {name}'**
+  String customCaTrusted(String name);
+
+  /// No description provided for @customCaRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove CA certificate'**
+  String get customCaRemove;
+
+  /// No description provided for @customCaInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds no certificate'**
+  String get customCaInvalid;
+
+  /// No description provided for @customCaPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the file'**
+  String get customCaPickFailed;
+
   /// No description provided for @scanApiKeyTitle.
   ///
   /// In en, this message translates to:
@@ -3403,6 +3481,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allow camera access to scan QR codes.'**
   String get cameraPermissionBody;
+
+  /// Name of the QR scanner's button that switches the phone's flashlight on and off
+  ///
+  /// In en, this message translates to:
+  /// **'Flashlight'**
+  String get scannerTorch;
 
   /// No description provided for @errMissingUrl.
   ///
@@ -3467,7 +3551,7 @@ abstract class AppLocalizations {
   /// No description provided for @errBadCertificate.
   ///
   /// In en, this message translates to:
-  /// **'Invalid TLS certificate (self-signed not supported in v1)'**
+  /// **'The server\'s certificate is not trusted'**
   String get errBadCertificate;
 
   /// No description provided for @errConnection.
@@ -3764,6 +3848,186 @@ abstract class AppLocalizations {
   /// **'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives'**
   String get notifFinishPhotoDesc;
 
+  /// No description provided for @alarmHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarm'**
+  String get alarmHeader;
+
+  /// No description provided for @alarmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake me with an alarm'**
+  String get alarmTitle;
+
+  /// No description provided for @alarmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Rings over the lock screen until you stop it'**
+  String get alarmDesc;
+
+  /// No description provided for @alarmEvtFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Print finished'**
+  String get alarmEvtFinished;
+
+  /// No description provided for @alarmEvtFinishedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A print ended successfully'**
+  String get alarmEvtFinishedDesc;
+
+  /// No description provided for @alarmEvtBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Print stopped by a fault'**
+  String get alarmEvtBlocked;
+
+  /// No description provided for @alarmEvtBlockedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A fault paused or stopped the print, or the print failed'**
+  String get alarmEvtBlockedDesc;
+
+  /// No description provided for @alarmEvtDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying finished'**
+  String get alarmEvtDrying;
+
+  /// No description provided for @alarmEvtDryingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'An AMS drying cycle ran to its end'**
+  String get alarmEvtDryingDesc;
+
+  /// No description provided for @alarmWindowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only between set hours'**
+  String get alarmWindowTitle;
+
+  /// No description provided for @alarmWindowDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside these hours the alarm stays silent'**
+  String get alarmWindowDesc;
+
+  /// No description provided for @alarmWindowFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get alarmWindowFrom;
+
+  /// No description provided for @alarmWindowTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get alarmWindowTo;
+
+  /// No description provided for @alarmRingFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Rings for {minutes} min'**
+  String alarmRingFor(int minutes);
+
+  /// No description provided for @alarmRingForDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Then it stops on its own'**
+  String get alarmRingForDesc;
+
+  /// No description provided for @alarmMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String alarmMinutes(int minutes);
+
+  /// No description provided for @alarmStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get alarmStop;
+
+  /// No description provided for @alarmTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test alarm'**
+  String get alarmTest;
+
+  /// No description provided for @alarmTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is how the alarm sounds'**
+  String get alarmTestBody;
+
+  /// No description provided for @alarmTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The alarm could not ring. Check that notifications are on.'**
+  String get alarmTestFailed;
+
+  /// No description provided for @alarmFullScreenNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Without permission the alarm will not cover the lock screen'**
+  String get alarmFullScreenNeeded;
+
+  /// No description provided for @alarmFullScreenAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get alarmFullScreenAllow;
+
+  /// No description provided for @alarmHoursHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get alarmHoursHeader;
+
+  /// No description provided for @alarmLengthHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get alarmLengthHeader;
+
+  /// No description provided for @alarmSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What rings it, at which hours and for how long'**
+  String get alarmSettingsSubtitle;
+
+  /// No description provided for @alarmExcludedLocationsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded locations'**
+  String get alarmExcludedLocationsHeader;
+
+  /// No description provided for @alarmExcludedPrintersHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded printers'**
+  String get alarmExcludedPrintersHeader;
+
+  /// No description provided for @alarmExcludeLocationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer here rings the alarm'**
+  String get alarmExcludeLocationDesc;
+
+  /// No description provided for @alarmExcludePrinterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer never rings the alarm'**
+  String get alarmExcludePrinterDesc;
+
+  /// No description provided for @alarmExcludedWithLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded with {location}'**
+  String alarmExcludedWithLocation(String location);
+
   /// No description provided for @notifThresholdsHeader.
   ///
   /// In en, this message translates to:
@@ -3907,6 +4171,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bed cooled below {temp}°C'**
   String notifBedCooledThreshold(int temp);
+
+  /// What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.
+  ///
+  /// In en, this message translates to:
+  /// **'layer {layer}'**
+  String printPauseAtLayer(int layer);
+
+  /// Screen reader text of the next-pause item: minutes to the pause and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause in {duration}, at layer {layer}'**
+  String printPauseA11yIn(String duration, int layer);
+
+  /// Screen reader text of the next-pause item while the server gives no minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause at layer {layer}'**
+  String printPauseA11yLayer(int layer);
+
+  /// Subtitle of the Pause warning entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'How long before a pause to warn'**
+  String get serverSettingsPauseWarningSubtitle;
+
+  /// Title of the pause warning screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause warning'**
+  String get pauseWarningTitle;
+
+  /// Label of the slider that sets the server's pause warning lead time.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn {duration} before a pause'**
+  String pauseWarningLabel(String duration);
+
+  /// What the pause warning setting is: shared with the server, not a phone preference.
+  ///
+  /// In en, this message translates to:
+  /// **'A server setting: it also sets when the server itself warns, and applies to every device.'**
+  String get pauseWarningDesc;
+
+  /// Label of the pause coming up switch in the notification events list.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifEvtPauseUpcoming;
+
+  /// Description under the pause coming up switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Warns before a pause the slicer put into the print'**
+  String get notifEvtPauseUpcomingDesc;
+
+  /// Title of the notification posted before a slicer pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifPauseUpcomingTitle;
+
+  /// Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}'**
+  String notifPauseUpcomingBody(String name, int minutes, int layer);
 
   /// No description provided for @notifHumidityThreshold.
   ///
@@ -4580,11 +4910,113 @@ abstract class AppLocalizations {
   /// **'Not read — saving leaves them alone.'**
   String get inventoryPrinterPresetsLoadFailed;
 
-  /// No description provided for @inventoryPrinterPresetsSaveFailed.
+  /// Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.
   ///
   /// In en, this message translates to:
-  /// **'Spool saved, its per-model presets were not.'**
-  String get inventoryPrinterPresetsSaveFailed;
+  /// **'Filled from the default for {product}'**
+  String inventoryProfileDefaultPrefilled(String product);
+
+  /// Title of the switch in the spool form that saves the form's presets as the default for new spools of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as default'**
+  String get inventoryProfileDefaultUse;
+
+  /// Subtitle under the default switch naming the product the default is for.
+  ///
+  /// In en, this message translates to:
+  /// **'for {product}'**
+  String inventoryProfileDefaultFor(String product);
+
+  /// Subtitle of the disabled default switch while the material field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the material first'**
+  String get inventoryProfileDefaultNeedsMaterial;
+
+  /// Label of the select that says whether the default covers every color of the product or only the typed one.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to'**
+  String get inventoryProfileDefaultScope;
+
+  /// Option of the default's scope select: the default covers every color of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'All colors'**
+  String get inventoryProfileDefaultAllColors;
+
+  /// Option of the default's scope select: the default covers the color typed in the form only.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {color}'**
+  String inventoryProfileDefaultColorOnly(String color);
+
+  /// Snackbar after the spool was saved but writing the profile default failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool saved, its default was not.'**
+  String get inventoryProfileDefaultSaveFailed;
+
+  /// Subtitle of the Profile defaults entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'What new spools start with'**
+  String get serverSettingsProfileDefaultsSubtitle;
+
+  /// Title of the profile defaults screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile defaults'**
+  String get profileDefaultsTitle;
+
+  /// Explains where a profile default is saved and what applying one does; quotes the label of the spool form's default switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Save one with “Use as default” in a spool\'s form. Applying fills in only what spools lack.'**
+  String get profileDefaultsDescription;
+
+  /// Shown instead of the list when no profile default is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'No defaults saved yet'**
+  String get profileDefaultsEmpty;
+
+  /// Button on a profile default that fills in what existing spools of its product lack.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to spools'**
+  String get profileDefaultsApply;
+
+  /// Snackbar after applying a profile default: how many spools got something filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No spool needed it} one{{count} spool filled in} other{{count} spools filled in}}'**
+  String profileDefaultsApplied(int count);
+
+  /// Title of the confirmation before a profile default is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this default?'**
+  String get profileDefaultsDeleteTitle;
+
+  /// Body of the delete confirmation; spools that already got the profiles keep them.
+  ///
+  /// In en, this message translates to:
+  /// **'{product}: new spools stop starting with it. Spools that already got it keep it.'**
+  String profileDefaultsDeleteBody(String product);
+
+  /// Part of a profile default's summary line: how many per-printer-model presets it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} model preset} other{{count} model presets}}'**
+  String profileDefaultsModelPresets(int count);
+
+  /// Part of a profile default's summary line: how many K profiles it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} K profile} other{{count} K profiles}}'**
+  String profileDefaultsKProfiles(int count);
 
   /// No description provided for @inventoryFieldMaterial.
   ///
@@ -4867,18 +5299,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Counter reset'**
   String get inventoryUsageReset;
-
-  /// No description provided for @inventorySaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save spool'**
-  String get inventorySaveFailed;
-
-  /// No description provided for @inventoryActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get inventoryActionFailed;
 
   /// No description provided for @inventoryUnassign.
   ///
@@ -6698,6 +7118,12 @@ abstract class AppLocalizations {
   /// **'Upload file'**
   String get fmUpload;
 
+  /// No description provided for @fmAddFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Add files'**
+  String get fmAddFiles;
+
   /// No description provided for @fmUploading.
   ///
   /// In en, this message translates to:
@@ -7427,7 +7853,7 @@ abstract class AppLocalizations {
   /// No description provided for @mwViewInFiles.
   ///
   /// In en, this message translates to:
-  /// **'View in File Manager'**
+  /// **'Open Files'**
   String get mwViewInFiles;
 
   /// No description provided for @mwRecentImports.
@@ -7483,6 +7909,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password'**
   String get cloudPassword;
+
+  /// No description provided for @cloudShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get cloudShowPassword;
+
+  /// No description provided for @cloudHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get cloudHidePassword;
 
   /// No description provided for @cloudRegionGlobal.
   ///
@@ -15584,6 +16022,18 @@ abstract class AppLocalizations {
   /// **'No announcements right now.'**
   String get announcementsEmpty;
 
+  /// No description provided for @linkedAppsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked apps'**
+  String get linkedAppsTitle;
+
+  /// No description provided for @linkedAppsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No linked apps.'**
+  String get linkedAppsEmpty;
+
   /// No description provided for @announcementsEarlier.
   ///
   /// In en, this message translates to:
@@ -15865,6 +16315,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On the Printers screen, open the ⋮ menu and choose Wall mode.'**
   String get tipsWallBody;
+
+  /// Archive sheet: heading above the list of every print of this file
+  ///
+  /// In en, this message translates to:
+  /// **'Print history'**
+  String get archiveRunsTitle;
+
+  /// Archive sheet: the file has no logged print
+  ///
+  /// In en, this message translates to:
+  /// **'This file has not been printed yet.'**
+  String get archiveRunsEmpty;
+
+  /// Archive sheet: the archive's one print predates per-print logging; status is the archive's outcome
+  ///
+  /// In en, this message translates to:
+  /// **'Printed before Bambuddy logged each print: {status}.'**
+  String archiveRunsBeforeLog(String status);
+
+  /// Archive sheet: the plate filter matches no print
+  ///
+  /// In en, this message translates to:
+  /// **'No prints of this plate yet.'**
+  String get archiveRunsPlateEmpty;
+
+  /// Archive sheet: plate filter chip that shows every print
+  ///
+  /// In en, this message translates to:
+  /// **'All plates'**
+  String get archiveRunsAllPlates;
+
+  /// Archive sheet: which plate of a multi-plate file one print ran, or a plate filter chip
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archiveRunPlate(int plate);
+
+  /// Archive sheet: a print whose printer was deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Printer removed'**
+  String get archiveRunNoPrinter;
+
+  /// Archive sheet: a measured figure next to the slicer's estimate for the plate
+  ///
+  /// In en, this message translates to:
+  /// **'{value} (est. {estimate})'**
+  String archiveRunWithEstimate(String value, String estimate);
+
+  /// Archive sheet: a finished print's time against the plate estimate; delta is like +4%
+  ///
+  /// In en, this message translates to:
+  /// **'{value} vs. {estimate} ({delta})'**
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta);
+
+  /// Archive sheet: how far a print that stopped got, against the plate estimate
+  ///
+  /// In en, this message translates to:
+  /// **'{value} of {estimate}'**
+  String archiveRunTimeOf(String value, String estimate);
+
+  /// Archive sheet: label of a print's start and end times
+  ///
+  /// In en, this message translates to:
+  /// **'Started / ended'**
+  String get archiveRunStartedEnded;
+
+  /// Archive sheet: label of a print's energy use
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get archiveRunEnergy;
+
+  /// Archive sheet: label of why a print failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failure reason'**
+  String get archiveRunFailureReason;
+
+  /// Archive sheet: label of the user who started a print
+  ///
+  /// In en, this message translates to:
+  /// **'Started by'**
+  String get archiveRunStartedBy;
+
+  /// Archive sheet: label of one print's own note
+  ///
+  /// In en, this message translates to:
+  /// **'Note on this print'**
+  String get archiveRunNote;
+
+  /// Archive sheet: button that plays one print's timelapse
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse video'**
+  String get archiveRunVideo;
+
+  /// Archive sheet: button that opens one print's finish photos
+  ///
+  /// In en, this message translates to:
+  /// **'Photos ({count})'**
+  String archiveRunPhotos(int count);
+
+  /// Archive sheet header chip: how many prints of the file completed
+  ///
+  /// In en, this message translates to:
+  /// **'Good: {count}'**
+  String archiveGoodCount(int count);
+
+  /// Archive sheet header chip: how many prints of the file failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {count}'**
+  String archiveFailedCount(int count);
+
+  /// Archive sheet: button that asks how one print came out
+  ///
+  /// In en, this message translates to:
+  /// **'Set outcome'**
+  String get archiveRunSetOutcome;
+
+  /// Archive sheet: button that changes one print's recorded verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Change outcome'**
+  String get archiveRunChangeOutcome;
+
+  /// Archive sheet: button that writes a note on one print
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get archiveRunAddNote;
+
+  /// Archive sheet: button that edits one print's note
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get archiveRunEditNote;
+
+  /// Snack after one print's note was stored
+  ///
+  /// In en, this message translates to:
+  /// **'Note saved'**
+  String get archiveRunNoteSaved;
+
+  /// Archive sheet: heading above the cards of a multi-plate file's plates
+  ///
+  /// In en, this message translates to:
+  /// **'Plates'**
+  String get archivePlatesTitle;
+
+  /// Archive sheet plate card: the slicer's time and weight for the plate
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate {value}'**
+  String archivePlateEstimate(String value);
+
+  /// Archive sheet plate card: the newest finished print of the plate against its estimate; value is like +4%
+  ///
+  /// In en, this message translates to:
+  /// **'Last print vs. estimate: {value}'**
+  String archivePlateLastVsEstimate(String value);
+
+  /// Archive sheet plate card: button that opens the print form on this plate
+  ///
+  /// In en, this message translates to:
+  /// **'Print this plate'**
+  String get archivePrintThisPlate;
+
+  /// Archive sheet plate card: button that filters the print history to this plate
+  ///
+  /// In en, this message translates to:
+  /// **'Show its prints'**
+  String get archiveShowPlatePrints;
+
+  /// Archive sheet: button that opens the print form on the plate one print ran
+  ///
+  /// In en, this message translates to:
+  /// **'Reprint this print'**
+  String get archiveRunReprint;
+
+  /// Archive list banner: how many groups of archives hold the same file
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 group of duplicate archives} other{{count} groups of duplicate archives}}'**
+  String archiveMergeBanner(int count);
+
+  /// Archive list banner: one-word button that opens the merge sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get archiveMergeButton;
+
+  /// Archive list banner: tooltip of the button that hides the merge banner
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get archiveMergeDismiss;
+
+  /// Archive menu entry that opens the merge sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicates'**
+  String get archiveMergeMenu;
+
+  /// Merge sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicate archives'**
+  String get archiveMergeTitle;
+
+  /// Merge sheet: what a merge does, first point
+  ///
+  /// In en, this message translates to:
+  /// **'The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.'**
+  String get archiveMergeEffectKeep;
+
+  /// Merge sheet: what a merge does, second point
+  ///
+  /// In en, this message translates to:
+  /// **'The others disappear from the archives; their old links open the one they went into.'**
+  String get archiveMergeEffectLinks;
+
+  /// Merge sheet: what a merge does, third point
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet charges and budget reservations stay where they were booked.'**
+  String get archiveMergeEffectMoney;
+
+  /// Merge sheet: the server found no duplicate groups
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicates to merge.'**
+  String get archiveMergeNone;
+
+  /// Merge sheet: one archive of a group, when it was created and how many prints it has
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · created {date} · {count, plural, =1{1 print} other{{count} prints}}'**
+  String archiveMergeMember(String name, String date, int count);
+
+  /// Merge sheet: marks the archive of a group that stays
+  ///
+  /// In en, this message translates to:
+  /// **'Stays'**
+  String get archiveMergeStays;
+
+  /// Merge sheet: heading above the groups the server leaves out for now
+  ///
+  /// In en, this message translates to:
+  /// **'Left out for now'**
+  String get archiveMergeWaiting;
+
+  /// Merge sheet: heading above the groups the merge itself left out
+  ///
+  /// In en, this message translates to:
+  /// **'Left out by the merge'**
+  String get archiveMergeLeftOut;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'In use: printing, queued or just printed. Try again later.'**
+  String get archiveMergeSkipBusy;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'The archives carry different source or design files, or videos. Keep one by hand first.'**
+  String get archiveMergeSkipConflicting;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'The merge failed.'**
+  String get archiveMergeSkipFailed;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'No longer a group of duplicates.'**
+  String get archiveMergeSkipNotAGroup;
+
+  /// Merge sheet: the button that merges the ticked groups
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Merge 1 group} other{Merge {count} groups}}'**
+  String archiveMergeAction(int count);
+
+  /// Merge confirmation dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone in the app.'**
+  String get archiveMergeConfirmBody;
+
+  /// Snack after a merge that merged every ticked group
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Merged 1 group.} other{Merged {count} groups.}}'**
+  String archiveMergeDone(int count);
+
+  /// Snack after a merge that left some groups out
+  ///
+  /// In en, this message translates to:
+  /// **'Merged: {count}. Left out: {left}.'**
+  String archiveMergeDoneSome(int count, int left);
+
+  /// Archive app bar: tooltip of the button that shows the month calendar
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar view'**
+  String get archiveCalendarView;
+
+  /// Archive app bar: tooltip of the button that goes back to the list
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get archiveListView;
+
+  /// Archive calendar: button that jumps to the current month
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get archiveCalendarToday;
+
+  /// Archive calendar: tooltip of the previous-month button
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get archiveCalendarPrevious;
+
+  /// Archive calendar: tooltip of the next-month button
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get archiveCalendarNext;
+
+  /// Archive calendar: label under the month's print count
+  ///
+  /// In en, this message translates to:
+  /// **'Prints this month'**
+  String get archiveCalendarPrints;
+
+  /// Archive calendar: label under the month's successful print count
+  ///
+  /// In en, this message translates to:
+  /// **'Successful'**
+  String get archiveCalendarSuccessful;
+
+  /// Archive calendar: label under the month's failed print count
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get archiveCalendarFailed;
+
+  /// Archive calendar: the selected day has no prints
+  ///
+  /// In en, this message translates to:
+  /// **'No prints on this day'**
+  String get archiveCalendarNoPrints;
+
+  /// Archive calendar: hint before a day is picked
+  ///
+  /// In en, this message translates to:
+  /// **'Select a day to see its prints'**
+  String get archiveCalendarSelectDay;
+
+  /// Archive calendar: screen-reader label of a day cell
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}'**
+  String archiveCalendarDay(String date, int count);
 }
 
 class _AppLocalizationsDelegate

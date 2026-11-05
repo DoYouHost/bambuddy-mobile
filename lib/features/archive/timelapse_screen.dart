@@ -10,6 +10,7 @@ import '../../core/api/media_auth.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/photo_pager.dart';
 import '../../providers.dart';
 import 'timelapse_export.dart';
 import 'timelapse_format.dart';
@@ -34,9 +35,18 @@ import 'timelapse_url.dart';
 /// whether the server refused it, never answered, or handed over a video the
 /// device would not play.
 class TimelapseScreen extends ConsumerStatefulWidget {
-  const TimelapseScreen({super.key, required this.archiveId, this.title});
+  const TimelapseScreen({
+    super.key,
+    required this.archiveId,
+    this.runId,
+    this.title,
+  });
 
   final int archiveId;
+
+  /// One print's own video. The editor re-encodes the archive's file only, so
+  /// it is not offered for one.
+  final int? runId;
 
   /// Title on the bar (the print name); falls back to l10n.
   final String? title;
@@ -113,6 +123,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
       source = await timelapseSource(
         ref,
         widget.archiveId,
+        runId: widget.runId,
         version: _version,
         freshToken: freshToken,
       );
@@ -240,6 +251,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   Future<void> _saveToGallery() => _export(
     (export, auth, name) => export.saveToGallery(
       widget.archiveId,
+      runId: widget.runId,
       auth: auth,
       name: name,
       onProgress: _onExportProgress,
@@ -250,6 +262,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   Future<void> _share() => _export(
     (export, auth, name) => export.share(
       widget.archiveId,
+      runId: widget.runId,
       auth: auth,
       name: name,
       onProgress: _onExportProgress,
@@ -367,9 +380,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
             widget.title ?? l10n.timelapseTitle,
             style: const TextStyle(
               fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
+              fontSize: DashFontSize.display,
+              fontWeight: DashWeight.bold,
+              letterSpacing: DashTracking.tight,
               color: Colors.white,
             ),
           ),
@@ -391,14 +404,15 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
                       onPressed: _share,
                     ),
                   ),
-                  logTag(
-                    'timelapse.edit',
-                    IconButton(
-                      icon: const Icon(Icons.content_cut),
-                      tooltip: l10n.timelapseEdit,
-                      onPressed: _edit,
+                  if (widget.runId == null)
+                    logTag(
+                      'timelapse.edit',
+                      IconButton(
+                        icon: const Icon(Icons.content_cut),
+                        tooltip: l10n.timelapseEdit,
+                        onPressed: _edit,
+                      ),
                     ),
-                  ),
                 ]
               : null,
           // While an export runs the bar carries the progress instead of the
@@ -412,37 +426,44 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
               : null,
         ),
       ),
-      body: _failure != null
-          ? AsyncErrorView(
-              message: _message(l10n),
-              onRetry: _retry,
-              retryLabel: l10n.retry,
-              icon: Icons.videocam_off_outlined,
-            )
-          : controller == null || !_ready
-          ? const DashLoading()
-          : SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: controller.value.aspectRatio,
-                        child: logTag(
-                          'timelapse.surface',
-                          GestureDetector(
-                            onTap: _togglePlay,
-                            child: VideoPlayer(controller),
+      body: OnBlack(
+        child: _failure != null
+            ? AsyncErrorView(
+                message: _message(l10n),
+                onRetry: _retry,
+                retryLabel: l10n.retry,
+                icon: Icons.videocam_off_outlined,
+              )
+            : controller == null || !_ready
+            ? const DashLoading()
+            : SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: controller.value.aspectRatio,
+                          child: logTag(
+                            'timelapse.surface',
+                            Semantics(
+                              label: controller.value.isPlaying
+                                  ? l10n.timelapsePause
+                                  : l10n.timelapsePlay,
+                              child: GestureDetector(
+                                onTap: _togglePlay,
+                                child: VideoPlayer(controller),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  _Controls(controller: controller, onToggle: _togglePlay),
-                ],
+                    _Controls(controller: controller, onToggle: _togglePlay),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -467,51 +488,63 @@ class _Controls extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
-      builder: (context, value, _) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          DashSpace.sm,
-          DashSpace.sm,
-          DashSpace.gutter,
-          DashSpace.sm,
-        ),
-        child: Row(
-          children: [
-            logTag(
-              'timelapse.play_pause',
-              IconButton(
-                icon: Icon(
-                  value.isPlaying ? Icons.pause : Icons.play_arrow,
+      builder: (context, value, _) {
+        final clock =
+            '${formatClock(value.position.inMilliseconds / 1000)}'
+            ' / ${formatClock(value.duration.inMilliseconds / 1000)}';
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.sm,
+            DashSpace.sm,
+            DashSpace.gutter,
+            DashSpace.sm,
+          ),
+          child: Row(
+            children: [
+              logTag(
+                'timelapse.play_pause',
+                IconButton(
+                  icon: Icon(
+                    value.isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: Colors.white,
+                  ),
+                  tooltip: value.isPlaying
+                      ? l10n.timelapsePause
+                      : l10n.timelapsePlay,
+                  onPressed: onToggle,
+                ),
+              ),
+              Expanded(
+                // The clock beside the bar is its name; the bar's own touch area
+                // is the padding around the line, which is Material's default bar height.
+                child: Semantics(
+                  label: clock,
+                  child: VideoProgressIndicator(
+                    controller,
+                    allowScrubbing: true,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: (kMinInteractiveDimension - DashBar.thin) / 2,
+                    ),
+                    colors: const VideoProgressColors(
+                      playedColor: Colors.white,
+                      bufferedColor: Colors.white24,
+                      backgroundColor: Colors.white12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: DashSpace.md),
+              Text(
+                clock,
+                style: const TextStyle(
                   color: Colors.white,
-                ),
-                tooltip: value.isPlaying
-                    ? l10n.timelapsePause
-                    : l10n.timelapsePlay,
-                onPressed: onToggle,
-              ),
-            ),
-            Expanded(
-              child: VideoProgressIndicator(
-                controller,
-                allowScrubbing: true,
-                colors: const VideoProgressColors(
-                  playedColor: Colors.white,
-                  bufferedColor: Colors.white24,
-                  backgroundColor: Colors.white12,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
-            ),
-            const SizedBox(width: DashSpace.md),
-            Text(
-              '${formatClock(value.position.inMilliseconds / 1000)}'
-              ' / ${formatClock(value.duration.inMilliseconds / 1000)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

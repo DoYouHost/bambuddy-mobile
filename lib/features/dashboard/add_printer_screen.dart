@@ -433,7 +433,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     // succeeded — needs the DISCOVERY_SCAN permission).
                     if (_discovery != null && !_editing) ...[
                       _scanSection(t, l10n),
-                      const Divider(height: 32),
+                      const Divider(height: DashSize.d32),
                     ],
                     _field(
                       t,
@@ -472,6 +472,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       hint: _editing ? l10n.editPrinterAccessCodeKeep : null,
                       validator: _editing ? null : required,
                       suffixIcon: IconButton(
+                        tooltip: _obscureAccessCode
+                            ? l10n.addPrinterRevealAccessCode
+                            : l10n.addPrinterHideAccessCode,
                         onPressed: () => setState(
                           () => _obscureAccessCode = !_obscureAccessCode,
                         ),
@@ -521,7 +524,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         style: dashPrimaryButtonStyle(t),
                         onPressed: _busy ? null : _submit,
                         child: _busy
-                            ? const DashSpinner(size: 20)
+                            ? const DashSpinner(size: DashSize.d20)
                             : Text(
                                 _editing
                                     ? l10n.editPrinterSubmit
@@ -534,7 +537,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         l10n.addPrinterConnectionNote,
                         style: TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
+                          fontSize: DashFontSize.label,
                           color: t.textSecondary,
                         ),
                       ),
@@ -560,7 +563,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     final names = {
       if (managed)
         for (final l
-            in ref.watch(printerLocationsProvider).valueOrNull ??
+            in ref.watch(printerLocationsProvider).value ??
                 const <PrinterLocation>[])
           l.name,
       ...printerLocationsOf([
@@ -744,7 +747,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _scanning ? null : _scan,
           icon: _scanning
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : const Icon(Icons.search),
           label: Text(_scanButtonLabel(l10n, progress)),
         ).tagged('add_printer.scan_network'),
@@ -755,7 +758,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               _scanError!,
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 12,
+                fontSize: DashFontSize.label,
                 color: t.dangerInk,
               ),
             ),
@@ -790,9 +793,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           onTap: () => _applyDiscovered(p),
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -801,7 +804,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.print_outlined, size: 20, color: t.accentGreenInk),
+                Icon(
+                  Icons.print_outlined,
+                  size: DashIcon.md,
+                  color: t.accentGreenInk,
+                ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
@@ -821,7 +828,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     ],
                   ),
                 ),
-                Icon(Icons.add, size: 20, color: t.textTertiary),
+                Icon(Icons.add, size: DashIcon.md, color: t.textTertiary),
               ],
             ),
           ),
@@ -840,7 +847,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _diagnosing ? null : _runDiagnostic,
           icon: _diagnosing
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : const Icon(Icons.troubleshoot),
           label: Text(
             _diagnosing
@@ -855,7 +862,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               _diagnosticError!,
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 12,
+                fontSize: DashFontSize.label,
                 color: t.dangerInk,
               ),
             ),
@@ -884,7 +891,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: DashIcon.md, color: color),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(

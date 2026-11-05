@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/format/datetime_format.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -78,7 +79,7 @@ class HistoryStat extends StatelessWidget {
           Text(
             value,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: DashWeight.bold,
             ),
           ),
         ],
@@ -95,6 +96,59 @@ String sensorRangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
   168 => l10n.sensorHistoryRange7d,
   _ => l10n.sensorHistoryRange24h,
 };
+
+/// The window choices both sensor-history sheets offer, in hours.
+const historyRanges = [6, 24, 48, 168];
+
+/// X domain of a history chart and the bottom-axis label for it.
+typedef HistoryWindow = ({
+  double minX,
+  double maxX,
+  String Function(DateTime) bottomLabel,
+});
+
+/// The last [hours] up to now. The window is fixed to the full span so a sparse
+/// series still reads correctly.
+HistoryWindow historyWindow(BuildContext context, int hours) {
+  final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
+  final fmt = DateTimeFormats.of(context);
+  return (
+    minX: maxX - hours * 3600 * 1000,
+    maxX: maxX,
+    bottomLabel: hours > 24 ? fmt.dayMonthNumeric : fmt.time,
+  );
+}
+
+/// Axis titles of a history chart: the value on the left, four time labels
+/// across [window] at the bottom. Both sheets share this exact layout.
+FlTitlesData historyAxes({
+  required TextStyle? axis,
+  required HistoryWindow window,
+}) => FlTitlesData(
+  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  leftTitles: AxisTitles(
+    sideTitles: SideTitles(
+      showTitles: true,
+      reservedSize: DashSize.d40,
+      getTitlesWidget: (v, meta) => Text(v.toInt().toString(), style: axis),
+    ),
+  ),
+  bottomTitles: AxisTitles(
+    sideTitles: SideTitles(
+      showTitles: true,
+      reservedSize: DashSize.d24,
+      interval: (window.maxX - window.minX) / 4,
+      getTitlesWidget: (v, meta) => Padding(
+        padding: const EdgeInsets.only(top: DashSpace.xs),
+        child: Text(
+          window.bottomLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
+          style: axis,
+        ),
+      ),
+    ),
+  ),
+);
 
 /// One plotted series, in the app's line-chart style.
 ///
@@ -114,6 +168,6 @@ LineChartBarData dashLineSeries(List<FlSpot> spots, Color color) =>
       dotData: const FlDotData(show: false),
       belowBarData: BarAreaData(
         show: true,
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: DashAlpha.wash),
       ),
     );

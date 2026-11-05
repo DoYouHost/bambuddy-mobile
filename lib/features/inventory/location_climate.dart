@@ -101,7 +101,7 @@ class _LocationClimateSheet extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climates = ref.watch(locationClimateProvider).value ?? const {};
     final entries = climates.values.toList();
 
     return logTag(
@@ -133,10 +133,10 @@ class _LocationClimateSheet extends ConsumerWidget {
                 padding: const EdgeInsets.all(DashSpace.lg),
                 decoration: BoxDecoration(
                   color: t.subCard,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(DashRadius.xl),
                   border: Border.all(
                     color: climate.alerting
-                        ? t.accentOrange.withValues(alpha: 0.5)
+                        ? t.accentOrange.withValues(alpha: DashAlpha.scrim)
                         : t.subCardBorder,
                   ),
                 ),

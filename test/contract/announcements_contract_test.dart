@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/data/announcements_repository.dart';
-import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -74,29 +73,10 @@ void main() {
 
     test('an API key never gets one', () async {
       if (skipOld()) return;
-      final keys = ApiKeysRepository(dio);
-      final key = await keys.create(
-        ApiKeyCreateInput(
-          name: 'contract announcements',
-          scopes: {ApiKeyScope.readStatus},
-        ),
-      );
-      addTearDown(
-        () => dio.delete<dynamic>(
-          Endpoints.apiKeyById(key.apiKey.id),
-          options: Options(validateStatus: (_) => true),
-        ),
-      );
-      await pollUntil(
-        'key ${key.apiKey.id} to be committed',
-        () async =>
-            (await keys.list()).any((k) => k.id == key.apiKey.id) ? true : null,
-        within: const Duration(seconds: 10),
-        every: const Duration(milliseconds: 100),
-      );
       final asKey = AnnouncementsRepository(
-        Dio(BaseOptions(baseUrl: contractBaseUrl))
-          ..options.headers['X-API-Key'] = key.key,
+        await contractApiKeyDio(dio, {
+          ApiKeyScope.readStatus,
+        }, name: 'contract announcements'),
       );
       expect((await asKey.fetch()).visible, isFalse);
     });

@@ -318,6 +318,15 @@ class LibraryRepository {
     ),
   );
 
+  /// PUT /library/folders/{id} — move folder into [parentId] (null = root).
+  /// The root is `0` on the wire; a null would leave the parent as it is.
+  Future<void> moveFolder(int folderId, {int? parentId}) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFolder(folderId),
+      data: <String, dynamic>{'parent_id': parentId ?? 0},
+    ),
+  );
+
   /// DELETE /library/folders/{id} — delete folder and contents.
   Future<void> deleteFolder(int folderId) =>
       guard(() => _dio.delete<dynamic>(Endpoints.libraryFolder(folderId)));
@@ -366,13 +375,11 @@ class LibraryRepository {
     required String filePath,
     required String filename,
   }) => guardKeepingDetail(() async {
-    final form = FormData.fromMap(<String, dynamic>{
-      'file': await MultipartFile.fromFile(filePath, filename: filename),
-    });
-    await _dio.post<dynamic>(
+    await postFile<dynamic>(
+      _dio,
       Endpoints.libraryFilePhotos(fileId),
-      data: form,
-      options: uploadOptions(),
+      filePath: filePath,
+      filename: filename,
     );
   });
 
@@ -479,17 +486,13 @@ class LibraryRepository {
       'generate_stl_thumbnails': true,
     };
     await guard(() async {
-      final form = FormData.fromMap(<String, dynamic>{
-        'file': await MultipartFile.fromFile(filePath, filename: filename),
-      });
-      await _dio.post<dynamic>(
+      await postFile<dynamic>(
+        _dio,
         Endpoints.libraryFiles,
-        data: form,
-        queryParameters: query,
-        options: uploadOptions(),
-        onSendProgress: onProgress == null
-            ? null
-            : (sent, total) => onProgress(transferFraction(sent, total)),
+        filePath: filePath,
+        filename: filename,
+        query: query,
+        onProgress: onProgress,
       );
     });
   }

@@ -119,21 +119,24 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
                 for (final (i, name) in d.photos.indexed)
                   logTag(
                     'file_details.photo',
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => context.push(
-                        _filePhotosRoute(widget.fileId, i, widget.title),
-                      ),
-                      child: MediaImage(
-                        path: Endpoints.libraryFilePhoto(widget.fileId, name),
-                        width: 96,
-                        height: 96,
-                        borderRadius: BorderRadius.circular(12),
-                        placeholder: (_) => SizedBox.square(
-                          dimension: 96,
-                          child: Icon(
-                            Icons.image_outlined,
-                            color: t.textTertiary,
+                    Tooltip(
+                      message: l10n.archivePhotosTitle,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(DashRadius.md),
+                        onTap: () => context.push(
+                          _filePhotosRoute(widget.fileId, i, widget.title),
+                        ),
+                        child: MediaImage(
+                          path: Endpoints.libraryFilePhoto(widget.fileId, name),
+                          width: DashSize.d96,
+                          height: DashSize.d96,
+                          borderRadius: BorderRadius.circular(DashRadius.md),
+                          placeholder: (_) => SizedBox.square(
+                            dimension: DashSize.d96,
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: t.textTertiary,
+                            ),
                           ),
                         ),
                       ),
@@ -378,7 +381,7 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final detail = ref.watch(libraryFileDetailProvider(widget.fileId));
-    final photos = detail.valueOrNull?.photos ?? const <String>[];
+    final photos = detail.value?.photos ?? const <String>[];
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: photoViewerAppBar(
@@ -396,28 +399,31 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
             ),
         ],
       ),
-      body: dashAsync(
-        context,
-        detail,
-        onRetry: () => ref.invalidate(libraryFileDetailProvider(widget.fileId)),
-        data: (d) => d.photos.isEmpty
-            ? EmptyStateView(
-                message: l10n.fmPhotosEmpty,
-                icon: Icons.photo_camera_outlined,
-              )
-            : PhotoPager(
-                // A new key per list rebuilds the pager on `_page`, so the page
-                // shown and the one the delete button names never part.
-                key: ValueKey(d.photos.join('/')),
-                paths: [
-                  for (final name in d.photos)
-                    Endpoints.libraryFilePhoto(widget.fileId, name),
-                ],
-                // Kept inside the list, so a later list does not reopen past
-                // the photo that took the deleted one's place.
-                initialPage: _page = _page.clamp(0, d.photos.length - 1),
-                onPageChanged: (i) => _page = i,
-              ),
+      body: OnBlack(
+        child: dashAsync(
+          context,
+          detail,
+          onRetry: () =>
+              ref.invalidate(libraryFileDetailProvider(widget.fileId)),
+          data: (d) => d.photos.isEmpty
+              ? EmptyStateView(
+                  message: l10n.fmPhotosEmpty,
+                  icon: Icons.photo_camera_outlined,
+                )
+              : PhotoPager(
+                  // A new key per list rebuilds the pager on `_page`, so the page
+                  // shown and the one the delete button names never part.
+                  key: ValueKey(d.photos.join('/')),
+                  paths: [
+                    for (final name in d.photos)
+                      Endpoints.libraryFilePhoto(widget.fileId, name),
+                  ],
+                  // Kept inside the list, so a later list does not reopen past
+                  // the photo that took the deleted one's place.
+                  initialPage: _page = _page.clamp(0, d.photos.length - 1),
+                  onPageChanged: (i) => _page = i,
+                ),
+        ),
       ),
     );
   }

@@ -10,9 +10,10 @@ part of 'printer_card.dart';
 /// airduct glyph overlay the optimistic override from [controlsProvider] so a
 /// just-sent change shows instantly. Read-only when control is forbidden.
 ///
-/// Sensors the server keeps history for also carry a chart glyph next to the
-/// label, opening [showHeaterHistorySheet] — the tile's own tap is taken by the
-/// setpoint sheet, and history stays reachable on read-only tiles too.
+/// The whole tile is the target and opens [_TempControlSheet]: its "Ustaw" tab
+/// to set the temperature, its "Historia temperatur" tab for the chart of the
+/// sensors the server keeps history for. A tile that cannot be set (read-only)
+/// still opens the sheet when there is a history to show, with the chart alone.
 class _GaugeTile extends ConsumerWidget {
   const _GaugeTile({
     required this.reading,
@@ -22,16 +23,11 @@ class _GaugeTile extends ConsumerWidget {
     required this.dualNozzle,
     required this.activeExtruder,
     required this.printing,
-    required this.historyKinds,
   });
 
   final TempReading reading;
   final int printerId;
   final String? model;
-
-  /// Every sensor on this printer the history sheet can switch between; empty
-  /// when none of them is recorded (then no tile shows the chart glyph).
-  final List<HeaterKindOption> historyKinds;
 
   /// Hardware nozzle index (0=right/default, 1=left) for nozzle tiles; null for
   /// non-nozzle sensors.
@@ -88,107 +84,93 @@ class _GaugeTile extends ConsumerWidget {
         : (airduct ? Icons.local_fire_department : Icons.ac_unit);
 
     final editable = _isEditable && !forbidden;
-    // Shown until the server says otherwise (see the latch): a glyph that
-    // appeared once the version landed shifted the label beside it.
+    // Shown until the server says otherwise (see the latch): a tab that
+    // appeared once the version landed would shift the sheet under the thumb.
     final hasHistory =
-        historyKinds.any((k) => k.kind == reading.raw) &&
+        _heaterHistoryKinds.contains(reading.raw) &&
         ref.watch(heaterHistorySupportedProvider).orFalse;
-
-    // The sensor label, preceded by the chart glyph when this sensor is
-    // recorded. The whole strip is the history button, not just the glyph: a
-    // 14 px icon is a 22 px target sitting inside the tile's own InkWell, so a
-    // near-miss opened the setpoint sheet instead of the chart. Taking the
-    // label's full width and the 8 px gap below it costs no tile height — the
-    // strip ends up exactly as tall as a label with no glyph at all.
-    Widget labelStrip = Row(
-      children: [
-        if (hasHistory) ...[
-          Icon(Icons.show_chart, size: 14, color: t.textSecondary),
-          const SizedBox(width: DashSpace.xs),
-        ],
-        Flexible(
-          child: Text(
-            reading.label(l10n).toUpperCase(),
-            style: t.micro.copyWith(color: t.textSecondary, letterSpacing: 0.3),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-    if (hasHistory) {
-      labelStrip = _HistoryButton(
-        logId: reading.historyLogId,
-        onTap: () => showHeaterHistorySheet(
-          context,
-          printerId: printerId,
-          kinds: historyKinds,
-          initialKind: reading.raw,
-        ),
-        child: labelStrip,
-      );
-    }
 
     final tile = Container(
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Positioned(
-            top: 0,
-            right: 0,
-            child: TempGauge(
-              fraction: actual == null
-                  ? 0
-                  : actual / reading.gaugeMax(chamberMax),
-              color: accent,
-              trackColor: t.gaugeTrack,
-              centerText: hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
-              centerColor: hasTarget ? accent : t.textTertiary,
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          // Label left, setpoint right on the same line: the digits keep a row
+          // of their own below, and the tile loses a line of height.
+          Row(
             children: [
-              // Reserve the gauge's corner: pad the label so it never collides.
-              Padding(
-                padding: const EdgeInsets.only(
-                  right: TempGauge.defaultSize + DashSpace.xs,
-                ),
-                child: labelStrip,
-              ),
-              // With the glyph the gap belongs to the button (see [labelStrip]).
-              if (!hasHistory) const SizedBox(height: DashSpace.sm),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (airductIcon != null) ...[
-                    Icon(airductIcon, size: 20, color: accent),
-                    const SizedBox(width: DashSpace.xs),
-                  ],
-                  Text(
-                    actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                    style: t.monoDisplay.copyWith(height: 1.0),
+              Expanded(
+                child: Text(
+                  reading.label(l10n).toUpperCase(),
+                  style: t.micro.copyWith(
+                    color: t.textSecondary,
+                    letterSpacing: DashTracking.label,
                   ),
-                ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: DashSpace.xs),
+              // The setpoint: an arrow and the number, "-" when none is set.
+              Icon(
+                Icons.arrow_forward,
+                size: DashIcon.xs,
+                color: hasTarget ? accent : t.textTertiary,
+              ),
+              const SizedBox(width: DashSpace.xs),
+              Text(
+                hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
+                style: t.micro.copyWith(
+                  color: hasTarget
+                      ? reading.gaugeInk(t, target: target)
+                      : t.textTertiary,
+                  fontFamily: DashTokens.fontMono,
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          // The digits own their row: nothing sits beside them, so they keep
+          // their full size at every text size (the grid goes to one column when
+          // they or the label line would not fit, see [tempGridColumns]).
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (airductIcon != null) ...[
+                Icon(airductIcon, size: DashIcon.md, color: accent),
+                const SizedBox(width: DashSpace.xs),
+              ],
+              Text(
+                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
+                style: t.monoDisplay.copyWith(height: 1.0),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          ExcludeSemantics(
+            child: DashProgressBar(
+              value: actual == null
+                  ? 0
+                  : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
+              height: DashBar.thin,
+              color: accent,
+            ),
           ),
         ],
       ),
     );
 
-    if (!editable) return tile;
+    if (!editable && !hasHistory) return tile;
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: logTag(
         // Per sensor, under the same name the WebSocket frame uses for it
@@ -196,14 +178,24 @@ class _GaugeTile extends ConsumerWidget {
         // tapped, and on a dual-head printer that is the whole question.
         reading.logId,
         InkWell(
-          onTap: () => _openSheet(context, target?.round() ?? 0),
+          onTap: () => _openSheet(
+            context,
+            target?.round() ?? 0,
+            editable: editable,
+            hasHistory: hasHistory,
+          ),
           child: tile,
         ),
       ),
     );
   }
 
-  void _openSheet(BuildContext context, int initialTarget) {
+  void _openSheet(
+    BuildContext context,
+    int initialTarget, {
+    required bool editable,
+    required bool hasHistory,
+  }) {
     dashSurfaceSheet<void>(
       context,
       builder: (_) => _TempControlSheet(
@@ -215,65 +207,17 @@ class _GaugeTile extends ConsumerWidget {
         dualNozzle: dualNozzle,
         activeExtruder: activeExtruder,
         printing: printing,
-      ),
-    );
-  }
-}
-
-/// The tile's label strip turned into a button that opens the heater history
-/// sheet. Brings its own [Material] because read-only tiles are not wrapped in
-/// one, and the ink would have nowhere to draw. The 8 px of air above the
-/// temperature reading is the button's own padding: it is hit area the tile
-/// cannot spare in height, since the big number owns the rest of it.
-class _HistoryButton extends StatelessWidget {
-  const _HistoryButton({
-    required this.logId,
-    required this.onTap,
-    required this.child,
-  });
-
-  final String logId;
-  final VoidCallback onTap;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return logTag(
-      logId,
-      Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Tooltip(
-            message: AppLocalizations.of(context).heaterHistoryOpen,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: DashSpace.sm),
-              child: child,
-            ),
-          ),
-        ),
+        editable: editable,
+        hasHistory: hasHistory,
       ),
     );
   }
 }
 
 /// Sensor keys the server records history for — bambuddy's own `VALID_KINDS`
-/// (`printer_sensor_history.py`). A key outside this set gets no chart glyph:
+/// (`printer_sensor_history.py`). A key outside this set gets no history tab:
 /// the endpoint would answer with an empty series for it.
 const _heaterHistoryKinds = {'nozzle', 'nozzle_2', 'bed', 'chamber'};
-
-/// The sensors of one printer the history sheet can switch between, labelled
-/// exactly as their tiles are.
-List<HeaterKindOption> _heaterKindOptions(
-  List<TempReading> readings,
-  AppLocalizations l10n,
-) => [
-  for (final r in readings)
-    if (_heaterHistoryKinds.contains(r.raw))
-      (kind: r.raw, label: r.label(l10n)),
-];
 
 /// What the status pill says for a printer the card does not show as offline:
 /// the server's own state, or a word for its absence.
@@ -305,11 +249,11 @@ class _StateChip extends StatelessWidget {
     final Color fg;
     final BoxBorder? border;
     if (offline) {
-      bg = scheme.error.withValues(alpha: 0.14);
+      bg = scheme.error.withValues(alpha: DashAlpha.wash);
       fg = scheme.error;
-      border = Border.all(color: scheme.error, width: 1.5);
+      border = Border.all(color: scheme.error, width: DashStroke.regular);
     } else {
-      bg = t.accentGreen.withValues(alpha: 0.16);
+      bg = t.accentGreen.withValues(alpha: DashAlpha.wash);
       fg = t.accentGreenInk;
       border = null;
     }
@@ -320,7 +264,7 @@ class _StateChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: border,
       ),
       child: Text(
@@ -328,18 +272,17 @@ class _StateChip extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         overflow: TextOverflow.ellipsis,
-        style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
+        style: t.micro.copyWith(color: fg, letterSpacing: DashTracking.label),
       ),
     );
   }
 }
 
-/// ETA as a clock reading = now + remaining minutes.
-String _etaTime(DateTimeFormats fmt, int remainingMinutes) =>
-    fmt.time(DateTime.now().add(Duration(minutes: remainingMinutes)));
-
-/// Bottom sheet to set a sensor's target temperature: a slider with fine −/+
-/// steppers, plus Off/Set. For the chamber on airduct-capable models it also
+/// Bottom sheet of a temperature tile. Its "Ustaw" tab sets the sensor's target
+/// temperature: a slider with fine −/+ steppers, plus Off/Set. Its "Historia
+/// temperatur" tab draws the sensor's history ([HeaterHistoryPanel]); the tabs
+/// are there only when both exist, and a tile that cannot be set opens the
+/// history alone. For the chamber on airduct-capable models it also
 /// exposes a cooling/heating flap toggle, applied immediately (its own command).
 /// Applying a target closes the sheet — the optimistic setpoint shows on the
 /// gauge right away (see [_GaugeTile]).
@@ -353,6 +296,8 @@ class _TempControlSheet extends ConsumerStatefulWidget {
     required this.dualNozzle,
     required this.activeExtruder,
     required this.printing,
+    required this.editable,
+    required this.hasHistory,
   });
 
   final int printerId;
@@ -364,11 +309,19 @@ class _TempControlSheet extends ConsumerStatefulWidget {
   final int? activeExtruder;
   final bool printing;
 
+  /// Whether the temperature can be set from here (not read-only, not refused).
+  final bool editable;
+
+  /// Whether the server keeps a history for this sensor and this session may
+  /// read it.
+  final bool hasHistory;
+
   @override
   ConsumerState<_TempControlSheet> createState() => _TempControlSheetState();
 }
 
-class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
+class _TempControlSheetState extends ConsumerState<_TempControlSheet>
+    with SingleTickerProviderStateMixin {
   /// The server's chamber ceiling — 60 until the version is known, so it is
   /// watched: a sheet opened in the first moments of a cold start would
   /// otherwise keep the lower ceiling for its whole life.
@@ -387,6 +340,23 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
 
   TempReading get _reading => widget.reading;
 
+  /// Two tabs when the sheet can both set and show history; otherwise unused.
+  late final TabController _tabs = TabController(length: 2, vsync: this)
+    ..addListener(() {
+      if (mounted) setState(() {});
+    });
+
+  bool get _tabbed => widget.editable && widget.hasHistory;
+
+  /// The history is on screen: its tab is picked, or it is all the sheet has.
+  bool get _showHistory => !widget.editable || (_tabbed && _tabs.index == 1);
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
   void _bump(int delta) => setState(
     () => _target = (_target + delta)
         .clamp(0, _reading.maxTarget(ref.read(chamberMaxTargetProvider)))
@@ -398,26 +368,28 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
-    final notifier = ref.read(controlsProvider.notifier);
-    final result = switch (_reading.kind) {
-      TempKind.nozzle => await notifier.setNozzleTemp(
-        widget.printerId,
-        _reading.raw,
-        target,
-        nozzle: widget.nozzleIndex,
-      ),
-      TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
-      TempKind.chamber => await notifier.setChamberTemp(
-        widget.printerId,
-        target,
-      ),
-      TempKind.unknown => ActionOutcome.ok,
-    };
-    if (!mounted) return;
-    navigator.pop();
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
+    try {
+      final notifier = ref.read(controlsProvider.notifier);
+      final result = switch (_reading.kind) {
+        TempKind.nozzle => await notifier.setNozzleTemp(
+          widget.printerId,
+          _reading.raw,
+          target,
+          nozzle: widget.nozzleIndex,
+        ),
+        TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
+        TempKind.chamber => await notifier.setChamberTemp(
+          widget.printerId,
+          target,
+        ),
+        TempKind.unknown => ActionOutcome.ok,
+      };
+      if (!mounted) return;
+      navigator.pop();
+      snackOutcome(messenger, result, l10n);
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
   }
 
@@ -468,7 +440,11 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
         'sheet.temperature',
         Row(
           children: [
-            Icon(Icons.check_circle, size: 15, color: t.accentGreenInk),
+            Icon(
+              Icons.check_circle,
+              size: DashIcon.sm,
+              color: t.accentGreenInk,
+            ),
             const SizedBox(width: DashSpace.sm),
             Text(
               l10n.ctrlNozzleActive,
@@ -482,27 +458,27 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
       alignment: Alignment.centerLeft,
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: enabled ? _switchNozzle : null,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DashSpace.md,
-              vertical: DashSpace.sm,
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
             ),
+            padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 busy
-                    ? const DashSpinner(size: 16)
+                    ? const DashSpinner(size: DashSize.d16)
                     : Icon(
                         Icons.swap_horiz,
-                        size: 16,
+                        size: DashIcon.sm,
                         color: enabled ? t.textPrimary : t.textTertiary,
                       ),
                 const SizedBox(width: DashSpace.sm),
@@ -568,6 +544,25 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_tabbed) ...[
+              TabBar(
+                controller: _tabs,
+                labelColor: t.accentInk,
+                unselectedLabelColor: t.textSecondary,
+                indicatorColor: t.accent,
+                dividerColor: t.subCardBorder,
+                tabs: [
+                  Tab(child: logTag('temperature.tab_set', Text(l10n.ctrlSet))),
+                  Tab(
+                    child: logTag(
+                      'temperature.tab_history',
+                      Text(l10n.heaterHistoryTitle),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: DashSpace.lg),
+            ],
             Row(
               children: [
                 Text(_reading.label(l10n), style: t.titleLg),
@@ -577,128 +572,139 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                       ? '—'
                       : '${_reading.actual!.toStringAsFixed(0)}°',
                   style: t.monoTitle.copyWith(
-                    fontWeight: FontWeight.w400,
+                    fontWeight: DashWeight.regular,
                     color: t.textSecondary,
                   ),
                 ),
               ],
             ),
-            if (showNozzleSwitch) ...[
-              const SizedBox(height: DashSpace.md),
-              _nozzleSwitch(
-                t,
-                l10n,
-                isActive: isActiveNozzle,
-                busy: switching,
-                enabled: !widget.printing && !switching,
+            if (_showHistory) ...[
+              const SizedBox(height: DashSpace.lg),
+              HeaterHistoryPanel(
+                printerId: widget.printerId,
+                kind: _reading.raw,
               ),
-            ],
-            const SizedBox(height: DashSpace.lg),
-            // Dim + block the target editor when a chamber target can't
-            // take effect (airduct not in Heating).
-            Opacity(
-              opacity: tempEnabled ? 1 : 0.35,
-              child: IgnorePointer(
-                ignoring: !tempEnabled,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Center(
-                      child: Text(
-                        _target == 0 ? l10n.ctrlOff : '$_target°',
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 44,
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: DashSpace.sm),
-                    Row(
-                      children: [
-                        _StepButton(
-                          icon: Icons.remove,
-                          id: 'temperature.step_down',
-                          onTap: () => _bump(-step),
-                        ),
-                        Expanded(
-                          // No `divisions`: tick marks would be far denser
-                          // on the wide nozzle range (0–300) than the bed
-                          // (0–120) and look inconsistent. The slider stays
-                          // smooth and the value snaps to `step` here.
-                          child: Slider(
-                            value: _target.clamp(0, max).toDouble(),
-                            max: max.toDouble(),
-                            activeColor: accent,
-                            onChanged: (v) => setState(
-                              () => _target = ((v / step).round() * step).clamp(
-                                0,
-                                max,
-                              ),
-                            ),
-                          ).tagged('temperature.slider'),
-                        ),
-                        _StepButton(
-                          icon: Icons.add,
-                          id: 'temperature.step_up',
-                          onTap: () => _bump(step),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: DashSpace.md),
-                    // Quick-pick presets — tapping one moves the slider;
-                    // the change is committed with the Set button below.
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: DashSpace.sm,
-                      runSpacing: DashSpace.sm,
-                      children: [
-                        for (final p in _reading.presets(_chamberMax))
-                          _PresetChip(
-                            label: '$p°',
-                            id: 'temperature.preset',
-                            selected: _target == p,
-                            onTap: () => setState(() => _target = p),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (showAirduct) ...[
-              const SizedBox(height: DashSpace.md),
-              _AirductToggle(
-                heating: _airductHeating,
-                onChanged: _busy ? null : _setAirduct,
-              ),
-            ],
-            const SizedBox(height: DashSpace.xl),
-            Row(
-              children: [
-                Expanded(
-                  child: _SheetButton(
-                    label: l10n.ctrlOff,
-                    id: 'temperature.off',
-                    onTap: _busy ? null : () => _apply(0),
-                  ),
-                ),
-                const SizedBox(width: DashSpace.md),
-                Expanded(
-                  child: _SheetButton(
-                    label: l10n.ctrlSet,
-                    id: 'temperature.set',
-                    filled: true,
-                    busy: _busy,
-                    onTap: (_busy || !tempEnabled)
-                        ? null
-                        : () => _apply(_target),
-                  ),
+            ] else ...[
+              if (showNozzleSwitch) ...[
+                const SizedBox(height: DashSpace.md),
+                _nozzleSwitch(
+                  t,
+                  l10n,
+                  isActive: isActiveNozzle,
+                  busy: switching,
+                  enabled: !widget.printing && !switching,
                 ),
               ],
-            ),
+              const SizedBox(height: DashSpace.lg),
+              // Dim + block the target editor when a chamber target can't
+              // take effect (airduct not in Heating).
+              Opacity(
+                opacity: tempEnabled ? 1 : 0.35,
+                child: IgnorePointer(
+                  ignoring: !tempEnabled,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Center(
+                        child: Text(
+                          _target == 0 ? l10n.ctrlOff : '$_target°',
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: DashFontSize.numeral,
+                            fontWeight: DashWeight.bold,
+                            color: _reading.gaugeInk(
+                              t,
+                              target: _target.toDouble(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: DashSpace.sm),
+                      Row(
+                        children: [
+                          _StepButton(
+                            icon: Icons.remove,
+                            id: 'temperature.step_down',
+                            label: '−$step°',
+                            onTap: () => _bump(-step),
+                          ),
+                          Expanded(
+                            // No `divisions`: tick marks would be far denser
+                            // on the wide nozzle range (0–300) than the bed
+                            // (0–120) and look inconsistent. The slider stays
+                            // smooth and the value snaps to `step` here.
+                            child: Slider(
+                              value: _target.clamp(0, max).toDouble(),
+                              max: max.toDouble(),
+                              activeColor: accent,
+                              onChanged: (v) => setState(
+                                () => _target = ((v / step).round() * step)
+                                    .clamp(0, max),
+                              ),
+                            ).tagged('temperature.slider'),
+                          ),
+                          _StepButton(
+                            icon: Icons.add,
+                            id: 'temperature.step_up',
+                            label: '+$step°',
+                            onTap: () => _bump(step),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: DashSpace.md),
+                      // Quick-pick presets — tapping one moves the slider;
+                      // the change is committed with the Set button below.
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: DashSpace.sm,
+                        runSpacing: DashSpace.sm,
+                        children: [
+                          for (final p in _reading.presets(_chamberMax))
+                            _PresetChip(
+                              label: '$p°',
+                              id: 'temperature.preset',
+                              selected: _target == p,
+                              onTap: () => setState(() => _target = p),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (showAirduct) ...[
+                const SizedBox(height: DashSpace.md),
+                _AirductToggle(
+                  heating: _airductHeating,
+                  onChanged: _busy ? null : _setAirduct,
+                ),
+              ],
+              const SizedBox(height: DashSpace.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SheetButton(
+                      label: l10n.ctrlOff,
+                      id: 'temperature.off',
+                      onTap: _busy ? null : () => _apply(0),
+                    ),
+                  ),
+                  const SizedBox(width: DashSpace.md),
+                  Expanded(
+                    child: _SheetButton(
+                      label: l10n.ctrlSet,
+                      id: 'temperature.set',
+                      filled: true,
+                      busy: _busy,
+                      onTap: (_busy || !tempEnabled)
+                          ? null
+                          : () => _apply(_target),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -730,25 +736,36 @@ class _PresetChip extends StatelessWidget {
     final t = DashTokens.of(context);
     final fg = selected ? t.accentGreenInk : t.textPrimary;
     return Material(
-      color: selected ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-      borderRadius: BorderRadius.circular(12),
+      color: selected
+          ? t.accentGreen.withValues(alpha: DashAlpha.wash)
+          : t.subCard,
+      borderRadius: BorderRadius.circular(DashRadius.md),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DashSpace.lg,
-            vertical: DashSpace.md,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
           ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.5)
-                  : t.subCardBorder,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DashRadius.md),
+              border: Border.all(
+                color: selected
+                    ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
+                    : t.subCardBorder,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
+              // widthFactor keeps the pill as wide as its label; the minimum
+              // height is only for the touch target.
+              child: Center(
+                widthFactor: 1,
+                child: Text(label, style: t.monoValue.copyWith(color: fg)),
+              ),
             ),
           ),
-          child: Text(label, style: t.monoValue.copyWith(color: fg)),
         ),
         // Which chip is the current one is otherwise painted and nothing else:
         // a reader would announce seven identical buttons.
@@ -762,10 +779,15 @@ class _StepButton extends StatelessWidget {
   const _StepButton({
     required this.icon,
     required this.id,
+    required this.label,
     required this.onTap,
   });
 
   final IconData icon;
+
+  /// The accessible name: a minus or a plus beside a slider says nothing alone.
+  /// The step and its unit, as the controller's buttons spell it.
+  final String label;
 
   /// Diagnostic identifier. Required for the same reason as on [_SheetButton]:
   /// this button is shared by the temperature, fan and drying sheets, and a tag
@@ -780,16 +802,20 @@ class _StepButton extends StatelessWidget {
     return Material(
       color: t.subCard,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         side: BorderSide(color: t.subCardBorder),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(icon, size: 20, color: t.textPrimary),
+        child: SizedBox.square(
+          dimension: kMinInteractiveDimension,
+          child: Icon(
+            icon,
+            size: DashIcon.md,
+            color: t.textPrimary,
+            semanticLabel: label,
+          ),
         ),
       ).tagged(id),
     );
@@ -807,32 +833,37 @@ class _AirductToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        Icon(Icons.air, size: 16, color: t.textSecondary),
-        const SizedBox(width: DashSpace.sm),
-        Text(l10n.ctrlAirduct, style: t.body.copyWith(color: t.textSecondary)),
-        const Spacer(),
-        SegmentedButton<bool>(
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(
-              value: false,
-              icon: const Icon(Icons.ac_unit, size: 16),
-              label: Text(l10n.ctrlAirductCooling),
-            ),
-            ButtonSegment(
-              value: true,
-              icon: const Icon(Icons.local_fire_department, size: 16),
-              label: Text(l10n.ctrlAirductHeating),
-            ),
-          ],
-          selected: {heating ?? false},
-          onSelectionChanged: onChanged == null
-              ? null
-              : (s) => onChanged!(s.first),
-        ).tagged('controls.airduct'),
-      ],
+    return BesideOrBelow(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.air, size: DashIcon.sm, color: t.textSecondary),
+          const SizedBox(width: DashSpace.sm),
+          Text(
+            l10n.ctrlAirduct,
+            style: t.body.copyWith(color: t.textSecondary),
+          ),
+        ],
+      ),
+      control: SegmentedButton<bool>(
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(
+            value: false,
+            icon: const Icon(Icons.ac_unit, size: DashIcon.sm),
+            label: Text(l10n.ctrlAirductCooling),
+          ),
+          ButtonSegment(
+            value: true,
+            icon: const Icon(Icons.local_fire_department, size: DashIcon.sm),
+            label: Text(l10n.ctrlAirductHeating),
+          ),
+        ],
+        selected: {heating ?? false},
+        onSelectionChanged: onChanged == null
+            ? null
+            : (s) => onChanged!(s.first),
+      ).tagged('controls.airduct'),
     );
   }
 }
@@ -863,18 +894,22 @@ class _SheetButton extends StatelessWidget {
     final t = DashTokens.of(context);
     final fg = filled ? t.accentGreenInk : t.textPrimary;
     return Material(
-      color: filled ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-      borderRadius: BorderRadius.circular(14),
+      color: filled
+          ? t.accentGreen.withValues(alpha: DashAlpha.wash)
+          : t.subCard,
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: filled
-                  ? t.accentGreen.withValues(alpha: 0.5)
+                  ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                   : t.subCardBorder,
             ),
           ),

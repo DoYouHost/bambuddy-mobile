@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/models/ams_history.dart';
@@ -24,10 +25,10 @@ class AmsHistoryRepository {
       // `routes/ams_history.py` raises no 404 of its own — an unknown printer
       // or AMS answers an empty series — so the only 404 left is the route.
       historyCapability.watching(observing: treat404AsAbsent, () async {
-        final res = await _dio.get<Map<String, dynamic>>(
+        return _dio.getObject(
           Endpoints.amsHistory(printerId, amsId),
-          queryParameters: {'hours': hours},
+          AmsHistory.fromJson,
+          query: {'hours': hours},
         );
-        return AmsHistory.fromJson(res.data ?? const {});
       });
 }

@@ -65,13 +65,19 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           DashSpace.md,
         ),
         decoration: BoxDecoration(
-          color: t.accentBlue.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
+          color: t.accentBlue.withValues(alpha: DashAlpha.faint),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
+          border: Border.all(
+            color: t.accentBlue.withValues(alpha: DashAlpha.outline),
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.layers_clear_outlined, size: 20, color: t.accentBlue),
+            Icon(
+              Icons.layers_clear_outlined,
+              size: DashIcon.md,
+              color: t.accentBlue,
+            ),
             const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(
@@ -90,7 +96,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
               icon: Icons.check_rounded,
               tooltip: l10n.plateClearAction,
               color: t.accentBlue,
-              borderColor: t.accentBlue.withValues(alpha: 0.5),
+              borderColor: t.accentBlue.withValues(alpha: DashAlpha.scrim),
               onPressed: _busy || offer == ControlOffer.pending ? null : _clear,
             ),
           ],
@@ -117,10 +123,11 @@ Future<void> dismissAllHmsErrors(
   final result = await ref
       .read(controlsProvider.notifier)
       .clearHmsErrors(printerId);
-  messenger.snack(
-    result.outcome.messageFor(l10n) ??
-        hmsDismissedMessage(l10n, result.remaining),
-    clearQueue: true,
+  snackOutcome(
+    messenger,
+    result.outcome,
+    l10n,
+    fallback: hmsDismissedMessage(l10n, result.remaining),
   );
 }
 
@@ -160,37 +167,45 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
       width: double.infinity,
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
-        color: scheme.error.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.error.withValues(alpha: 0.5)),
+        color: scheme.error.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: scheme.error.withValues(alpha: DashAlpha.scrim),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 18,
-                  color: scheme.error,
-                ),
-                const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: Text(
-                    l10n.hmsErrorsCount(widget.errors.length),
-                    style: DashTokens.of(
-                      context,
-                    ).bodyBold.copyWith(color: scheme.error),
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              alignment: Alignment.center,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: DashIcon.md,
+                    color: scheme.error,
                   ),
-                ),
-                Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
-                  color: scheme.error,
-                ),
-              ],
+                  const SizedBox(width: DashSpace.sm),
+                  Expanded(
+                    child: Text(
+                      l10n.hmsErrorsCount(widget.errors.length),
+                      style: DashTokens.of(
+                        context,
+                      ).bodyBold.copyWith(color: scheme.error),
+                    ),
+                  ),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    size: DashIcon.md,
+                    color: scheme.error,
+                  ),
+                ],
+              ),
             ),
           ).tagged('printer.hms_expand'),
           if (_expanded) ...[
@@ -217,7 +232,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                       ? null
                       : () =>
                             dismissAllHmsErrors(context, ref, widget.printerId),
-                  icon: const Icon(Icons.done_all, size: 18),
+                  icon: const Icon(Icons.done_all, size: DashIcon.md),
                   label: Text(l10n.hmsDismissAll),
                   style: TextButton.styleFrom(foregroundColor: scheme.error),
                 ),
@@ -278,6 +293,24 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
   /// reported at once; the rest is a tap away.
   bool _fullText = false;
 
+  /// Whether [text] takes more than the two lines the card gives a fault.
+  static bool _exceedsTwoLines(
+    BuildContext context,
+    String text,
+    TextStyle style,
+    double width,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 2,
+    )..layout(maxWidth: width);
+    final exceeds = painter.didExceedMaxLines;
+    painter.dispose();
+    return exceeds;
+  }
+
   Future<void> _run(String action) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -333,12 +366,27 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
     final actions = error.fullCode == null
         ? const <String>[]
         : hmsRenderableActions(error.actions);
+    final tokens = DashTokens.of(context);
+    final buttonText = widget.large ? tokens.bodyStrong : tokens.label;
+    final wiki = url == null
+        ? null
+        : IconButton(
+            tooltip: l10n.hmsViewInWiki,
+            onPressed: () => unawaited(openWebLink(context, url)),
+            icon: Icon(
+              Icons.open_in_new,
+              size: DashIcon.md,
+              color: scheme.primary,
+            ),
+          ).tagged('${widget.area}.open_url');
     return Container(
       margin: const EdgeInsets.only(top: DashSpace.sm),
-      padding: const EdgeInsets.fromLTRB(
+      // The link's 48 dp icon sits in the corner, so the right edge gives its
+      // padding to the icon instead of adding to it.
+      padding: EdgeInsets.fromLTRB(
         DashSpace.md,
         DashSpace.sm,
-        DashSpace.md,
+        wiki != null ? DashSpace.xs : DashSpace.md,
         DashSpace.sm,
       ),
       decoration: BoxDecoration(
@@ -346,100 +394,134 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
         // once, one unbroken column of text and buttons reads as a single long
         // error rather than as three separate things to decide about.
         color: t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (label != null) ...[
-            InkWell(
-              onTap: () => setState(() => _fullText = !_fullText),
-              child: Text(
-                label,
-                maxLines: _fullText ? null : 2,
-                overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
-                  color: t.textPrimary,
-                  height: 1.25,
-                ),
-              ),
-            ).tagged('${widget.area}.hms_description'),
-            const SizedBox(height: DashSpace.xs),
-          ],
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // The code goes under the text, inside the same touch target: a
+              // cut text plus the code is already taller than 48 dp, so the
+              // target costs no extra height.
               Expanded(
-                child: Text(
-                  error.displayCode,
-                  style: widget.large ? t.monoValue : t.monoMicro,
+                child: _text(
+                  t,
+                  label,
+                  below: Text(
+                    error.displayCode,
+                    style: widget.large ? t.monoValue : t.monoMicro,
+                  ),
                 ),
               ),
-              if (url != null)
-                InkWell(
-                  onTap: () => unawaited(openWebLink(context, url)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.hmsViewInWiki,
-                        style: t.microSoft.copyWith(color: scheme.primary),
-                      ),
-                      const SizedBox(width: DashSpace.xs),
-                      Icon(Icons.open_in_new, size: 14, color: scheme.primary),
-                    ],
-                  ),
-                ).tagged('${widget.area}.open_url'),
+              ?wiki,
             ],
           ),
-          if (actions.isNotEmpty) ...[
-            const SizedBox(height: DashSpace.sm),
-            // A row per fault, not a button per line: the labels are short
-            // enough that three fit across a phone, and Wrap still breaks
-            // rather than overflowing when a translation or a font scale makes
-            // them wider.
-            Wrap(
-              spacing: DashSpace.sm,
-              runSpacing: DashSpace.sm,
-              children: [
-                for (final action in actions)
-                  // One id per action, not one for the whole row: the log has
-                  // to tell "resumed" from "stopped the print". Safe to
-                  // interpolate — the key comes from `hmsEffectiveActions`, a
-                  // fixed vocabulary, never from anything the user typed.
-                  logTag(
-                    '${widget.area}.hms_${action.toLowerCase()}',
-                    FilledButton.tonal(
-                      onPressed: widget.busy ? null : () => _run(action),
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: DashSpace.lg,
+          if (actions.isNotEmpty)
+            // The buttons share the tile's width evenly, side by side while the
+            // widest label fits its half and one under the other when it does
+            // not; a Wrap left them at their own width, against the left edge.
+            Padding(
+              padding: EdgeInsets.only(
+                top: DashSpace.sm,
+                right: wiki != null ? DashSpace.sm : 0,
+              ),
+              child: ContentGrid(
+                maxColumns: actions.length,
+                minTileWidth:
+                    actions
+                        .map(
+                          (a) => textWidth(
+                            context,
+                            hmsActionLabel(l10n, a),
+                            buttonText,
+                          ),
+                        )
+                        .fold<double>(0, max) +
+                    2 * DashSpace.lg,
+                children: [
+                  for (final action in actions)
+                    // One id per action, not one for the whole row: the log has
+                    // to tell "resumed" from "stopped the print". Safe to
+                    // interpolate — the key comes from `hmsEffectiveActions`, a
+                    // fixed vocabulary, never from anything the user typed.
+                    logTag(
+                      '${widget.area}.hms_${action.toLowerCase()}',
+                      FilledButton.tonal(
+                        onPressed: widget.busy ? null : () => _run(action),
+                        style: FilledButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DashSpace.lg,
+                          ),
+                          minimumSize: Size(
+                            0,
+                            widget.large
+                                ? _largeHeight
+                                : kMinInteractiveDimension,
+                          ),
+                          textStyle: widget.large ? t.bodyStrong : t.label,
+                          backgroundColor: action == hmsStopAction
+                              ? scheme.errorContainer
+                              : null,
+                          foregroundColor: action == hmsStopAction
+                              ? scheme.onErrorContainer
+                              : null,
                         ),
-                        minimumSize: Size(0, widget.large ? _largeHeight : 34),
-                        textStyle: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: widget.large ? 15 : 12.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        backgroundColor: action == hmsStopAction
-                            ? scheme.errorContainer
-                            : null,
-                        foregroundColor: action == hmsStopAction
-                            ? scheme.onErrorContainer
-                            : null,
+                        child: _pending == action
+                            ? const DashSpinner(size: DashSize.d16)
+                            : Text(hmsActionLabel(l10n, action)),
                       ),
-                      child: _pending == action
-                          ? const DashSpinner(size: 14)
-                          : Text(hmsActionLabel(l10n, action)),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ],
         ],
       ),
+    );
+  }
+
+  /// The fault's text, two lines until tapped; a cut text is a 48 dp button
+  /// (with [below] inside it, so a short text plus the code needs no padding).
+  Widget _text(DashTokens t, String? label, {Widget? below}) {
+    if (label == null) return below ?? const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final style = (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
+          color: t.textPrimary,
+          height: DashLeading.snug,
+        );
+        final text = Text(
+          label,
+          maxLines: _fullText ? null : 2,
+          overflow: _fullText ? null : TextOverflow.ellipsis,
+          style: style,
+        );
+        final column = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            text,
+            if (below != null) ...[const SizedBox(height: DashSpace.xs), below],
+          ],
+        );
+        final cut =
+            _fullText ||
+            _exceedsTwoLines(context, label, style, constraints.maxWidth);
+        if (!cut) return column;
+        return InkWell(
+          onTap: () => setState(() => _fullText = !_fullText),
+          child: Container(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
+            alignment: AlignmentDirectional.centerStart,
+            child: column,
+          ),
+        ).tagged('${widget.area}.hms_description');
+      },
     );
   }
 }
@@ -467,7 +549,7 @@ class _DetailsToggle extends StatelessWidget {
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           id,
@@ -480,7 +562,7 @@ class _DetailsToggle extends StatelessWidget {
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -496,7 +578,7 @@ class _DetailsToggle extends StatelessWidget {
                     duration: const Duration(milliseconds: 200),
                     child: Icon(
                       Icons.expand_more,
-                      size: 18,
+                      size: DashIcon.md,
                       color: t.textSecondary,
                     ),
                   ),
@@ -593,7 +675,7 @@ class _DetailsPanel extends ConsumerWidget {
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.groupCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.groupCardBorder),
               ),
               child: Column(
@@ -823,7 +905,7 @@ class _AmsSection extends ConsumerWidget {
       metaParts.add(
         _AmsMeta(
           icon: Icons.thermostat,
-          text: '${unit.temp!.toStringAsFixed(0)}°',
+          text: '${unit.temp!.toStringAsFixed(0)}°C',
           onTap: openHistory(AmsHistoryMetric.temperature),
         ),
       );
@@ -832,39 +914,55 @@ class _AmsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              amsUnitName(unit.id ?? unitIndex).toUpperCase(),
-              style: t.bodyBold.copyWith(
-                color: t.textPrimary,
-                letterSpacing: 0.4,
+        // Two groups in a Wrap rather than one Row with a Spacer: at 200 % text the
+        // readings no longer fit beside the name, and drop to a line of their own
+        // instead of overflowing. With room they sit at the two ends, as before.
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: DashSpace.sm,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    amsUnitName(unit.id ?? unitIndex).toUpperCase(),
+                    style: t.bodyBold.copyWith(
+                      color: t.textPrimary,
+                      letterSpacing: DashTracking.label,
+                    ),
+                  ),
+                  if (extruder != null) ...[
+                    const SizedBox(width: DashSpace.sm),
+                    _ExtruderBadge(
+                      extruder: extruder!,
+                      active: extruder == activeExtruder,
+                    ),
+                  ],
+                ],
               ),
-            ),
-            if (extruder != null) ...[
-              const SizedBox(width: DashSpace.sm),
-              _ExtruderBadge(
-                extruder: extruder!,
-                active: extruder == activeExtruder,
-              ),
+              if (metaParts.isNotEmpty || (supportsDrying && unit.canDry))
+                Wrap(
+                  spacing: DashSpace.md,
+                  runSpacing: DashSpace.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ...metaParts,
+                    // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
+                    // regular AMS even when the printer supports drying.
+                    if (supportsDrying && unit.canDry)
+                      _AmsDryControl(
+                        printerId: printerId,
+                        amsId: unit.id ?? unitIndex,
+                        amsLabel: amsUnitName(unit.id ?? unitIndex),
+                        unit: unit,
+                      ),
+                  ],
+                ),
             ],
-            const Spacer(),
-            for (var i = 0; i < metaParts.length; i++) ...[
-              if (i > 0) const SizedBox(width: DashSpace.md),
-              metaParts[i],
-            ],
-            // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
-            // regular AMS even when the printer supports drying.
-            if (supportsDrying && unit.canDry) ...[
-              const SizedBox(width: DashSpace.md),
-              _AmsDryControl(
-                printerId: printerId,
-                amsId: unit.id ?? unitIndex,
-                amsLabel: amsUnitName(unit.id ?? unitIndex),
-                unit: unit,
-              ),
-            ],
-          ],
+          ),
         ),
         // Under the header rather than beside the flame chip: a pending run has
         // a sentence to say (when, and what it is waiting for) and the chip is
@@ -933,7 +1031,10 @@ class _SpoolSection extends StatelessWidget {
       children: [
         Text(
           l10n.externalSpool.toUpperCase(),
-          style: t.label.copyWith(color: t.textPrimary, letterSpacing: 0.4),
+          style: t.label.copyWith(
+            color: t.textPrimary,
+            letterSpacing: DashTracking.label,
+          ),
         ),
         const SizedBox(height: DashSpace.md),
         for (var i = 0; i < trays.length; i++)
@@ -1000,35 +1101,59 @@ class _FilamentRow extends StatelessWidget {
 
     final textColor = active ? t.accentGreenInk : t.textSecondary;
 
-    final row = Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.sm),
-      child: Row(
+    // The row, its rule and the gap under it make the slot's touch target: 48 dp
+    // in all. The last row has no gap, so it takes the whole 48 itself. The extra
+    // height carries the level bar rather than empty space.
+    final row = Container(
+      constraints: BoxConstraints(
+        minHeight: last
+            ? kMinInteractiveDimension
+            : kMinInteractiveDimension - 1 - DashSpace.sm,
+      ),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _ColorDot(color: dotColor, size: 9),
-          const SizedBox(width: DashSpace.sm),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: textColor,
+          Row(
+            children: [
+              _ColorDot(color: dotColor, size: DashSize.d8),
+              const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontMono,
+                    fontSize: DashFontSize.label,
+                    fontWeight: active ? DashWeight.bold : DashWeight.semibold,
+                    color: textColor,
+                  ),
+                ),
               ),
-            ),
+              if (trailing.isNotEmpty) ...[
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  trailing,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontMono,
+                    fontSize: DashFontSize.label,
+                    fontWeight: active ? DashWeight.bold : DashWeight.semibold,
+                    color: active ? t.accentGreenInk : t.textSecondary,
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (trailing.isNotEmpty)
-            Text(
-              trailing,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: active ? t.accentGreenInk : t.textSecondary,
-              ),
+          if (percent != null) ...[
+            const SizedBox(height: DashSpace.xs),
+            DashProgressBar(
+              value: percent / 100,
+              height: DashBar.thin,
+              color: active ? t.accentGreen : t.textTertiary,
             ),
+          ],
         ],
       ),
     );
@@ -1056,7 +1181,7 @@ class _FilamentRow extends StatelessWidget {
             'printer.ams_slot',
             tray.trayType,
             InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(DashRadius.sm),
               onTap: () => dashSheet<void>(
                 context,
                 builder: (_) => _AssignSlotSheet(slot: slot),
@@ -1084,24 +1209,57 @@ class _AmsMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    return _AmsChip(
+      icon: icon,
+      color: t.textTertiary,
+      text: text,
+      onTap: onTap,
+    ).tagged('printer.ams_meta');
+  }
+}
+
+/// An icon and a mono label in the AMS header, shared by the readings and the
+/// drying control. It paints as small as it always did but its touch target is
+/// 48 dp both ways: the readings open their history and the control opens the
+/// drying sheet, and 45 × 24 dp is under what a thumb hits.
+class _AmsChip extends StatelessWidget {
+  const _AmsChip({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String text;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DashSpace.xs,
-          vertical: DashSpace.xs,
+      borderRadius: BorderRadius.circular(DashRadius.sm),
+      child: Container(
+        constraints: const BoxConstraints(
+          minWidth: kMinInteractiveDimension,
+          minHeight: kMinInteractiveDimension,
         ),
+        // No `alignment:` — it wraps the child in an Align that grows to every
+        // pixel of width the Wrap offers, one chip per line.
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 13, color: t.textTertiary),
+            Icon(icon, size: DashIcon.xs, color: color),
             const SizedBox(width: DashSpace.xs),
-            Text(text, style: t.monoLabel),
+            Text(text, style: t.monoLabel.copyWith(color: color)),
           ],
         ),
       ),
-    ).tagged('printer.ams_meta');
+    );
   }
 }
 
@@ -1165,7 +1323,10 @@ class _AmsDryControl extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
 
-    return InkWell(
+    return _AmsChip(
+      icon: look.icon,
+      color: look.color,
+      text: look.label,
       onTap: () => showAmsDryingSheet(
         context,
         ref,
@@ -1173,21 +1334,6 @@ class _AmsDryControl extends ConsumerWidget {
         amsId: amsId,
         amsLabel: amsLabel,
         unit: unit,
-      ),
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DashSpace.xs,
-          vertical: DashSpace.xs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(look.icon, size: 13, color: look.color),
-            const SizedBox(width: DashSpace.xs),
-            Text(look.label, style: t.monoLabel.copyWith(color: look.color)),
-          ],
-        ),
       ),
     ).tagged('printer.drying');
   }
@@ -1288,10 +1434,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final result = await action();
     if (!mounted) return;
     navigator.pop();
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
-    }
+    snackOutcome(messenger, result, l10n);
   }
 
   /// Hands the run to the server's scheduler instead of the printer.
@@ -1401,15 +1544,15 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       Center(
         child: Column(
           children: [
-            Icon(look.icon, size: 32, color: look.color),
+            Icon(look.icon, size: DashIcon.xl, color: look.color),
             const SizedBox(height: DashSpace.sm),
             Text(
               look.label,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
+                fontSize: DashFontSize.hero,
+                fontWeight: DashWeight.bold,
                 color: look.color,
               ),
             ),
@@ -1458,15 +1601,15 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           vertical: DashSpace.md,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           borderSide: BorderSide(color: t.subCardBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           borderSide: BorderSide(color: t.subCardBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           borderSide: BorderSide(color: t.accentGreen),
         ),
       ),
@@ -1654,6 +1797,7 @@ class _DrySlider extends StatelessWidget {
             _StepButton(
               icon: Icons.remove,
               id: '${id}_step_down',
+              label: '$label −1',
               onTap: () => onChanged(clamp(value - 1)),
             ),
             Expanded(
@@ -1672,6 +1816,7 @@ class _DrySlider extends StatelessWidget {
             _StepButton(
               icon: Icons.add,
               id: '${id}_step_up',
+              label: '$label +1',
               onTap: () => onChanged(clamp(value + 1)),
             ),
           ],
@@ -1879,7 +2024,7 @@ class _SlotActions extends ConsumerWidget {
               beforeSend: () => Navigator.of(context).pop(),
             )
           : null,
-      icon: const Icon(Icons.login, size: 18),
+      icon: const Icon(Icons.login, size: DashIcon.md),
       label: Text(l10n.amsLoad),
     ).tagged('assign_spool.ams_load');
 
@@ -1894,7 +2039,7 @@ class _SlotActions extends ConsumerWidget {
               beforeSend: () => Navigator.of(context).pop(),
             )
           : null,
-      icon: const Icon(Icons.logout, size: 18),
+      icon: const Icon(Icons.logout, size: DashIcon.md),
       label: Text(l10n.amsUnload),
     ).tagged('assign_spool.ams_unload');
 
@@ -1912,7 +2057,7 @@ class _SlotActions extends ConsumerWidget {
               l10n.amsRfidRereadStarted,
             )
           : null,
-      icon: const Icon(Icons.nfc, size: 18),
+      icon: const Icon(Icons.nfc, size: DashIcon.md),
       label: Text(l10n.amsRfidReread),
     ).tagged('assign_spool.rfid_reread');
 
@@ -1921,7 +2066,7 @@ class _SlotActions extends ConsumerWidget {
     // buttons are what the job blocks.
     final configure = OutlinedButton.icon(
       onPressed: busy ? null : () => _openConfig(context),
-      icon: const Icon(Icons.tune, size: 18),
+      icon: const Icon(Icons.tune, size: DashIcon.md),
       label: Text(l10n.amsSlotConfigure),
     ).tagged('assign_spool.configure');
 
@@ -2193,7 +2338,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final inv = ref.watch(inventoryProvider).valueOrNull;
+    final inv = ref.watch(inventoryProvider).value;
     final spools = inv?.spools ?? const <Spool>[];
 
     Spool? current;
@@ -2254,7 +2399,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             if (_offersRegister(inv, current)) ...[
               FilledButton.tonalIcon(
                 onPressed: () => _registerFromSlot(context, ref, l10n),
-                icon: const Icon(Icons.add_circle_outline, size: 18),
+                icon: const Icon(Icons.add_circle_outline, size: DashIcon.md),
                 label: Text(l10n.inventoryFromSlot),
               ).tagged('assign_spool.add_to_inventory'),
               const SizedBox(height: DashSpace.sm),
@@ -2264,7 +2409,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: DashSize.d24),
             ],
             if (current != null) ...[
               Text(
@@ -2288,14 +2433,14 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                     ? null
                     : TextButton.icon(
                         onPressed: () => _unassign(context, ref, l10n),
-                        icon: const Icon(Icons.link_off, size: 18),
+                        icon: const Icon(Icons.link_off, size: DashIcon.md),
                         label: Text(l10n.inventoryUnassign),
                       ).taggedMaterial(
                         'assign_spool.unassign',
                         current.material,
                       ),
               ).taggedMaterial('assign_spool.current', current.material),
-              const Divider(height: 24),
+              const Divider(height: DashSize.d24),
             ],
             if (slot.lockedByTag) ...[
               // Only true of the spool the tag names; one pinned by hand in
@@ -2349,7 +2494,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                           ].join(' · '),
                         ),
                         trailing: from != null
-                            ? const Icon(Icons.swap_horiz, size: 20)
+                            ? const Icon(Icons.swap_horiz, size: DashIcon.md)
                             : null,
                         onTap: () => _assign(context, ref, l10n, s, from: from),
                       ).taggedMaterial('assign_spool.option', s.material);
@@ -2395,8 +2540,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       return false;
     }
     final onSpoolman =
-        ref.watch(inventoryBackendProvider).valueOrNull ==
-        InventoryBackend.spoolman;
+        ref.watch(inventoryBackendProvider).value == InventoryBackend.spoolman;
     final keyed = ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey;
     return !(onSpoolman && keyed);
   }
@@ -2429,8 +2573,6 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         action: 'assign_spool.add_to_inventory',
         message: _registerFailure(e, l10n),
       );
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -2464,17 +2606,17 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         Tooltip(
           message: l10n.inventoryScanSpool,
           child: SizedBox(
-            width: 48,
-            height: 48,
+            width: DashSize.d48,
+            height: DashSize.d48,
             child: Material(
               color: t.subCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 onTap: () => _scanAndAssign(l10n),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(DashRadius.lg),
                     border: Border.all(color: t.subCardBorder),
                   ),
                   child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
@@ -2502,8 +2644,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
 
     Spool? scanned() {
       for (final s
-          in ref.read(inventoryProvider).valueOrNull?.spools ??
-              const <Spool>[]) {
+          in ref.read(inventoryProvider).value?.spools ?? const <Spool>[]) {
         if (s.id == id) return s;
       }
       return null;
@@ -2524,10 +2665,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
 
     // An archived spool is not offered in the list but is accepted here: the
     // user is holding it against the printer, which outranks a bookkeeping flag.
-    final from = ref
-        .read(inventoryProvider)
-        .valueOrNull
-        ?.assignmentFor(spool.id);
+    final from = ref.read(inventoryProvider).value?.assignmentFor(spool.id);
     if (from != null &&
         from.printerId == slot.printerId &&
         from.amsId == slot.amsId &&
@@ -2580,8 +2718,6 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'sheet.assign_spool');
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -2599,8 +2735,6 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       messenger.snack(l10n.inventorySpoolUnassigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.ams_slot');
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }
@@ -2626,7 +2760,7 @@ class _ExtruderBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.print_outlined, size: 13, color: color),
+          Icon(Icons.print_outlined, size: DashIcon.xs, color: color),
           const SizedBox(width: DashSpace.xs),
           Text(short, style: t.monoLabel.copyWith(color: color)),
         ],
@@ -2646,7 +2780,12 @@ class _ColorDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     if (color == null) {
-      return Icon(Icons.circle_outlined, size: size + 3, color: t.textTertiary);
+      // The outlined glyph has padding built in, so it is drawn a fifth larger.
+      return Icon(
+        Icons.circle_outlined,
+        size: size * 1.2,
+        color: t.textTertiary,
+      );
     }
     return Container(
       width: size,
@@ -2654,7 +2793,7 @@ class _ColorDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: t.hairline, width: 0.5),
+        border: Border.all(color: t.hairline, width: DashStroke.hairline),
       ),
     );
   }

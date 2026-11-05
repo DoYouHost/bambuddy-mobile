@@ -35,10 +35,6 @@ class TempReading {
   /// identifier falls back to the bare tile name rather than going in verbatim.
   String get logId => _logId('printer.temperature');
 
-  /// Identifier of the tile's history shortcut, sensor by sensor for the same
-  /// reason [logId] is.
-  String get historyLogId => _logId('printer.temperature_history');
-
   String _logId(String base) =>
       RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
 
@@ -74,6 +70,14 @@ class TempReading {
       switch (heatState(target: target)) {
         HeatState.off || HeatState.cooling => t.accentBlue,
         HeatState.heating || HeatState.atTarget => t.accentOrange,
+      };
+
+  /// [gaugeColor] for text. The orange fill reads 2.77:1 on the light ground, under
+  /// the 3:1 that even a 44 px number needs, so text takes the orange ink.
+  Color gaugeInk(DashTokens t, {double? target}) =>
+      switch (heatState(target: target)) {
+        HeatState.off || HeatState.cooling => t.accentBlueInk,
+        HeatState.heating || HeatState.atTarget => t.accentOrangeInk,
       };
 
   /// Where the reading stands against its setpoint, within the same tolerance

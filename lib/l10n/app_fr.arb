@@ -45,6 +45,8 @@
   "addPrinterIp": "Adresse IP",
   "addPrinterSerial": "Numéro de série",
   "addPrinterAccessCode": "Code d'accès",
+  "addPrinterRevealAccessCode": "Afficher le code d'accès",
+  "addPrinterHideAccessCode": "Masquer le code d'accès",
   "addPrinterModel": "Modèle",
   "addPrinterModelOptional": "Facultatif",
   "addPrinterModelNone": "Non défini",
@@ -218,10 +220,9 @@
   "ctrlMoveHome": "Retour à l'origine",
   "ctrlMoveHomeStarted": "Retour à l'origine démarré",
   "ctrlMoveStep": "Pas",
-  "ctrlMoveZ": "Z (écart du plateau)",
+  "ctrlMoveZ": "Z",
   "ctrlMoveZUp": "Haut",
   "ctrlMoveZDown": "Bas",
-  "ctrlMoveZToolhead": "Z (tête)",
   "ctrlMoveZUnknownDirection": "Le sens de l'axe Z de cette imprimante dépend de la version du serveur, qui n'a pas pu être confirmée : les mouvements en Z sont donc désactivés ici. Si le serveur était injoignable, rouvrez ce panneau ; sinon, mettez-le à jour.",
   "ctrlMoveZNoModel": "Aucun modèle n'est défini pour cette imprimante dans Bambuddy : l'application ne sait donc pas si l'axe Z déplace le plateau ou la tête, et les mouvements en Z sont désactivés ici. Définissez le modèle de l'imprimante dans Bambuddy pour les utiliser.",
   "ctrlMoveExtrude": "Extruder",
@@ -232,6 +233,22 @@
     "placeholders": {
       "d": {
         "type": "int"
+      }
+    }
+  },
+  "ctrlMoveAxisPlus": "Déplacer {axis}, sens positif",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "Déplacer {axis}, sens négatif",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
       }
     }
   },
@@ -347,6 +364,13 @@
   "plugStateOff": "Éteint",
   "queueEmpty": "La file d'attente est vide",
   "queueAmsFromSlicer": "AMS depuis le slicer",
+  "queueColorSubstitution": "L'emplacement {slot} a imprimé en {got}, le fichier demande {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} emplacement} other{{count} emplacements}}",
+  "queueColorSubstitutionTitle": "Imprimé dans une autre couleur",
+  "queueColorSubstitutionWhy": "Aucune bobine de la couleur du fichier n'était chargée, ou l'emplacement a été choisi à la main.",
+  "queueColorSubstitutionSlot": "Emplacement {slot}",
+  "queueColorSubstitutionPrinted": "Imprimé en",
+  "queueColorSubstitutionWanted": "Le fichier demande",
   "queueAnyOfModels": "Au choix parmi : {models}",
   "@queueAnyOfModels": {
     "placeholders": {
@@ -841,7 +865,6 @@
   "sensorHistoryError": "Impossible de charger l'historique",
   "amsHistoryRecordingInfo": "Enregistré toutes les 5 minutes lorsque l'imprimante est connectée",
   "heaterHistoryTitle": "Historique des températures",
-  "heaterHistoryOpen": "Historique des températures",
   "heaterHistoryReading": "Mesure",
   "heaterHistoryTarget": "Cible",
   "heaterHistoryRecordingInfo": "Enregistré chaque minute lorsque l'imprimante est connectée",
@@ -864,7 +887,6 @@
   "widgetStatusPrinting": "Impression",
   "widgetStatusPaused": "En pause",
   "widgetStatusFinished": "Terminée",
-  "widgetStatusFailed": "Échouée",
   "widgetStatusIdle": "Inactive",
   "widgetStatusOffline": "Hors ligne",
   "widgetStatusError": "Erreur",
@@ -988,10 +1010,16 @@
   "twoFactorBack": "Utiliser un autre compte",
   "twoFactorSessionNote": "L'application ne peut pas renouveler une session 2FA d'elle-même et vous redemandera de vous connecter à son expiration. Une clé API n'expire pas et évite cette étape.",
   "tryDemo": "Essayer la démo",
+  "customCaImport": "Importer un certificat d'AC",
+  "customCaTrusted": "AC de confiance : {name}",
+  "customCaRemove": "Retirer le certificat d'AC",
+  "customCaInvalid": "Ce fichier ne contient aucun certificat",
+  "customCaPickFailed": "Impossible d'ouvrir le fichier",
   "scanApiKeyTitle": "Scanner la clé API",
   "scanApiKeyHint": "Pointez l'appareil photo vers le code QR de la clé API",
   "cameraPermissionTitle": "Accès à l'appareil photo requis",
   "cameraPermissionBody": "Autorisez l'accès à l'appareil photo pour scanner des codes QR.",
+  "scannerTorch": "Lampe torche",
   "errMissingUrl": "Saisissez l'adresse du serveur",
   "errMissingApiKey": "Saisissez la clé API",
   "errMissingCredentials": "Saisissez le nom d'utilisateur et le mot de passe",
@@ -1016,7 +1044,7 @@
       }
     }
   },
-  "errBadCertificate": "Certificat TLS invalide (les certificats auto-signés ne sont pas pris en charge dans la v1)",
+  "errBadCertificate": "Le certificat du serveur n'est pas approuvé",
   "errConnection": "Erreur de connexion",
   "errMalformedResponse": "Réponse du serveur malformée",
   "errInvalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",
@@ -1204,6 +1232,36 @@
   "notifExtrasHeader": "Détails",
   "notifFinishPhotoTitle": "Photo de l'impression terminée",
   "notifFinishPhotoDesc": "Ajoute la photo prise par le serveur à la fin d'une impression à la notification de réussite ou d'échec, dès sa réception",
+  "alarmHeader": "Alarme",
+  "alarmTitle": "Me réveiller avec une alarme",
+  "alarmDesc": "Sonne sur l'écran de verrouillage jusqu'à ce que vous l'arrêtiez",
+  "alarmEvtFinished": "Impression terminée",
+  "alarmEvtFinishedDesc": "Une impression s'est terminée avec succès",
+  "alarmEvtBlocked": "Impression arrêtée par une erreur",
+  "alarmEvtBlockedDesc": "Une erreur a mis en pause ou arrêté l'impression, ou l'impression a échoué",
+  "alarmEvtDrying": "Séchage terminé",
+  "alarmEvtDryingDesc": "Un cycle de séchage de l'AMS est arrivé à son terme",
+  "alarmWindowTitle": "Seulement aux heures choisies",
+  "alarmWindowDesc": "En dehors de ces heures, l'alarme ne sonne pas",
+  "alarmWindowFrom": "De",
+  "alarmWindowTo": "À",
+  "alarmRingFor": "Sonne pendant {minutes} min",
+  "alarmRingForDesc": "Elle s'arrête ensuite d'elle-même",
+  "alarmMinutes": "{minutes} min",
+  "alarmStop": "Arrêter",
+  "alarmTest": "Tester l'alarme",
+  "alarmTestBody": "Voici le son de l'alarme",
+  "alarmTestFailed": "L'alarme n'a pas pu sonner. Vérifiez que les notifications sont activées.",
+  "alarmFullScreenNeeded": "Sans autorisation, l'alarme ne couvrira pas l'écran de verrouillage",
+  "alarmFullScreenAllow": "Autoriser",
+  "alarmHoursHeader": "Horaires",
+  "alarmLengthHeader": "Durée",
+  "alarmSettingsSubtitle": "Ce qui la déclenche, ses horaires et sa durée",
+  "alarmExcludedLocationsHeader": "Emplacements exclus",
+  "alarmExcludedPrintersHeader": "Imprimantes exclues",
+  "alarmExcludeLocationDesc": "Aucune imprimante d'ici ne déclenche l'alarme",
+  "alarmExcludePrinterDesc": "Cette imprimante ne déclenche jamais l'alarme",
+  "alarmExcludedWithLocation": "Exclue avec l'emplacement {location}",
   "notifThresholdsHeader": "Seuils",
   "notifEvtStarted": "Impression démarrée",
   "notifEvtStartedDesc": "Lorsqu'une impression commence",
@@ -1235,6 +1293,17 @@
       }
     }
   },
+  "printPauseAtLayer": "couche {layer}",
+  "printPauseA11yIn": "Pause suivante dans {duration}, à la couche {layer}",
+  "printPauseA11yLayer": "Prochaine pause à la couche {layer}",
+  "serverSettingsPauseWarningSubtitle": "Combien de temps avant une pause prévenir",
+  "pauseWarningTitle": "Avertissement de pause",
+  "pauseWarningLabel": "Prévenir {duration} avant une pause",
+  "pauseWarningDesc": "Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s'applique à tous les appareils.",
+  "notifEvtPauseUpcoming": "Pause à venir",
+  "notifEvtPauseUpcomingDesc": "Avertissement avant une pause placée par le slicer dans l'impression",
+  "notifPauseUpcomingTitle": "Pause à venir",
+  "notifPauseUpcomingBody": "{name} : une pause dans {minutes, plural, =0{moins d'une minute} one{{minutes} minute} other{{minutes} minutes}}, à la couche {layer}",
   "notifHumidityThreshold": "Humidité AMS au-dessus de {value} %",
   "@notifHumidityThreshold": {
     "placeholders": {
@@ -1437,7 +1506,24 @@
     }
   },
   "inventoryPrinterPresetsLoadFailed": "Non lus — l'enregistrement les laissera inchangés.",
-  "inventoryPrinterPresetsSaveFailed": "Bobine enregistrée, mais ses préréglages par modèle ne l'ont pas été.",
+  "inventoryProfileDefaultPrefilled": "Rempli d'après les valeurs par défaut de {product}",
+  "inventoryProfileDefaultUse": "Utiliser par défaut",
+  "inventoryProfileDefaultFor": "pour {product}",
+  "inventoryProfileDefaultNeedsMaterial": "Indiquez d'abord le matériau",
+  "inventoryProfileDefaultScope": "S'applique à",
+  "inventoryProfileDefaultAllColors": "Toutes les couleurs",
+  "inventoryProfileDefaultColorOnly": "Seulement {color}",
+  "inventoryProfileDefaultSaveFailed": "Bobine enregistrée, mais pas ses valeurs par défaut.",
+  "serverSettingsProfileDefaultsSubtitle": "Ce que reçoivent les nouvelles bobines",
+  "profileDefaultsTitle": "Valeurs par défaut des profils",
+  "profileDefaultsDescription": "Enregistrez-en une avec « Utiliser par défaut » dans le formulaire de la bobine. Appliquer ne complète que ce qui manque aux bobines.",
+  "profileDefaultsEmpty": "Aucune valeur par défaut enregistrée",
+  "profileDefaultsApply": "Appliquer aux bobines",
+  "profileDefaultsApplied": "{count, plural, =0{Aucune bobine n'en avait besoin} one{{count} bobine complétée} other{{count} bobines complétées}}",
+  "profileDefaultsDeleteTitle": "Supprimer ces valeurs par défaut ?",
+  "profileDefaultsDeleteBody": "{product} : les nouvelles bobines ne démarreront plus avec. Celles qui l'ont déjà reçu le gardent.",
+  "profileDefaultsModelPresets": "{count, plural, one{{count} préréglage par modèle} other{{count} préréglages par modèle}}",
+  "profileDefaultsKProfiles": "{count, plural, one{{count} profil K} other{{count} profils K}}",
   "inventoryFieldMaterial": "Matériau",
   "inventoryFieldBrand": "Marque",
   "inventoryFieldSubtype": "Variante",
@@ -1516,8 +1602,6 @@
   "inventorySpoolArchived": "Bobine archivée",
   "inventorySpoolRestored": "Bobine restaurée",
   "inventoryUsageReset": "Compteur réinitialisé",
-  "inventorySaveFailed": "Impossible d'enregistrer la bobine",
-  "inventoryActionFailed": "Échec de l'action",
   "inventoryUnassign": "Désassigner",
   "inventoryAssign": "Assigner à un emplacement",
   "inventoryAssignPrinter": "Imprimante",
@@ -2194,6 +2278,7 @@
   },
   "fmVariantsGone": "Ce groupe n'existe plus",
   "fmUpload": "Téléverser un fichier",
+  "fmAddFiles": "Ajouter des fichiers",
   "fmUploading": "Téléversement…",
   "fmUploaded": "Téléversement terminé : {name}",
   "@fmUploaded": {
@@ -2402,7 +2487,7 @@
   "mwInLibrary": "Dans la bibliothèque",
   "mwImported": "Importé dans votre bibliothèque",
   "mwAlreadyInLibrary": "Déjà dans votre bibliothèque",
-  "mwViewInFiles": "Afficher dans le gestionnaire de fichiers",
+  "mwViewInFiles": "Ouvrir les fichiers",
   "mwRecentImports": "Importations récentes",
   "mwNoRecent": "Aucune importation récente pour l'instant",
   "mwOpenOnMakerworld": "Ouvrir sur MakerWorld",
@@ -2412,6 +2497,8 @@
   "cloudCredsNote": "Connectez-vous avec votre compte Bambu Lab. Ces identifiants sont uniquement utilisés pour télécharger des modèles depuis MakerWorld.",
   "cloudEmail": "E-mail",
   "cloudPassword": "Mot de passe",
+  "cloudShowPassword": "Afficher le mot de passe",
+  "cloudHidePassword": "Masquer le mot de passe",
   "cloudRegionGlobal": "Global",
   "cloudRegionChina": "Chine",
   "cloudSignIn": "Se connecter",
@@ -4390,6 +4477,8 @@
   "announcementsTitle": "Annonces",
   "announcementsUnread": "Annonces non lues : {count}",
   "announcementsEmpty": "Aucune annonce pour le moment.",
+  "linkedAppsTitle": "Applications liées",
+  "linkedAppsEmpty": "Aucune application liée.",
   "announcementsEarlier": "Précédentes ({count})",
   "announcementsNew": "Nouveau",
   "announcementsReadMore": "En savoir plus",
@@ -4436,5 +4525,203 @@
   "tipsTrimTitle": "Découper un timelapse",
   "tipsTrimBody": "Faites glisser les poignées de la bande d'images ; touchez ou faites glisser ailleurs pour déplacer la tête de lecture.",
   "tipsWallTitle": "Mode mural",
-  "tipsWallBody": "Sur l'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural."
+  "tipsWallBody": "Sur l'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural.",
+  "archiveRunsTitle": "Impressions",
+  "archiveRunsEmpty": "Ce fichier n'a pas encore été imprimé.",
+  "archiveRunsBeforeLog": "Imprimé avant que Bambuddy n'enregistre chaque impression : {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Ce plateau n'a pas encore été imprimé.",
+  "archiveRunsAllPlates": "Tous les plateaux",
+  "archiveRunPlate": "Plateau {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Imprimante supprimée",
+  "archiveRunWithEstimate": "{value} (estimé {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} sur {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Début / fin",
+  "archiveRunEnergy": "Énergie",
+  "archiveRunFailureReason": "Raison de l'échec",
+  "archiveRunStartedBy": "Lancée par",
+  "archiveRunNote": "Note sur cette impression",
+  "archiveRunVideo": "Vidéo timelapse",
+  "archiveRunPhotos": "Photos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Réussies : {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Échouées : {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Indiquer le résultat",
+  "archiveRunChangeOutcome": "Modifier le résultat",
+  "archiveRunAddNote": "Ajouter une note",
+  "archiveRunEditNote": "Modifier la note",
+  "archiveRunNoteSaved": "Note enregistrée",
+  "archivePlatesTitle": "Plateaux",
+  "archivePlateEstimate": "Estimation {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Dernière impression vs estimation : {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimer ce plateau",
+  "archiveShowPlatePrints": "Voir ses impressions",
+  "archiveRunReprint": "Réimprimer cette impression",
+  "archiveMergeBanner": "{count, plural, =1{1 groupe d'archives en double} other{{count} groupes d'archives en double}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Fusionner",
+  "archiveMergeDismiss": "Masquer",
+  "archiveMergeMenu": "Fusionner les doublons",
+  "archiveMergeTitle": "Fusionner les archives en double",
+  "archiveMergeEffectKeep": "L'archive la plus ancienne de chaque groupe est conservée et reprend toutes les impressions des autres, avec leurs photos, vidéos et fichiers.",
+  "archiveMergeEffectLinks": "Les autres disparaissent des archives ; leurs anciens liens ouvrent celle dans laquelle elles ont été fusionnées.",
+  "archiveMergeEffectMoney": "Les débits du portefeuille et les réservations de budget restent là où ils ont été enregistrés.",
+  "archiveMergeNone": "Aucun doublon à fusionner.",
+  "archiveMergeMember": "{name} · créée le {date} · {count, plural, =1{1 impression} other{{count} impressions}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Conservée",
+  "archiveMergeWaiting": "Écartés pour l'instant",
+  "archiveMergeLeftOut": "Écartés lors de la fusion",
+  "archiveMergeSkipBusy": "En cours d'utilisation : impression, file d'attente ou impression récente. Réessayez plus tard.",
+  "archiveMergeSkipConflicting": "Les archives contiennent des fichiers source ou de conception différents, ou des vidéos. Gardez-en d'abord un à la main.",
+  "archiveMergeSkipFailed": "La fusion a échoué.",
+  "archiveMergeSkipNotAGroup": "Ce n'est plus un groupe de doublons.",
+  "archiveMergeAction": "{count, plural, =1{Fusionner 1 groupe} other{Fusionner {count} groupes}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Cela ne peut pas être annulé dans l'application.",
+  "archiveMergeDone": "{count, plural, =1{1 groupe fusionné.} other{{count} groupes fusionnés.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Fusionnés : {count}. Écartés : {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Calendrier",
+  "archiveListView": "Liste",
+  "archiveCalendarToday": "Aujourd'hui",
+  "archiveCalendarPrevious": "Mois précédent",
+  "archiveCalendarNext": "Mois suivant",
+  "archiveCalendarPrints": "Impressions ce mois-ci",
+  "archiveCalendarSuccessful": "Réussies",
+  "archiveCalendarFailed": "Échouées",
+  "archiveCalendarNoPrints": "Aucune impression ce jour-là",
+  "archiveCalendarSelectDay": "Sélectionnez un jour pour voir ses impressions",
+  "archiveCalendarDay": "{date} : {count, plural, =0{aucune impression} =1{1 impression} other{{count} impressions}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
