@@ -214,27 +214,44 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   shows the alarm as a heads-up, whose Stop is the notification's own. A second alarm
   arriving while the screen is up but the phone is not locked comes as a heads-up over
   it for the same reason.
-- **The sound is the notification's.** Channel `print_alarm`, alarm usage
-  (`USAGE_ALARM`, so it plays on a silenced phone at alarm volume), the default alarm
-  tone, `FLAG_INSISTENT` for the loop. It rings with or without the full-screen
-  permission. It loops until the notification goes or the user opens the shade:
-  touching a heads-up alarm silences it, which counts as heard. Sound and usage are frozen
-  once the channel exists; changing them needs a new channel id.
+- **The sound is `PrintAlarm`'s own player**, not the notification's: a looping
+  `MediaPlayer` on the default alarm tone at `USAGE_ALARM` (plays on a silenced phone
+  at alarm volume), one for every alarm ringing, released with the last. The
+  notification sits on `print_alarm_player`, which vibrates (`FLAG_INSISTENT` loops it;
+  the app has no `VIBRATE` permission of its own) and makes no sound. Why not the
+  notification's sound: the system plays one notification sound at a time, and the
+  next noisy notification of **any** app took over the loop for good — measured on the
+  AVD (`anotherAppsNotificationDoesNotCutTheLoop`), and the reason 0.17.2-dev.4 went
+  quiet after a print. It rings with or without the full-screen permission; opening
+  the shade no longer silences it, only a stop does.
+- **The fallback is the old way, kept as a channel.** The player first asks for the
+  audio focus. Android refuses it to an app with no visible activity and no foreground
+  service (`Audio focus request blocked by hardening` in logcat, already on the API 35
+  AVD; see [foreground-service.md](foreground-service.md#trap-ahead-background-audio-android-17)),
+  and a tone that will not prepare fails the same way. Then the notification goes on
+  `print_alarm` (renamed "Print alarm (system sound)"), whose `USAGE_ALARM` sound the
+  system plays with `FLAG_INSISTENT`, so the alarm is never silent — only cuttable as
+  before. While one alarm rings on the fallback, the next ones join it: two tones at
+  once otherwise. A player that errors mid-ring is replaced, or every alarm moves to
+  the fallback. Sound and usage are frozen once a channel exists, hence two ids. The
+  user silences the alarm by switching `print_alarm_player` off in the system
+  settings, which the player respects.
 - **The event's own notification goes out silent while the alarm rings**
-  (`showAlert(silent: true)`, from `PrintMonitor._ringAlarm`'s result). Android mutes
-  an app's second noisy post within a second (`Muting recently noisy` in logcat), so a
-  print-finished notification posted beside the alarm took its sound and left the
-  screen up in silence. When the alarm does not ring (off, excluded, outside the
-  hours), the notification rings as usual.
+  (`showAlert(silent: true)`, from `PrintMonitor._ringAlarm`'s result): a second tone
+  over the alarm, and on the fallback it would mute or cut the alarm's sound (Android
+  mutes an app's second noisy post within a second, `Muting recently noisy` in logcat).
+  When the alarm does not ring (off, excluded, outside the hours), the notification
+  rings as usual.
 - **Three ways it stops:** Stop on the screen, which stops every printer's alarm
   (the screen shows only the latest, and closing it over another still ringing would
   leave no screen for that one); Stop on the notification, which stops its own
   (`AlarmStopReceiver`, also the delete intent where Android lets an ongoing
   notification be swiped away); and the timeout. The timeout is `setTimeoutAfter`
-  plus a main-looper timer, because the first is a no-op below API 26 and the screen
-  must close with the sound. The timer stalls while the CPU sleeps, so the screen also
-  carries its deadline and stops the alarm on the next `onResume` past it. A new ring
-  under the same id restarts the timeout.
+  plus a main-looper timer: the first only removes the notification (and is a no-op
+  below API 26), while the player and the screen go with a stop. The timer stalls while
+  the CPU sleeps, so each alarm keeps its deadline and the screen stops every one past
+  it on its next `onResume` (`stopExpired`). A new ring under the same id restarts the
+  timeout.
 - **The full-screen permission** (`USE_FULL_SCREEN_INTENT`) is not granted by default
   on Android 14+ to an app that is not a clock or a phone. The settings show a note
   with a button to `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` while it is missing,
@@ -251,10 +268,14 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
 - **Phone only.** The watch manifest strips the permission, the activity and the
   receiver; `tool/check_wear_apk.py` asserts it.
 - **Device test:** `PrintAlarmTest` (`android/app/src/androidTestMobile/kotlin/…`, phone flavor only, run by
-  `just test-device`): the channel's alarm usage, the notification's flags, the sound
-  playing as `USAGE_ALARM` with the ringer on silent (read from `dumpsys audio`), the
-  screen over a swipe lock screen, each stop path and the one-minute timeout. Mutating
-  the usage to `USAGE_NOTIFICATION` or the screen's Stop to a single alarm fails it.
+  `just test-device`): the player on the soundless channel and the fallback on the
+  sounding one (`refuseFocusForTest`), one tone while the fallback rings, the player
+  playing as `USAGE_ALARM` with the ringer on silent and through another app's
+  notification (read from `dumpsys audio`), the player released with the last stop and
+  past every deadline (`clockOffsetForTest`), the notification's flags, the screen over
+  a swipe lock screen, each stop path and the one-minute timeout. The player's tests
+  bring `MainActivity` up first: the test process has no foreground service, so its
+  focus would be refused. A player that errors mid-ring is not covered.
 - **Doze, measured on the API 35 emulator** with `tool/fake_bambuddy.dart` (`print`,
   screen off, then `finish`): screen off only, 60 s and 10 min into a forced deep idle
   (`dumpsys battery unplug`, `deviceidle force-idle`) all posted the alarm within one
