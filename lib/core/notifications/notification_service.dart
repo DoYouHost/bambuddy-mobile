@@ -76,7 +76,8 @@ abstract class NotificationService {
   /// [event] and [printerId] exist for the diagnostic log and are required so the
   /// compiler refuses a new notification without a name. [picture] marks an **update**
   /// of an alert already on screen and re-posts silently, as does [quiet]
-  /// (docs/notification-delivery.md, "The alert contract").
+  /// (docs/notification-delivery.md, "The alert contract"). [silent] posts a
+  /// new alert without sound or vibration: the alarm rings for the same event.
   Future<void> showAlert({
     required NotifEvent event,
     required int printerId,
@@ -87,6 +88,7 @@ abstract class NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   });
 
   /// Whether the notification [id] is still on screen. False for one the user
@@ -185,6 +187,7 @@ class LocalNotificationService implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {
     final photo = picture;
     final thumbnail = photo?.thumbnailPath;
@@ -195,8 +198,9 @@ class LocalNotificationService implements NotificationService {
         importance: Importance.high,
         priority: Priority.high,
         category: AndroidNotificationCategory.status,
-        // A picture only ever arrives late, on an alert that already rang.
+        // A picture only ever arrives late, on an alert already on screen.
         onlyAlertOnce: photo != null || quiet,
+        silent: silent,
         largeIcon: thumbnail == null ? null : FilePathAndroidBitmap(thumbnail),
         styleInformation: photo == null
             ? null
