@@ -3,7 +3,6 @@ package page.codeberg.morganmlgman.bambuddy_mobile
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.SystemClock
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -67,15 +66,10 @@ class AlarmActivity : FlutterActivity() {
 
     override fun onResume() {
         super.onResume()
-        // The timeout's Handler stalls while the CPU sleeps, so a screen the
-        // sound already outlived would otherwise come back on the next wake.
-        val deadline = intent.getLongExtra(PrintAlarm.EXTRA_DEADLINE, Long.MAX_VALUE)
-        if (SystemClock.elapsedRealtime() >= deadline) {
-            // stop, not finish: below API 26 nothing else cancels the sound. It closes
-            // the screen with the last alarm and leaves it up while others still ring.
-            PrintAlarm.stop(this, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0))
-            if (PrintAlarm.ringingNow().isEmpty()) finish()
-        }
+        // stop, not finish: only a stop silences the player. The screen stays up
+        // while an alarm still rings.
+        PrintAlarm.stopExpired(this)
+        if (PrintAlarm.ringingNow().isEmpty()) finish()
     }
 
     override fun onDestroy() {
