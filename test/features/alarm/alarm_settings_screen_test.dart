@@ -51,7 +51,7 @@ void main() {
       native.add(call);
       return switch (call.method) {
         'canFullScreen' => canFullScreen,
-        'ring' => rings,
+        'ring' => rings ? 'player' : null,
         _ => null,
       };
     });

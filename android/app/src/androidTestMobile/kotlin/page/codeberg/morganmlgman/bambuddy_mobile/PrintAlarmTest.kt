@@ -14,6 +14,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.StandardMethodCodec
+import java.nio.ByteBuffer
+import java.util.concurrent.CopyOnWriteArrayList
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -25,8 +29,8 @@ import org.junit.Test
 /**
  * The print alarm on a real Android (#61, PrintAlarm.kt): what no host test can see — its own
  * player and the system-sound fallback, the notification's flags, the sound on a silenced phone
- * and under another app's notification, the screen over the lock screen, and the three ways it
- * stops.
+ * and under another app's notification, the screen over the lock screen, and the four ways it
+ * stops, each reported to the bug-report log.
  *
  * Run on the phone AVD (`just emu-boot pixel35`), after `flutter build apk --debug --flavor mobile`:
  *
@@ -47,6 +51,7 @@ class PrintAlarmTest {
     private val audio = context.getSystemService(AudioManager::class.java)
     private val pkg = context.packageName
     private var ringerBefore = AudioManager.RINGER_MODE_NORMAL
+    private val reports = Reports()
 
     @Before
     fun setUp() {
@@ -61,6 +66,7 @@ class PrintAlarmTest {
         PrintAlarm.refuseFocusForTest = false
         PrintAlarm.clockOffsetForTest = 0
         PrintAlarm.stopAll(context)
+        PrintAlarm.release(reports)
         device.pressHome()
         shell("cmd notification allow_dnd $pkg")
         audio.ringerMode = ringerBefore
@@ -71,7 +77,7 @@ class PrintAlarmTest {
     @Test
     fun itRingsOnItsOwnPlayerBesideASilentChannel() {
         appInForeground()
-        assertTrue(ring(1))
+        assertEquals(PrintAlarm.SOUND_PLAYER, sound(1))
         assertEquals(PrintAlarm.PLAYER_CHANNEL_ID, waitFor { active(1) }!!.channelId)
         val channel = notifications.getNotificationChannel(PrintAlarm.PLAYER_CHANNEL_ID)
         assertNull(channel.sound)
@@ -83,7 +89,7 @@ class PrintAlarmTest {
     @Test
     fun aRefusedFocusRingsTheSystemSound() {
         PrintAlarm.refuseFocusForTest = true
-        assertTrue(ring(1))
+        assertEquals(PrintAlarm.SOUND_SYSTEM, sound(1))
         assertEquals(PrintAlarm.SOUND_CHANNEL_ID, waitFor { active(1) }!!.channelId)
         val channel = notifications.getNotificationChannel(PrintAlarm.SOUND_CHANNEL_ID)
         assertEquals(AudioAttributes.USAGE_ALARM, channel.audioAttributes.usage)
@@ -187,6 +193,7 @@ class PrintAlarmTest {
         sleep()
         assertTrue(ring(1))
         assertTrue(ring(2))
+        listen()
         assertNotNull("alarm screen not on top", waitFor { if (alarmOnTop()) true else null })
         // The app's own Stop: the second alarm's heads-up is SystemUI's and has one too.
         val button = By.pkg(pkg).desc(STOP)
@@ -194,6 +201,7 @@ class PrintAlarmTest {
             ?.click() ?: error("no Stop on the alarm screen")
         assertNotNull(waitFor { if (active(1) == null && active(2) == null) true else null })
         assertNotNull(waitFor { if (!alarmOnTop()) true else null })
+        assertEquals(listOf(1 to "screen", 2 to "screen"), reports.stops(2))
     }
 
     @Test
@@ -215,9 +223,11 @@ class PrintAlarmTest {
     fun stopOnTheNotificationStopsOnlyItsOwn() {
         assertTrue(ring(1))
         assertTrue(ring(2))
+        listen()
         waitFor { active(1) }!!.actions.single().actionIntent.send()
         assertNotNull(waitFor { if (active(1) == null) true else null })
         assertNotNull(active(2))
+        assertEquals(listOf(1 to "notification"), reports.stops(1))
     }
 
     @Test
@@ -226,6 +236,7 @@ class PrintAlarmTest {
         assertTrue(ring(1, minutes = 10))
         assertTrue(ring(2, minutes = 5))
         waitFor { active(2) }!!
+        listen()
         // The screen as it would come back after a sleep that outlasted both rings.
         PrintAlarm.clockOffsetForTest = 11 * 60_000L
         context.startActivity(
@@ -235,6 +246,10 @@ class PrintAlarmTest {
         )
         assertNotNull(waitFor { if (active(1) == null && active(2) == null) true else null })
         assertNotNull("the player outlived the alarms", waitFor { if (playing("USAGE_ALARM") == null) true else null })
+        assertEquals(listOf(1 to "expired", 2 to "expired"), reports.stops(2))
+        assertEquals(PrintAlarm.SOUND_PLAYER, reports.calls.first().argument<String>("sound"))
+        // The offset is in the ring's age too: it rang 11 minutes as far as the alarm can tell.
+        assertTrue(reports.calls.first().argument<Int>("rang_s")!! >= 660)
     }
 
     @Test
@@ -251,11 +266,13 @@ class PrintAlarmTest {
     fun itStopsOnItsOwnAfterTheTimeout() {
         assertTrue(ring(1, minutes = 1))
         waitFor { active(1) }!!
+        listen()
         assertNotNull(
             "still ringing after a minute",
             waitFor(timeoutMs = 75_000) { if (active(1) == null) true else null },
         )
         assertNotNull(waitFor { if (!alarmOnTop()) true else null })
+        assertEquals(listOf(1 to "timeout"), reports.stops(1))
     }
 
     // --- helpers ---
@@ -280,8 +297,38 @@ class PrintAlarmTest {
         )
     }
 
-    private fun ring(id: Int, minutes: Int = 10) =
+    private fun sound(id: Int, minutes: Int = 10) =
         PrintAlarm.ring(context, id, TITLE, "Benchy is done", STOP, minutes, printer = "Printer $id")
+
+    private fun ring(id: Int, minutes: Int = 10) = sound(id, minutes) != null
+
+    /**
+     * Makes [reports] the newest engine on the alarm channel. After [appInForeground]: the app's
+     * own engine would be newer, and take the reports.
+     */
+    private fun listen() {
+        PrintAlarm.serve(reports, context, activity = null)
+    }
+
+    /** Stands in for an engine: keeps every call the alarm makes to Dart. */
+    private inner class Reports : BinaryMessenger {
+        val calls = CopyOnWriteArrayList<io.flutter.plugin.common.MethodCall>()
+
+        override fun send(channel: String, message: ByteBuffer?) = send(channel, message, null)
+
+        override fun send(channel: String, message: ByteBuffer?, callback: BinaryMessenger.BinaryReply?) {
+            message?.let { calls += StandardMethodCodec.INSTANCE.decodeMethodCall(it.rewind() as ByteBuffer) }
+        }
+
+        override fun setMessageHandler(channel: String, handler: BinaryMessenger.BinaryMessageHandler?) = Unit
+
+        /** The first [count] stops, as (id, why), once that many arrived. */
+        fun stops(count: Int): List<Pair<Int, String>>? = waitFor {
+            calls.filter { it.method == "stopped" }
+                .takeIf { it.size >= count }
+                ?.map { it.argument<Int>("id")!! to it.argument<String>("why")!! }
+        }
+    }
 
     private fun active(id: Int): Notification? =
         notifications.activeNotifications.firstOrNull { it.id == id }?.notification

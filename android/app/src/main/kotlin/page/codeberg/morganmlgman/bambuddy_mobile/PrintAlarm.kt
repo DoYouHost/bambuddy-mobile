@@ -53,6 +53,10 @@ object PrintAlarm {
     const val EXTRA_ID = "id"
     const val EXTRA_STOP = "stop"
 
+    /** What [ring] answers, and what the bug-report log calls each sound. */
+    const val SOUND_PLAYER = "player"
+    const val SOUND_SYSTEM = "system"
+
     private val main = Handler(Looper.getMainLooper())
 
     /** Each alarm's own timeout, so ringing an id again restarts its clock. */
@@ -63,6 +67,12 @@ object PrintAlarm {
 
     /** The alarm screen on display, so a Stop from the notification reaches it too. */
     var screen: WeakReference<AlarmActivity>? = null
+
+    /**
+     * Every engine serving the channel, newest last. A stop is reported to the newest only, so the
+     * log holds it once: the service's engine goes when the app comes back while the alarm rings.
+     */
+    private val hosts = LinkedHashMap<BinaryMessenger, MethodChannel>()
 
     /** One sound for every alarm ringing; null while none is, or while the fallback rings. */
     private var player: MediaPlayer? = null
@@ -81,7 +91,7 @@ object PrintAlarm {
      * engine, which can ring but has no screen to open the permission page from.
      */
     fun serve(messenger: BinaryMessenger, context: Context, activity: Activity?): MethodChannel =
-        MethodChannel(messenger, METHOD_CHANNEL).apply {
+        MethodChannel(messenger, METHOD_CHANNEL).also { hosts.remove(messenger); hosts[messenger] = it }.apply {
             setMethodCallHandler { call, result ->
                 when (call.method) {
                     "ring" -> result.success(
@@ -104,6 +114,19 @@ object PrintAlarm {
                 }
             }
         }
+
+    /** The engine behind [messenger] is going: nothing may be reported to it any more. */
+    fun release(messenger: BinaryMessenger) {
+        hosts.remove(messenger)?.setMethodCallHandler(null)
+    }
+
+    /**
+     * Tells the newest engine, whose Dart side writes it to the bug-report log. Posted: an engine
+     * takes calls on the main thread only, and a test stops alarms from its own.
+     */
+    private fun report(method: String, fields: Map<String, Any>) {
+        main.post { hosts.values.lastOrNull()?.invokeMethod(method, fields) }
+    }
 
     fun canFullScreen(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
@@ -231,7 +254,10 @@ object PrintAlarm {
         focus = null
     }
 
-    /** Posts the alarm. False when notifications are off for the app, so nothing could ring. */
+    /**
+     * Posts the alarm, and answers [SOUND_PLAYER] or [SOUND_SYSTEM] for the sound it rings with.
+     * Null when notifications are off for the app, so nothing could ring.
+     */
     fun ring(
         context: Context,
         id: Int,
@@ -240,19 +266,19 @@ object PrintAlarm {
         stopLabel: String,
         minutes: Int,
         printer: String,
-    ): Boolean {
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+    ): String? {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return null
         ensureChannels(context)
         // Switching the alarm's channel off in the system settings is a way to silence it.
-        if (blocked(context, PLAYER_CHANNEL_ID)) return false
+        if (blocked(context, PLAYER_CHANNEL_ID)) return null
         val ringFor = minutes.coerceIn(1, 30) * 60_000L
-        val alarm = Ring(title, body, printer, stopLabel, now() + ringFor)
         // An alarm already on the system sound keeps the rest there: two tones at once.
         val ownSound = (ringing.isEmpty() || player != null) && startPlayer(context)
-        if (!ownSound && blocked(context, SOUND_CHANNEL_ID)) return false
+        if (!ownSound && blocked(context, SOUND_CHANNEL_ID)) return null
+        val alarm = Ring(title, body, printer, stopLabel, now(), now() + ringFor)
         if (!post(context, id, alarm, ownSound)) {
             if (ringing.isEmpty()) stopPlayer(context)
-            return false
+            return null
         }
         // Re-inserted, so a ring under an id already listed moves to the newest.
         ringing.remove(id)
@@ -262,10 +288,10 @@ object PrintAlarm {
         // player and the screen go with this. The application context: the test alarm is
         // rung from MainActivity, which this map must not keep alive.
         val app = context.applicationContext
-        val timeout = Runnable { stop(app, id) }
+        val timeout = Runnable { stop(app, id, "timeout") }
         timeouts.put(id, timeout)?.let(main::removeCallbacks)
         main.postDelayed(timeout, ringFor)
-        return true
+        return alarm.sound
     }
 
     private fun post(context: Context, id: Int, alarm: Ring, ownSound: Boolean): Boolean {
@@ -281,6 +307,7 @@ object PrintAlarm {
             Intent(context, AlarmStopReceiver::class.java).setAction(ACTION_STOP).putExtra(EXTRA_ID, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        alarm.sound = if (ownSound) SOUND_PLAYER else SOUND_SYSTEM
         val notification = NotificationCompat.Builder(context, if (ownSound) PLAYER_CHANNEL_ID else SOUND_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_notify)
             .setContentTitle(alarm.title)
@@ -314,14 +341,21 @@ object PrintAlarm {
      */
     private fun recover(context: Context) {
         stopPlayer(context)
-        if (ringing.isEmpty() || startPlayer(context)) return
-        for ((id, alarm) in ringing) post(context, id, alarm, ownSound = false)
+        if (ringing.isEmpty()) return
+        val sound = if (startPlayer(context)) SOUND_PLAYER else SOUND_SYSTEM
+        if (sound == SOUND_SYSTEM) for ((id, alarm) in ringing) post(context, id, alarm, ownSound = false)
+        for (id in ringing.keys) report("recovered", mapOf("id" to id, "sound" to sound))
     }
 
-    /** Stops one alarm; the screen drops it from its list, and closes with the last. */
-    fun stop(context: Context, id: Int) {
+    /**
+     * Stops one alarm; the screen drops it from its list, and closes with the last. [why] goes to
+     * the bug-report log: `screen`, `notification`, `timeout` or `expired`.
+     */
+    fun stop(context: Context, id: Int, why: String) {
         timeouts.remove(id)?.let(main::removeCallbacks)
-        ringing.remove(id)
+        ringing.remove(id)?.let {
+            report("stopped", mapOf("id" to id, "why" to why, "rang_s" to (now() - it.started) / 1000, "sound" to it.sound))
+        }
         NotificationManagerCompat.from(context).cancel(id)
         if (ringing.isEmpty()) stopPlayer(context)
         val shown = screen?.get() ?: return
@@ -330,7 +364,7 @@ object PrintAlarm {
 
     /** Every alarm still ringing: the screen's Stop, which lists them all. */
     fun stopAll(context: Context) {
-        for (id in (ringing.keys + timeouts.keys).toList()) stop(context, id)
+        for (id in (ringing.keys + timeouts.keys).toList()) stop(context, id, "screen")
         screen?.get()?.finish()
     }
 
@@ -340,7 +374,7 @@ object PrintAlarm {
      */
     fun stopExpired(context: Context) {
         val now = now()
-        for ((id, alarm) in ringing.entries.toList()) if (alarm.deadline <= now) stop(context, id)
+        for ((id, alarm) in ringing.entries.toList()) if (alarm.deadline <= now) stop(context, id, "expired")
     }
 
     private fun now() = SystemClock.elapsedRealtime() + clockOffsetForTest
@@ -354,9 +388,13 @@ object PrintAlarm {
         val body: String,
         val printer: String,
         val stopLabel: String,
+        val started: Long,
         /** [now] at which it stops on its own. */
         val deadline: Long,
-    )
+    ) {
+        /** Set by [post]: the player dying moves it to [SOUND_SYSTEM]. */
+        var sound = SOUND_PLAYER
+    }
 }
 
 /**
@@ -365,6 +403,6 @@ object PrintAlarm {
  */
 class AlarmStopReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        PrintAlarm.stop(context, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0))
+        PrintAlarm.stop(context, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0), "notification")
     }
 }

@@ -9,6 +9,7 @@ import 'core/api/custom_ca.dart';
 import 'core/demo/demo_backend.dart';
 import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
+import 'core/notifications/alarm_ringer.dart';
 import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/settings_repository.dart';
@@ -37,6 +38,9 @@ Future<void> main() async {
   ).loadDemoPrintingCount();
   final notifications = LocalNotificationService();
   await notifications.init();
+  // The alarm outlives the service's engine when the app comes back while it
+  // rings; then this engine is the one its stop is reported to.
+  AlarmRinger.recordReports();
   // HMS description catalog for UI (printer card). Background isolate loads its own.
   await HmsCatalog.instance.load(systemLocale());
 

@@ -276,6 +276,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
         : null;
     if (locations != null) unawaited(locations.load());
 
+    // The alarm rings from this engine, so its stops are logged here while it lives.
+    AlarmRinger.recordReports();
     _monitor = PrintMonitor(
       notify,
       serverUrl: profile.baseUrl,

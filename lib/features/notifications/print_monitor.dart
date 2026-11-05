@@ -434,12 +434,13 @@ class PrintMonitor {
             minutes: prefs.ringMinutes,
             printer: printerLabel(status, l),
           )
-          .then((rang) {
-            if (!rang) _memo[id]?.alarmUntil = null;
+          .then((sound) {
+            if (sound == null) _memo[id]?.alarmUntil = null;
             NotifProbe.alarm(
               id,
               event: event,
-              outcome: rang ? 'rang' : 'refused',
+              outcome: sound == null ? 'refused' : 'rang',
+              fields: {'sound': ?sound?.name},
             );
           }),
     );
