@@ -59,6 +59,7 @@ class PrintAlarmTest {
     @After
     fun tearDown() {
         PrintAlarm.refuseFocusForTest = false
+        PrintAlarm.clockOffsetForTest = 0
         PrintAlarm.stopAll(context)
         device.pressHome()
         shell("cmd notification allow_dnd $pkg")
@@ -110,7 +111,8 @@ class PrintAlarmTest {
         assertTrue(posted.flags and Notification.FLAG_INSISTENT != 0)
         assertEquals(Notification.CATEGORY_ALARM, posted.category)
         assertNotNull(posted.fullScreenIntent)
-        assertEquals(3 * 60_000L, posted.timeoutAfter)
+        // Counted from the alarm's deadline, so a few milliseconds have gone by.
+        assertTrue(posted.timeoutAfter in (3 * 60_000L - 5_000)..(3 * 60_000L))
         assertEquals(STOP, posted.actions.single().title.toString())
         assertEquals("Printer 1", posted.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
     }
@@ -219,18 +221,30 @@ class PrintAlarmTest {
     }
 
     @Test
-    fun aScreenPastItsDeadlineStopsTheAlarm() {
-        assertTrue(ring(1))
-        waitFor { active(1) }!!
-        // The screen as it would come back after a sleep that outlasted the ring.
+    fun aScreenPastEveryDeadlineStopsEveryAlarm() {
+        appInForeground()
+        assertTrue(ring(1, minutes = 10))
+        assertTrue(ring(2, minutes = 5))
+        waitFor { active(2) }!!
+        // The screen as it would come back after a sleep that outlasted both rings.
+        PrintAlarm.clockOffsetForTest = 11 * 60_000L
         context.startActivity(
             Intent(context, AlarmActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .putExtra(PrintAlarm.EXTRA_ID, 1)
-                .putExtra(PrintAlarm.EXTRA_STOP, STOP)
-                .putExtra(PrintAlarm.EXTRA_DEADLINE, SystemClock.elapsedRealtime() - 1),
+                .putExtra(PrintAlarm.EXTRA_STOP, STOP),
         )
-        assertNotNull(waitFor { if (active(1) == null) true else null })
+        assertNotNull(waitFor { if (active(1) == null && active(2) == null) true else null })
+        assertNotNull("the player outlived the alarms", waitFor { if (playing("USAGE_ALARM") == null) true else null })
+    }
+
+    @Test
+    fun anAlarmOnTheSystemSoundKeepsTheNextOneThere() {
+        PrintAlarm.refuseFocusForTest = true
+        assertTrue(ring(1))
+        PrintAlarm.refuseFocusForTest = false
+        appInForeground()
+        assertTrue(ring(2))
+        assertEquals(PrintAlarm.SOUND_CHANNEL_ID, waitFor { active(2) }!!.channelId)
     }
 
     @Test

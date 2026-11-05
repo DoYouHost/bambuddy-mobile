@@ -53,16 +53,13 @@ object PrintAlarm {
     const val EXTRA_ID = "id"
     const val EXTRA_STOP = "stop"
 
-    /** `elapsedRealtime` after which the screen has nothing left to say. */
-    const val EXTRA_DEADLINE = "deadline"
-
     private val main = Handler(Looper.getMainLooper())
 
     /** Each alarm's own timeout, so ringing an id again restarts its clock. */
     private val timeouts = mutableMapOf<Int, Runnable>()
 
-    /** What each alarm still ringing says, oldest first: the screen lists them all. */
-    private val ringing = LinkedHashMap<Int, Map<String, String>>()
+    /** Every alarm still ringing, oldest first: the screen lists them all. */
+    private val ringing = LinkedHashMap<Int, Ring>()
 
     /** The alarm screen on display, so a Stop from the notification reaches it too. */
     var screen: WeakReference<AlarmActivity>? = null
@@ -76,7 +73,8 @@ object PrintAlarm {
     var refuseFocusForTest = false
 
     /** Every alarm still ringing, newest first, as the screen shows them. */
-    fun ringingNow(): List<Map<String, String>> = ringing.values.reversed()
+    fun ringingNow(): List<Map<String, String>> =
+        ringing.values.reversed().map { mapOf("title" to it.title, "body" to it.body, "printer" to it.printer) }
 
     /**
      * Serves the alarm channel on [messenger]. [activity] is null on the foreground service's
@@ -166,17 +164,23 @@ object PrintAlarm {
         if (player != null) return true
         val audio = context.getSystemService(AudioManager::class.java)
         if (refuseFocusForTest || !requestFocus(audio)) return false
-        val sound = alarmSound()
-        val started = sound?.let {
+        val app = context.applicationContext
+        val started = alarmSound()?.let { sound ->
+            val candidate = MediaPlayer()
             try {
-                MediaPlayer().apply {
+                candidate.apply {
                     setAudioAttributes(alarmAttributes)
-                    setDataSource(context.applicationContext, it)
+                    setDataSource(app, sound)
                     isLooping = true
+                    setOnErrorListener { failed, _, _ ->
+                        if (failed === player) recover(app)
+                        true
+                    }
                     prepare()
                     start()
                 }
             } catch (_: Exception) {
+                candidate.release()
                 null
             }
         }
@@ -202,21 +206,25 @@ object PrintAlarm {
     private fun requestFocus(audio: AudioManager): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             @Suppress("DEPRECATION")
-            return audio.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT) ==
+            return audio.requestAudioFocus(ignoreFocus, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT) ==
                 AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         }
         val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(alarmAttributes)
+            .setOnAudioFocusChangeListener(ignoreFocus)
             .build()
         if (audio.requestAudioFocus(request) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return false
         focus = request
         return true
     }
 
+    /** An alarm rings on through a call or another app's sound; Stop and the timeout end it. */
+    private val ignoreFocus = AudioManager.OnAudioFocusChangeListener { }
+
     private fun abandonFocus(audio: AudioManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             @Suppress("DEPRECATION")
-            audio.abandonAudioFocus(null)
+            audio.abandonAudioFocus(ignoreFocus)
             return
         }
         focus?.let(audio::abandonAudioFocusRequest)
@@ -233,20 +241,39 @@ object PrintAlarm {
         minutes: Int,
         printer: String,
     ): Boolean {
-        val manager = NotificationManagerCompat.from(context)
-        if (!manager.areNotificationsEnabled()) return false
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
         ensureChannels(context)
         // Switching the alarm's channel off in the system settings is a way to silence it.
         if (blocked(context, PLAYER_CHANNEL_ID)) return false
         val ringFor = minutes.coerceIn(1, 30) * 60_000L
+        val alarm = Ring(title, body, printer, stopLabel, now() + ringFor)
+        // An alarm already on the system sound keeps the rest there: two tones at once.
+        val ownSound = (ringing.isEmpty() || player != null) && startPlayer(context)
+        if (!ownSound && blocked(context, SOUND_CHANNEL_ID)) return false
+        if (!post(context, id, alarm, ownSound)) {
+            if (ringing.isEmpty()) stopPlayer(context)
+            return false
+        }
+        // Re-inserted, so a ring under an id already listed moves to the newest.
+        ringing.remove(id)
+        ringing[id] = alarm
+        screen?.get()?.refresh()
+        // setTimeoutAfter only removes the notification, and is a no-op below API 26; the
+        // player and the screen go with this. The application context: the test alarm is
+        // rung from MainActivity, which this map must not keep alive.
+        val app = context.applicationContext
+        val timeout = Runnable { stop(app, id) }
+        timeouts.put(id, timeout)?.let(main::removeCallbacks)
+        main.postDelayed(timeout, ringFor)
+        return true
+    }
 
-        val screenIntent = Intent(context, AlarmActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
-            .putExtra(EXTRA_ID, id)
-            .putExtra(EXTRA_STOP, stopLabel)
-            .putExtra(EXTRA_DEADLINE, SystemClock.elapsedRealtime() + ringFor)
+    private fun post(context: Context, id: Int, alarm: Ring, ownSound: Boolean): Boolean {
         val openScreen = PendingIntent.getActivity(
-            context, id, screenIntent,
+            context, id,
+            Intent(context, AlarmActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+                .putExtra(EXTRA_STOP, alarm.stopLabel),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val stop = PendingIntent.getBroadcast(
@@ -254,13 +281,11 @@ object PrintAlarm {
             Intent(context, AlarmStopReceiver::class.java).setAction(ACTION_STOP).putExtra(EXTRA_ID, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val ownSound = startPlayer(context)
-        if (!ownSound && blocked(context, SOUND_CHANNEL_ID)) return false
         val notification = NotificationCompat.Builder(context, if (ownSound) PLAYER_CHANNEL_ID else SOUND_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_notify)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setSubText(printer.ifBlank { null })
+            .setContentTitle(alarm.title)
+            .setContentText(alarm.body)
+            .setSubText(alarm.printer.ifBlank { null })
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -269,30 +294,28 @@ object PrintAlarm {
             .setFullScreenIntent(openScreen, true)
             .setContentIntent(openScreen)
             .setDeleteIntent(stop)
-            .addAction(0, stopLabel, stop)
-            .setTimeoutAfter(ringFor)
+            .addAction(0, alarm.stopLabel, stop)
+            .setTimeoutAfter((alarm.deadline - now()).coerceAtLeast(1))
             .setOngoing(true)
             .build()
             // Loops the vibration, and the fallback's sound.
             .apply { flags = flags or android.app.Notification.FLAG_INSISTENT }
-        try {
-            manager.notify(id, notification)
+        return try {
+            NotificationManagerCompat.from(context).notify(id, notification)
+            true
         } catch (_: SecurityException) {
-            if (ringing.isEmpty()) stopPlayer(context)
-            return false
+            false
         }
-        // Re-inserted, so a ring under an id already listed moves to the newest.
-        ringing.remove(id)
-        ringing[id] = mapOf("title" to title, "body" to body, "printer" to printer)
-        screen?.get()?.refresh()
-        // setTimeoutAfter is a no-op below API 26, and the screen has to close with the sound.
-        // The application context: the test alarm is rung from MainActivity, which this map
-        // must not keep alive.
-        val app = context.applicationContext
-        val timeout = Runnable { stop(app, id) }
-        timeouts.put(id, timeout)?.let(main::removeCallbacks)
-        main.postDelayed(timeout, ringFor)
-        return true
+    }
+
+    /**
+     * The player died mid-ring. A fresh one if Android still lets it play, otherwise every
+     * alarm goes over to the system sound, so none is left silent.
+     */
+    private fun recover(context: Context) {
+        stopPlayer(context)
+        if (ringing.isEmpty() || startPlayer(context)) return
+        for ((id, alarm) in ringing) post(context, id, alarm, ownSound = false)
     }
 
     /** Stops one alarm; the screen drops it from its list, and closes with the last. */
@@ -310,6 +333,30 @@ object PrintAlarm {
         for (id in (ringing.keys + timeouts.keys).toList()) stop(context, id)
         screen?.get()?.finish()
     }
+
+    /**
+     * Every alarm past its length. The timeouts' Handler stalls while the CPU sleeps, so the
+     * screen calls this when it comes back.
+     */
+    fun stopExpired(context: Context) {
+        val now = now()
+        for ((id, alarm) in ringing.entries.toList()) if (alarm.deadline <= now) stop(context, id)
+    }
+
+    private fun now() = SystemClock.elapsedRealtime() + clockOffsetForTest
+
+    /** Moves [now] forward in a device test, as a sleep that outlasted the ring would. */
+    @VisibleForTesting
+    var clockOffsetForTest = 0L
+
+    private class Ring(
+        val title: String,
+        val body: String,
+        val printer: String,
+        val stopLabel: String,
+        /** [now] at which it stops on its own. */
+        val deadline: Long,
+    )
 }
 
 /**
