@@ -156,11 +156,19 @@ scope there are the two we may not keep.
   decides only whether a photo reached it, and every way that fails (no alert to
   update, swiped away, download failed) looks identical from outside.
 - **`alarm`** says what the alarm decided for an event while the alarm is on:
-  `ringing` (asked to ring, written before the answer, like `posted`), then `rang`,
-  or `refused` if nothing could ring (no host, or notifications off); `type_off` for an
-  event cleared in the alarm settings; `outside_window`; or `ended_early` for a
-  drying cycle stopped with time left.
+  `ringing` (asked to ring, written before the answer, like `posted`), then `rang`
+  with its `sound` (`player`, or `system` when Android refused the player the audio
+  focus), or `refused` if nothing could ring (no host, or notifications off);
+  `type_off` for an event cleared in the alarm settings; `outside_window`; or
+  `ended_early` for a drying cycle stopped with time left.
   Nothing while the alarm is off, which is every install that never asked for it.
+- **`alarm_stop`** and **`alarm_recover`** come from `PrintAlarm.kt`, which reports
+  over the alarm channel to the newest engine serving it: the service's engine is
+  torn down when the app comes back while the alarm still rings. `alarm_stop` carries
+  the notification id (`nid`), `why` (`screen`, `notification`, `timeout`,
+  `expired`), `rang_s` and `sound`, so "it rang for two seconds" reads as a tap or a
+  dead sound. `alarm_recover` (warn) is a player that died mid-ring and the sound the
+  alarm moved to. A stop with no engine alive is not recorded.
 - **`primed`** is the baseline a fresh monitor latched from a printer's first
   frame. The background isolate is rebuilt on every entry into the background and a
   new monitor fires nothing from the first frame it sees (otherwise a print

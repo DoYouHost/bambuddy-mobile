@@ -19,10 +19,10 @@ final _night = DateTime(2026, 11, 4, 23, 30);
 
 class _Ringer implements AlarmRinger {
   final List<Map<String, Object?>> rings = [];
-  bool answer = true;
+  AlarmSound? answer = AlarmSound.player;
 
   @override
-  Future<bool> ring({
+  Future<AlarmSound?> ring({
     required int id,
     required String title,
     required String body,
@@ -699,7 +699,7 @@ void main() {
       final m = monitor(
         notifications: {NotifEvent.printFinished, NotifEvent.printerError},
       );
-      ringer.answer = false;
+      ringer.answer = null;
       m.update({1: _status(state: 'RUNNING', stage: 0)});
       m.update({
         1: _status(state: 'FAILED', stage: 0, hms: [hmsX2dHeatbed.fault]),
@@ -751,20 +751,39 @@ void main() {
       ];
     }
 
-    testWithClock('a ring that went through is recorded as rang', _night, (
+    for (final sound in AlarmSound.values) {
+      testWithClock(
+        'a ring that went through is recorded as rang, on the ${sound.name} sound',
+        _night,
+        (_) async {
+          final all = await rows(() async {
+            final m = monitor();
+            ringer.answer = sound;
+            finishPrint(m);
+            await Future<void>.delayed(Duration.zero);
+          });
+          expect(
+            [
+              for (final r in all)
+                if (r['evt'] == 'alarm') (r['outcome'], r['sound']),
+            ],
+            [('ringing', null), ('rang', sound.name)],
+          );
+        },
+      );
+    }
+
+    testWithClock('a refused ring is recorded with no sound', _night, (
       _,
     ) async {
       final all = await rows(() async {
-        finishPrint(monitor());
+        final m = monitor();
+        ringer.answer = null;
+        finishPrint(m);
         await Future<void>.delayed(Duration.zero);
       });
-      expect(
-        [
-          for (final r in all)
-            if (r['evt'] == 'alarm') r['outcome'],
-        ],
-        ['ringing', 'rang'],
-      );
+      final refused = all.singleWhere((r) => r['outcome'] == 'refused');
+      expect(refused.containsKey('sound'), isFalse);
     });
 
     testWithClock(

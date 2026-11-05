@@ -60,9 +60,10 @@ class MainActivity : FlutterActivity() {
      * The next activity registers its own in [configureFlutterEngine].
      */
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
-        for (channel in listOf(BATTERY_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL, PrintAlarm.METHOD_CHANNEL)) {
+        for (channel in listOf(BATTERY_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL)) {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler(null)
         }
+        PrintAlarm.release(flutterEngine.dartExecutor.binaryMessenger)
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

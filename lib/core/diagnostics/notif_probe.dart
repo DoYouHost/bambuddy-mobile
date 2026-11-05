@@ -144,9 +144,9 @@ class NotifProbe {
   );
 
   /// What the alarm (#61) decided for an event while the alarm is on:
-  /// `ringing` (asked to ring, written before the answer), then `rang` or
-  /// `refused` (nothing could ring), `type_off` (this event cleared), `outside_window` or
-  /// `ended_early` (a drying cycle stopped with time left).
+  /// `ringing` (asked to ring, written before the answer), then `rang` with its
+  /// `sound` or `refused` (nothing could ring), `type_off` (this event cleared),
+  /// `outside_window` or `ended_early` (a drying cycle stopped with time left).
   /// Nothing is recorded while the alarm itself is off — that is every install
   /// that never asked for one.
   static void alarm(
@@ -164,6 +164,31 @@ class NotifProbe {
       ...fields,
     },
   );
+
+  /// A ringing alarm ended, as the native side reported it: [why] is `screen`,
+  /// `notification`, `timeout` or `expired` (the screen came back after a sleep
+  /// past the deadline). [nid] is the alarm's notification id, as in `posted`.
+  /// The length tells a tap from a sound that died early.
+  static void alarmStopped(
+    int nid, {
+    required String why,
+    required int rangSeconds,
+    required String sound,
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'alarm_stop',
+    fields: {'nid': nid, 'why': why, 'rang_s': rangSeconds, 'sound': sound},
+  );
+
+  /// The alarm's player died mid-ring, and [sound] is what the alarm rings with
+  /// now: a fresh player, or the system sound the next notification can cut.
+  static void alarmRecovered(int nid, {required String sound}) =>
+      DiagnosticRecorder.active?.add(
+        LogSource.notif,
+        'alarm_recover',
+        lvl: LogLevel.warn,
+        fields: {'nid': nid, 'sound': sound},
+      );
 
   /// The baseline a fresh monitor latched from a printer's first frame: the silence of a
   /// new monitor is correct and invisible, so this one record answers "the app

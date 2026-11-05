@@ -242,14 +242,15 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   mutes an app's second noisy post within a second, `Muting recently noisy` in logcat).
   When the alarm does not ring (off, excluded, outside the hours), the notification
   rings as usual.
-- **Three ways it stops:** Stop on the screen, which stops every printer's alarm,
+- **Four ways it stops**, each reported to the bug-report log as `alarm_stop`
+  ([logging-guide.md](logging-guide.md)): Stop on the screen, which stops every printer's alarm,
   since the screen lists them all; Stop on the notification, which stops its own
   (`AlarmStopReceiver`, also the delete intent where Android lets an ongoing
   notification be swiped away); and the timeout. The timeout is `setTimeoutAfter`
   plus a main-looper timer: the first only removes the notification (and is a no-op
   below API 26), while the player and the screen go with a stop. The timer stalls while
   the CPU sleeps, so each alarm keeps its deadline and the screen stops every one past
-  it on its next `onResume` (`stopExpired`). A new ring under the same id restarts the
+  it on its next `onResume` (`stopExpired`, the fourth). A new ring under the same id restarts the
   timeout.
 - **The full-screen permission** (`USE_FULL_SCREEN_INTENT`) is not granted by default
   on Android 14+ to an app that is not a clock or a phone. The settings show a note

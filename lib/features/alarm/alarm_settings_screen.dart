@@ -188,7 +188,7 @@ class _AlarmSettingsScreenState extends ConsumerState<AlarmSettingsScreen> {
   /// see the screen, short enough not to need stopping.
   Future<void> _ringTest(AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
-    final rang = await const AlarmRinger().ring(
+    final sound = await const AlarmRinger().ring(
       id: alarmTestId,
       title: l10n.alarmTest,
       body: l10n.alarmTestBody,
@@ -196,7 +196,7 @@ class _AlarmSettingsScreenState extends ConsumerState<AlarmSettingsScreen> {
       minutes: 1,
       printer: '',
     );
-    if (!rang) messenger.snack(l10n.alarmTestFailed);
+    if (sound == null) messenger.snack(l10n.alarmTestFailed);
   }
 }
 
