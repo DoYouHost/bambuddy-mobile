@@ -1075,6 +1075,16 @@ void main() {
             expect(size.height, greaterThanOrEqualTo(48), reason: id);
           }
         }
+        // The chips share one line: a chip that grows to the width it is
+        // offered stacks every reading on a line of its own.
+        if (scale < 2.0) {
+          final tops = {
+            for (final id in ['printer.ams_meta', 'printer.drying'])
+              for (final e in byLogId(id).evaluate())
+                tester.getRect(find.byWidget(e.widget)).top,
+          };
+          expect(tops, hasLength(1));
+        }
         // With room they stay at the end of the header, as they were; at 150 %
         // the 48 dp chips no longer fit beside the name and take a line.
         if (scale == 1.0) {
