@@ -842,6 +842,7 @@ class FgsNotificationService implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) => _alerts.showAlert(
     event: event,
     printerId: printerId,
@@ -852,6 +853,7 @@ class FgsNotificationService implements NotificationService {
     actions: actions,
     picture: picture,
     quiet: quiet,
+    silent: silent,
   );
 
   @override

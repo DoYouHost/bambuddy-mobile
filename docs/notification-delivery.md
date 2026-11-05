@@ -220,6 +220,12 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   permission. It loops until the notification goes or the user opens the shade:
   touching a heads-up alarm silences it, which counts as heard. Sound and usage are frozen
   once the channel exists; changing them needs a new channel id.
+- **The event's own notification goes out silent while the alarm rings**
+  (`showAlert(silent: true)`, from `PrintMonitor._ringAlarm`'s result). Android mutes
+  an app's second noisy post within a second (`Muting recently noisy` in logcat), so a
+  print-finished notification posted beside the alarm took its sound and left the
+  screen up in silence. When the alarm does not ring (off, excluded, outside the
+  hours), the notification rings as usual.
 - **Three ways it stops:** Stop on the screen, which stops every printer's alarm
   (the screen shows only the latest, and closing it over another still ringing would
   leave no screen for that one); Stop on the notification, which stops its own

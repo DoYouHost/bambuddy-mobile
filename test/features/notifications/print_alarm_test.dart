@@ -71,10 +71,12 @@ PrinterStatus _status({
   String? job,
   List<HmsError>? hms,
   List<AmsUnit>? ams,
+  int? stage,
 }) => PrinterStatus(
   id: 1,
   name: 'X1C',
   state: state,
+  stgCur: stage,
   currentPrint: job,
   hmsErrors: hms,
   ams: ams,
@@ -86,6 +88,7 @@ AmsUnit _unit(int? minutes, {int? status, int id = 0}) =>
 void main() {
   late _Ringer ringer;
   late _Timers timers;
+  late RecordingNotifications posted;
 
   PrintMonitor monitor({
     AlarmPrefs alarm = const AlarmPrefs(enabled: true),
@@ -94,8 +97,9 @@ void main() {
   }) {
     ringer = _Ringer();
     timers = _Timers();
+    posted = RecordingNotifications();
     return PrintMonitor(
-      RecordingNotifications(),
+      posted,
       serverUrl: 'http://bambuddy.lan',
       prefs: NotificationPrefs(enabled: notifications, alarm: alarm),
       l10n: () => en,
@@ -272,6 +276,158 @@ void main() {
       expect(ringer.rings.single['title'], en.notifErrorTitle);
     });
 
+    at('a fault the print runs on through does not ring', (_) {
+      final m = monitor(notifications: {NotifEvent.printerError});
+      expect(hmsRunout.fault.level, 2);
+      m.update({1: _status(state: 'RUNNING')});
+      m.update({
+        1: _status(state: 'RUNNING', hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      expect(ringer.rings, isEmpty);
+      expect(
+        posted.alerts.single['silent'],
+        isFalse,
+        reason: 'no alarm, so the notification rings itself',
+      );
+    });
+
+    // 5 M400, 16 the user, 30 a pause G-code: the pause was asked for.
+    for (final stage in [5, 16, 30]) {
+      at('a fault standing through a pause of stage $stage does not ring', (_) {
+        final m = monitor(notifications: {NotifEvent.printerError});
+        m.update({1: _status(state: 'RUNNING')});
+        m.update({
+          1: _status(state: 'PAUSE', stage: stage, hms: [hmsRunout.fault]),
+        });
+        timers.elapse();
+        expect(ringer.rings, isEmpty);
+        expect(posted.alerts.single['silent'], isFalse);
+      });
+    }
+
+    at('a pause the fault forced rings', (_) {
+      final m = monitor();
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      expect(ringer.rings, hasLength(1));
+    });
+
+    // The hold ends once; a fault that stood before the pause rings on it.
+    at('a fault that stood while printing rings when it pauses the print', (_) {
+      final m = monitor();
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      m.update({
+        1: _status(state: 'RUNNING', stage: 0, hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      expect(ringer.rings, isEmpty);
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, hasLength(1));
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, hasLength(1), reason: 'once per pause');
+    });
+
+    at('a fault that stood on an idle printer rings when it pauses the print', (
+      _,
+    ) {
+      final m = monitor();
+      m.update({1: _status(state: 'IDLE')});
+      m.update({
+        1: _status(state: 'IDLE', hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      m.update({
+        1: _status(state: 'RUNNING', stage: 0, hms: [hmsRunout.fault]),
+      });
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('a user pause over a standing fault does not ring', (_) {
+      final m = monitor();
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      m.update({
+        1: _status(state: 'RUNNING', stage: 0, hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      m.update({
+        1: _status(state: 'PAUSE', stage: 16, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, isEmpty);
+    });
+
+    at('a fault and its pause in one frame ring once, when the hold ends', (_) {
+      final m = monitor();
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, isEmpty);
+      timers.elapse();
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('a fault that ends the print within its hold posts its alert silent', (
+      _,
+    ) {
+      final fault = hmsX2dHeatbed.fault;
+      expect(fault.level, 1);
+      final m = monitor(notifications: {NotifEvent.printerError});
+      m.update({1: _status(state: 'RUNNING')});
+      m.update({
+        1: _status(state: 'RUNNING', hms: [fault]),
+      });
+      m.update({
+        1: _status(state: 'FAILED', hms: [fault]),
+      });
+      expect(ringer.rings, hasLength(1), reason: 'the FAILED edge');
+      timers.elapse();
+      expect(ringer.rings, hasLength(1));
+      expect(
+        posted.alerts.single['silent'],
+        isTrue,
+        reason: 'the FAILED alarm may still be ringing',
+      );
+    });
+
+    at('a requested stage the print already ran under is a leftover', (_) {
+      final m = monitor();
+      m.update({1: _status(state: 'RUNNING', stage: 16)});
+      m.update({
+        1: _status(state: 'RUNNING', stage: 16, hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      m.update({
+        1: _status(state: 'PAUSE', stage: 16, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('a leftover stage on the first frame is a leftover too', (_) {
+      final m = monitor();
+      m.update({
+        1: _status(state: 'RUNNING', stage: 16, hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      m.update({
+        1: _status(state: 'PAUSE', stage: 16, hms: [hmsRunout.fault]),
+      });
+      expect(ringer.rings, hasLength(1));
+    });
+
     at('a fault that only prompts does not ring', (_) {
       final prompt = HmsSample.printError(
         'a prompt',
@@ -434,6 +590,137 @@ void main() {
     });
   });
 
+  // Android mutes an app's second noisy post within a second: a notification
+  // that rang first would leave the alarm screen up with no sound.
+  group('the notification beside a ringing alarm', () {
+    Object? silentOf(NotifEvent event) =>
+        posted.alerts.singleWhere((a) => a['event'] == event)['silent'];
+
+    at('a finish rings the alarm and posts the notification silent', (_) {
+      final m = monitor(notifications: {NotifEvent.printFinished});
+      finishPrint(m);
+      expect(ringer.rings, hasLength(1));
+      expect(silentOf(NotifEvent.printFinished), isTrue);
+    });
+
+    at('a failed print does the same', (_) {
+      final m = monitor(notifications: {NotifEvent.printFailed});
+      m.update({1: _status(state: 'RUNNING')});
+      m.update({1: _status(state: 'FAILED')});
+      expect(ringer.rings, hasLength(1));
+      expect(silentOf(NotifEvent.printFailed), isTrue);
+    });
+
+    at('a stopping fault does the same', (_) {
+      final m = monitor(notifications: {NotifEvent.printerError});
+      m.update({1: _status(state: 'RUNNING')});
+      m.update({
+        1: _status(state: 'PAUSE', hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      expect(ringer.rings, hasLength(1));
+      expect(silentOf(NotifEvent.printerError), isTrue);
+    });
+
+    at('with the alarm off the notification rings itself', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(),
+        notifications: {NotifEvent.printFinished},
+      );
+      finishPrint(m);
+      expect(silentOf(NotifEvent.printFinished), isFalse);
+    });
+
+    at('outside the hours the notification rings itself', (time) {
+      time.now = DateTime(2026, 11, 4, 12);
+      final m = monitor(notifications: {NotifEvent.printFinished});
+      finishPrint(m);
+      expect(ringer.rings, isEmpty);
+      expect(silentOf(NotifEvent.printFinished), isFalse);
+    });
+
+    at('an excluded printer\'s notification rings itself', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(enabled: true, excludedPrinters: {1}),
+        notifications: {NotifEvent.printFinished},
+      );
+      finishPrint(m);
+      expect(silentOf(NotifEvent.printFinished), isFalse);
+    });
+
+    PrintMonitor afterPauseAlarm() {
+      final m = monitor(notifications: {NotifEvent.printerError});
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      m.update({
+        1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      expect(ringer.rings, hasLength(1));
+      posted.alerts.clear();
+      return m;
+    }
+
+    void laterFault(PrintMonitor m, String state) {
+      m.update({
+        1: _status(state: state, stage: 0, hms: [hmsX2dHeatbed.fault]),
+      });
+      timers.elapse();
+    }
+
+    at('a resumed print takes the next fault\'s notification loud', (_) {
+      final m = afterPauseAlarm();
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      laterFault(m, 'RUNNING');
+      expect(silentOf(NotifEvent.printerError), isFalse);
+    });
+
+    at('while the alarm may ring, the next fault\'s notification is silent', (
+      _,
+    ) {
+      final m = afterPauseAlarm();
+      laterFault(m, 'PAUSE');
+      expect(silentOf(NotifEvent.printerError), isTrue);
+    });
+
+    at('a new print takes the next fault\'s notification loud', (_) {
+      final m = monitor(
+        notifications: {NotifEvent.printFinished, NotifEvent.printerError},
+      );
+      finishPrint(m);
+      expect(ringer.rings, hasLength(1));
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      laterFault(m, 'RUNNING');
+      expect(silentOf(NotifEvent.printerError), isFalse);
+    });
+
+    testWithClock('a refused ring leaves the next notification loud', _night, (
+      _,
+    ) async {
+      final m = monitor(
+        notifications: {NotifEvent.printFinished, NotifEvent.printerError},
+      );
+      ringer.answer = false;
+      m.update({1: _status(state: 'RUNNING', stage: 0)});
+      m.update({
+        1: _status(state: 'FAILED', stage: 0, hms: [hmsX2dHeatbed.fault]),
+      });
+      await Future<void>.delayed(Duration.zero);
+      timers.elapse();
+      expect(silentOf(NotifEvent.printerError), isFalse);
+    });
+
+    at('a fault on an idle printer does not ring, so it is not silent', (_) {
+      final m = monitor(notifications: {NotifEvent.printerError});
+      m.update({1: _status(state: 'IDLE')});
+      m.update({
+        1: _status(state: 'IDLE', hms: [hmsRunout.fault]),
+      });
+      timers.elapse();
+      expect(ringer.rings, isEmpty);
+      expect(silentOf(NotifEvent.printerError), isFalse);
+    });
+  });
+
   group('diagnostics', () {
     late DiagnosticRecorder recorder;
 
@@ -479,6 +766,33 @@ void main() {
         ['ringing', 'rang'],
       );
     });
+
+    testWithClock(
+      'a pause over a standing fault records nothing with its alarm type off',
+      _night,
+      (_) async {
+        final all = await rows(() {
+          final m = monitor(
+            alarm: const AlarmPrefs(
+              enabled: true,
+            ).withEvent(AlarmEvent.printBlocked, false),
+            notifications: {NotifEvent.printerError},
+          );
+          m.update({1: _status(state: 'RUNNING', stage: 0)});
+          m.update({
+            1: _status(state: 'RUNNING', stage: 0, hms: [hmsRunout.fault]),
+          });
+          timers.elapse();
+          m.update({
+            1: _status(state: 'PAUSE', stage: 6, hms: [hmsRunout.fault]),
+          });
+        });
+        expect([
+          for (final r in all)
+            if (r['evt'] == 'alarm') r['outcome'],
+        ], isEmpty);
+      },
+    );
 
     testWithClock(
       'a hold only the alarm asked for says nothing about the alert when it clears',
