@@ -8,7 +8,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
@@ -16,6 +18,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.flutter.plugin.common.BinaryMessenger
@@ -31,13 +34,20 @@ import java.lang.ref.WeakReference
  * stopping a print included — to whoever picks up the locked phone. [AlarmActivity] shows the
  * text and a Stop button, nothing else.
  *
- * The sound is the notification's own (alarm usage, `FLAG_INSISTENT`), so it plays with or
- * without the full-screen permission. It loops until the notification goes or the user opens
- * the shade — touching a heads-up alarm silences it, which counts as having heard it.
+ * The sound is this object's own [MediaPlayer] at alarm usage, looping until the last alarm
+ * stops: a notification's sound is cut by the next noisy notification of any app. When Android
+ * refuses the audio focus — Android 17 does for a background app it will not let play — the
+ * notification rings on [SOUND_CHANNEL_ID] instead, played by the system, so the alarm is never
+ * silent. Either way it rings with or without the full-screen permission.
  */
 object PrintAlarm {
     const val METHOD_CHANNEL = "page.codeberg.morganmlgman.bambuddy/alarm"
-    private const val CHANNEL_ID = "print_alarm"
+
+    /** The fallback, whose sound the system plays. The id of the channel before the player. */
+    const val SOUND_CHANNEL_ID = "print_alarm"
+
+    /** Beside [player]: vibrates, makes no sound of its own. */
+    const val PLAYER_CHANNEL_ID = "print_alarm_player"
     private const val ACTION_STOP = "page.codeberg.morganmlgman.bambuddy_mobile.ALARM_STOP"
 
     const val EXTRA_ID = "id"
@@ -56,6 +66,14 @@ object PrintAlarm {
 
     /** The alarm screen on display, so a Stop from the notification reaches it too. */
     var screen: WeakReference<AlarmActivity>? = null
+
+    /** One sound for every alarm ringing; null while none is, or while the fallback rings. */
+    private var player: MediaPlayer? = null
+    private var focus: AudioFocusRequest? = null
+
+    /** Lets a device test take the path Android 17 forces on a background app. */
+    @VisibleForTesting
+    var refuseFocusForTest = false
 
     /** Every alarm still ringing, newest first, as the screen shows them. */
     fun ringingNow(): List<Map<String, String>> = ringing.values.reversed()
@@ -110,22 +128,99 @@ object PrintAlarm {
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
-    private fun ensureChannel(context: Context) {
+    private val alarmAttributes: AudioAttributes =
+        AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+    private fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        // Sound and usage are frozen once the channel exists; changing them means a new id.
-        val channel = NotificationChannel(CHANNEL_ID, "Print alarm", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "Rings when a print ends or stops, or drying finishes"
-            setSound(
-                alarmSound(),
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build(),
+        // Sound and usage are frozen once a channel exists; changing them means a new id.
+        fun channel(id: String, name: String, sound: Uri?) =
+            NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Rings when a print ends or stops, or drying finishes"
+                setSound(sound, sound?.let { alarmAttributes })
+                enableVibration(true)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            }
+        context.getSystemService(NotificationManager::class.java).createNotificationChannels(
+            listOf(
+                channel(PLAYER_CHANNEL_ID, "Print alarm", null),
+                channel(SOUND_CHANNEL_ID, "Print alarm (system sound)", alarmSound()),
             )
-            enableVibration(true)
-            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+        )
+    }
+
+    /** Whether the user switched [id] off in the system settings. */
+    private fun blocked(context: Context, id: String): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            context.getSystemService(NotificationManager::class.java)
+                .getNotificationChannel(id)?.importance == NotificationManager.IMPORTANCE_NONE
+
+    /**
+     * Starts the looping sound unless it already plays. False when Android refuses the focus or
+     * the tone will not play: the caller rings the notification's own sound instead.
+     */
+    private fun startPlayer(context: Context): Boolean {
+        if (player != null) return true
+        val audio = context.getSystemService(AudioManager::class.java)
+        if (refuseFocusForTest || !requestFocus(audio)) return false
+        val sound = alarmSound()
+        val started = sound?.let {
+            try {
+                MediaPlayer().apply {
+                    setAudioAttributes(alarmAttributes)
+                    setDataSource(context.applicationContext, it)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            } catch (_: Exception) {
+                null
+            }
         }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        if (started == null) {
+            abandonFocus(audio)
+            return false
+        }
+        player = started
+        return true
+    }
+
+    private fun stopPlayer(context: Context) {
+        val playing = player ?: return
+        player = null
+        try {
+            playing.stop()
+        } catch (_: IllegalStateException) {
+        }
+        playing.release()
+        abandonFocus(context.getSystemService(AudioManager::class.java))
+    }
+
+    private fun requestFocus(audio: AudioManager): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            return audio.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT) ==
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+        val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .setAudioAttributes(alarmAttributes)
+            .build()
+        if (audio.requestAudioFocus(request) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return false
+        focus = request
+        return true
+    }
+
+    private fun abandonFocus(audio: AudioManager) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            audio.abandonAudioFocus(null)
+            return
+        }
+        focus?.let(audio::abandonAudioFocusRequest)
+        focus = null
     }
 
     /** Posts the alarm. False when notifications are off for the app, so nothing could ring. */
@@ -140,7 +235,9 @@ object PrintAlarm {
     ): Boolean {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return false
-        ensureChannel(context)
+        ensureChannels(context)
+        // Switching the alarm's channel off in the system settings is a way to silence it.
+        if (blocked(context, PLAYER_CHANNEL_ID)) return false
         val ringFor = minutes.coerceIn(1, 30) * 60_000L
 
         val screenIntent = Intent(context, AlarmActivity::class.java)
@@ -157,7 +254,9 @@ object PrintAlarm {
             Intent(context, AlarmStopReceiver::class.java).setAction(ACTION_STOP).putExtra(EXTRA_ID, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val ownSound = startPlayer(context)
+        if (!ownSound && blocked(context, SOUND_CHANNEL_ID)) return false
+        val notification = NotificationCompat.Builder(context, if (ownSound) PLAYER_CHANNEL_ID else SOUND_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_notify)
             .setContentTitle(title)
             .setContentText(body)
@@ -166,7 +265,7 @@ object PrintAlarm {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             // Below API 26 there is no channel to carry the sound.
-            .setSound(alarmSound(), AudioManager.STREAM_ALARM)
+            .setSound(if (ownSound) null else alarmSound(), AudioManager.STREAM_ALARM)
             .setFullScreenIntent(openScreen, true)
             .setContentIntent(openScreen)
             .setDeleteIntent(stop)
@@ -174,10 +273,12 @@ object PrintAlarm {
             .setTimeoutAfter(ringFor)
             .setOngoing(true)
             .build()
+            // Loops the vibration, and the fallback's sound.
             .apply { flags = flags or android.app.Notification.FLAG_INSISTENT }
         try {
             manager.notify(id, notification)
         } catch (_: SecurityException) {
+            if (ringing.isEmpty()) stopPlayer(context)
             return false
         }
         // Re-inserted, so a ring under an id already listed moves to the newest.
@@ -199,6 +300,7 @@ object PrintAlarm {
         timeouts.remove(id)?.let(main::removeCallbacks)
         ringing.remove(id)
         NotificationManagerCompat.from(context).cancel(id)
+        if (ringing.isEmpty()) stopPlayer(context)
         val shown = screen?.get() ?: return
         if (ringing.isEmpty()) shown.finish() else shown.refresh()
     }

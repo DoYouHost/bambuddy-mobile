@@ -17,14 +17,16 @@ import androidx.test.uiautomator.Until
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
 /**
- * The print alarm on a real Android (#61, PrintAlarm.kt): what no host test can see — the
- * channel's audio, the notification's flags, the sound on a silenced phone, the screen over
- * the lock screen, and the three ways it stops.
+ * The print alarm on a real Android (#61, PrintAlarm.kt): what no host test can see — its own
+ * player and the system-sound fallback, the notification's flags, the sound on a silenced phone
+ * and under another app's notification, the screen over the lock screen, and the three ways it
+ * stops.
  *
  * Run on the phone AVD (`just emu-boot pixel35`), after `flutter build apk --debug --flavor mobile`:
  *
@@ -56,7 +58,9 @@ class PrintAlarmTest {
 
     @After
     fun tearDown() {
+        PrintAlarm.refuseFocusForTest = false
         PrintAlarm.stopAll(context)
+        device.pressHome()
         shell("cmd notification allow_dnd $pkg")
         audio.ringerMode = ringerBefore
         shell("cmd notification disallow_dnd $pkg")
@@ -64,13 +68,39 @@ class PrintAlarmTest {
     }
 
     @Test
-    fun theChannelRingsAsAnAlarm() {
+    fun itRingsOnItsOwnPlayerBesideASilentChannel() {
+        appInForeground()
         assertTrue(ring(1))
-        val channel = notifications.getNotificationChannel("print_alarm")
-        assertNotNull(channel)
+        assertEquals(PrintAlarm.PLAYER_CHANNEL_ID, waitFor { active(1) }!!.channelId)
+        val channel = notifications.getNotificationChannel(PrintAlarm.PLAYER_CHANNEL_ID)
+        assertNull(channel.sound)
+        assertTrue(channel.shouldVibrate())
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
+        assertNotNull("no alarm-usage playback", waitFor { playing("USAGE_ALARM") })
+    }
+
+    @Test
+    fun aRefusedFocusRingsTheSystemSound() {
+        PrintAlarm.refuseFocusForTest = true
+        assertTrue(ring(1))
+        assertEquals(PrintAlarm.SOUND_CHANNEL_ID, waitFor { active(1) }!!.channelId)
+        val channel = notifications.getNotificationChannel(PrintAlarm.SOUND_CHANNEL_ID)
         assertEquals(AudioAttributes.USAGE_ALARM, channel.audioAttributes.usage)
         assertNotNull(channel.sound)
-        assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
+        assertNotNull("the fallback made no sound", waitFor { playing("USAGE_ALARM") })
+    }
+
+    @Test
+    fun theLastStopSilencesThePlayer() {
+        appInForeground()
+        assertTrue(ring(1))
+        assertTrue(ring(2))
+        assertNotNull(waitFor { playing("USAGE_ALARM") })
+        waitFor { active(1) }!!.actions.single().actionIntent.send()
+        assertNotNull(waitFor { if (active(1) == null) true else null })
+        assertNotNull("one alarm still rings", playing("USAGE_ALARM"))
+        waitFor { active(2) }!!.actions.single().actionIntent.send()
+        assertNotNull("the player outlived the last alarm", waitFor { if (playing("USAGE_ALARM") == null) true else null })
     }
 
     @Test
@@ -92,15 +122,30 @@ class PrintAlarmTest {
         assertEquals(AudioManager.RINGER_MODE_SILENT, audio.ringerMode)
         assertTrue(audio.getStreamVolume(AudioManager.STREAM_ALARM) > 0)
 
+        appInForeground()
         assertTrue(ring(1))
-        // The system plays a notification's sound from its own process, so the
-        // only witness is the audio service's list of what is playing.
-        val playing = waitFor {
-            shell("dumpsys audio").lines().firstOrNull {
-                "usage=USAGE_ALARM" in it && "state:started" in it
-            }
-        }
-        assertNotNull("no alarm-usage playback while silenced", playing)
+        assertEquals(PrintAlarm.PLAYER_CHANNEL_ID, waitFor { active(1) }!!.channelId)
+        assertNotNull("no alarm-usage playback while silenced", waitFor { playing("USAGE_ALARM") })
+    }
+
+    @Test
+    fun anotherAppsNotificationDoesNotCutTheLoop() {
+        appInForeground()
+        assertTrue(ring(1))
+        assertEquals(PrintAlarm.PLAYER_CHANNEL_ID, waitFor { active(1) }!!.channelId)
+        assertNotNull("the alarm never started", waitFor { playing("USAGE_ALARM") })
+        // Posted as the shell, so it is another app with a sound of its own.
+        shell("cmd notification post -t Ping $OTHER_TAG 'Another app'")
+        // The other sound has to have played, or the check below proves nothing.
+        assertNotNull(
+            "the other notification made no sound",
+            waitFor { playing("USAGE_NOTIFICATION") },
+        )
+        SystemClock.sleep(3_000)
+        assertNotNull(
+            "the alarm went quiet after another app's notification",
+            playing("USAGE_ALARM"),
+        )
     }
 
     @Test
@@ -201,11 +246,35 @@ class PrintAlarmTest {
 
     // --- helpers ---
 
+    /**
+     * Android refuses the audio focus to an app with neither a visible activity nor a foreground
+     * service ("Audio focus request blocked by hardening"), and this test process has no service.
+     * In the app the monitor's service is what lets the player ring.
+     */
+    private fun appInForeground() {
+        context.startActivity(
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        assertNotNull(
+            "the app never came to the front",
+            waitFor {
+                if (shell("dumpsys activity activities").lines().any {
+                        "ResumedActivity" in it && "MainActivity" in it
+                    }
+                ) true else null
+            },
+        )
+    }
+
     private fun ring(id: Int, minutes: Int = 10) =
         PrintAlarm.ring(context, id, TITLE, "Benchy is done", STOP, minutes, printer = "Printer $id")
 
     private fun active(id: Int): Notification? =
         notifications.activeNotifications.firstOrNull { it.id == id }?.notification
+
+    /** A started player of this usage, from the audio service's list of what is playing. */
+    private fun playing(usage: String): String? =
+        shell("dumpsys audio").lines().firstOrNull { "usage=$usage" in it && "state:started" in it }
 
     private fun alarmOnTop() =
         shell("dumpsys activity activities").lines().any {
@@ -241,5 +310,6 @@ class PrintAlarmTest {
         const val TITLE = "Print finished"
         const val STOP = "Stop"
         const val WAIT_MS = 10_000L
+        const val OTHER_TAG = "other_app"
     }
 }
