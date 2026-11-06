@@ -1177,7 +1177,7 @@
   "inventoryExtraColorsHint": "2–8 hexów koloru, po przecinku",
   "inventoryFieldEffect": "Efekt",
   "inventoryEffectNone": "Brak",
-  "inventoryColorCommon": "Popularne kolory",
+  "inventoryColorCatalog": "Katalog kolorów",
   "inventoryColorSearchHint": "Szukaj kolorów…",
   "inventoryColorPickTitle": "Wybierz kolor",
   "inventoryColorSelect": "Wybierz",

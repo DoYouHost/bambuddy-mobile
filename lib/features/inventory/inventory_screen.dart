@@ -45,6 +45,7 @@ import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
 import '../stats/stats_common.dart' show fmtGrams;
+import 'catalogue_colours.dart';
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 import '../../core/diagnostics/filament_material.dart';
@@ -60,6 +61,7 @@ part 'location_climate.dart';
 part 'suppliers_sheet.dart';
 part 'spool_form_suppliers.dart';
 part 'spool_form_profile_default.dart';
+part 'spool_form_catalogue.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]

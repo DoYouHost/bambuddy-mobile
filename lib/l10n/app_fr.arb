@@ -1564,7 +1564,7 @@
   "inventoryExtraColorsHint": "2–8 valeurs hex, séparées par des virgules",
   "inventoryFieldEffect": "Effet",
   "inventoryEffectNone": "Aucun",
-  "inventoryColorCommon": "Couleurs courantes",
+  "inventoryColorCatalog": "Catalogue de couleurs",
   "inventoryColorSearchHint": "Rechercher des couleurs…",
   "inventoryColorPickTitle": "Choisir une couleur",
   "inventoryColorSelect": "Sélectionner",

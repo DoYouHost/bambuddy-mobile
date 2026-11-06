@@ -1564,7 +1564,7 @@
   "inventoryExtraColorsHint": "2–8 valores hex, separados por comas",
   "inventoryFieldEffect": "Efecto",
   "inventoryEffectNone": "Ninguno",
-  "inventoryColorCommon": "Colores habituales",
+  "inventoryColorCatalog": "Catálogo de colores",
   "inventoryColorSearchHint": "Buscar colores…",
   "inventoryColorPickTitle": "Elegir un color",
   "inventoryColorSelect": "Seleccionar",

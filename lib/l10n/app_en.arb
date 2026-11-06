@@ -2041,7 +2041,7 @@
   "inventoryExtraColorsHint": "2–8 hex stops, comma-separated",
   "inventoryFieldEffect": "Effect",
   "inventoryEffectNone": "None",
-  "inventoryColorCommon": "Common colors",
+  "inventoryColorCatalog": "Color catalog",
   "inventoryColorSearchHint": "Search colors…",
   "inventoryColorPickTitle": "Pick a color",
   "inventoryColorSelect": "Select",

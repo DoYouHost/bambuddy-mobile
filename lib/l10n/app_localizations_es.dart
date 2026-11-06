@@ -3140,7 +3140,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryEffectNone => 'Ninguno';
 
   @override
-  String get inventoryColorCommon => 'Colores habituales';
+  String get inventoryColorCatalog => 'Catálogo de colores';
 
   @override
   String get inventoryColorSearchHint => 'Buscar colores…';

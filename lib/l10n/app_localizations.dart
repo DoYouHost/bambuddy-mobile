@@ -5198,11 +5198,11 @@ abstract class AppLocalizations {
   /// **'None'**
   String get inventoryEffectNone;
 
-  /// No description provided for @inventoryColorCommon.
+  /// No description provided for @inventoryColorCatalog.
   ///
   /// In en, this message translates to:
-  /// **'Common colors'**
-  String get inventoryColorCommon;
+  /// **'Color catalog'**
+  String get inventoryColorCatalog;
 
   /// No description provided for @inventoryColorSearchHint.
   ///
