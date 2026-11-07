@@ -1153,7 +1153,8 @@ void main() {
       });
 
       // The web would send the alpha with another `FF` after it, ten digits
-      // (ConfigureAmsSlotModal.tsx:463, :620); a slot takes one opaque colour.
+      // (`ConfigureAmsSlotModal.tsx::configureMutation`); a slot takes one
+      // opaque colour.
       testWidgets('a colour with an alpha is written opaque', (tester) async {
         final repo = await openSheet(
           tester,

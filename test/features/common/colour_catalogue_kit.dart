@@ -14,8 +14,9 @@ final realCatalogue = [
 ];
 
 /// Colours a user adds (`POST /inventory/colors`) in the shapes the seed never
-/// has, written as the server stores them (`routes/inventory.py` 460-479,
-/// `schemas/spool.py` 42-93). Built from the schema, not read off a server.
+/// has, written as the server stores them (`routes/inventory.py::ColorEntryCreate`,
+/// `schemas/spool.py::normalize_extra_colors`, `normalize_effect_type`). Built
+/// from the schema, not read off a server.
 const customColours = [
   ColorEntry(
     id: 1001,
