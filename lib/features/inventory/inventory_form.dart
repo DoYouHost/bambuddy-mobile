@@ -260,12 +260,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   }
 
   Future<void> _openColorCatalogue() async {
+    final brand = _c['brand']!.text;
+    final material = _c['material']!.text;
+    final subtype = _c['subtype']!.text;
     final picked = await dashSurfaceSheet<ColorEntry>(
       context,
-      builder: (_) => _ColorCatalogueSheet(
-        brand: _c['brand']!.text,
-        material: _c['material']!.text,
-        subtype: _c['subtype']!.text,
+      builder: (_) => ColorCatalogueSheet(
+        id: 'spool_form',
+        narrow: (all) => catalogueColoursFor(
+          all,
+          brand: brand,
+          material: material,
+          subtype: subtype,
+        ),
         rgba: _c['rgba']!.text,
         colorName: _c['colorName']!.text,
       ),
@@ -609,7 +616,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
             // --- COLOR ---
             _FormSection(label: l10n.inventorySectionColor),
-            if ((ref.watch(colorCatalogProvider).value ?? const []).isNotEmpty)
+            // Shown while the catalogue loads, so its arrival does not push
+            // the form down under a finger.
+            if (ref.watch(colorCatalogProvider).value?.isNotEmpty ?? true)
               dashPickerField(
                 context,
                 id: 'spool_form.color_catalog',
@@ -1774,6 +1783,7 @@ Future<Color?> _pickSpoolColor(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
+      insetPadding: spoolColourDialogInset,
       title: Text(l10n.inventoryColorPickTitle),
       contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(

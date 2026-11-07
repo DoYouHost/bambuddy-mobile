@@ -832,7 +832,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Katalogfarben",
-  "amsSlotConfigColourCustom": "Benutzerdefinierte Farbe",
   "amsSlotReset": "Slot zurücksetzen",
   "amsSlotResetConfirmTitle": "Diesen Slot zurücksetzen?",
   "amsSlotResetConfirmMessage": "Der Drucker vergisst das hier konfigurierte Filament und Bambuddy vergisst, welches Profil es war.",

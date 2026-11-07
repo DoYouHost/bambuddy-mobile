@@ -832,7 +832,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Colores del catálogo",
-  "amsSlotConfigColourCustom": "Color personalizado",
   "amsSlotReset": "Restablecer ranura",
   "amsSlotResetConfirmTitle": "¿Restablecer esta ranura?",
   "amsSlotResetConfirmMessage": "La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.",

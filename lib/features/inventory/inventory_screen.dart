@@ -61,7 +61,7 @@ part 'location_climate.dart';
 part 'suppliers_sheet.dart';
 part 'spool_form_suppliers.dart';
 part 'spool_form_profile_default.dart';
-part 'spool_form_catalogue.dart';
+part 'color_catalogue_sheet.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]

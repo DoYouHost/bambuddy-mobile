@@ -11,9 +11,10 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/device_files.dart';
 import '../common/trimmed_or_null.dart';
-import '../inventory/inventory_providers.dart'
-    show colorCatalogProvider, inventoryProvider;
-import '../inventory/inventory_screen.dart' show parseSpoolColor;
+import '../inventory/catalogue_colours.dart';
+import '../inventory/inventory_providers.dart' show inventoryProvider;
+import '../inventory/inventory_screen.dart'
+    show ColorCatalogueSheet, parseSpoolColor;
 import 'swatch_providers.dart';
 
 /// Swatch codes screen: create and manually edit 6-char codes for filament
@@ -707,11 +708,21 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
   /// Open bambuddy color catalog browser (like in spool form). Selection fills
   /// color name AND hex (`rgba`); fields can still be edited manually after choice.
   Future<void> _pickColor() async {
-    final entry = await dashSheet<ColorEntry>(
+    final entry = await dashSurfaceSheet<ColorEntry>(
       context,
-      builder: (_) => const _ColorCatalogSheet(),
+      builder: (_) => ColorCatalogueSheet(
+        id: 'swatch_form',
+        narrow: (all) => catalogueColoursFor(
+          all,
+          brand: _brand.text,
+          material: _material.text,
+          subtype: _variant.text,
+        ),
+        rgba: _rgba.text,
+        colorName: _colorName.text,
+      ),
     );
-    if (entry == null) return;
+    if (entry == null || !mounted) return;
     var hex = entry.hexColor.trim();
     if (hex.startsWith('#')) hex = hex.substring(1);
     setState(() {
@@ -909,115 +920,6 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Color selection sheet from bambuddy catalog (`/inventory/colors`). Searchable
-/// by name/brand/material; no query shows defaults. Tap returns chosen [ColorEntry]
-/// to form. Empty catalog (e.g. Spoolman backend) → hint to enter color manually.
-class _ColorCatalogSheet extends ConsumerStatefulWidget {
-  const _ColorCatalogSheet();
-
-  @override
-  ConsumerState<_ColorCatalogSheet> createState() => _ColorCatalogSheetState();
-}
-
-class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colors = ref.watch(colorCatalogProvider).value ?? const [];
-    final q = _query.trim().toLowerCase();
-
-    final List<ColorEntry> shown;
-    if (q.isEmpty) {
-      shown = colors.where((c) => c.isDefault).take(60).toList();
-    } else {
-      shown = colors
-          .where(
-            (c) =>
-                c.colorName.toLowerCase().contains(q) ||
-                c.manufacturer.toLowerCase().contains(q) ||
-                (c.material?.toLowerCase().contains(q) ?? false),
-          )
-          .take(80)
-          .toList();
-    }
-
-    final mq = MediaQuery.of(context);
-    final bottomInset = mq.viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: DashSpace.gutter,
-        right: DashSpace.gutter,
-        top: DashSpace.xs,
-        bottom: bottomInset + DashSpace.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l10n.inventoryColorPickTitle, style: theme.textTheme.titleLarge),
-          const SizedBox(height: DashSpace.md),
-          DashSearchField(
-            id: 'swatches.color_search',
-            hintText: l10n.inventoryColorSearchHint,
-            onChanged: (v) => setState(() => _query = v),
-          ),
-          const SizedBox(height: DashSpace.md),
-          if (colors.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
-              child: Text(
-                l10n.swatchNoCatalogColors,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            )
-          else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: shown.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (_, i) {
-                  final c = shown[i];
-                  final color = parseSpoolColor(c.hexColor);
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      width: DashSize.d40,
-                      height: DashSize.d40,
-                      decoration: BoxDecoration(
-                        color:
-                            color ?? theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(DashRadius.sm),
-                        border: Border.all(
-                          color: theme.colorScheme.outlineVariant,
-                        ),
-                      ),
-                    ),
-                    title: Text(c.colorName.isEmpty ? '—' : c.colorName),
-                    subtitle: c.manufacturer.isEmpty
-                        ? null
-                        : Text(
-                            c.manufacturer,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                    onTap: () => Navigator.pop(context, c),
-                  ).tagged('swatch_form.color_option');
-                },
-              ),
-            ),
-        ],
       ),
     );
   }

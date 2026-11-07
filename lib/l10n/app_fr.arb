@@ -832,7 +832,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Couleurs du catalogue",
-  "amsSlotConfigColourCustom": "Couleur personnalisée",
   "amsSlotReset": "Réinitialiser l'emplacement",
   "amsSlotResetConfirmTitle": "Réinitialiser cet emplacement ?",
   "amsSlotResetConfirmMessage": "L'imprimante oublie le filament configuré ici et bambuddy oublie de quel préréglage il s'agissait.",

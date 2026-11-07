@@ -1106,7 +1106,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Catalogue colours",
-  "amsSlotConfigColourCustom": "Custom colour",
   "amsSlotReset": "Clear slot",
   "amsSlotResetConfirmTitle": "Clear this slot?",
   "amsSlotResetConfirmMessage": "The printer forgets the filament configured here, and bambuddy forgets which preset it was.",

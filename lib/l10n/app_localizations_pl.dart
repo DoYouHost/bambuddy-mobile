@@ -1795,9 +1795,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get amsSlotConfigColourCatalogue => 'Kolory z katalogu';
 
   @override
-  String get amsSlotConfigColourCustom => 'Własny kolor';
-
-  @override
   String get amsSlotReset => 'Wyczyść slot';
 
   @override

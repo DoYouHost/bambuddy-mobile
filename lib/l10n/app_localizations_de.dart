@@ -1767,9 +1767,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get amsSlotConfigColourCatalogue => 'Katalogfarben';
 
   @override
-  String get amsSlotConfigColourCustom => 'Benutzerdefinierte Farbe';
-
-  @override
   String get amsSlotReset => 'Slot zurücksetzen';
 
   @override

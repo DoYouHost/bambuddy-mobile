@@ -697,7 +697,6 @@
   "amsSlotConfigNozzleGuess": "Drukarka nie podała średnicy dyszy — przyjmuję {diameter} mm",
   "amsSlotConfigKProfileValue": "K {value}",
   "amsSlotConfigColourCatalogue": "Kolory z katalogu",
-  "amsSlotConfigColourCustom": "Własny kolor",
   "amsSlotReset": "Wyczyść slot",
   "amsSlotResetConfirmTitle": "Wyczyścić slot?",
   "amsSlotResetConfirmMessage": "Drukarka zapomni skonfigurowany tu filament, a bambuddy zapomni, jaki to był preset.",

@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/core/models/inventory_reference.dart';
 import 'package:bambuddy_mobile/features/inventory/catalogue_colours.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../common/colour_catalogue_kit.dart';
+
 ColorEntry entry(
   String name, {
   String? material = 'PLA Basic',
@@ -147,5 +149,32 @@ void main() {
       names(catalogueColoursFor(catalogue, brand: 'Bambu', material: 'ASA')),
       ['Unnamed', 'Blank'],
     );
+  });
+
+  group('on the catalogue a server seeds', () {
+    test('a Bambu Lab PLA Matte spool gets exactly its 25 matte colours', () {
+      final colours = catalogueColoursFor(
+        realCatalogue,
+        brand: 'Bambu Lab',
+        material: 'PLA',
+        subtype: 'Matte',
+      );
+      expect(colours, hasLength(25));
+      expect(colours.map((c) => c.material).toSet(), {'PLA Matte'});
+      expect(
+        colours.map((c) => c.colorName),
+        containsAll(['Ivory White', 'Bone White']),
+      );
+    });
+
+    test('the whites of one maker and material all have their own name', () {
+      final names = catalogueColoursFor(
+        realCatalogue,
+        brand: 'Bambu Lab',
+        material: 'PLA',
+        subtype: 'Matte',
+      ).map((c) => c.colorName).toList();
+      expect(names.toSet(), hasLength(names.length));
+    });
   });
 }

@@ -2900,12 +2900,6 @@ abstract class AppLocalizations {
   /// **'Catalogue colours'**
   String get amsSlotConfigColourCatalogue;
 
-  /// No description provided for @amsSlotConfigColourCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom colour'**
-  String get amsSlotConfigColourCustom;
-
   /// No description provided for @amsSlotReset.
   ///
   /// In en, this message translates to:
