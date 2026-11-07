@@ -1745,9 +1745,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsSlotConfigColourCatalogue => 'Catalogue colours';
 
   @override
-  String get amsSlotConfigColourCustom => 'Custom colour';
-
-  @override
   String get amsSlotReset => 'Clear slot';
 
   @override
@@ -3111,7 +3108,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryEffectNone => 'None';
 
   @override
-  String get inventoryColorCommon => 'Common colors';
+  String get inventoryColorCatalog => 'Color catalog';
 
   @override
   String get inventoryColorSearchHint => 'Search colors…';

@@ -832,7 +832,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Colores del catálogo",
-  "amsSlotConfigColourCustom": "Color personalizado",
   "amsSlotReset": "Restablecer ranura",
   "amsSlotResetConfirmTitle": "¿Restablecer esta ranura?",
   "amsSlotResetConfirmMessage": "La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.",
@@ -1564,7 +1563,7 @@
   "inventoryExtraColorsHint": "2–8 valores hex, separados por comas",
   "inventoryFieldEffect": "Efecto",
   "inventoryEffectNone": "Ninguno",
-  "inventoryColorCommon": "Colores habituales",
+  "inventoryColorCatalog": "Catálogo de colores",
   "inventoryColorSearchHint": "Buscar colores…",
   "inventoryColorPickTitle": "Elegir un color",
   "inventoryColorSelect": "Seleccionar",

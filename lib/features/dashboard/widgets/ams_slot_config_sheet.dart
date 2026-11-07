@@ -21,7 +21,7 @@ import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/error_messages.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, parseSpoolColor;
+    show ColorCatalogueSheet, SpoolSwatch, parseSpoolColor;
 import '../ams_slot_config_providers.dart';
 import '../controls_providers.dart';
 
@@ -177,6 +177,18 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         )
         .value;
     final choices = table == null ? null : _kProfileChoices(table.profiles);
+    // The colours a filament is sold in only mean something once the filament
+    // is known.
+    final catalogue = ref.watch(colorCatalogProvider).value;
+    final preset = _picked?.name;
+    final presetCatalogue = preset == null
+        ? const <ColorEntry>[]
+        : presetColours(catalogue ?? const [], preset);
+    // A slot keeps only a hex, and [presetColours] lists one entry per hex, so
+    // the hex names the entry.
+    final presetPick = presetCatalogue
+        .where((e) => sixHexDigits(e.hexColor) == _colour)
+        .firstOrNull;
     // Three bands, and only the middle one scrolls: what the slot is and what
     // is being searched stay put, the catalogue moves under them, and the
     // actions stay reachable. One scroll region for a form, a filter and a
@@ -213,6 +225,22 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                   ),
                   const SizedBox(height: DashSpace.lg),
                   _colourField(l10n, t),
+                  // Gone only with no catalogue at all: shown while it loads,
+                  // and for a preset it has no colours for (the sheet then
+                  // lists all of it), so its answer never moves the form.
+                  if (preset != null && (catalogue?.isNotEmpty ?? true)) ...[
+                    const SizedBox(height: DashSpace.md),
+                    dashPickerField(
+                      context,
+                      id: 'ams_slot_config.colour_catalog',
+                      label: l10n.amsSlotConfigColourCatalogue,
+                      placeholder: l10n.inventoryColorPickTitle,
+                      value: presetPick?.colorName,
+                      prefixIcon: Icons.palette_outlined,
+                      onTap: () => _pickFromCatalogue(preset),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
                   const SizedBox(height: DashSpace.md),
                   _kProfileField(l10n, t, choices, failed: table?.failed),
                   const SizedBox(height: DashSpace.lg),
@@ -777,15 +805,24 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   Future<void> _pickColour(AppLocalizations l10n) async {
     final chosen = await showDialog<String>(
       context: context,
-      builder: (_) => _ColourDialog(
-        initial: _colour,
-        // The colours a filament is sold in only mean something once the
-        // filament is known.
-        presetName: _picked?.name,
-      ),
+      builder: (_) => _ColourDialog(initial: _colour),
     );
     if (chosen == null || !mounted) return;
     setState(() => _colour = chosen);
+  }
+
+  Future<void> _pickFromCatalogue(String presetName) async {
+    final entry = await dashSurfaceSheet<ColorEntry>(
+      context,
+      builder: (_) => ColorCatalogueSheet(
+        id: 'ams_slot_colour',
+        narrow: (all) => presetColours(all, presetName),
+        rgba: _colour,
+      ),
+    );
+    final hex = sixHexDigits(entry?.hexColor);
+    if (hex == null || !mounted) return;
+    setState(() => _colour = hex);
   }
 
   Future<void> _apply(AppLocalizations l10n) async {
@@ -896,85 +933,34 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       };
 }
 
-/// Colour picker for a slot: the colours this filament is sold in, then the
-/// wheel for everything else.
-///
-/// Pops the chosen colour as six hex digits, or null when cancelled.
-///
-/// The catalogue is bambuddy's own colour table — the one the spool form picks
-/// from — narrowed to the selected preset. It saves hunting a shade on a wheel
-/// when the answer is a named colour off a spool, and it makes the slot's colour
-/// agree with what the inventory calls the same filament.
-class _ColourDialog extends ConsumerStatefulWidget {
-  const _ColourDialog({required this.initial, this.presetName});
+/// The wheel for a slot's colour; the colours its filament is sold in are the
+/// catalogue field beside it. Pops six hex digits, or null when cancelled.
+class _ColourDialog extends StatefulWidget {
+  const _ColourDialog({required this.initial});
 
   /// Six hex digits to open on, or null for white.
   final String? initial;
-  final String? presetName;
 
   @override
-  ConsumerState<_ColourDialog> createState() => _ColourDialogState();
+  State<_ColourDialog> createState() => _ColourDialogState();
 }
 
-class _ColourDialogState extends ConsumerState<_ColourDialog> {
+class _ColourDialogState extends State<_ColourDialog> {
   late Color _picked =
       parseSpoolColor(widget.initial) ?? const Color(0xFFFFFFFF);
-
-  /// Catalogue colour currently showing as chosen, or null once the wheel has
-  /// been moved off it.
-  String? _fromCatalogue;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    final preset = widget.presetName;
-    final catalogue = preset == null
-        ? const <ColorEntry>[]
-        : presetColours(
-            ref.watch(colorCatalogProvider).value ?? const [],
-            preset,
-          );
-
     return AlertDialog(
       title: Text(l10n.amsSlotConfigColour),
+      insetPadding: spoolColourDialogInset,
       contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (catalogue.isNotEmpty) ...[
-              _label(t, l10n.amsSlotConfigColourCatalogue),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  DashSpace.xl,
-                  DashSpace.sm,
-                  DashSpace.xl,
-                  DashSpace.lg,
-                ),
-                // No spacing: each swatch's 48 dp cell already leaves 6 dp around it.
-                child: Wrap(
-                  children: [
-                    for (final entry in catalogue)
-                      _CatalogueSwatch(
-                        entry: entry,
-                        selected:
-                            _fromCatalogue != null &&
-                            sixHexDigits(entry.hexColor) == _fromCatalogue,
-                        onTap: () => setState(() {
-                          _fromCatalogue = sixHexDigits(entry.hexColor);
-                          _picked = parseSpoolColor(entry.hexColor) ?? _picked;
-                        }),
-                      ),
-                  ],
-                ),
-              ),
-              _label(t, l10n.amsSlotConfigColourCustom),
-            ],
-            SpoolColourWheel(color: _picked, onChanged: _onWheel),
-          ],
-        ),
+        // No setState: rebuilding on every drag frame would round-trip the
+        // colour through the picker's own HSV state and lose the hue at zero
+        // saturation.
+        child: SpoolColourWheel(color: _picked, onChanged: (c) => _picked = c),
       ),
       actions: [
         logTag(
@@ -993,67 +979,6 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
         ),
       ],
     );
-  }
-
-  /// Wheel movement, deliberately without `setState`: rebuilding on every drag
-  /// frame would round-trip the colour through the picker's own HSV state and
-  /// lose the hue at zero saturation. The one rebuild worth doing is when the
-  /// drag leaves the catalogue colour that is showing as chosen, so the tick
-  /// does not sit on a swatch the user has moved away from.
-  void _onWheel(Color colour) {
-    _picked = colour;
-    if (_fromCatalogue != null && _hexOf(colour) != _fromCatalogue) {
-      setState(() => _fromCatalogue = null);
-    }
-  }
-
-  Widget _label(DashTokens t, String text) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: DashSpace.xl),
-    child: Text(text, style: t.micro),
-  );
-}
-
-/// One catalogue colour, in the same 36pt square the spool form's picker uses.
-class _CatalogueSwatch extends StatelessWidget {
-  const _CatalogueSwatch({
-    required this.entry,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final ColorEntry entry;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final colour = parseSpoolColor(entry.hexColor);
-    return Tooltip(
-      message: entry.colorName,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(DashRadius.sm),
-        onTap: onTap,
-        // The swatch paints 40 dp, its touch target is the 48 dp cell around it.
-        child: SizedBox.square(
-          dimension: kMinInteractiveDimension,
-          child: Center(
-            child: Container(
-              width: DashSize.d40,
-              height: DashSize.d40,
-              decoration: BoxDecoration(
-                color: colour,
-                borderRadius: BorderRadius.circular(DashRadius.sm),
-                border: Border.all(
-                  color: selected ? t.accentGreen : t.subCardBorder,
-                  width: selected ? DashStroke.regular : DashStroke.hairline,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ).tagged('ams_slot_colour.swatch');
   }
 }
 

@@ -137,7 +137,7 @@ verified.
 - A dimmed label is a disabled node for a screen reader too (`Semantics(enabled:
   false)`), not a test exemption.
 - Icon and colour pickers (`location_form.icon` / `.color`, `maintenance_type_form.icon`,
-  `spool_form.color_swatch`, `project_form.color`) are one `PickerTile`
+  `project_form.color`) are one `PickerTile`
   (`dash_kit`, `packages/dash_kit/lib/src/picker_tile.dart` in `app-shared`: a generic
   widget with no app import belongs there, see unification-lessons.md): a 48 dp touch cell around a drawing that
   keeps its size (44 for icons, 36 for colours), the `Wrap` gap reduced by

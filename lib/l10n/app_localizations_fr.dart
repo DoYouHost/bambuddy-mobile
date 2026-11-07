@@ -1776,9 +1776,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get amsSlotConfigColourCatalogue => 'Couleurs du catalogue';
 
   @override
-  String get amsSlotConfigColourCustom => 'Couleur personnalisée';
-
-  @override
   String get amsSlotReset => 'Réinitialiser l\'emplacement';
 
   @override
@@ -3166,7 +3163,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryEffectNone => 'Aucun';
 
   @override
-  String get inventoryColorCommon => 'Couleurs courantes';
+  String get inventoryColorCatalog => 'Catalogue de couleurs';
 
   @override
   String get inventoryColorSearchHint => 'Rechercher des couleurs…';

@@ -110,7 +110,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// in place a new spool no longer follows its label, see [_followLabel].
   bool _remainingTyped = false;
 
-  String _colorQuery = '';
   bool _materialMissing = false;
   bool _saving = false;
 
@@ -258,6 +257,28 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       _c['extraColors']!.text = e.extraColors ?? '';
       _effectType = e.effectType;
     });
+  }
+
+  Future<void> _openColorCatalogue() async {
+    final brand = _c['brand']!.text;
+    final material = _c['material']!.text;
+    final subtype = _c['subtype']!.text;
+    final picked = await dashSurfaceSheet<ColorEntry>(
+      context,
+      builder: (_) => ColorCatalogueSheet(
+        id: 'spool_form',
+        narrow: (all) => catalogueColoursFor(
+          all,
+          brand: brand,
+          material: material,
+          subtype: subtype,
+        ),
+        rgba: _c['rgba']!.text,
+        colorName: _c['colorName']!.text,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    _applyColor(picked);
   }
 
   Future<void> _save() async {
@@ -595,15 +616,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
             // --- COLOR ---
             _FormSection(label: l10n.inventorySectionColor),
-            ValueListenableBuilder(
-              valueListenable: _c['rgba']!,
-              builder: (context, _, _) => _ColorPicker(
-                rgba: _c['rgba']!.text,
-                query: _colorQuery,
-                onQuery: (v) => setState(() => _colorQuery = v),
-                onPick: _applyColor,
+            // Shown while the catalogue loads, so its arrival does not push
+            // the form down under a finger.
+            if (ref.watch(colorCatalogProvider).value?.isNotEmpty ?? true)
+              dashPickerField(
+                context,
+                id: 'spool_form.color_catalog',
+                label: l10n.inventoryColorCatalog,
+                placeholder: l10n.inventoryColorPickTitle,
+                prefixIcon: Icons.palette_outlined,
+                onTap: _openColorCatalogue,
               ),
-            ),
             Row(
               children: [
                 Expanded(
@@ -1452,130 +1475,6 @@ Widget _spoolCombo(
 int? _intField(Map<String, TextEditingController> c, String key) =>
     parseUserRoundedInt(c[key]!.text);
 
-/// Color picker: large preview + popular swatches from database + search.
-/// Tap color fills hex/name/gradient/effect in form (via [onPick]).
-class _ColorPicker extends ConsumerWidget {
-  const _ColorPicker({
-    required this.rgba,
-    required this.query,
-    required this.onQuery,
-    required this.onPick,
-  });
-
-  final String rgba;
-  final String query;
-  final ValueChanged<String> onQuery;
-  final ValueChanged<ColorEntry> onPick;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    final colors = ref.watch(colorCatalogProvider).value ?? const [];
-    final preview = parseSpoolColor(rgba);
-    final selectedHex = normalizeRgba(rgba);
-
-    final q = query.trim().toLowerCase();
-    final List<ColorEntry> shown;
-    if (q.isEmpty) {
-      shown = colors.where((c) => c.isDefault).take(18).toList();
-    } else {
-      shown = colors
-          .where(
-            (c) =>
-                c.colorName.toLowerCase().contains(q) ||
-                c.manufacturer.toLowerCase().contains(q) ||
-                (c.material?.toLowerCase().contains(q) ?? false),
-          )
-          .take(24)
-          .toList();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: DashSize.d40,
-          decoration: BoxDecoration(
-            color: preview ?? t.subCard,
-            borderRadius: BorderRadius.circular(DashRadius.md),
-            border: Border.all(color: t.subCardBorder),
-          ),
-        ),
-        const SizedBox(height: DashSpace.sm),
-        if (colors.isNotEmpty) ...[
-          DashSearchField(
-            id: 'spool_form.color_search',
-            hintText: l10n.inventoryColorSearchHint,
-            onChanged: onQuery,
-          ),
-          const SizedBox(height: DashSpace.sm),
-          if (q.isEmpty) Text(l10n.inventoryColorCommon, style: t.microSoft),
-          const SizedBox(height: DashSpace.xs),
-          Wrap(
-            spacing: PickerTile.gap(_ColorChip.drawing, DashSpace.sm),
-            runSpacing: PickerTile.gap(_ColorChip.drawing, DashSpace.sm),
-            children: [
-              for (final c in shown)
-                _ColorChip(
-                  entry: c,
-                  selected: normalizeRgba(c.hexColor) == selectedHex,
-                  onTap: () => onPick(c),
-                ),
-            ],
-          ),
-          const SizedBox(height: DashSpace.sm),
-        ],
-      ],
-    );
-  }
-}
-
-class _ColorChip extends StatelessWidget {
-  const _ColorChip({
-    required this.entry,
-    required this.onTap,
-    this.selected = false,
-  });
-
-  final ColorEntry entry;
-  final VoidCallback onTap;
-  final bool selected;
-
-  static const drawing = 36.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final color = parseSpoolColor(entry.hexColor);
-    return Tooltip(
-      message: entry.colorName,
-      child: PickerTile(
-        drawing: drawing,
-        onTap: onTap,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color ?? t.subCard,
-            borderRadius: BorderRadius.circular(DashRadius.sm),
-            border: Border.all(
-              color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? DashStroke.regular : DashStroke.hairline,
-            ),
-          ),
-          child: color == null
-              ? Icon(
-                  Icons.question_mark,
-                  size: DashIcon.sm,
-                  applyTextScaling: false,
-                  color: t.textTertiary,
-                )
-              : null,
-        ),
-      ),
-    ).tagged('spool_form.color_swatch');
-  }
-}
-
 /// Searchable slicer-filament preset picker (bottom sheet). Reuses the slice
 /// modal's [slicerPresetsProvider] (unified local/cloud/standard tiers). Returns
 /// the chosen [SlicerPreset] via `Navigator.pop`, or null on dismiss. Degrades
@@ -1884,6 +1783,7 @@ Future<Color?> _pickSpoolColor(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
+      insetPadding: spoolColourDialogInset,
       title: Text(l10n.inventoryColorPickTitle),
       contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(

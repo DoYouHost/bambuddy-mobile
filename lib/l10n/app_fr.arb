@@ -832,7 +832,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Couleurs du catalogue",
-  "amsSlotConfigColourCustom": "Couleur personnalisée",
   "amsSlotReset": "Réinitialiser l'emplacement",
   "amsSlotResetConfirmTitle": "Réinitialiser cet emplacement ?",
   "amsSlotResetConfirmMessage": "L'imprimante oublie le filament configuré ici et bambuddy oublie de quel préréglage il s'agissait.",
@@ -1564,7 +1563,7 @@
   "inventoryExtraColorsHint": "2–8 valeurs hex, séparées par des virgules",
   "inventoryFieldEffect": "Effet",
   "inventoryEffectNone": "Aucun",
-  "inventoryColorCommon": "Couleurs courantes",
+  "inventoryColorCatalog": "Catalogue de couleurs",
   "inventoryColorSearchHint": "Rechercher des couleurs…",
   "inventoryColorPickTitle": "Choisir une couleur",
   "inventoryColorSelect": "Sélectionner",

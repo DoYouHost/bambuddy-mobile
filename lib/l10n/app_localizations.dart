@@ -2900,12 +2900,6 @@ abstract class AppLocalizations {
   /// **'Catalogue colours'**
   String get amsSlotConfigColourCatalogue;
 
-  /// No description provided for @amsSlotConfigColourCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom colour'**
-  String get amsSlotConfigColourCustom;
-
   /// No description provided for @amsSlotReset.
   ///
   /// In en, this message translates to:
@@ -5198,11 +5192,11 @@ abstract class AppLocalizations {
   /// **'None'**
   String get inventoryEffectNone;
 
-  /// No description provided for @inventoryColorCommon.
+  /// No description provided for @inventoryColorCatalog.
   ///
   /// In en, this message translates to:
-  /// **'Common colors'**
-  String get inventoryColorCommon;
+  /// **'Color catalog'**
+  String get inventoryColorCatalog;
 
   /// No description provided for @inventoryColorSearchHint.
   ///
