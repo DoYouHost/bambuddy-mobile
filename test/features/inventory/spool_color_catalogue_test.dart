@@ -558,9 +558,10 @@ void main() {
       expect(shelf.drafts.single.rgba, '008080FF');
     });
 
-    // The web cuts a catalogue hex to six digits here (ColorSection.tsx:156)
-    // while its own `selectColor` keeps eight (#1545); the app keeps the alpha
-    // a user typed into the catalogue.
+    // The web cuts a catalogue hex to six digits here
+    // (`ColorSection.tsx::matchedCatalogColors`) while its own `selectColor`
+    // keeps eight (#1545); the app keeps the alpha a user typed into the
+    // catalogue.
     testWidgets('a colour with an alpha is saved with it', (tester) async {
       final shelf = await _openForm(
         tester,
