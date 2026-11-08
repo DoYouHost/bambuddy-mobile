@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+import '../api/client_cert.dart';
 import '../api/custom_ca.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
@@ -26,6 +27,7 @@ class WatchConfig {
     this.accent,
     this.watchFace = false,
     this.ca,
+    this.clientCert,
   });
 
   final ServerProfile profile;
@@ -45,6 +47,10 @@ class WatchConfig {
   /// The CA the phone trusts for this server, so the watch's direct fallback
   /// reaches it too; null clears the watch's.
   final CustomCa? ca;
+
+  /// The certificate the phone presents to this server, so the direct fallback
+  /// passes a proxy that asks for one; null clears the watch's.
+  final ClientCert? clientCert;
 
   /// Whether [current] already points at this server in this auth mode.
   ///
@@ -77,6 +83,12 @@ class WatchConfigCodec {
   static const _kWatchFace = 'watchFace';
   static const _kCaName = 'caName';
   static const _kCaPem = 'caPem';
+  // shortcut: a CA and a certificate both near their 64 KB caps would push the
+  // item past the Data Layer's 100 KB; real ones are a few KB, so it is not
+  // checked. Upgrade if a report ever shows a push that never arrives.
+  static const _kCertName = 'certName';
+  static const _kCertData = 'certData';
+  static const _kCertPassword = 'certPassword';
 
   /// Build the context map. Only non-null keys are included — the Data Layer
   /// rejects null values in the map.
@@ -87,6 +99,7 @@ class WatchConfigCodec {
     ({String username, String password})? login,
     WatchTheme? theme,
     CustomCa? ca,
+    ClientCert? clientCert,
   }) => <String, dynamic>{
     _kVersion: version,
     _kBaseUrl: profile.baseUrl,
@@ -104,6 +117,11 @@ class WatchConfigCodec {
     },
     if (theme?.face ?? false) _kWatchFace: true,
     if (ca != null) ...{_kCaName: ca.name, _kCaPem: ca.pem},
+    if (clientCert != null) ...{
+      _kCertName: clientCert.name,
+      _kCertData: clientCert.data,
+      _kCertPassword: clientCert.password,
+    },
   };
 
   /// Parse an incoming context. Returns null for empty/foreign/malformed maps
@@ -142,7 +160,25 @@ class WatchConfigCodec {
         ),
         _ => null,
       },
+      clientCert: switch ((
+        map[_kCertName],
+        map[_kCertData],
+        map[_kCertPassword],
+      )) {
+        (final String name, final String data, final String password) =>
+          _clientCert(name, data, password),
+        _ => null,
+      },
     );
+  }
+
+  /// Parsed again rather than trusted, as the CA is.
+  static ClientCert? _clientCert(String name, String data, String password) {
+    try {
+      return ClientCert.parse(name, base64.decode(data), password).cert;
+    } on FormatException {
+      return null;
+    }
   }
 }
 
@@ -171,6 +207,7 @@ class WatchConfigSync {
     ServerProfile profile, {
     WatchTheme? theme,
     CustomCa? ca,
+    ClientCert? clientCert,
   }) async {
     try {
       final map = WatchConfigCodec.encode(
@@ -186,6 +223,7 @@ class WatchConfigSync {
             : null,
         theme: theme,
         ca: ca,
+        clientCert: clientCert,
       );
       await _watch.updateApplicationContext(map);
     } catch (_) {

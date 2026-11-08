@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/api/client_cert.dart';
 import 'package:bambuddy_mobile/core/api/custom_ca.dart';
+import 'package:bambuddy_mobile/core/api/tls_overrides.dart';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
@@ -12,6 +14,7 @@ import 'package:bambuddy_mobile/wear/wear_theme.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -205,6 +208,82 @@ void main() {
 
       expect(container.read(customCaProvider), isNull);
       expect(container.read(settingsRepositoryProvider).loadCustomCa(), isNull);
+    });
+  });
+
+  group('the client certificate', () {
+    late HttpOverrides? saved;
+    setUp(() {
+      saved = HttpOverrides.current;
+      FlutterSecureStorage.setMockInitialValues({});
+    });
+    tearDown(() {
+      useTls(null, null);
+      HttpOverrides.global = saved;
+    });
+
+    final cert = ClientCert.parse(
+      'phone.p12',
+      File('test/fixtures/tls/client.p12').readAsBytesSync(),
+      'fixture',
+    ).cert;
+    WatchConfig withCert(ClientCert? cert) =>
+        WatchConfig(profile: _workshop, apiKey: 'bb_secret', clientCert: cert);
+
+    testWidgets('rides along on a silent adopt and rebuilds the client', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      final before = container.read(apiClientProvider);
+
+      sync.pushes.add(withCert(cert));
+      await tester.pumpAndSettle();
+
+      expect(container.read(clientCertProvider), cert);
+      expect(
+        await loadClientCert(container.read(settingsRepositoryProvider)),
+        cert,
+      );
+      expect(container.read(apiClientProvider), isNot(same(before)));
+    });
+
+    testWidgets('two pushes in a row are adopted one after the other', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      addTearDown(() => gate.isCompleted ? null : gate.complete());
+      sync = FakeWatchConfigSync(applyGate: gate);
+      final container = await pumpApp(tester, profile: _workshop);
+      final adopt = container.read(pendingWatchConfigProvider.notifier).adopt;
+
+      final added = adopt(withCert(cert));
+      final removed = adopt(withCert(null));
+      await tester.pump();
+      expect(sync.applied, hasLength(1), reason: 'the second waits its turn');
+
+      gate.complete();
+      await Future.wait([added, removed]);
+      expect(sync.applied, hasLength(2));
+      expect(container.read(clientCertProvider), isNull);
+      expect(
+        container.read(settingsRepositoryProvider).loadHasClientCert(),
+        isFalse,
+      );
+    });
+
+    testWidgets('a phone that dropped it clears the watch\'s', (tester) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      final adopt = container.read(pendingWatchConfigProvider.notifier).adopt;
+      await adopt(withCert(cert));
+      expect(container.read(clientCertProvider), cert);
+
+      await adopt(withCert(null));
+
+      expect(container.read(clientCertProvider), isNull);
+      expect(
+        container.read(settingsRepositoryProvider).loadHasClientCert(),
+        isFalse,
+      );
     });
   });
 

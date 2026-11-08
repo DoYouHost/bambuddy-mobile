@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'core/api/custom_ca.dart';
+import 'core/api/client_cert.dart';
+import 'core/api/tls_overrides.dart';
 import 'core/demo/demo_backend.dart';
 import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
@@ -27,7 +28,8 @@ Future<void> main() async {
   registerDashFontLicenses();
   final prefs = await SharedPreferences.getInstance();
   await SettingsRepository(prefs).settleTourForExistingInstall();
-  trustCustomCa(SettingsRepository(prefs).loadCustomCa());
+  final clientCert = await loadClientCert(SettingsRepository(prefs));
+  useTls(SettingsRepository(prefs).loadCustomCa(), clientCert);
   // The demo's printer count, before anything can ask the demo for a status.
   // Read here rather than from the provider that owns the setting: nothing
   // watches that provider until the settings screen is opened, so on a cold
@@ -81,6 +83,7 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialSystemSchemesProvider.overrideWithValue(systemSchemes),
+        initialClientCertProvider.overrideWithValue(clientCert),
         notificationServiceProvider.overrideWithValue(notifications),
         reportBindingsOverride,
       ],

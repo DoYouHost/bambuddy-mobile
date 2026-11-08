@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/custom_ca.dart';
+import 'package:bambuddy_mobile/core/api/tls_overrides.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -95,7 +96,7 @@ void main() {
     });
 
     tearDown(() async {
-      trustCustomCa(null);
+      useTls(null, null);
       await server.close(force: true);
     });
 
@@ -116,9 +117,9 @@ void main() {
     test(
       'is reached once its CA is trusted, and refused again after',
       () async {
-        trustCustomCa(CustomCa.parse('root.pem', _fixture('ca.pem')));
+        useTls(CustomCa.parse('root.pem', _fixture('ca.pem')), null);
         expect(await get(), 'ok');
-        trustCustomCa(null);
+        useTls(null, null);
         await expectLater(get(), throwsA(isA<HandshakeException>()));
       },
     );
@@ -126,7 +127,7 @@ void main() {
     test('a client made before the CA keeps distrusting', () async {
       final before = HttpClient();
       addTearDown(() => before.close(force: true));
-      trustCustomCa(CustomCa.parse('root.pem', _fixture('ca.pem')));
+      useTls(CustomCa.parse('root.pem', _fixture('ca.pem')), null);
       await expectLater(
         before.getUrl(url).then((r) => r.close()),
         throwsA(isA<HandshakeException>()),
@@ -177,8 +178,36 @@ void main() {
     final mocked = HttpOverrides.current;
     HttpOverrides.global = foreign;
     addTearDown(() => HttpOverrides.global = mocked);
-    trustCustomCa(null);
+    useTls(null, null);
     expect(HttpOverrides.current, same(foreign));
+  });
+
+  test('taking the CA back restores an override that was there before', () {
+    final foreign = _Foreign();
+    final mocked = HttpOverrides.current;
+    HttpOverrides.global = foreign;
+    addTearDown(() => HttpOverrides.global = mocked);
+    useTls(CustomCa.parse('root.pem', _fixture('ca.pem')), null);
+    expect(HttpOverrides.current, isNot(same(foreign)));
+    useTls(null, null);
+    expect(HttpOverrides.current, same(foreign));
+  });
+
+  test('two changes started together end as the later one', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    addTearDown(() => useTls(null, null));
+    final notifier = container.read(tlsIdentityProvider.notifier);
+    await Future.wait([
+      notifier.setCa(CustomCa.parse('root.pem', _fixture('ca.pem'))),
+      notifier.setCa(null),
+    ]);
+    expect(container.read(customCaProvider), isNull);
+    expect(SettingsRepository(prefs).loadCustomCa(), isNull);
   });
 
   test('changing the CA gives sign-in a fresh Dio', () async {
@@ -191,11 +220,11 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    addTearDown(() => trustCustomCa(null));
+    addTearDown(() => useTls(null, null));
     final before = container.read(bareDioProvider);
     await container
-        .read(customCaProvider.notifier)
-        .set(CustomCa.parse('root.pem', _fixture('ca.pem')));
+        .read(tlsIdentityProvider.notifier)
+        .setCa(CustomCa.parse('root.pem', _fixture('ca.pem')));
     expect(container.read(bareDioProvider), isNot(same(before)));
     expect(container.read(customCaProvider)?.name, 'root.pem');
   });

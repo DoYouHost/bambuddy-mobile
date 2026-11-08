@@ -235,6 +235,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
             profile,
             theme: ref.read(watchThemeProvider),
             ca: ref.read(customCaProvider),
+            clientCert: ref.read(clientCertProvider),
           ),
     );
   }
@@ -254,7 +255,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // watch is paired.
     ref.listen(serverProfileProvider, (_, _) => _pushToWatch());
     ref.listen(watchThemeProvider, (_, _) => _pushToWatch());
-    ref.listen(customCaProvider, (_, _) => _pushToWatch());
+    ref.listen(tlsIdentityProvider, (_, _) => _pushToWatch());
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
     final router = ref.watch(routerProvider);

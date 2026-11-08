@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -15,9 +13,12 @@ import '../common/device_files.dart';
 /// `.pem`, `.der` or a file with no extension would not be offered at all, so
 /// [CustomCa.parse] is the filter.
 class CustomCaRow extends ConsumerStatefulWidget {
-  const CustomCaRow({super.key, this.enabled = true});
+  const CustomCaRow({super.key, this.enabled = true, this.area = 'setup'});
 
   final bool enabled;
+
+  /// The screen the row's controls log under.
+  final String area;
 
   @override
   ConsumerState<CustomCaRow> createState() => _CustomCaRowState();
@@ -37,7 +38,7 @@ class _CustomCaRowState extends ConsumerState<CustomCaRow> {
     if (ca == null) {
       return Center(
         child: logTag(
-          'setup.ca_import',
+          '${widget.area}.ca_import',
           TextButton.icon(
             onPressed: enabled ? () => _import(l10n) : null,
             icon: Icon(
@@ -57,14 +58,25 @@ class _CustomCaRowState extends ConsumerState<CustomCaRow> {
         const SizedBox(width: DashSpace.sm),
         Expanded(child: Text(l10n.customCaTrusted(ca.name), style: t.body)),
         IconButton(
-          onPressed: enabled
-              ? () => ref.read(customCaProvider.notifier).set(null)
-              : null,
+          onPressed: enabled ? () => _remove(l10n) : null,
           tooltip: l10n.customCaRemove,
           icon: Icon(Icons.close, color: t.textSecondary),
-        ).tagged('setup.ca_remove'),
+        ).tagged('${widget.area}.ca_remove'),
       ],
     );
+  }
+
+  Future<void> _remove(AppLocalizations l10n) async {
+    final yes = await confirmDialog(
+      context,
+      id: '${widget.area}.ca_remove_confirm',
+      title: l10n.customCaRemoveTitle,
+      message: l10n.customCaRemoveMessage,
+      confirmLabel: l10n.certificateRemoveConfirm,
+      destructive: true,
+    );
+    if (!yes || !mounted) return;
+    await ref.read(tlsIdentityProvider.notifier).setCa(null);
   }
 
   Future<void> _import(AppLocalizations l10n) async {
@@ -80,24 +92,18 @@ class _CustomCaRowState extends ConsumerState<CustomCaRow> {
       }
       final file = picked.file;
       if (file == null) return;
-      final ca = CustomCa.parse(file.name, await _read(file));
+      final ca = CustomCa.parse(
+        file.name,
+        await readSmallPickedFile(file, CustomCa.maxBytes),
+      );
       if (!mounted) return;
       if (ca == null) {
         messenger.snack(l10n.customCaInvalid);
         return;
       }
-      await ref.read(customCaProvider.notifier).set(ca);
+      await ref.read(tlsIdentityProvider.notifier).setCa(ca);
     } finally {
       if (mounted) setState(() => _picking = false);
     }
-  }
-
-  /// The size first, so a video picked by mistake is never read into memory;
-  /// the bytes only from a picker that gave no path.
-  static Future<List<int>> _read(PickedFile file) async {
-    if (file.path.isEmpty) return file.bytes ?? const [];
-    final disk = File(file.path);
-    if (await disk.length() > CustomCa.maxBytes) return const [];
-    return disk.readAsBytes();
   }
 }

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/api/client_cert.dart';
 import 'package:bambuddy_mobile/core/api/custom_ca.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
@@ -271,6 +273,53 @@ void main() {
         'caPem': ca.pem,
       });
       expect(config!.ca, isNull);
+    });
+  });
+  group('the client certificate', () {
+    const profile = ServerProfile(
+      baseUrl: 'https://host',
+      authMode: AuthMode.none,
+    );
+    final cert = ClientCert.parse(
+      'phone.p12',
+      File('test/fixtures/tls/client.p12').readAsBytesSync(),
+      'fixture',
+    ).cert!;
+
+    test('round-trips with its name and password', () {
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(profile: profile, clientCert: cert),
+      );
+      expect(config?.clientCert, cert);
+    });
+
+    test('a phone without one sends no keys, and the watch reads none', () {
+      final map = WatchConfigCodec.encode(profile: profile);
+      expect(map.keys, isNot(contains('certData')));
+      expect(WatchConfigCodec.decode(map)?.clientCert, isNull);
+    });
+
+    test('bytes that are not one are no certificate, not a broken config', () {
+      for (final data in ['%%% not base64', base64.encode(utf8.encode('x'))]) {
+        final config = WatchConfigCodec.decode({
+          'baseUrl': 'https://host',
+          'authMode': 'none',
+          'certName': 'phone.p12',
+          'certData': data,
+          'certPassword': 'fixture',
+        });
+        expect(config, isNotNull);
+        expect(config!.clientCert, isNull);
+      }
+    });
+
+    test('the phone pushes the certificate it presents', () async {
+      final watch = FakeWatchConnectivity();
+      await WatchConfigSync(
+        watch: watch,
+        credentials: InMemoryCredentialsStore(),
+      ).push(profile, clientCert: cert);
+      expect(watch.contexts.single['certData'], cert.data);
     });
   });
 }
