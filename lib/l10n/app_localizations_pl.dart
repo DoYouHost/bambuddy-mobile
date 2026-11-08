@@ -2109,6 +2109,56 @@ class AppLocalizationsPl extends AppLocalizations {
   String get customCaPickFailed => 'Nie udało się otworzyć pliku';
 
   @override
+  String get clientCertImport => 'Importuj certyfikat klienta';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Certyfikat klienta: $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Usuń certyfikat klienta';
+
+  @override
+  String get clientCertInvalid => 'Ten plik nie zawiera certyfikatu z kluczem';
+
+  @override
+  String get clientCertWrongPassword => 'Błędne hasło certyfikatu';
+
+  @override
+  String get clientCertPasswordTitle => 'Hasło certyfikatu';
+
+  @override
+  String get certificatesTitle => 'Certyfikaty';
+
+  @override
+  String get customCaRemoveTitle => 'Usunąć certyfikat CA?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'Aplikacja przestanie ufać serwerom, które podpisał.';
+
+  @override
+  String get clientCertRemoveTitle => 'Usunąć certyfikat klienta?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'Serwer, który go wymaga, odrzuci aplikację.';
+
+  @override
+  String get certificatesRemoveAll => 'Usuń wszystkie certyfikaty';
+
+  @override
+  String get certificatesRemoveAllTitle => 'Usunąć wszystkie certyfikaty?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'Aplikacja przestanie łączyć się z serwerami, które ich wymagają.';
+
+  @override
+  String get certificateRemoveConfirm => 'Usuń';
+
+  @override
   String get scanApiKeyTitle => 'Zeskanuj klucz API';
 
   @override
@@ -2163,6 +2213,10 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get errBadCertificate => 'Certyfikat serwera nie jest zaufany';
+
+  @override
+  String get errClientCertRefused =>
+      'Serwer wymaga ważnego certyfikatu klienta';
 
   @override
   String get errConnection => 'Błąd połączenia';

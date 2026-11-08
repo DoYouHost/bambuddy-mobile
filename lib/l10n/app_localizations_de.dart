@@ -2082,6 +2082,57 @@ class AppLocalizationsDe extends AppLocalizations {
   String get customCaPickFailed => 'Die Datei konnte nicht geöffnet werden';
 
   @override
+  String get clientCertImport => 'Client-Zertifikat importieren';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Client-Zertifikat: $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Client-Zertifikat entfernen';
+
+  @override
+  String get clientCertInvalid =>
+      'Diese Datei enthält kein Zertifikat mit Schlüssel';
+
+  @override
+  String get clientCertWrongPassword => 'Falsches Zertifikatspasswort';
+
+  @override
+  String get clientCertPasswordTitle => 'Zertifikatspasswort';
+
+  @override
+  String get certificatesTitle => 'Zertifikate';
+
+  @override
+  String get customCaRemoveTitle => 'CA-Zertifikat entfernen?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'Die App vertraut dann keinen Servern mehr, die es signiert hat.';
+
+  @override
+  String get clientCertRemoveTitle => 'Client-Zertifikat entfernen?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'Ein Server, der es verlangt, lehnt die App dann ab.';
+
+  @override
+  String get certificatesRemoveAll => 'Alle Zertifikate entfernen';
+
+  @override
+  String get certificatesRemoveAllTitle => 'Alle Zertifikate entfernen?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'Die App erreicht dann keine Server mehr, die sie brauchen.';
+
+  @override
+  String get certificateRemoveConfirm => 'Entfernen';
+
+  @override
   String get scanApiKeyTitle => 'API-Schlüssel scannen';
 
   @override
@@ -2138,6 +2189,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get errBadCertificate =>
       'Das Zertifikat des Servers ist nicht vertrauenswürdig';
+
+  @override
+  String get errClientCertRefused =>
+      'Der Server verlangt ein gültiges Client-Zertifikat';
 
   @override
   String get errConnection => 'Verbindungsfehler';

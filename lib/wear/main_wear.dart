@@ -2,7 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../core/api/custom_ca.dart';
+import '../core/api/client_cert.dart';
+import '../core/api/tls_overrides.dart';
 import '../core/notifications/hms_catalog.dart';
 import '../core/settings/settings_repository.dart';
 import '../core/app_context.dart';
@@ -32,12 +33,14 @@ Future<void> main() async {
   final face = readWatchFaceSchemes();
   final prefs = await SharedPreferences.getInstance();
   await catalog;
-  trustCustomCa(SettingsRepository(prefs).loadCustomCa());
+  final clientCert = await loadClientCert(SettingsRepository(prefs));
+  useTls(SettingsRepository(prefs).loadCustomCa(), clientCert);
   runApp(
     ProviderScope(
       retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        initialClientCertProvider.overrideWithValue(clientCert),
         initialSystemSchemesProvider.overrideWithValue(await face),
         systemSchemesReaderProvider.overrideWithValue(readWatchFaceSchemes),
       ],

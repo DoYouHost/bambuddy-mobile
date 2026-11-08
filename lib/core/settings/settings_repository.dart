@@ -54,6 +54,7 @@ class SettingsRepository {
   static const _wearPhoneAccentKey = 'wear_phone_accent';
   static const _tourSeenKey = 'tour_seen';
   static const _customCaKey = 'custom_ca';
+  static const _hasClientCertKey = 'has_client_cert';
 
   final SharedPreferences _prefs;
 
@@ -120,6 +121,15 @@ class SettingsRepository {
 
   Future<void> saveCustomCa(CustomCa? ca) =>
       _setOrRemove(_customCaKey, ca == null ? null : jsonEncode(ca.toJson()));
+
+  /// Whether `ClientCertStore` holds a certificate. The certificate itself is a
+  /// secret and lives there; this flag spares an install without one the
+  /// secure-storage read at start (`loadClientCert`).
+  bool loadHasClientCert() => _prefs.getBool(_hasClientCertKey) ?? false;
+
+  Future<void> saveHasClientCert(bool has) => has
+      ? _prefs.setBool(_hasClientCertKey, true)
+      : _prefs.remove(_hasClientCertKey);
 
   /// Whether the guided tour still has to run on its own. Absent on an install
   /// that has not met it either way; see [markTourDue] and

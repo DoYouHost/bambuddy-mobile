@@ -58,33 +58,11 @@ class CustomCa {
       CustomCa(name: json['name'] as String, pem: json['pem'] as String);
 
   Map<String, dynamic> toJson() => {'name': name, 'pem': pem};
-}
-
-/// Makes every `HttpClient` this isolate creates from now on trust [ca] as well
-/// as the system roots; null takes that back. `HttpOverrides.global` is per
-/// isolate, so each isolate that talks to the server calls this before its
-/// first request.
-///
-/// shortcut: a client created before the call keeps the trust it was created
-/// with — `Image.network` shares one for the life of the isolate, so a CA
-/// changed while the app runs reaches images after a restart.
-void trustCustomCa(CustomCa? ca) {
-  if (ca != null) {
-    HttpOverrides.global = _CustomCaOverrides(ca.pem);
-  } else if (HttpOverrides.current is _CustomCaOverrides) {
-    // Only ours: the test binding installs overrides of its own.
-    HttpOverrides.global = null;
-  }
-}
-
-class _CustomCaOverrides extends HttpOverrides {
-  _CustomCaOverrides(String pem)
-    : _context = SecurityContext(withTrustedRoots: true)
-        ..setTrustedCertificatesBytes(utf8.encode(pem));
-
-  final SecurityContext _context;
 
   @override
-  HttpClient createHttpClient(SecurityContext? context) =>
-      super.createHttpClient(context ?? _context);
+  bool operator ==(Object other) =>
+      other is CustomCa && other.name == name && other.pem == pem;
+
+  @override
+  int get hashCode => Object.hash(name, pem);
 }

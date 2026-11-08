@@ -2090,6 +2090,57 @@ class AppLocalizationsFr extends AppLocalizations {
   String get customCaPickFailed => 'Impossible d\'ouvrir le fichier';
 
   @override
+  String get clientCertImport => 'Importer un certificat client';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Certificat client : $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Retirer le certificat client';
+
+  @override
+  String get clientCertInvalid =>
+      'Ce fichier ne contient aucun certificat avec sa clé';
+
+  @override
+  String get clientCertWrongPassword => 'Mot de passe du certificat incorrect';
+
+  @override
+  String get clientCertPasswordTitle => 'Mot de passe du certificat';
+
+  @override
+  String get certificatesTitle => 'Certificats';
+
+  @override
+  String get customCaRemoveTitle => 'Retirer le certificat d\'AC ?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'L\'application ne fera plus confiance aux serveurs qu\'il a signés.';
+
+  @override
+  String get clientCertRemoveTitle => 'Retirer le certificat client ?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'Un serveur qui le demande refusera l\'application.';
+
+  @override
+  String get certificatesRemoveAll => 'Retirer tous les certificats';
+
+  @override
+  String get certificatesRemoveAllTitle => 'Retirer tous les certificats ?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'L\'application ne joindra plus les serveurs qui en ont besoin.';
+
+  @override
+  String get certificateRemoveConfirm => 'Retirer';
+
+  @override
   String get scanApiKeyTitle => 'Scanner la clé API';
 
   @override
@@ -2146,6 +2197,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get errBadCertificate =>
       'Le certificat du serveur n\'est pas approuvé';
+
+  @override
+  String get errClientCertRefused =>
+      'Le serveur exige un certificat client valide';
 
   @override
   String get errConnection => 'Erreur de connexion';

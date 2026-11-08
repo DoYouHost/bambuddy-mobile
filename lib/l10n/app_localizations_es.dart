@@ -2077,6 +2077,57 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customCaPickFailed => 'No se pudo abrir el archivo';
 
   @override
+  String get clientCertImport => 'Importar certificado de cliente';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Certificado de cliente: $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Quitar certificado de cliente';
+
+  @override
+  String get clientCertInvalid =>
+      'Este archivo no contiene un certificado con su clave';
+
+  @override
+  String get clientCertWrongPassword => 'Contraseña del certificado incorrecta';
+
+  @override
+  String get clientCertPasswordTitle => 'Contraseña del certificado';
+
+  @override
+  String get certificatesTitle => 'Certificados';
+
+  @override
+  String get customCaRemoveTitle => '¿Quitar el certificado de CA?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'La app dejará de confiar en los servidores que firmó.';
+
+  @override
+  String get clientCertRemoveTitle => '¿Quitar el certificado de cliente?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'Un servidor que lo pida rechazará la app.';
+
+  @override
+  String get certificatesRemoveAll => 'Quitar todos los certificados';
+
+  @override
+  String get certificatesRemoveAllTitle => '¿Quitar todos los certificados?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'La app dejará de conectar con los servidores que los necesiten.';
+
+  @override
+  String get certificateRemoveConfirm => 'Quitar';
+
+  @override
   String get scanApiKeyTitle => 'Escanear clave API';
 
   @override
@@ -2131,6 +2182,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errBadCertificate =>
       'El certificado del servidor no es de confianza';
+
+  @override
+  String get errClientCertRefused =>
+      'El servidor exige un certificado de cliente válido';
 
   @override
   String get errConnection => 'Error de conexión';
