@@ -170,8 +170,9 @@ class AmsSlotConfigRepository {
 
   /// Remember which preset a slot was given. Parameters go in the query, not a
   /// body — the route declares them as bare arguments. [trayInfoIdx] is the
-  /// filament id the slot was configured with; without it the server cannot
-  /// tell when the slot is reconfigured elsewhere and keeps naming it.
+  /// filament id the slot was configured with, stored with the mapping; without
+  /// it the card cannot tell when the slot is reconfigured elsewhere and keeps
+  /// naming it after this preset.
   Future<void> saveSlotPreset(
     int printerId, {
     required int amsId,

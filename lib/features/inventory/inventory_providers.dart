@@ -593,14 +593,24 @@ class AssignedSpools {
     return (percent: ams, grams: null, spool: null);
   }
 
-  /// The spool a slot is named after: [fillOf]'s chain without its weight
-  /// conditions, so a spool whose weight is unknown still names the slot.
+  /// The spool a slot is named after: the one [fillOf] read its grams from —
+  /// none when that is a linked spool off the shelf, never a different one —
+  /// so the name and the grams always describe one spool. Without grams,
+  /// [fillOf]'s chain without its weight conditions, so a spool whose weight
+  /// is unknown still names the slot.
   Spool? spoolOf(
     AmsTray tray, {
     required int amsId,
     required int trayId,
     String? serial,
   }) {
+    final fill = fillOf(tray, amsId: amsId, trayId: trayId, serial: serial);
+    return fill.grams != null
+        ? fill.spool
+        : _unweighed(tray, amsId, trayId, serial);
+  }
+
+  Spool? _unweighed(AmsTray tray, int amsId, int trayId, String? serial) {
     final shelf = _tagShelf;
     if (shelf != null) {
       final linked = _linked(shelf, tray, amsId, trayId, serial);

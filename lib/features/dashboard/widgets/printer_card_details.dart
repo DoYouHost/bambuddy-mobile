@@ -1318,7 +1318,8 @@ class _SlotSwatch extends StatelessWidget {
             height: percent == null ? DashSize.d32 : DashSize.d24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color,
+              // [shown], not [color]: the ink is chosen against what is painted.
+              color: shown,
               shape: BoxShape.circle,
               // The edge keeps a white spool visible on a light card and a
               // black one on a dark card.

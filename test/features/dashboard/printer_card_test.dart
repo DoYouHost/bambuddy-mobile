@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'dart:math' show max, min;
 import 'dart:ui' show Tristate;
 
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
+import 'package:bambuddy_mobile/core/ams/color_names.dart';
+import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
+import 'package:bambuddy_mobile/core/models/k_profile.dart';
+import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
@@ -940,7 +945,12 @@ void main() {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
-    PrinterWithStatus realItem({bool tagged = false, bool oneHolder = false}) {
+    /// [trays] patches fields of AMS 1's trays, by index.
+    PrinterWithStatus realItem({
+      bool tagged = false,
+      bool oneHolder = false,
+      Map<int, Map<String, Object?>> trays = const {},
+    }) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
@@ -951,6 +961,17 @@ void main() {
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
+      if (trays.isNotEmpty) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        final unit = Map<String, dynamic>.from(units.first as Map);
+        final raw = List<dynamic>.from(unit['tray'] as List);
+        for (final MapEntry(:key, :value) in trays.entries) {
+          raw[key] = {...Map<String, dynamic>.from(raw[key] as Map), ...value};
+        }
+        unit['tray'] = raw;
+        units[0] = unit;
+        data['ams'] = units;
+      }
       if (tagged) {
         final units = List<dynamic>.from(data['ams'] as List);
         final unit = Map<String, dynamic>.from(units.first as Map);
@@ -1098,33 +1119,46 @@ void main() {
       });
     }
 
-    testWidgets('the door reading wraps instead of overflowing on a 360 dp '
-        'phone at 200 % text', (tester) async {
-      // The Polish closed-door label beside its icon was 1.6 px wider than
-      // the card.
-      tester.view.physicalSize = const Size(360, 3000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        MediaQuery(
-          data: const MediaQueryData(
-            textScaler: TextScaler.linear(2.0),
-            size: Size(360, 3000),
-          ),
-          child: _scope(
-            Scaffold(
-              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the door reading holds on a 360 dp phone at text scale '
+          '$scale', (tester) async {
+        // At 2.0 the Polish closed-door label beside its icon was 1.6 px wider
+        // than the card; it now wraps onto a second line.
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(360, 3000),
+            ),
+            child: _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem()),
+                ),
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(find.text(pl.detailsShow));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
-      // An overflow is a FlutterError, which fails the test on its own.
-      expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
-    });
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        // An overflow is a FlutterError, which fails the test on its own.
+
+        final label = pl.doorClosed.toUpperCase();
+        final door = tester.renderObject<RenderParagraph>(find.text(label));
+        final lines = {
+          for (final box in door.getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: label.length),
+          ))
+            box.top,
+        };
+        expect(lines, hasLength(scale == 2.0 ? 2 : 1));
+      });
+    }
 
     testWidgets(
       'a slot with a fill shows its level as a ring round the swatch',
@@ -1427,6 +1461,188 @@ void main() {
 
           expect(find.text('Generic TPU'), findsOneWidget);
         });
+      });
+
+      testWidgets('a translucent spool is painted as the colour its number '
+          'was inked against', (tester) async {
+        // Translucent blue over a dark card is dark, over a light one light;
+        // the number must be judged on what the circle really shows.
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(
+                    trays: {
+                      0: {'tray_color': '0086D680'},
+                    },
+                  ),
+                ),
+              ),
+            ),
+            extra: [inventoryProvider.overrideWith(_emptyInventory)],
+          ),
+        );
+        await expand(tester);
+
+        final number = find.descendant(of: slots(), matching: find.text('1'));
+        final ink = tester.widget<Text>(number).style!.color!;
+        final circle = tester
+            .widgetList<Container>(
+              find.ancestor(of: number, matching: find.byType(Container)),
+            )
+            .map((c) => c.decoration)
+            .whereType<BoxDecoration>()
+            .firstWhere((d) => d.shape == BoxShape.circle);
+        final painted = circle.color!;
+        expect(painted.a, 1.0, reason: 'the circle shows one colour');
+        double contrast(Color a, Color b) {
+          final (x, y) = (a.computeLuminance(), b.computeLuminance());
+          return (max(x, y) + 0.05) / (min(x, y) + 0.05);
+        }
+
+        expect(contrast(ink, painted), greaterThanOrEqualTo(4.5));
+      });
+
+      // White, the Bambu green the old ink rule left at 2.9:1, a translucent
+      // blue and the fixture's black — the swatches a slot number must read on.
+      const colours = {
+        0: {'tray_color': 'FFFFFFFF'},
+        1: {'tray_color': '00AE42FF'},
+        2: {'tray_color': '0086D680'},
+      };
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('white, green, translucent and black slots hold on a '
+            '360 dp phone at text scale $scale', (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem(trays: colours)),
+                ),
+              ),
+              extra: [inventoryProvider.overrideWith(_emptyInventory)],
+              textScaler: TextScaler.linear(scale),
+            ),
+          );
+          await expand(tester);
+          // An overflow is a FlutterError, which fails the test on its own.
+
+          double contrast(Color a, Color b) {
+            final (x, y) = (a.computeLuminance(), b.computeLuminance());
+            return (max(x, y) + 0.05) / (min(x, y) + 0.05);
+          }
+
+          for (final number in ['1', '2', '3', '4']) {
+            final text = find.descendant(
+              of: slots(),
+              matching: find.text(number),
+            );
+            final ink = tester.widget<Text>(text).style!.color!;
+            final painted = tester
+                .widgetList<Container>(
+                  find.ancestor(of: text, matching: find.byType(Container)),
+                )
+                .map((c) => c.decoration)
+                .whereType<BoxDecoration>()
+                .firstWhere((d) => d.shape == BoxShape.circle)
+                .color!;
+            expect(
+              contrast(ink, painted),
+              greaterThanOrEqualTo(4.5),
+              reason: 'slot $number',
+            );
+
+            final row = find.ancestor(of: text, matching: slots());
+            expect(
+              tester.getSize(row).height,
+              greaterThanOrEqualTo(48),
+              reason: 'slot $number',
+            );
+            // The name: the first line of the row's text column.
+            final name = tester
+                .widgetList<Text>(
+                  find.descendant(of: row, matching: find.byType(Text)),
+                )
+                .firstWhere((t) => t.data != number);
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.byWidget(name),
+            );
+            final lines = {
+              for (final box in paragraph.getBoxesForSelection(
+                TextSelection(baseOffset: 0, extentOffset: name.data!.length),
+              ))
+                box.top,
+            };
+            expect(lines, hasLength(1), reason: 'slot $number name');
+          }
+        });
+      }
+
+      testWidgets('a slot configured from the card is named after the '
+          'preset it was given, once the printer reports it', (tester) async {
+        final repo = _SlotPresetRepo();
+        Widget card(PrinterWithStatus item) => _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          extra: [
+            inventoryProvider.overrideWith(_emptyInventory),
+            amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+            colorCatalogProvider.overrideWith((ref) async => const []),
+          ],
+        );
+
+        await tester.pumpWidget(card(realItem()));
+        await expand(tester);
+        expect(find.text('Generic PLA'), findsNothing);
+
+        await tester.ensureVisible(slots().first);
+        await tester.tap(slots().first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text(pl.amsSlotConfigure));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        final preset = find.descendant(
+          of: find.byType(AmsSlotConfigSheet),
+          matching: find.text('Generic PLA'),
+        );
+        await tester.ensureVisible(preset);
+        await tester.pump();
+        await tester.tap(preset);
+        await tester.pump();
+        await tester.tap(find.text(pl.amsSlotConfigApply));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final written = repo.written!;
+        expect(repo.saved.keys, [(0, 0)]);
+        // The printer's push after the configure: the filament id it was given,
+        // and no name of its own — the case the saved preset is for.
+        await tester.pumpWidget(
+          card(
+            realItem(
+              trays: {
+                0: {
+                  'tray_type': written.trayType,
+                  'tray_info_idx': written.trayInfoIdx,
+                  'tray_sub_brands': '',
+                },
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final row = find.ancestor(of: find.text('1'), matching: slots());
+        expect(
+          find.descendant(of: row, matching: find.text('Generic PLA')),
+          findsOneWidget,
+        );
       });
 
       testWidgets('the slot number is inked against its colour', (
@@ -5375,4 +5591,78 @@ class _JogRecorder implements PrinterCommandsRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName}');
+}
+
+/// A server that remembers the presets a slot is given: what the card reads
+/// back after the configure sheet saves one.
+class _SlotPresetRepo implements AmsSlotConfigRepository {
+  SlotConfiguration? written;
+  final Map<(int, int), SlotPreset> saved = {};
+
+  @override
+  Future<List<AmsFilamentPreset>> cloudFilaments() async => const [];
+
+  @override
+  Future<List<AmsFilamentPreset>> localFilaments() async => const [];
+
+  @override
+  Future<List<AmsFilamentPreset>> builtinFilaments() async => const [
+    AmsFilamentPreset(
+      source: AmsPresetSource.builtin,
+      id: 'GFL99',
+      name: 'Generic PLA',
+    ),
+  ];
+
+  @override
+  Future<Map<String, String>> printerModels() async => const {};
+
+  @override
+  Future<List<KProfile>> kProfiles(
+    int printerId, {
+    required String nozzleDiameter,
+  }) async => const [];
+
+  @override
+  Future<SlotPreset?> slotPreset(
+    int printerId, {
+    required int amsId,
+    required int trayId,
+  }) async => saved[(amsId, trayId)];
+
+  @override
+  Future<Map<(int, int), SlotPreset>> slotPresets(int printerId) async =>
+      Map.of(saved);
+
+  @override
+  Future<ColorCatalog> colorCatalog() async => ColorCatalog.empty;
+
+  @override
+  Future<void> configureSlot(
+    int printerId, {
+    required int amsId,
+    required int trayId,
+    required SlotConfiguration configuration,
+  }) async => written = configuration;
+
+  @override
+  Future<void> saveSlotPreset(
+    int printerId, {
+    required int amsId,
+    required int trayId,
+    required AmsFilamentPreset preset,
+    required String presetName,
+    String? trayInfoIdx,
+  }) async => saved[(amsId, trayId)] = SlotPreset(
+    amsId: amsId,
+    trayId: trayId,
+    presetId: preset.pickerId,
+    presetName: presetName,
+    trayInfoIdx: trayInfoIdx,
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+    '${invocation.memberName} is not part of this test',
+  );
 }
