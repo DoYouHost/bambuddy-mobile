@@ -1124,37 +1124,37 @@ void main() {
       expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
     });
 
-    testWidgets('a slot with a fill shows its level as a bar in the row', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(411, 3000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        _scope(
-          Scaffold(
-            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+    testWidgets(
+      'a slot with a fill shows its level as a ring round the swatch',
+      (tester) async {
+        tester.view.physicalSize = const Size(411, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
           ),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(find.text(pl.detailsShow));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
 
-      // The 48 dp the touch target needs is spent on the bar, not on air.
-      final row = find.ancestor(
-        of: find.text('PLA Basic'),
-        matching: find.byType(InkWell),
-      );
-      expect(
-        find.descendant(
-          of: row.first,
-          matching: find.byType(LinearProgressIndicator),
-        ),
-        findsOneWidget,
-      );
-    });
+        final row = find.ancestor(
+          of: find.text('PLA Basic'),
+          matching: find.byType(InkWell),
+        );
+        final ring = tester.widget<CircularProgressIndicator>(
+          find.descendant(
+            of: row.first,
+            matching: find.byType(CircularProgressIndicator),
+          ),
+        );
+        expect(ring.value, 0.66);
+      },
+    );
 
     testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
       tester,
@@ -1177,8 +1177,19 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      expect(find.textContaining('L · '), findsOneWidget);
-      expect(find.textContaining('P · '), findsNothing);
+      final slots = find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+      );
+      expect(
+        find.descendant(of: slots, matching: find.text(pl.extruderLeftShort)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: slots, matching: find.text(pl.extruderRightShort)),
+        findsNothing,
+      );
     });
 
     testWidgets('a slot with a spool reads its fill from the spool', (
@@ -1201,11 +1212,191 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      expect(find.text('10% · 102\u00A0g'), findsOneWidget);
+      expect(find.text('10%'), findsOneWidget);
+      expect(find.text('102\u00A0g'), findsOneWidget);
       expect(find.text('66%'), findsNothing);
       // The holder reports no fill of its own, so it had nothing to show
       // until a spool sat on it.
-      expect(find.text('50% · 250\u00A0g'), findsOneWidget);
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('250\u00A0g'), findsOneWidget);
+    });
+
+    group('a slot row names what is in the slot (#64)', () {
+      Finder slots() => find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+      );
+
+      Future<void> expand(WidgetTester tester) async {
+        await tester.pump();
+        await tester.ensureVisible(find.text(pl.detailsShow));
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      testWidgets('an assigned spool gives its name and the colour written on '
+          'it, even with no weight to read', (tester) async {
+        // No label weight: the fill stays the AMS's 66%, and the spool must
+        // still name the slot.
+        FixedInventory named() => FixedInventory(
+          InventoryState(
+            spools: [
+              Spool(
+                id: 1,
+                material: 'PLA',
+                subtype: 'Matte',
+                brand: 'eSun',
+                colorName: 'Warm White',
+              ),
+            ],
+            assignments: [
+              SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+            ],
+          ),
+        );
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [inventoryProvider.overrideWith(named)],
+          ),
+        );
+        await expand(tester);
+
+        final row = find.ancestor(
+          of: find.text('eSun PLA Matte'),
+          matching: slots(),
+        );
+        expect(row, findsOneWidget);
+        expect(find.text('66%'), findsOneWidget);
+        for (final text in ['Warm White', '4']) {
+          expect(
+            find.descendant(of: row, matching: find.text(text)),
+            findsOneWidget,
+            reason: text,
+          );
+        }
+        // The spool's name wins over the printer's preset name.
+        expect(find.text('PLA Basic'), findsNothing);
+      });
+
+      testWidgets('a bare slot is named by its material, its colour below', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [inventoryProvider.overrideWith(_emptyInventory)],
+          ),
+        );
+        await expand(tester);
+
+        // Slot 1: generic white PETG, no preset name, no spool.
+        final row = find.ancestor(of: find.text('1'), matching: slots());
+        expect(
+          find.descendant(of: row, matching: find.text(pl.colorFamilyWhite)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: row, matching: find.text('PETG')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('the slot number is inked against its colour', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [inventoryProvider.overrideWith(_emptyInventory)],
+          ),
+        );
+        await expand(tester);
+
+        Color? inkOf(String number) => tester
+            .widget<Text>(
+              find.descendant(of: slots(), matching: find.text(number)),
+            )
+            .style
+            ?.color;
+        expect(inkOf('1'), Colors.black, reason: 'white spool');
+        expect(inkOf('4'), Colors.white, reason: 'black spool');
+        // Pink F55A74: black reads 6.6:1, white 3.2:1. estimateBrightnessForColor
+        // still calls it dark and inks it white.
+        expect(inkOf('3'), Colors.black, reason: 'pink spool');
+      });
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('a long name stays on one line on a 360 dp phone at text '
+            'scale $scale', (tester) async {
+          FixedInventory long() => FixedInventory(
+            InventoryState(
+              spools: [
+                Spool(
+                  id: 1,
+                  material: 'PLA',
+                  subtype: 'Silk Dual Colour',
+                  brand: 'Polymaker PolyTerra',
+                  colorName: 'Galaxy Midnight Black',
+                  labelWeight: 1000,
+                  weightUsed: 188,
+                ),
+              ],
+              assignments: [
+                SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+              ],
+            ),
+          );
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(
+                textScaler: TextScaler.linear(scale),
+                size: const Size(360, 3000),
+              ),
+              child: _scope(
+                Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(item: realItem()),
+                  ),
+                ),
+                extra: [inventoryProvider.overrideWith(long)],
+              ),
+            ),
+          );
+          await expand(tester);
+          // An overflow is a FlutterError, which fails the test on its own.
+
+          const name = 'Polymaker PolyTerra PLA Silk Dual Colour';
+          final row = find.ancestor(of: find.text(name), matching: slots());
+          final rowRect = tester.getRect(row);
+          expect(rowRect.height, greaterThanOrEqualTo(48));
+          final title = tester.renderObject<RenderParagraph>(find.text(name));
+          final lines = {
+            for (final box in title.getBoxesForSelection(
+              const TextSelection(baseOffset: 0, extentOffset: name.length),
+            ))
+              box.top,
+          };
+          expect(lines, hasLength(1), reason: 'the name never wraps');
+          for (final text in ['Galaxy Midnight Black', '81%', '812\u00A0g']) {
+            final rect = tester.getRect(
+              find.descendant(of: row, matching: find.text(text)),
+            );
+            expect(rect.right, lessThanOrEqualTo(rowRect.right), reason: text);
+          }
+        });
+      }
     });
 
     testWidgets('a spool at 0 g the AMS still sees shows only the AMS fill', (

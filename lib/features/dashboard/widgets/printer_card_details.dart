@@ -654,6 +654,12 @@ class _DetailsPanel extends ConsumerWidget {
             trayId: trayIdOf(i),
             serial: serial,
           ),
+          spoolOf: (i) => assigned.spoolOf(
+            spools[i],
+            amsId: externalHolderUnit,
+            trayId: trayIdOf(i),
+            serial: serial,
+          ),
           slotRef: (i) => _externalSlotRef(
             l10n: AppLocalizations.of(context),
             status: status,
@@ -995,7 +1001,14 @@ class _AmsSection extends ConsumerWidget {
                 trayId: i,
                 serial: serial,
               ),
+              spool: assigned.spoolOf(
+                trays[i],
+                amsId: unit.id ?? unitIndex,
+                trayId: i,
+                serial: serial,
+              ),
               last: i == trays.length - 1,
+              badge: '${i + 1}',
               slot: slotRef(i),
             ),
       ],
@@ -1011,6 +1024,7 @@ class _SpoolSection extends StatelessWidget {
     required this.active,
     required this.extruderOf,
     required this.fillOf,
+    required this.spoolOf,
     required this.slotRef,
   });
 
@@ -1018,6 +1032,7 @@ class _SpoolSection extends StatelessWidget {
   final AmsTray? active;
   final int? Function(int index) extruderOf;
   final TrayFill Function(int index) fillOf;
+  final Spool? Function(int index) spoolOf;
 
   /// The slot sheet's input for spool [index], built by [_externalSlotRef].
   final _SlotRef Function(int index) slotRef;
@@ -1042,8 +1057,9 @@ class _SpoolSection extends StatelessWidget {
             tray: trays[i],
             active: identical(trays[i], active),
             fill: fillOf(i),
+            spool: spoolOf(i),
             last: i == trays.length - 1,
-            sidePrefix: switch (extruderOf(i)) {
+            badge: switch (extruderOf(i)) {
               1 => l10n.extruderLeftShort,
               0 => l10n.extruderRightShort,
               _ => null,
@@ -1055,145 +1071,256 @@ class _SpoolSection extends StatelessWidget {
   }
 }
 
-/// One filament list row: color dot + (side prefix) material on the left,
-/// weight/fill on the right, tappable to assign a spool. Active (loaded) row is
-/// accent-colored with a solid accent underline; other rows use a dotted rule.
-class _FilamentRow extends StatelessWidget {
+/// What a slot row says (#64): the spool assigned to it, else the printer's
+/// preset name (`tray_sub_brands`), else the material the AMS reports; and
+/// the colour under it — the one written on the spool, else the catalogue's
+/// for the hex. Three white PLAs differ only there.
+({String name, String colour}) slotNaming(
+  AppLocalizations l10n,
+  ColorCatalog catalog,
+  AmsTray tray,
+  Spool? spool,
+) {
+  String? nonEmpty(String? s) =>
+      (s == null || s.trim().isEmpty) ? null : s.trim();
+  final sub = nonEmpty(tray.traySubBrands);
+  return (
+    name: nonEmpty(spool?.displayName) ?? sub ?? nonEmpty(tray.trayType) ?? '',
+    colour:
+        nonEmpty(spool?.colorName) ??
+        colorDisplayName(l10n, catalog, tray.trayColor, material: sub),
+  );
+}
+
+/// One filament slot: the colour swatch with the slot's number inside its fill
+/// ring, the name over the colour, and the percent over the grams at the end;
+/// tappable to assign a spool. The loaded slot is washed in the accent.
+class _FilamentRow extends ConsumerWidget {
   const _FilamentRow({
     required this.tray,
     required this.active,
     required this.fill,
+    required this.spool,
     required this.last,
-    this.sidePrefix,
+    this.badge,
     this.slot,
   });
 
   final AmsTray tray;
   final bool active;
 
-  /// [AssignedSpools.fillOf]: the percent, and the grams and name of the
-  /// spool it was read from — none when the AMS's own number won, so the two
-  /// never disagree.
+  /// [AssignedSpools.fillOf]: the percent, and the grams of the spool it was
+  /// read from — none when the AMS's own number won, so the two never
+  /// disagree.
   final TrayFill fill;
+
+  /// [AssignedSpools.spoolOf]: names the slot even where [fill] came from the
+  /// AMS.
+  final Spool? spool;
   final bool last;
-  final String? sidePrefix;
+
+  /// The slot's number, or the external holder's side on a dual machine.
+  final String? badge;
   final _SlotRef? slot;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final empty = tray.isEmpty;
-    final dotColor = empty ? null : parseTrayColor(tray.trayColor);
-
-    final material = empty
-        ? l10n.traySlotEmpty
-        : (tray.materialLabel ?? l10n.traySlotEmpty);
-    final label = sidePrefix == null ? material : '$sidePrefix · $material';
-
-    final percent = empty ? null : fill.percent;
-    final remaining = empty ? null : fill.grams;
-    final spool = empty ? null : fill.spool;
-    final grams = remaining == null
+    final naming = empty
         ? null
-        : l10n.inventoryUsageWeight(remaining.toStringAsFixed(0));
-    final trailing = [if (percent != null) '$percent%', ?grams].join(' · ');
+        : slotNaming(l10n, ref.watchColorNames(), tray, spool);
+    final percent = empty ? null : fill.percent;
+    final grams = empty ? null : fill.grams;
+    final ink = active ? t.accentGreenInk : t.textPrimary;
 
-    final textColor = active ? t.accentGreenInk : t.textSecondary;
-
-    // The row, its rule and the gap under it make the slot's touch target: 48 dp
-    // in all. The last row has no gap, so it takes the whole 48 itself. The extra
-    // height carries the level bar rather than empty space.
     final row = Container(
-      constraints: BoxConstraints(
-        minHeight: last
-            ? kMinInteractiveDimension
-            : kMinInteractiveDimension - 1 - DashSpace.sm,
+      constraints: const BoxConstraints(
+        minHeight: kMinInteractiveDimension + DashSpace.sm,
       ),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
+      decoration: BoxDecoration(
+        color: active ? t.accentGreen.withValues(alpha: DashAlpha.faint) : null,
+        borderRadius: BorderRadius.circular(DashRadius.md),
+        border: Border.all(
+          color: active
+              ? t.accentGreen.withValues(alpha: DashAlpha.soft)
+              : Colors.transparent,
+          width: DashStroke.hairline,
+        ),
+      ),
+      child: Row(
         children: [
-          Row(
-            children: [
-              _ColorDot(color: dotColor, size: DashSize.d8),
-              const SizedBox(width: DashSpace.sm),
-              Expanded(
-                child: Text(
-                  label,
+          _SlotSwatch(
+            color: empty ? null : parseTrayColor(tray.trayColor),
+            badge: badge,
+            percent: percent,
+            active: active,
+          ),
+          const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  naming?.name ?? l10n.traySlotEmpty,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: DashFontSize.label,
-                    fontWeight: active ? DashWeight.bold : DashWeight.semibold,
-                    color: textColor,
+                  style: t.bodyStrong.copyWith(
+                    color: empty ? t.textTertiary : ink,
                   ),
                 ),
-              ),
-              if (trailing.isNotEmpty) ...[
-                const SizedBox(width: DashSpace.sm),
-                Text(
-                  trailing,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: DashFontSize.label,
-                    fontWeight: active ? DashWeight.bold : DashWeight.semibold,
-                    color: active ? t.accentGreenInk : t.textSecondary,
+                if (naming != null)
+                  Text(
+                    naming.colour,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodyPlain,
                   ),
-                ),
               ],
-            ],
+            ),
           ),
-          if (percent != null) ...[
-            const SizedBox(height: DashSpace.xs),
-            DashProgressBar(
-              value: percent / 100,
-              height: DashBar.thin,
-              color: active ? t.accentGreen : t.textTertiary,
+          if (percent != null || grams != null) ...[
+            const SizedBox(width: DashSpace.sm),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (percent != null)
+                  Text(
+                    '$percent%',
+                    style: t.monoValue.copyWith(
+                      fontWeight: DashWeight.bold,
+                      color: ink,
+                    ),
+                  ),
+                if (grams != null)
+                  Text(
+                    l10n.inventoryUsageWeight(grams.toStringAsFixed(0)),
+                    style: t.monoLabel,
+                  ),
+              ],
             ),
           ],
         ],
       ),
     );
 
-    // Separator under the row (except the last): solid accent when active,
-    // otherwise a dotted hairline.
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        row,
-        if (!last)
-          active
-              ? Container(height: 1, color: t.accentGreen)
-              : DashedLine(color: t.dottedRule)
-        else if (active)
-          Container(height: 1, color: t.accentGreen),
-        if (!last) const SizedBox(height: DashSpace.sm),
-      ],
-    );
-
     final slot = this.slot;
     final tappable = slot == null
-        ? content
+        ? row
         : logTagMaterial(
             'printer.ams_slot',
             tray.trayType,
             InkWell(
-              borderRadius: BorderRadius.circular(DashRadius.sm),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               onTap: () => dashSheet<void>(
                 context,
                 builder: (_) => _AssignSlotSheet(slot: slot),
               ),
-              child: content,
+              child: row,
             ),
           );
-
-    return spool == null
+    return last
         ? tappable
-        : Tooltip(message: spool.displayName, child: tappable);
+        : Padding(
+            padding: const EdgeInsets.only(bottom: DashSpace.xs),
+            child: tappable,
+          );
   }
+}
+
+/// A slot's colour with its [badge] inside, inked black or white for contrast,
+/// and the fill as a ring around it. Icon-sized: it does not grow with the
+/// text.
+class _SlotSwatch extends StatelessWidget {
+  const _SlotSwatch({
+    required this.color,
+    required this.badge,
+    required this.percent,
+    required this.active,
+  });
+
+  /// Null for an empty slot, drawn as an outline.
+  final Color? color;
+  final String? badge;
+  final int? percent;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final color = this.color;
+    final percent = this.percent;
+    // A translucent filament reads as it shows over the card, not as its hex.
+    final shown = color == null
+        ? null
+        : Color.alphaBlend(color, t.overlaySurface);
+    final ink = shown == null ? t.textTertiary : _inkOn(shown);
+    final badge = this.badge;
+    return SizedBox.square(
+      dimension: DashSize.d40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (percent != null)
+            Positioned.fill(
+              child: CircularProgressIndicator(
+                value: percent.clamp(0, 100) / 100,
+                strokeWidth: DashBar.thin,
+                color: active ? t.accentGreen : t.textTertiary,
+                backgroundColor: t.gaugeTrack,
+              ),
+            ),
+          Container(
+            width: percent == null ? DashSize.d32 : DashSize.d24,
+            height: percent == null ? DashSize.d32 : DashSize.d24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              // The edge keeps a white spool visible on a light card and a
+              // black one on a dark card.
+              border: Border.all(
+                color: t.textTertiary,
+                width: DashStroke.hairline,
+              ),
+            ),
+            child: badge == null
+                ? null
+                // Clamped so the number stays inside the fixed circle; the row
+                // still reads it out at full size.
+                : MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.3,
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontMono,
+                        fontSize: DashFontSize.micro,
+                        fontWeight: DashWeight.bold,
+                        color: ink,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Black or white, whichever has the higher WCAG contrast on [colour]. Not
+/// `ThemeData.estimateBrightnessForColor`: it turns to black only above
+/// luminance 0.34, where contrast flips at about 0.18, and left green and
+/// orange spools with a white number at 2.9:1.
+Color _inkOn(Color colour) {
+  final l = colour.computeLuminance();
+  return (l + 0.05) / 0.05 >= 1.05 / (l + 0.05) ? Colors.black : Colors.white;
 }
 
 /// Tappable humidity/temperature metadata in the AMS header (opens history).
@@ -2764,36 +2891,6 @@ class _ExtruderBadge extends StatelessWidget {
           const SizedBox(width: DashSpace.xs),
           Text(short, style: t.monoLabel.copyWith(color: color)),
         ],
-      ),
-    );
-  }
-}
-
-/// Circle in filament color; empty/unknown slot → crossed-out outline.
-class _ColorDot extends StatelessWidget {
-  const _ColorDot({required this.color, this.size = 14});
-
-  final Color? color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    if (color == null) {
-      // The outlined glyph has padding built in, so it is drawn a fifth larger.
-      return Icon(
-        Icons.circle_outlined,
-        size: size * 1.2,
-        color: t.textTertiary,
-      );
-    }
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: t.hairline, width: DashStroke.hairline),
       ),
     );
   }
