@@ -620,4 +620,43 @@ void main() {
       expect(shelf.drafts.single.colorName, 'Bone White');
     });
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the colour name and hex fields draw one height at $scale', (
+      tester,
+    ) async {
+      await _openForm(tester, _matteIvory, scale: scale);
+      await tester.scrollUntilVisible(
+        byLogId('spool_form.color'),
+        100,
+        scrollable: find
+            .ancestor(
+              of: byLogId('spool_form.material'),
+              matching: find.byType(Scrollable),
+            )
+            .last,
+      );
+      await settle(tester);
+      // The drawn border, not the decorator's box: a 48 dp `constraints` once
+      // grew the box while the border stayed 44 dp, and a mono value's line
+      // left the picker short of the field from 150 % text up.
+      Rect border(String label) => tester.getRect(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (w) => w is InputDecorator && w.decoration.labelText == label,
+          ),
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is CustomPaint &&
+                w.foregroundPainter.runtimeType.toString() ==
+                    '_InputBorderPainter',
+          ),
+        ),
+      );
+      final name = border(pl.inventoryFieldColorName);
+      final hex = border(pl.inventoryFieldColorHex);
+      expect(name.height, hex.height);
+      expect(name.top, hex.top);
+    });
+  }
 }
