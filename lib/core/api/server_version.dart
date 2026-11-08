@@ -227,9 +227,9 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
     ServerFeature.profileDefaults: (1, 2, 6, 0),
     ServerFeature.assignmentMove: (1, 3, 1, 0),
-    ServerFeature.archiveRuns: (1, 3, 1, 0),
-    ServerFeature.archiveMerge: (1, 3, 1, 0),
-    ServerFeature.archiveCalendar: (1, 3, 1, 0),
+    ServerFeature.archiveRuns: (1, 3, 0, 0),
+    ServerFeature.archiveMerge: (1, 3, 0, 0),
+    ServerFeature.archiveCalendar: (1, 3, 0, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

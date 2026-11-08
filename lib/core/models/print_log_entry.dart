@@ -161,7 +161,7 @@ class PrintLogEntry with PrintRun {
   final DateTime createdAt;
 
   /// Which plate of a multi-plate file this print ran; null for a single-plate
-  /// file and on servers before the archive redesign (1.3.1).
+  /// file and on servers before the archive redesign (1.3.0).
   final int? plateId;
 
   /// This print's verdict (#1898). On an archive's runs list each print has its
