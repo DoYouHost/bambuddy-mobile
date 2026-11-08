@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:ui' show Tristate;
 
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
+import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
@@ -1306,6 +1308,125 @@ void main() {
           find.descendant(of: row, matching: find.text('PETG')),
           findsOneWidget,
         );
+      });
+
+      group('a saved preset', () {
+        FixedInventory eSun() => FixedInventory(
+          InventoryState(
+            spools: [
+              Spool(
+                id: 1,
+                material: 'PLA',
+                subtype: 'Matte',
+                brand: 'eSun',
+                colorName: 'Warm White',
+              ),
+            ],
+            assignments: [
+              SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+            ],
+          ),
+        );
+
+        Future<void> pumpWith(
+          WidgetTester tester,
+          Map<(int, int), SlotPreset> presets, {
+          FixedInventory Function() inventory = _emptyInventory,
+        }) async {
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem()),
+                ),
+              ),
+              extra: [
+                inventoryProvider.overrideWith(inventory),
+                slotPresetsProvider(1).overrideWith((ref) async => presets),
+              ],
+            ),
+          );
+          await expand(tester);
+        }
+
+        testWidgets('names the slot, and the spool it pushed out gets a line '
+            'of its own', (tester) async {
+          await pumpWith(tester, {
+            (0, 3): const SlotPreset(
+              amsId: 0,
+              trayId: 3,
+              presetId: 'GFSL99',
+              presetName: 'Generic PLA @BBL X1C',
+              trayInfoIdx: 'GFA00',
+            ),
+          }, inventory: eSun);
+
+          final row = find.ancestor(
+            of: find.text('Generic PLA'),
+            matching: slots(),
+          );
+          expect(row, findsOneWidget, reason: 'the printer suffix is cut');
+          for (final text in ['Warm White', 'eSun PLA Matte']) {
+            expect(
+              find.descendant(of: row, matching: find.text(text)),
+              findsOneWidget,
+              reason: text,
+            );
+          }
+          expect(find.text('PLA Basic'), findsNothing);
+        });
+
+        testWidgets('is ignored once the slot was reconfigured elsewhere', (
+          tester,
+        ) async {
+          // Recorded with a user preset's id; the printer now reports Bambu's.
+          await pumpWith(tester, {
+            (0, 3): const SlotPreset(
+              amsId: 0,
+              trayId: 3,
+              presetId: 'local_7',
+              presetName: 'Overture PLA Matte',
+              trayInfoIdx: 'P4d5e6f7',
+            ),
+          });
+
+          expect(find.text('Overture PLA Matte'), findsNothing);
+          expect(find.text('PLA Basic'), findsOneWidget);
+        });
+
+        testWidgets('that names the spool already is not said twice', (
+          tester,
+        ) async {
+          await pumpWith(tester, {
+            (0, 3): const SlotPreset(
+              amsId: 0,
+              trayId: 3,
+              presetId: 'local_7',
+              presetName: 'eSun PLA matte',
+              trayInfoIdx: 'GFA00',
+            ),
+          }, inventory: eSun);
+
+          expect(find.text('eSun PLA matte'), findsOneWidget);
+          expect(find.text('eSun PLA Matte'), findsNothing);
+        });
+
+        testWidgets('names the external holder by its own unit and side', (
+          tester,
+        ) async {
+          // The TPU spool is `vt_tray` 254, side 0 of unit 255.
+          await pumpWith(tester, {
+            (255, 0): const SlotPreset(
+              amsId: 255,
+              trayId: 0,
+              presetId: 'GFSU99',
+              presetName: 'Generic TPU',
+              trayInfoIdx: 'GFU01',
+            ),
+          });
+
+          expect(find.text('Generic TPU'), findsOneWidget);
+        });
       });
 
       testWidgets('the slot number is inked against its colour', (

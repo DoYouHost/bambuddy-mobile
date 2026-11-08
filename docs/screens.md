@@ -53,15 +53,21 @@ swatch, inked black or white by whichever has the higher contrast (`_inkOn`):
 0.34, while contrast flips near 0.18, and of 26 typical filament colours it left 9
 under 4.5:1, green and orange at 2.9:1.
 
-- **Name**: the spool assigned to the slot (`AssignedSpools.spoolOf`, the chain of
-  `fillOf` without its weight conditions, so a spool with no label weight still
-  names it), else `tray_sub_brands`, else `tray_type`.
+- **Name**: the preset bambuddy saved when the slot was configured
+  (`GET /printers/{id}/slot-presets`, one request per card, present on 1.2.5),
+  as the web's slot card leads with it, but only while `slotPresetDescribesTray`
+  says it still describes the tray; else the spool assigned to the slot
+  (`AssignedSpools.spoolOf`, the chain of `fillOf` without its weight conditions,
+  so a spool with no label weight still names it), else `tray_sub_brands`, else
+  `tray_type`. A spool the preset pushed out of the name gets a third line in the
+  colour's style, so "Generic PLA" in a slot holding an eSun spool shows both.
+- **Saving a preset** sends the slot's `tray_info_idx` with it. Without it the
+  server records none, and a slot reconfigured on the printer keeps a name that
+  no longer describes it.
 - **Colour**: the spool's `color_name`, else the catalogue's name for the hex. The
   web's hover card uses the catalogue only; the spool's own name comes first here
   because it is what the user wrote to tell those spools apart, and the queue's
   mapping sheet already does the same.
-- **Not yet**: the web's hover card puts the slot's saved preset name
-  (`slot_preset_mappings`) first. The dashboard does not fetch those.
 
 The name is one line by decision: wrapped, a row at 200 % text turned into a block
 of text with no hierarchy. A material chip was tried and dropped: the name already

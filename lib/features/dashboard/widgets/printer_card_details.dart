@@ -611,6 +611,9 @@ class _DetailsPanel extends ConsumerWidget {
     final activeExtruder = status.activeExtruder;
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
+    final presets =
+        ref.watch(slotPresetsProvider(printerId)).value ??
+        const <(int, int), SlotPreset>{};
     // The 0/1 side the external holder is addressed by everywhere ids are
     // local — the slot routes, the inventory assignment and the load command.
     int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
@@ -629,6 +632,7 @@ class _DetailsPanel extends ConsumerWidget {
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
+          presets: presets,
           serial: serial,
           printerId: printerId,
           supportsDrying: status.supportsDrying ?? false,
@@ -654,6 +658,7 @@ class _DetailsPanel extends ConsumerWidget {
             trayId: trayIdOf(i),
             serial: serial,
           ),
+          presetOf: (i) => presets[(externalHolderUnit, trayIdOf(i))],
           spoolOf: (i) => assigned.spoolOf(
             spools[i],
             amsId: externalHolderUnit,
@@ -858,6 +863,7 @@ class _AmsSection extends ConsumerWidget {
     required this.extruder,
     required this.activeExtruder,
     required this.assigned,
+    required this.presets,
     required this.serial,
     required this.printerId,
     required this.supportsDrying,
@@ -872,6 +878,9 @@ class _AmsSection extends ConsumerWidget {
   final int? extruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
+
+  /// [slotPresetsProvider]'s answer, by unit and local tray id.
+  final Map<(int, int), SlotPreset> presets;
   final String? serial;
   final int printerId;
   final bool supportsDrying;
@@ -1007,6 +1016,7 @@ class _AmsSection extends ConsumerWidget {
                 trayId: i,
                 serial: serial,
               ),
+              preset: presets[(unit.id ?? unitIndex, i)],
               last: i == trays.length - 1,
               badge: '${i + 1}',
               slot: slotRef(i),
@@ -1025,6 +1035,7 @@ class _SpoolSection extends StatelessWidget {
     required this.extruderOf,
     required this.fillOf,
     required this.spoolOf,
+    required this.presetOf,
     required this.slotRef,
   });
 
@@ -1033,6 +1044,7 @@ class _SpoolSection extends StatelessWidget {
   final int? Function(int index) extruderOf;
   final TrayFill Function(int index) fillOf;
   final Spool? Function(int index) spoolOf;
+  final SlotPreset? Function(int index) presetOf;
 
   /// The slot sheet's input for spool [index], built by [_externalSlotRef].
   final _SlotRef Function(int index) slotRef;
@@ -1058,6 +1070,7 @@ class _SpoolSection extends StatelessWidget {
             active: identical(trays[i], active),
             fill: fillOf(i),
             spool: spoolOf(i),
+            preset: presetOf(i),
             last: i == trays.length - 1,
             badge: switch (extruderOf(i)) {
               1 => l10n.extruderLeftShort,
@@ -1071,36 +1084,55 @@ class _SpoolSection extends StatelessWidget {
   }
 }
 
-/// What a slot row says (#64): the spool assigned to it, else the printer's
-/// preset name (`tray_sub_brands`), else the material the AMS reports; and
-/// the colour under it — the one written on the spool, else the catalogue's
-/// for the hex. Three white PLAs differ only there.
-({String name, String colour}) slotNaming(
+/// What a slot row says (#64). The name is the preset bambuddy saved for the
+/// slot while it still describes the tray, as the web's slot card leads with
+/// it; else the spool assigned to it, else the printer's preset name
+/// (`tray_sub_brands`), else the material. Under it the colour — written on
+/// the spool, else the catalogue's for the hex; three white PLAs differ only
+/// there. A spool the preset pushed out of the name gets a third line.
+({String name, String colour, String? spool}) slotNaming(
   AppLocalizations l10n,
   ColorCatalog catalog,
   AmsTray tray,
   Spool? spool,
+  SlotPreset? preset,
 ) {
   String? nonEmpty(String? s) =>
       (s == null || s.trim().isEmpty) ? null : s.trim();
   final sub = nonEmpty(tray.traySubBrands);
+  final spoolName = nonEmpty(spool?.displayName);
+  final presetName =
+      preset != null &&
+          slotPresetDescribesTray(
+            preset.presetId,
+            tray.trayInfoIdx,
+            preset.trayInfoIdx,
+          )
+      ? nonEmpty(presetDisplayName(preset.presetName))
+      : null;
+  final name = presetName ?? spoolName ?? sub ?? nonEmpty(tray.trayType) ?? '';
   return (
-    name: nonEmpty(spool?.displayName) ?? sub ?? nonEmpty(tray.trayType) ?? '',
+    name: name,
     colour:
         nonEmpty(spool?.colorName) ??
         colorDisplayName(l10n, catalog, tray.trayColor, material: sub),
+    spool: spoolName != null && spoolName.toLowerCase() != name.toLowerCase()
+        ? spoolName
+        : null,
   );
 }
 
 /// One filament slot: the colour swatch with the slot's number inside its fill
-/// ring, the name over the colour, and the percent over the grams at the end;
-/// tappable to assign a spool. The loaded slot is washed in the accent.
+/// ring, the name over the colour (and the spool, when a preset names the
+/// slot), and the percent over the grams at the end; tappable to assign a
+/// spool. The loaded slot is washed in the accent.
 class _FilamentRow extends ConsumerWidget {
   const _FilamentRow({
     required this.tray,
     required this.active,
     required this.fill,
     required this.spool,
+    required this.preset,
     required this.last,
     this.badge,
     this.slot,
@@ -1117,6 +1149,9 @@ class _FilamentRow extends ConsumerWidget {
   /// [AssignedSpools.spoolOf]: names the slot even where [fill] came from the
   /// AMS.
   final Spool? spool;
+
+  /// The preset bambuddy saved for the slot ([slotPresetsProvider]).
+  final SlotPreset? preset;
   final bool last;
 
   /// The slot's number, or the external holder's side on a dual machine.
@@ -1130,7 +1165,7 @@ class _FilamentRow extends ConsumerWidget {
     final empty = tray.isEmpty;
     final naming = empty
         ? null
-        : slotNaming(l10n, ref.watchColorNames(), tray, spool);
+        : slotNaming(l10n, ref.watchColorNames(), tray, spool, preset);
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final ink = active ? t.accentGreenInk : t.textPrimary;
@@ -1176,12 +1211,13 @@ class _FilamentRow extends ConsumerWidget {
                   ),
                 ),
                 if (naming != null)
-                  Text(
-                    naming.colour,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.bodyPlain,
-                  ),
+                  for (final line in [naming.colour, ?naming.spool])
+                    Text(
+                      line,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.bodyPlain,
+                    ),
               ],
             ),
           ),

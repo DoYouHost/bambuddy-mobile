@@ -85,6 +85,9 @@ class _FakeRepo implements AmsSlotConfigRepository {
   /// What the server remembers for the slot — stale on purpose in one test.
   SlotPreset? saved;
 
+  /// The filament id the mapping was saved with.
+  String? savedTrayInfoIdx;
+
   @override
   Future<SlotPreset?> slotPreset(
     int printerId, {
@@ -116,8 +119,10 @@ class _FakeRepo implements AmsSlotConfigRepository {
     required int trayId,
     required AmsFilamentPreset preset,
     required String presetName,
+    String? trayInfoIdx,
   }) async {
     calls.add('save:${preset.pickerId}:$presetName');
+    savedTrayInfoIdx = trayInfoIdx;
     if (saveError != null) throw saveError!;
   }
 
@@ -300,6 +305,9 @@ void main() {
     expect(repo.cloudDetailId, 'GFSL05_09');
     expect(repo.written!.trayInfoIdx, 'P285e239');
     expect(repo.written!.settingId, 'GFSL05_09');
+    // The mapping records the id the slot was given, so the card can tell a
+    // later reconfiguration from elsewhere and stop naming the slot after it.
+    expect(repo.savedTrayInfoIdx, 'P285e239');
   });
 
   testWidgets('a refused mapping save is reported, not swallowed', (
