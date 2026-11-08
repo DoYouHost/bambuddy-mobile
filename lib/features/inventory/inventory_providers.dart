@@ -546,13 +546,7 @@ class AssignedSpools {
   }) {
     final shelf = _tagShelf;
     if (shelf != null) {
-      // `tray_uuid || tag_uid || fallback`: only the first one present is
-      // looked up, as the web keys its linked map by a single tag.
-      final tag =
-          _nonEmpty(tray.trayUuid) ??
-          _nonEmpty(tray.tagUid) ??
-          fallbackSpoolTag(serial, amsId, trayId);
-      final linked = tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
+      final linked = _linked(shelf, tray, amsId, trayId, serial);
       final remaining = linked?.remaining;
       final net = linked?.filament;
       // `getSpoolmanFillLevel`: no remaining weight (0 included) or no net
@@ -597,6 +591,53 @@ class AssignedSpools {
       }
     }
     return (percent: ams, grams: null, spool: null);
+  }
+
+  /// The spool a slot is named after: the one [fillOf] read its grams from —
+  /// none when that is a linked spool off the shelf, never a different one —
+  /// so the name and the grams always describe one spool. Without grams,
+  /// [fillOf]'s chain without its weight conditions, so a spool whose weight
+  /// is unknown still names the slot.
+  Spool? spoolOf(
+    AmsTray tray, {
+    required int amsId,
+    required int trayId,
+    String? serial,
+  }) {
+    final fill = fillOf(tray, amsId: amsId, trayId: trayId, serial: serial);
+    return fill.grams != null
+        ? fill.spool
+        : _unweighed(tray, amsId, trayId, serial);
+  }
+
+  Spool? _unweighed(AmsTray tray, int amsId, int trayId, String? serial) {
+    final shelf = _tagShelf;
+    if (shelf != null) {
+      final linked = _linked(shelf, tray, amsId, trayId, serial);
+      final byTag = linked == null
+          ? null
+          : shelf.spools.firstWhereOrNull((s) => s.id == linked.id);
+      if (byTag != null) return byTag;
+      final slot = _spoolmanSlots[slotKey(amsId, trayId)];
+      if (slot != null && !slot.isArchived) return slot;
+    }
+    return builtInAt(amsId, trayId);
+  }
+
+  /// `tray_uuid || tag_uid || fallback`: only the first one present is looked
+  /// up, as the web keys its linked map by a single tag.
+  static LinkedSpool? _linked(
+    InventoryState shelf,
+    AmsTray tray,
+    int amsId,
+    int trayId,
+    String? serial,
+  ) {
+    final tag =
+        _nonEmpty(tray.trayUuid) ??
+        _nonEmpty(tray.tagUid) ??
+        fallbackSpoolTag(serial, amsId, trayId);
+    return tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
   }
 
   static int _percentOf(Spool s) =>
