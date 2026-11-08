@@ -123,4 +123,27 @@ void main() {
       expect(fallbackSpoolTag('  ', 0, 0), isNull);
     });
   });
+
+  group('slotOfTray (amsHelpers.ts::trayForSlot)', () {
+    test('a unit that reports only some trays names each by its id', () {
+      expect(slotOfTray([2], 0), 2);
+      expect(slotOfTray([0, 3], 1), 3);
+    });
+
+    test('trays reported out of order keep their own slots', () {
+      expect(slotOfTray([1, 0, 3, 2], 0), 1);
+      expect(slotOfTray([1, 0, 3, 2], 3), 2);
+    });
+
+    test('ids that do not tell the trays apart leave it to the position', () {
+      expect(slotOfTray([0, 0], 1), 1);
+      expect(slotOfTray([null, null, null, null], 2), 2);
+      expect(slotOfTray([0, null], 1), 1, reason: 'one missing id is enough');
+    });
+
+    test('a single tray is its own slot', () {
+      expect(slotOfTray([0], 0), 0);
+      expect(slotOfTray([null], 0), 0);
+    });
+  });
 }

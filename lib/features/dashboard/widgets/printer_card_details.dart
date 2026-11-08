@@ -707,7 +707,8 @@ class _DetailsPanel extends ConsumerWidget {
   }
 }
 
-/// What the slot sheet needs for slot [trayIndex] of AMS [unit]: one place,
+/// What the slot sheet needs for the tray at [trayIndex] of AMS [unit]'s
+/// report, addressed by its slot ([AmsUnit.slotAt]): one place,
 /// shared by the card's rows and the single-printer controller's cards, so both
 /// open the same sheet from the same inputs.
 _SlotRef _amsSlotRef({
@@ -720,14 +721,15 @@ _SlotRef _amsSlotRef({
 }) {
   final amsId = unit.id ?? unitIndex;
   final tray = (unit.trays ?? const <AmsTray>[])[trayIndex];
+  final slot = unit.slotAt(trayIndex);
   return _SlotRef(
     printerId: status.id,
     printerName: status.name,
     amsId: amsId,
-    trayId: trayIndex,
-    label: amsSlotName(amsId, trayIndex),
+    trayId: slot,
+    label: amsSlotName(amsId, slot),
     printing: status.isPrinting && !status.isPaused,
-    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: trayIndex),
+    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: slot),
     canRereadRfid: true,
     tagUid: tray.tagUid,
     trayUuid: tray.trayUuid,
@@ -926,6 +928,11 @@ class _AmsSection extends ConsumerWidget {
       );
     }
 
+    // Report positions in slot order: an AMS can report only some trays, or
+    // report them out of order.
+    final order = [for (var i = 0; i < trays.length; i++) i]
+      ..sort((a, b) => unit.slotAt(a).compareTo(unit.slotAt(b)));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -998,27 +1005,27 @@ class _AmsSection extends ConsumerWidget {
             ),
           )
         else
-          // The web addresses a slot by its index (`slotIdx`) — its fill,
-          // label and every action alike.
-          for (var i = 0; i < trays.length; i++)
+          // The web addresses a slot by its tray id (`trayForSlot`), not its
+          // place in the report — its fill, label and every action alike.
+          for (final i in order)
             _FilamentRow(
               tray: trays[i],
               active: identical(trays[i], active),
               fill: assigned.fillOf(
                 trays[i],
                 amsId: unit.id ?? unitIndex,
-                trayId: i,
+                trayId: unit.slotAt(i),
                 serial: serial,
               ),
               spool: assigned.spoolOf(
                 trays[i],
                 amsId: unit.id ?? unitIndex,
-                trayId: i,
+                trayId: unit.slotAt(i),
                 serial: serial,
               ),
-              preset: presets[(unit.id ?? unitIndex, i)],
-              last: i == trays.length - 1,
-              badge: '${i + 1}',
+              preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
+              last: i == order.last,
+              badge: '${unit.slotAt(i) + 1}',
               slot: slotRef(i),
             ),
       ],

@@ -402,7 +402,10 @@ do not stay silent because it was not part of the task.
   (`ghcr.io/maziggy/bambuddy:daily` for the newest, `:latest` for the last
   release), mirroring `.github/workflows/contract-tests.yml` and
   `tool/ci/seed_bambuddy.sh`. Write them to pass on both generations; use your
-  own container names. Mocks only prove your reading of the contract.
+  own container names. Mocks only prove your reading of the contract. Before a
+  new contract file counts as passing, run the **whole suite in name order** on a
+  fresh server, as CI does: the server writes state as a side effect (assigning a
+  spool saves a slot preset), so one file alone on a clean seed proves less.
 - **A button that writes to the server is proven by tests, not by a device
   checklist.** Its widget test taps it with the real notifier and repository and
   records the writes (`expectSentAsRecorded` in
@@ -427,6 +430,15 @@ do not stay silent because it was not part of the task.
   routes and seed data in `lib/core/demo/demo_backend.dart` in the same branch,
   and the demo's reported server version must never be what hides a feature. Read
   the real demo data before writing a fixture that points at its ids.
+- **A review finding is rejected only with proof as strong as its claim.** A
+  second-model review (agy, `/code-review`) is a list of hypotheses, but one that
+  names a concrete scenario is disproved by running it — a test, a mutation, a
+  file:line that rules it out — never by "grep found nothing", "it is the
+  convention" or "the window is short". When the scenario is cheap to run, run
+  it before the verdict; when the fix is cheap and you are unsure, fix it. Mark
+  each verdict as measured or argued; an argued rejection is not done. **"The
+  repo already does it this way" is not a rejection**: if the finding holds, the
+  existing code has the same bug, and both occurrences get fixed.
 - **A one-off check is a test, not a `justfile` recipe or a script.** Device flows
   go to `patrol_test/`; document how to run one in the test file's header.
 - **Non-API errors in actions are rolled back and rethrown**

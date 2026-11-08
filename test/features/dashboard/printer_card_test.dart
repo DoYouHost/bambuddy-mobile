@@ -945,11 +945,13 @@ void main() {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
-    /// [trays] patches fields of AMS 1's trays, by index.
+    /// [trays] patches fields of AMS 1's trays, by index; [trayOrder] then
+    /// reports only those trays, in that order.
     PrinterWithStatus realItem({
       bool tagged = false,
       bool oneHolder = false,
       Map<int, Map<String, Object?>> trays = const {},
+      List<int>? trayOrder,
     }) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
@@ -969,6 +971,14 @@ void main() {
           raw[key] = {...Map<String, dynamic>.from(raw[key] as Map), ...value};
         }
         unit['tray'] = raw;
+        units[0] = unit;
+        data['ams'] = units;
+      }
+      if (trayOrder != null) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        final unit = Map<String, dynamic>.from(units.first as Map);
+        final raw = unit['tray'] as List;
+        unit['tray'] = [for (final i in trayOrder) raw[i]];
         units[0] = unit;
         data['ams'] = units;
       }
@@ -1643,6 +1653,122 @@ void main() {
           find.descendant(of: row, matching: find.text('Generic PLA')),
           findsOneWidget,
         );
+      });
+
+      group('a unit that reports its trays partly or out of order', () {
+        testWidgets('names, fills and loads slot 3 when only slot 3 is '
+            'reported', (tester) async {
+          // `amsHelpers.ts::trayForSlot`: the tray id is the slot, not its
+          // place in the report.
+          FixedInventory atSlot3() => FixedInventory(
+            InventoryState(
+              spools: [
+                Spool(
+                  id: 1,
+                  material: 'PETG',
+                  brand: 'eSun',
+                  labelWeight: 1000,
+                  weightUsed: 500,
+                ),
+              ],
+              assignments: [
+                SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 2),
+              ],
+            ),
+          );
+          final commands = RecordingCommands();
+          final item = realItem(trayOrder: [2]);
+          // Idle: a printing card does not offer the load.
+          final idle = PrinterStatus(
+            id: item.printer.id,
+            connected: true,
+            state: 'IDLE',
+          ).mergedWith(item.status!);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: PrinterWithStatus(
+                      printer: item.printer,
+                      status: idle,
+                    ),
+                  ),
+                ),
+              ),
+              extra: [
+                printerCommandsRepositoryProvider.overrideWithValue(commands),
+                inventoryProvider.overrideWith(atSlot3),
+                slotPresetsProvider(1).overrideWith(
+                  (ref) async => {
+                    (0, 2): const SlotPreset(
+                      amsId: 0,
+                      trayId: 2,
+                      presetId: 'GFSG99',
+                      presetName: 'Generic PETG',
+                      trayInfoIdx: 'GFG02',
+                    ),
+                  },
+                ),
+              ],
+            ),
+          );
+          await expand(tester);
+
+          final row = find.ancestor(of: find.text('3'), matching: slots());
+          expect(row, findsOneWidget);
+          expect(
+            find.descendant(of: slots(), matching: find.text('1')),
+            findsNothing,
+          );
+          for (final text in ['Generic PETG', 'eSun PETG', '50%']) {
+            expect(
+              find.descendant(of: row, matching: find.text(text)),
+              findsOneWidget,
+              reason: text,
+            );
+          }
+
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.tap(find.text(pl.amsLoad));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          expect(commands.calls, ['amsLoad:1:2:-']);
+        });
+
+        testWidgets('lists trays reported out of order in slot order', (
+          tester,
+        ) async {
+          // Reported as slot 2, then slot 1: white is slot 1, yellow slot 2.
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem(trayOrder: [1, 0])),
+                ),
+              ),
+              extra: [inventoryProvider.overrideWith(_emptyInventory)],
+            ),
+          );
+          await expand(tester);
+
+          Finder rowOf(String number) =>
+              find.ancestor(of: find.text(number), matching: slots());
+          expect(
+            tester.getRect(rowOf('1')).top,
+            lessThan(tester.getRect(rowOf('2')).top),
+          );
+          expect(
+            find.descendant(
+              of: rowOf('1'),
+              matching: find.text(pl.colorFamilyWhite),
+            ),
+            findsOneWidget,
+          );
+        });
       });
 
       testWidgets('the slot number is inked against its colour', (

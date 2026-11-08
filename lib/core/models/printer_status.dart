@@ -854,6 +854,10 @@ class AmsUnit with ValueEquality {
   /// Whether this AMS module can dry filament (AMS 2 Pro or AMS-HT).
   bool get canDry => moduleType == 'n3f' || moduleType == 'n3s';
 
+  /// [slotOfTray] for the entry of [trays] at [position].
+  int slotAt(int position) =>
+      slotOfTray([for (final t in trays ?? const <AmsTray>[]) t.id], position);
+
   /// AMS-HT (high-temp) module — dries hotter (up to 85 °C vs 65 °C).
   bool get isHtDryModule => moduleType == 'n3s';
 
