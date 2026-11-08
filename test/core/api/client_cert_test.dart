@@ -82,9 +82,40 @@ void main() {
       }
     });
 
+    for (final fixture in [
+      'client-encrypted.pem',
+      'client-encrypted-legacy.pem',
+    ]) {
+      test('a PEM whose key is encrypted, $fixture, asks for its password', () {
+        for (final password in ['', 'wrong']) {
+          final r = ClientCert.parse('k.pem', _fixture(fixture), password);
+          expect((r.cert, r.wrongPassword), (null, true), reason: password);
+        }
+        expect(
+          ClientCert.parse('k.pem', _fixture(fixture), 'fixture').cert,
+          isNotNull,
+        );
+      });
+    }
+
+    test('holdsKey sees a PEM key, plain or encrypted, and nothing else', () {
+      for (final f in [
+        'client-bundle.pem',
+        'client-encrypted.pem',
+        'client-encrypted-legacy.pem',
+        'client-mismatch.pem',
+      ]) {
+        expect(ClientCert.holdsKey(_fixture(f)), isTrue, reason: f);
+      }
+      for (final f in ['ca.pem', 'ca.der', 'client.pem', 'client.p12']) {
+        expect(ClientCert.holdsKey(_fixture(f)), isFalse, reason: f);
+      }
+    });
+
     test('refuses what holds no certificate with its key', () {
       for (final bytes in [
         _fixture('client.pem'),
+        _fixture('client-mismatch.pem'),
         utf8.encode('hello'),
         const <int>[],
       ]) {
