@@ -73,8 +73,30 @@ void main() {
       expect(all[(255, 1)]!.trayInfoIdx, 'GFA00');
     });
 
-    test('a printer with nothing saved lists nothing', () async {
-      expect(await slots.slotPresets(printerId), isEmpty);
+    test('a deleted mapping leaves the listing, the others stay', () async {
+      // Not "an empty printer lists nothing": the server writes mappings of its
+      // own when a spool is assigned to a slot (`upsert_slot_preset_for_spool`),
+      // so earlier files leave some behind.
+      const preset = AmsFilamentPreset(
+        source: AmsPresetSource.local,
+        id: '7',
+        name: 'eSUN PETG',
+      );
+      await slots.saveSlotPreset(
+        printerId,
+        amsId: 0,
+        trayId: 2,
+        preset: preset,
+        presetName: 'eSUN PETG',
+      );
+      final before = await slots.slotPresets(printerId);
+      expect(before, contains((0, 2)));
+
+      await dio.delete<dynamic>('/api/v1/printers/$printerId/slot-presets/0/2');
+
+      final after = await slots.slotPresets(printerId);
+      expect(after, isNot(contains((0, 2))));
+      expect(after.keys.toSet(), before.keys.toSet()..remove((0, 2)));
     });
   });
 }
