@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/notifications/ongoing_text.dart';
 import '../core/printers/hms_readback.dart';
+import '../core/serial_queue.dart';
 import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
 import 'wear_fleet_cache.dart';
@@ -32,14 +33,18 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   /// Persist [config] as this watch's server, clear the offer and re-read the
   /// profile so the app re-routes. Rethrows what secure storage threw, and a failure
   /// leaves the offer standing (docs/wear-fleet-poll.md, "Adopting a pushed config").
-  Future<void> adopt(WatchConfig config) async {
+  ///
+  /// Queued: `WearApp` adopts every push as it arrives, and the phone sends two
+  /// within milliseconds when both certificates change. Run side by side, the
+  /// later one compared against state the earlier had not written yet and could
+  /// skip the change it carried.
+  Future<void> adopt(WatchConfig config) => _adopts.run(() async {
     // Before the profile, so a failed write never leaves a stored server whose CA
-    // is missing. Unchanged is skipped: the set rebuilds every API client, and
-    // the relay listener with them.
-    if (ref.read(customCaProvider)?.pem != config.ca?.pem) {
-      await ref.read(customCaProvider.notifier).set(config.ca);
-      if (!ref.mounted) return;
-    }
+    // or client certificate is missing. Each set skips what is unchanged.
+    await ref
+        .read(tlsIdentityProvider.notifier)
+        .setBoth(config.ca, config.clientCert);
+    if (!ref.mounted) return;
     await ref.read(watchConfigSyncProvider).apply(config);
     if (!ref.mounted) return;
     state = null;
@@ -48,7 +53,9 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
     if (ref.read(serverProfileProvider) != config.profile) {
       ref.invalidate(serverProfileProvider);
     }
-  }
+  });
+
+  final _adopts = SerialQueue();
 }
 
 /// Transport for everything the watch asks of the server: relay through the phone

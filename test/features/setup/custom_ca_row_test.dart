@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/custom_ca.dart';
+import 'package:bambuddy_mobile/core/api/tls_overrides.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/setup/custom_ca_row.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -13,17 +14,18 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import '../../helpers/fake_file_picker.dart';
 
 void main() {
   late SharedPreferences prefs;
-  late _Picker picker;
+  late FakeFilePicker picker;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    picker = _Picker();
+    picker = FakeFilePicker();
     FilePicker.platform = picker;
-    addTearDown(() => trustCustomCa(null));
+    addTearDown(() => useTls(null, null));
   });
 
   Future<void> pump(WidgetTester tester) => pumpPhone(
@@ -50,6 +52,14 @@ void main() {
     expect(stored()?.name, 'home-root.crt');
 
     await tester.tap(find.byTooltip(pl.customCaRemove));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('setup.ca_remove_confirm.cancel'));
+    await tester.pumpAndSettle();
+    expect(stored()?.name, 'home-root.crt', reason: 'cancelled');
+
+    await tester.tap(find.byTooltip(pl.customCaRemove));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('setup.ca_remove_confirm.confirm'));
     await tester.pumpAndSettle();
 
     expect(find.text(pl.customCaImport), findsOneWidget);
@@ -185,45 +195,4 @@ void main() {
       expect(find.byTooltip(pl.customCaRemove), findsOneWidget);
     });
   }
-}
-
-class _Picker extends FilePicker {
-  /// Null is a cancelled dialog.
-  PlatformFile? answer;
-  bool fails = false;
-  Completer<void>? gate;
-  int opened = 0;
-
-  @override
-  Future<FilePickerResult?> pickFiles({
-    String? dialogTitle,
-    String? initialDirectory,
-    FileType type = FileType.any,
-    List<String>? allowedExtensions,
-    Function(FilePickerStatus)? onFileLoading,
-    bool allowCompression = false,
-    int compressionQuality = 0,
-    bool allowMultiple = false,
-    bool withData = false,
-    bool withReadStream = false,
-    bool lockParentWindow = false,
-    bool readSequential = false,
-  }) async {
-    opened++;
-    await gate?.future;
-    if (fails) throw PlatformException(code: 'boom');
-    final file = answer;
-    return file == null ? null : FilePickerResult([file]);
-  }
-}
-
-/// The row reads the file with real I/O, which fake time never completes.
-Future<void> settleDisk(WidgetTester tester) async {
-  for (var i = 0; i < 5; i++) {
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 20)),
-    );
-    await tester.pump();
-  }
-  await tester.pumpAndSettle();
 }

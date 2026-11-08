@@ -124,6 +124,9 @@ dev_dependencies:
   patrol: ^4.10.0
   build_runner: ^2.4.13
   flutter_lints: ^6.0.0
+  # A secure storage fake that keeps `storageNamespace`s apart, as the Android
+  # plugin does; the plugin's own mock shares one map.
+  flutter_secure_storage_platform_interface: ^2.1.1
   http_mock_adapter: ^0.6.1
   json_serializable: ^6.8.0
   copy_with_extension_gen: ^17.0.0

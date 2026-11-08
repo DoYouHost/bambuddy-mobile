@@ -3452,6 +3452,96 @@ abstract class AppLocalizations {
   /// **'Could not open the file'**
   String get customCaPickFailed;
 
+  /// No description provided for @clientCertImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import client certificate'**
+  String get clientCertImport;
+
+  /// No description provided for @clientCertInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Client certificate: {name}'**
+  String clientCertInUse(String name);
+
+  /// No description provided for @clientCertRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove client certificate'**
+  String get clientCertRemove;
+
+  /// No description provided for @clientCertInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds no certificate with its key'**
+  String get clientCertInvalid;
+
+  /// No description provided for @clientCertWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong certificate password'**
+  String get clientCertWrongPassword;
+
+  /// No description provided for @clientCertPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate password'**
+  String get clientCertPasswordTitle;
+
+  /// No description provided for @certificatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificates'**
+  String get certificatesTitle;
+
+  /// No description provided for @customCaRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the CA certificate?'**
+  String get customCaRemoveTitle;
+
+  /// No description provided for @customCaRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will stop trusting servers it signed.'**
+  String get customCaRemoveMessage;
+
+  /// No description provided for @clientCertRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the client certificate?'**
+  String get clientCertRemoveTitle;
+
+  /// No description provided for @clientCertRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A server that asks for it will refuse the app.'**
+  String get clientCertRemoveMessage;
+
+  /// No description provided for @certificatesRemoveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all certificates'**
+  String get certificatesRemoveAll;
+
+  /// No description provided for @certificatesRemoveAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all certificates?'**
+  String get certificatesRemoveAllTitle;
+
+  /// No description provided for @certificatesRemoveAllMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will stop reaching servers that need them.'**
+  String get certificatesRemoveAllMessage;
+
+  /// No description provided for @certificateRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get certificateRemoveConfirm;
+
   /// No description provided for @scanApiKeyTitle.
   ///
   /// In en, this message translates to:
@@ -3547,6 +3637,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The server\'s certificate is not trusted'**
   String get errBadCertificate;
+
+  /// No description provided for @errClientCertRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The server needs a valid client certificate'**
+  String get errClientCertRefused;
 
   /// No description provided for @errConnection.
   ///

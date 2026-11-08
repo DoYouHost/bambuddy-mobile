@@ -14,6 +14,7 @@ import '../dashboard/card_collapse_providers.dart';
 import '../tour/tour_beacon.dart';
 import '../wall/wall_providers.dart';
 import '../label_printer/label_printer_screen.dart';
+import 'certificates_card.dart';
 import 'demo_printers_provider.dart';
 import 'watch_settings.dart';
 
@@ -153,6 +154,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
           ],
         ),
       ],
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.certificatesTitle),
+      const CertificatesCard(),
       const SizedBox(height: DashSpace.xl),
       SettingsSectionHeader(l10n.notifSettingsTitle),
       SettingsEntryTile(
