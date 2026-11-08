@@ -1096,6 +1096,34 @@ void main() {
       });
     }
 
+    testWidgets('the door reading wraps instead of overflowing on a 360 dp '
+        'phone at 200 % text', (tester) async {
+      // The Polish closed-door label beside its icon was 1.6 px wider than
+      // the card.
+      tester.view.physicalSize = const Size(360, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            textScaler: TextScaler.linear(2.0),
+            size: Size(360, 3000),
+          ),
+          child: _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text(pl.detailsShow));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      // An overflow is a FlutterError, which fails the test on its own.
+      expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
+    });
+
     testWidgets('a slot with a fill shows its level as a bar in the row', (
       tester,
     ) async {
