@@ -178,8 +178,19 @@ class DemoBackend {
   // printer's own push would.
   final Map<String, Map<String, dynamic>> _slotConfig = {};
   // Which preset each slot was given, keyed the same way — the mapping the real
-  // server keeps so a configured slot can be named, not just shown.
-  final Map<String, Map<String, dynamic>> _slotPreset = {};
+  // server keeps so a configured slot can be named, not just shown. The X1C's
+  // white PETG slot was configured as Generic PETG while a Bambu PETG HF spool
+  // sits in it, so the card shows a preset name with the spool under it.
+  final Map<String, Map<String, dynamic>> _slotPreset = {
+    '1:0:2': {
+      'ams_id': 0,
+      'tray_id': 2,
+      'preset_id': 'GFSG99',
+      'preset_name': 'Generic PETG',
+      'preset_source': 'cloud',
+      'tray_info_idx': 'GFG02',
+    },
+  };
 
   // Saved pipelines and the runs they dispatched. Mutable because the whole
   // point of the screens is authoring: targeting one, running it, cancelling
@@ -891,6 +902,7 @@ class DemoBackend {
                 'preset_id': saved['preset_id'],
                 'preset_name': saved['preset_name'],
                 'preset_source': saved['preset_source'] ?? 'local',
+                'tray_info_idx': saved['tray_info_idx'],
               },
       };
     }
@@ -2016,6 +2028,9 @@ class DemoBackend {
   String _slotKey(int printerId, int amsId, int trayId) =>
       '$printerId:$amsId:$trayId';
 
+  int _serverSlotKey(int amsId, int trayId) =>
+      amsId >= 128 && amsId <= 135 ? amsId : amsId * 4 + trayId;
+
   /// `GET`/`PUT /printers/{id}/slot-presets/{ams}/{tray}`. An unmapped slot
   /// answers a bare `null`, which is what the real route does and what the
   /// picker reads as "nothing saved".
@@ -2025,7 +2040,16 @@ class DemoBackend {
     List<String> s,
     Map<String, String> q,
   ) {
-    if (s.length < 5) return demoOk(const <Object>[]);
+    if (s.length < 5) {
+      // The whole printer, keyed as `_slot_presets_by_key` keys it: an AMS-HT
+      // by its unit, everything else (the external holder too) `ams * 4 + tray`.
+      return demoOk({
+        for (final MapEntry(:key, :value) in _slotPreset.entries)
+          if (key.startsWith('$printerId:'))
+            '${_serverSlotKey(value['ams_id'] as int, value['tray_id'] as int)}':
+                value,
+      });
+    }
     final amsId = int.tryParse(s[3]) ?? 0;
     final trayId = int.tryParse(s[4]) ?? 0;
     final key = _slotKey(printerId, amsId, trayId);
@@ -2036,6 +2060,7 @@ class DemoBackend {
         'preset_id': q['preset_id'] ?? '',
         'preset_name': q['preset_name'] ?? '',
         'preset_source': q['preset_source'],
+        'tray_info_idx': q['tray_info_idx'],
       };
       return demoOk(const {'ok': true});
     }

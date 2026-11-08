@@ -245,6 +245,36 @@ void main() {
       expect(await percentWith(link(1, -15)), -1);
     });
 
+    test('the slot is named after the spool its grams came from', () async {
+      // The tag's spool is empty, so the fill comes from the slot's; naming
+      // the slot after the tag's would put one spool's name over another's
+      // grams.
+      final empty = weighed(1, 1000);
+      final inSlot = weighed(2, 250);
+      final assigned = await resolve(
+        InventoryBackend.spoolman,
+        InventoryState(
+          spools: [empty, inSlot],
+          assignments: [at(2, 0, 0)],
+          linkedTags: {'A1B2C3D4E5F60708': link(1, 0)},
+        ),
+      );
+
+      expect(assigned.fillOf(tagged, amsId: 0, trayId: 0).spool, inSlot);
+      expect(assigned.spoolOf(tagged, amsId: 0, trayId: 0), inSlot);
+    });
+
+    test('a spool with no weight to read still names its slot', () async {
+      final unweighed = Spool(id: 2, material: 'PLA', brand: 'eSun');
+      final assigned = await resolve(
+        InventoryBackend.spoolman,
+        InventoryState(spools: [unweighed], assignments: [at(2, 0, 0)]),
+      );
+
+      expect(assigned.fillOf(pla, amsId: 0, trayId: 0).spool, isNull);
+      expect(assigned.spoolOf(pla, amsId: 0, trayId: 0), unweighed);
+    });
+
     test('a linked spool off the shelf still gives its fill', () async {
       final assigned = await resolve(
         InventoryBackend.spoolman,
@@ -253,6 +283,23 @@ void main() {
 
       final fill = assigned.fillOf(tagged, amsId: 0, trayId: 0);
       expect((fill.percent, fill.grams, fill.spool), (70, 700, null));
+    });
+
+    test('a linked spool off the shelf names the slot after no spool, not '
+        'the one assigned there', () async {
+      // Its grams are what the row shows; the slot's own spool is another.
+      final inSlot = weighed(2, 750);
+      final assigned = await resolve(
+        InventoryBackend.spoolman,
+        InventoryState(
+          spools: [inSlot],
+          assignments: [at(2, 0, 0)],
+          linkedTags: {'A1B2C3D4E5F60708': link(9, 700)},
+        ),
+      );
+
+      expect(assigned.fillOf(tagged, amsId: 0, trayId: 0).grams, 700);
+      expect(assigned.spoolOf(tagged, amsId: 0, trayId: 0), isNull);
     });
 
     test('an archived spool in the slot is not read', () async {

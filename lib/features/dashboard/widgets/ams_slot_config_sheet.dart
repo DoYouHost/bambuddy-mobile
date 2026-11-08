@@ -920,6 +920,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final navigator = Navigator.of(context);
     final outcome = await send();
     ref.invalidate(slotPresetProvider(widget.target.key));
+    ref.invalidate(slotPresetsProvider(widget.target.printerId));
     if (!mounted) return;
     navigator.pop();
     messenger.snack(outcome.messageFor(l10n) ?? succeeded());

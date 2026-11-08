@@ -1875,6 +1875,43 @@ void main() {
         );
       },
     );
+
+    test('a printer lists its saved presets, and the card can trust the '
+        'seeded one', () async {
+      // The X1C's white PETG slot shows a preset name with its Bambu spool
+      // under it; the mapping has to describe what the slot reports.
+      final presets = await repo.slotPresets(1);
+      final seeded = presets[(0, 2)]!;
+      expect(seeded.presetName, 'Generic PETG');
+      final tray = (await PrintersRepository(
+        dio,
+      ).fetchStatus(1))!.ams!.first.trays!.firstWhere((t) => t.id == 2);
+      expect(
+        slotPresetDescribesTray(
+          seeded.presetId,
+          tray.trayInfoIdx,
+          seeded.trayInfoIdx,
+        ),
+        isTrue,
+      );
+
+      await repo.saveSlotPreset(
+        2,
+        amsId: 255,
+        trayId: 0,
+        preset: const AmsFilamentPreset(
+          source: AmsPresetSource.local,
+          id: '7',
+          name: 'eSUN PETG',
+        ),
+        presetName: 'eSUN PETG',
+        trayInfoIdx: 'P4d5e6f7',
+      );
+      final external = (await repo.slotPresets(2))[(255, 0)]!;
+      expect(external.presetName, 'eSUN PETG');
+      expect(external.trayInfoIdx, 'P4d5e6f7');
+      expect((await repo.slotPresets(2)).containsKey((0, 2)), isFalse);
+    });
   });
 
   group('manyfold', () {

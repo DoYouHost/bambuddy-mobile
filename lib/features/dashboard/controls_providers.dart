@@ -484,6 +484,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
           trayId: trayId,
           preset: preset,
           presetName: configuration.traySubBrands,
+          trayInfoIdx: configuration.trayInfoIdx,
         );
       } on AppApiException {
         name = SlotNameOutcome.refused;
