@@ -462,6 +462,40 @@ void main() {
       expect(commands.calls, ['amsLoad:1:7:-']);
     });
 
+    testWidgets('address a slot by its tray id when the unit reports only '
+        'some', (tester) async {
+      // `amsHelpers.ts::trayForSlot`: an AMS reporting slots 2 and 4 alone has
+      // them at list positions 0 and 1, which are not the slots.
+      await pump(
+        tester,
+        _status(
+          ams: [
+            AmsUnit(
+              id: 0,
+              trays: [
+                _tray(1, 'PLA', 'FF7A1AFF', remain: 64),
+                _tray(3, 'PETG', 'F2F2F0FF', remain: 15),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      for (final number in ['2', '4']) {
+        expect(
+          find.descendant(of: slots(), matching: find.text(number)),
+          findsOneWidget,
+          reason: number,
+        );
+      }
+      await tester.tap(slots().at(1));
+      await tester.pump();
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:3:-']);
+    });
+
     testWidgets('are off while printing and say why', (tester) async {
       await pump(tester, _status(state: 'RUNNING'));
 

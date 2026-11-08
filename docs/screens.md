@@ -69,6 +69,11 @@ under 4.5:1, green and orange at 2.9:1.
   because it is what the user wrote to tell those spools apart, and the queue's
   mapping sheet already does the same.
 
+A slot is its tray id, not its place in the report (`AmsUnit.slotAt`, the web's
+`trayForSlot`): an AMS can report only some trays or report them out of order, and
+the row's number, fill, name, preset and every slot action follow the id. Only ids
+that do not tell the trays apart fall back to the position.
+
 The name is one line by decision: wrapped, a row at 200 % text turned into a block
 of text with no hierarchy. A material chip was tried and dropped: the name already
 carries the material.

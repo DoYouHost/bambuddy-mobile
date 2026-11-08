@@ -402,7 +402,7 @@ class _Pane extends ConsumerWidget {
               amsId: amsId,
               trayId: unit == null
                   ? (externalSideOf(trays[chosen].id) ?? 0)
-                  : chosen,
+                  : unit.slotAt(chosen),
             ) !=
             null;
     final canDry =
@@ -556,7 +556,7 @@ class _Pane extends ConsumerWidget {
                 if (i > 0) const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: _SlotCard(
-                    number: unit == null ? null : i + 1,
+                    number: unit == null ? null : unit.slotAt(i) + 1,
                     caption: unit == null && dual
                         ? switch (status.extruderForExternal(tray.id)) {
                             1 => l10n.extruderLeft,
@@ -579,7 +579,9 @@ class _Pane extends ConsumerWidget {
                     fill: assigned.fillOf(
                       tray,
                       amsId: amsId,
-                      trayId: unit == null ? (externalSideOf(tray.id) ?? 0) : i,
+                      trayId: unit == null
+                          ? (externalSideOf(tray.id) ?? 0)
+                          : unit.slotAt(i),
                       serial: serial,
                     ),
                     onTap: () => onSlot(i),

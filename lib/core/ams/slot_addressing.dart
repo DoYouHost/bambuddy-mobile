@@ -51,6 +51,17 @@ int globalTrayId({required int amsId, required int trayId}) {
   return amsId * 4 + trayId;
 }
 
+/// The slot (local tray id) of the tray at [position] in a unit's report, given
+/// the ids of all its trays: `amsHelpers.ts::trayForSlot` read the other way.
+/// An AMS can report only some of its trays, so a position is not the slot;
+/// only when the ids do not tell the trays apart (a firmware that sends none,
+/// so they all read 0 or nothing) does the position decide.
+int slotOfTray(List<int?> trayIds, int position) {
+  final ids = trayIds.toSet();
+  final usable = !ids.contains(null) && ids.length == trayIds.length;
+  return usable ? trayIds[position]! : position;
+}
+
 /// Unit id the backend gives an A2L's AMS Lite (its physical 16, normalised at
 /// ingest). No regular AMS uses it.
 const amsLiteUnit = 6;
