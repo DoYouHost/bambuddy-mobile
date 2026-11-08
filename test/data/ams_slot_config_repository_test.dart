@@ -302,6 +302,15 @@ void main() {
       expect(presets[(255, 1)]!.trayInfoIdx, isNull);
     });
 
+    test('a printer with nothing saved lists nothing', () async {
+      adapter.onGet(
+        '/api/v1/printers/1/slot-presets',
+        (s) => s.reply(200, <String, dynamic>{}),
+      );
+
+      expect(await repo.slotPresets(1), isEmpty);
+    });
+
     for (final status in [403, 404, 500]) {
       test('a $status reads as no presets saved', () async {
         adapter.onGet(
