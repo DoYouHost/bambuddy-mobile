@@ -202,22 +202,21 @@ void main() {
     expect(parse('1.2.6').supports(ServerFeature.assignmentMove), isFalse);
   });
 
-  test('the archive calendar reads prints from 1.3.1', () {
-    expect(parse('1.2.5.7').supports(ServerFeature.archiveCalendar), isFalse);
-    expect(parse('1.3.1b1').supports(ServerFeature.archiveCalendar), isTrue);
-  });
-
-  test('duplicate archives merge from 1.3.1', () {
-    expect(parse('1.2.5.7').supports(ServerFeature.archiveMerge), isFalse);
-    expect(parse('1.3.1b1').supports(ServerFeature.archiveMerge), isTrue);
-  });
-
-  test('each print keeps its own note and verdict from 1.3.1', () {
-    expect(parse('1.2.5.7').supports(ServerFeature.archiveRuns), isFalse);
-    expect(parse('1.3.0').supports(ServerFeature.archiveRuns), isFalse);
-    expect(parse('1.3.1b1').supports(ServerFeature.archiveRuns), isTrue);
-    expect(parse('1.3.1').supports(ServerFeature.archiveRuns), isTrue);
-  });
+  // The archive redesign landed on 1.3.1b1 dailies and shipped in the 1.3.0
+  // release; a 1.3.0b1 daily is told yes and corrected by what it answers.
+  for (final (feature, what) in const [
+    (ServerFeature.archiveCalendar, 'the archive calendar reads prints'),
+    (ServerFeature.archiveMerge, 'duplicate archives merge'),
+    (ServerFeature.archiveRuns, 'each print keeps its own note and verdict'),
+  ]) {
+    test('$what from the 1.3.0 release', () {
+      expect(parse('1.2.5.7').supports(feature), isFalse);
+      expect(parse('1.2.6b1').supports(feature), isFalse);
+      expect(parse('1.3.0b1').supports(feature), isTrue);
+      expect(parse('1.3.0').supports(feature), isTrue);
+      expect(parse('1.3.1b1').supports(feature), isTrue);
+    });
+  }
 
   test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
     expect(

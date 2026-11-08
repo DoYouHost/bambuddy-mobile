@@ -601,7 +601,12 @@ sent the two-request path, which works on every server. Being early is the costl
 side here (a spool in two slots), being late costs nothing, which is why the
 threshold is not 1.3.0.
 
-### archiveRuns — 1.3.1 (archive redesign, commits 809eaf4 and d43bf57)
+The 1.3.0 release (2026-11-07) carries `move` as well, and the row still stays at
+1.3.1: `supports` reads every 1.3.0b1 daily as 1.3.0, and one from before the commit
+would take `move` and keep the spool in its old slot too. On the release that costs
+one extra request per move.
+
+### archiveRuns — 1.3.0 (archive redesign, commits 809eaf4 and d43bf57)
 
 Each print of an archive keeps its own note, finish photos, video and verdict.
 `GET /archives/{id}/runs` itself is older (#1378, on 1.2.5) and lists the prints
@@ -617,7 +622,13 @@ on, null or not, so `ArchiveRepository.runsCapability` observes it on the first
 row. An archive with no prints says nothing, and the row decides. Being early
 costs a note that does not stay and a verdict on the wrong print.
 
-### archiveMerge — 1.3.1 (archive redesign P2, commit 926957f)
+The commits came on 1.3.1b1 dailies (2026-10-31) and the 1.3.0 release was cut
+after them, so the row is the release. Every 1.3.0b1 daily predates them and is
+told yes, which costs nothing: both writes start from a row of the runs listing
+(`archive_runs.dart`, `showOutcomeSheet(..., runId:)` and the note), and `runs()`
+settles the latch off on that row's missing `photos` key before returning it.
+
+### archiveMerge — 1.3.0 (archive redesign P2, commit 926957f)
 
 `GET /archives/merge-count`, `GET /archives/merge-preview` and `POST /archives/merge`:
 archives of one file, owner and project merged into the oldest. All three take
@@ -627,11 +638,15 @@ older server answers **422**, not 404, because `/archives/{archive_id}` takes th
 and fails to parse `merge-count` as an id (measured on 1.2.5.7). Being early costs
 nothing visible: the count reads 0 and no entry is shown.
 
+Below the row the count is never asked (`archiveMergeCountProvider`), so the row
+alone hides merge; at 1.3.1 it hid it from the 1.3.0 release, which serves it. A
+1.3.0b1 daily, older than the commit, is told yes and latches off on its 422.
+
 On a contract stack a group is always held back as `busy`: an upload counts as just
 printed for half an hour (`archive_merge.py::_JUST_PRINTED`). The demo carries one
 mergeable group (a second "Handle" archive) for the merge itself.
 
-### archiveCalendar — 1.3.1 (archive redesign P4, commit d43bf57)
+### archiveCalendar — 1.3.0 (archive redesign P4, commit d43bf57)
 
 `GET /archives/prints`: every print of the archives the caller sees that ended in a
 range of calendar days (`tz` is the device's zone, as for the statistics). An older
@@ -640,6 +655,9 @@ server answers 422 for the same reason as `merge-count`, and
 `printsCapability`. That is not a missing feature: the calendar places each printed
 archive as its one print, which is all an older server can say (it logs runs but has
 no route that lists them by day). Being early costs one 422 and that fallback.
+
+In the 1.3.0 release. `printsBetween` asks whatever the row says, so on a live server
+the row changes nothing; the contract tests read it to choose their branch.
 
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 

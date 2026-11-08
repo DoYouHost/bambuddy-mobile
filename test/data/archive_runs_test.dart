@@ -27,7 +27,7 @@ void main() {
     (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
   );
 
-  // A run as 1.3.1 sends it; an older server sends the keys up to
+  // A run as 1.3.0 sends it; an older server sends the keys up to
   // `user_verdict` and none of the per-print ones.
   Map<String, dynamic> run(int id, [Map<String, dynamic> extra = const {}]) => {
     'id': id,

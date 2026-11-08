@@ -635,7 +635,7 @@ abstract final class Endpoints {
   /// How many groups of duplicate archives there are (`{groups}`): same file,
   /// owner and project. Cheap; reads no files. These three need
   /// `archives:update_all` **and** `archives:delete_all`, and arrived with the
-  /// archive redesign (1.3.1). Older servers answer **422**: their
+  /// archive redesign (1.3.0). Older servers answer **422**: their
   /// `/archives/{archive_id}` takes the path and fails to parse it as an id.
   static const archivesMergeCount = '$apiPrefix/archives/merge-count';
 
@@ -651,14 +651,14 @@ abstract final class Endpoints {
   /// Prints of the archives the caller sees that ended between `date_from` and
   /// `date_to` (calendar days in `tz`), `PrintLogResponse`, ordered by id.
   /// Query `printer_id`, `limit` (≤1000), `offset`. The archive calendar's
-  /// source, from the archive redesign (1.3.1); older servers answer 422, as
+  /// source, from the archive redesign (1.3.0); older servers answer 422, as
   /// for [archivesMergeCount].
   static const archivePrints = '$apiPrefix/archives/prints';
 
   /// Every print of the archive (`PrintLogResponse`, `{items, total}`), newest
   /// first, only those on the caller's printers. Served since #1378; each print's
   /// own note, photos, video and plate estimate arrived with the archive
-  /// redesign (1.3.1).
+  /// redesign (1.3.0).
   static String archiveRuns(int archiveId) =>
       '$apiPrefix/archives/$archiveId/runs';
 

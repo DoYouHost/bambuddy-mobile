@@ -3866,7 +3866,7 @@ class DemoBackend {
       'created_by_id': 1,
       'created_by_username': DemoConfig.username,
       'created_at': archive['created_at'],
-      // What each print keeps of its own since the archive redesign (1.3.1):
+      // What each print keeps of its own since the archive redesign (1.3.0):
       // the latest print holds the archive's finish photos.
       'plate_id': archive['plate_id'],
       'user_verdict': archive['user_verdict'],
