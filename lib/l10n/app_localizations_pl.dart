@@ -2092,9 +2092,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get tryDemo => 'Wypróbuj wersję demo';
 
   @override
-  String get customCaImport => 'Importuj certyfikat CA';
-
-  @override
   String customCaTrusted(String name) {
     return 'Zaufany CA: $name';
   }
@@ -2103,13 +2100,16 @@ class AppLocalizationsPl extends AppLocalizations {
   String get customCaRemove => 'Usuń certyfikat CA';
 
   @override
-  String get customCaInvalid => 'Ten plik nie zawiera certyfikatu';
+  String get certificateImport => 'Importuj certyfikat';
+
+  @override
+  String get certificateInvalid => 'Ten plik nie zawiera certyfikatu';
+
+  @override
+  String get clientCertInvalid => 'Ten plik nie zawiera certyfikatu z kluczem';
 
   @override
   String get customCaPickFailed => 'Nie udało się otworzyć pliku';
-
-  @override
-  String get clientCertImport => 'Importuj certyfikat klienta';
 
   @override
   String clientCertInUse(String name) {
@@ -2118,9 +2118,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get clientCertRemove => 'Usuń certyfikat klienta';
-
-  @override
-  String get clientCertInvalid => 'Ten plik nie zawiera certyfikatu z kluczem';
 
   @override
   String get clientCertWrongPassword => 'Błędne hasło certyfikatu';

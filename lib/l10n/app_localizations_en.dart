@@ -2042,9 +2042,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryDemo => 'Try the demo';
 
   @override
-  String get customCaImport => 'Import CA certificate';
-
-  @override
   String customCaTrusted(String name) {
     return 'Trusted CA: $name';
   }
@@ -2053,13 +2050,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customCaRemove => 'Remove CA certificate';
 
   @override
-  String get customCaInvalid => 'This file holds no certificate';
+  String get certificateImport => 'Import certificate';
+
+  @override
+  String get certificateInvalid => 'This file holds no certificate';
+
+  @override
+  String get clientCertInvalid => 'This file holds no certificate with its key';
 
   @override
   String get customCaPickFailed => 'Could not open the file';
-
-  @override
-  String get clientCertImport => 'Import client certificate';
 
   @override
   String clientCertInUse(String name) {
@@ -2068,9 +2068,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientCertRemove => 'Remove client certificate';
-
-  @override
-  String get clientCertInvalid => 'This file holds no certificate with its key';
 
   @override
   String get clientCertWrongPassword => 'Wrong certificate password';

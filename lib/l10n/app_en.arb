@@ -1289,21 +1289,20 @@
     "description": "Why remember-me does nothing for a 2FA account; shown under the code field"
   },
   "tryDemo": "Try the demo",
-  "customCaImport": "Import CA certificate",
   "customCaTrusted": "Trusted CA: {name}",
   "@customCaTrusted": {
     "placeholders": {"name": {"type": "String"}}
   },
   "customCaRemove": "Remove CA certificate",
-  "customCaInvalid": "This file holds no certificate",
+  "certificateImport": "Import certificate",
+  "certificateInvalid": "This file holds no certificate",
+  "clientCertInvalid": "This file holds no certificate with its key",
   "customCaPickFailed": "Could not open the file",
-  "clientCertImport": "Import client certificate",
   "clientCertInUse": "Client certificate: {name}",
   "@clientCertInUse": {
     "placeholders": {"name": {"type": "String"}}
   },
   "clientCertRemove": "Remove client certificate",
-  "clientCertInvalid": "This file holds no certificate with its key",
   "clientCertWrongPassword": "Wrong certificate password",
   "clientCertPasswordTitle": "Certificate password",
   "certificatesTitle": "Certificates",

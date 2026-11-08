@@ -33,6 +33,16 @@ class ClientCert {
   /// item.
   static const maxBytes = 64 * 1024;
 
+  /// Whether [bytes] carry a PEM private key, plain or encrypted: such a file
+  /// is meant as a client certificate even when it does not load as one.
+  static bool holdsKey(List<int> bytes) =>
+      latin1.decode(bytes).contains('PRIVATE KEY-----');
+
+  /// PKCS#8 (`ENCRYPTED PRIVATE KEY`) and the older OpenSSL form.
+  static final _encryptedKey = RegExp(
+    r'ENCRYPTED PRIVATE KEY-----|Proc-Type: 4,ENCRYPTED',
+  );
+
   /// Reads [bytes] with [password]. `wrongPassword` is set only when the file
   /// is a certificate bundle and the password is what failed, so the caller can
   /// ask for one; any other refusal comes back as both fields empty.
@@ -49,8 +59,12 @@ class ClientCert {
     } on TlsException catch (e) {
       return (cert: null, wrongPassword: '$e'.contains('INCORRECT_PASSWORD'));
     } on ArgumentError {
-      // A PEM with a certificate and no key.
-      return (cert: null, wrongPassword: false);
+      // A PEM with a certificate and no key, or an encrypted PEM key read
+      // with the wrong password: BoringSSL reports both as no key found.
+      return (
+        cert: null,
+        wrongPassword: _encryptedKey.hasMatch(latin1.decode(bytes)),
+      );
     }
     return (
       cert: ClientCert(
