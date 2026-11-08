@@ -3422,12 +3422,6 @@ abstract class AppLocalizations {
   /// **'Try the demo'**
   String get tryDemo;
 
-  /// No description provided for @customCaImport.
-  ///
-  /// In en, this message translates to:
-  /// **'Import CA certificate'**
-  String get customCaImport;
-
   /// No description provided for @customCaTrusted.
   ///
   /// In en, this message translates to:
@@ -3440,23 +3434,29 @@ abstract class AppLocalizations {
   /// **'Remove CA certificate'**
   String get customCaRemove;
 
-  /// No description provided for @customCaInvalid.
+  /// No description provided for @certificateImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import certificate'**
+  String get certificateImport;
+
+  /// No description provided for @certificateInvalid.
   ///
   /// In en, this message translates to:
   /// **'This file holds no certificate'**
-  String get customCaInvalid;
+  String get certificateInvalid;
+
+  /// No description provided for @clientCertInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds no certificate with its key'**
+  String get clientCertInvalid;
 
   /// No description provided for @customCaPickFailed.
   ///
   /// In en, this message translates to:
   /// **'Could not open the file'**
   String get customCaPickFailed;
-
-  /// No description provided for @clientCertImport.
-  ///
-  /// In en, this message translates to:
-  /// **'Import client certificate'**
-  String get clientCertImport;
 
   /// No description provided for @clientCertInUse.
   ///
@@ -3469,12 +3469,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove client certificate'**
   String get clientCertRemove;
-
-  /// No description provided for @clientCertInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'This file holds no certificate with its key'**
-  String get clientCertInvalid;
 
   /// No description provided for @clientCertWrongPassword.
   ///

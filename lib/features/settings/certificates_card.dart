@@ -5,8 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../setup/client_cert_row.dart';
-import '../setup/custom_ca_row.dart';
+import '../setup/certificate_rows.dart';
 
 /// The CA (#62) and the client certificate (#65) outside the setup screen,
 /// which a signed-in user never sees again: a certificate that expires or is
@@ -32,11 +31,7 @@ class CertificatesCard extends ConsumerWidget {
       rows: [
         const Padding(
           padding: inset,
-          child: CustomCaRow(area: _area),
-        ),
-        const Padding(
-          padding: inset,
-          child: ClientCertRow(area: _area),
+          child: CertificateRows(area: _area),
         ),
         if (both)
           Center(

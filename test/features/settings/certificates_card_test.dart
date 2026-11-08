@@ -67,13 +67,12 @@ void main() {
 
   final removeAll = byLogId('app_settings.certificates_remove_all');
 
-  testWidgets('offers both imports and no "remove all" while empty', (
+  testWidgets('offers the import and no "remove all" while empty', (
     tester,
   ) async {
     await pump(tester);
 
-    expect(find.text(pl.customCaImport), findsOneWidget);
-    expect(find.text(pl.clientCertImport), findsOneWidget);
+    expect(byLogId('app_settings.cert_import'), findsOneWidget);
     expect(removeAll, findsNothing);
   });
 
@@ -109,8 +108,7 @@ void main() {
     expect(await loadClientCert(SettingsRepository(prefs)), isNull);
     expect(await ClientCertStore().read(), isNull);
     expect(removeAll, findsNothing);
-    expect(find.text(pl.customCaImport), findsOneWidget);
-    expect(find.text(pl.clientCertImport), findsOneWidget);
+    expect(byLogId('app_settings.cert_import'), findsOneWidget);
   });
 
   testWidgets('each row logs under the settings screen', (tester) async {

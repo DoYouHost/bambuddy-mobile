@@ -211,9 +211,9 @@ same phone trusts it.
 issuer on top of the system roots (`base-config` with the extra CA plus `system`).
 Trusting every user-installed CA is shown only under `debug-overrides`. We follow
 the first, at run time, because the CA differs per user. The setup screen imports
-one file, PEM or DER (`lib/features/setup/custom_ca_row.dart`). `CustomCa.parse`
-keeps only its `CERTIFICATE` blocks, so a private key picked by mistake is never
-stored. The certificate lives in SharedPreferences under `custom_ca`; it is public,
+one file, PEM or DER (`lib/features/setup/certificate_rows.dart`). `CustomCa.parse`
+keeps only its `CERTIFICATE` blocks. The import button sends a file with a private key
+to the client certificate instead (below), so a key never reaches the CA slot. The certificate lives in SharedPreferences under `custom_ca`; it is public,
 not a secret.
 
 **Where it applies.** `HttpOverrides.global` is per isolate, so each isolate that
@@ -259,10 +259,22 @@ KeyChain does not help, for the reason a user CA does not: every request goes th
 and cannot be exported. Using it would mean a native HTTP stack under Dio, the socket,
 the camera stream and `Image.network`. So the user imports a file instead: a `.p12` or
 `.pfx`, or a PEM holding the certificate and its key
-(`lib/features/setup/client_cert_row.dart`, on the setup screen and in app settings).
+(`lib/features/setup/certificate_rows.dart`, on the setup screen and in app settings).
 `ClientCert.parse` loads it into a throwaway `SecurityContext`. A wrong password is told
-apart by BoringSSL's `INCORRECT_PASSWORD`, so the dialog asks only when the file needs
-one.
+apart by BoringSSL's `INCORRECT_PASSWORD` in a `.p12`. An encrypted PEM key fails as
+"no key found" whatever the password, so there the `ENCRYPTED PRIVATE KEY` or
+`Proc-Type: 4,ENCRYPTED` header is what says a password is needed. The dialog asks only
+when the file needs one.
+
+**One import button for both.** The file decides: a key or a password makes it the
+client certificate, a bare certificate the CA. The client certificate is tried first,
+because `CustomCa.parse` takes the certificates out of any PEM, a bundle with its key
+included. A file that asked for a password or carries a PEM private key never falls
+through to the CA slot: one that fails (a key that does not match, a `.p12` with no key)
+says so as a client certificate and leaves the installed CA alone. A certificate PEM
+without its key does land as a CA; the proxy then refuses the app with the
+client-certificate message, which names the problem. Each
+kind has one slot, so the button stays and a new import replaces the old one.
 
 **Storage.** The file and its password are a secret, so they go to
 `flutter_secure_storage` under a namespace of their own (`client_cert`). That namespace

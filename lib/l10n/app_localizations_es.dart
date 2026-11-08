@@ -2060,9 +2060,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tryDemo => 'Probar la demo';
 
   @override
-  String get customCaImport => 'Importar certificado de CA';
-
-  @override
   String customCaTrusted(String name) {
     return 'CA de confianza: $name';
   }
@@ -2071,13 +2068,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customCaRemove => 'Quitar certificado de CA';
 
   @override
-  String get customCaInvalid => 'Este archivo no contiene ningún certificado';
+  String get certificateImport => 'Importar certificado';
+
+  @override
+  String get certificateInvalid =>
+      'Este archivo no contiene ningún certificado';
+
+  @override
+  String get clientCertInvalid =>
+      'Este archivo no contiene un certificado con su clave';
 
   @override
   String get customCaPickFailed => 'No se pudo abrir el archivo';
-
-  @override
-  String get clientCertImport => 'Importar certificado de cliente';
 
   @override
   String clientCertInUse(String name) {
@@ -2086,10 +2088,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get clientCertRemove => 'Quitar certificado de cliente';
-
-  @override
-  String get clientCertInvalid =>
-      'Este archivo no contiene un certificado con su clave';
 
   @override
   String get clientCertWrongPassword => 'Contraseña del certificado incorrecta';
