@@ -1,53 +1,40 @@
 name: CI
 
-# The "is it done?" signal for pull requests — especially for @claude, which is
-# told in AGENTS.md to read this run before asking a question. Everything here
-# is what `just test` plus a compile of both flavors would tell you locally, so
-# a green run means the branch builds and behaves; a red one is homework, not a
-# question for the reviewer.
-#
-# Runs on the self-hosted runners (label `flutter`), which already carry the
-# Flutter SDK, the Android SDK and a warm Gradle/pub cache — a hosted runner
-# would spend most of the wall clock re-downloading them.
+# What `just test` plus a compile of both flavors would tell you locally.
+# @claude reads this run before asking a question.
+# GitHub-hosted runners: free for a public repo, one VM per job, no shared CPU.
 
 on:
   pull_request:
     branches: [master]
-    # No paths-ignore here, deliberately — see "Does this change need a build?"
-    # below, which holds the same list. A `paths-ignore` decides whether the
-    # workflow RUNS, and a workflow that does not run reports no check at all;
-    # once "analyze · test · build" became a required status on master that left
-    # a docs-only PR waiting forever on a check that could never arrive.
+    # No paths-ignore: a workflow that does not run reports no check, and the
+    # required status on master would wait forever. The filter is the `changes` job.
   workflow_dispatch:
 
-# A force-push should not leave the previous run burning a runner for a commit
-# nobody will look at again.
+# A force-push cancels the previous run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  # Reading which files a pull request touches, for the path filter below.
+  # Reading which files a pull request touches, for the `changes` job.
   pull-requests: read
 
-jobs:
-  check:
-    name: analyze · test · build
-    runs-on: [self-hosted, flutter]
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
+env:
+  FLUTTER_VERSION: "3.47.7"
 
-      # The list that used to be `paths-ignore`. Deciding it here instead keeps
-      # the check reported: steps skipped by `if:` still land in a job that
-      # succeeds, which is what a required status needs to see. Anything this
-      # cannot determine — a non-PR event, an API that will not answer, a pull
-      # request larger than the pages read — falls through to building, because
-      # the expensive mistake is skipping a change that breaks the app.
-      - name: Does this change need a build?
+jobs:
+  # Decided here instead of `paths-ignore`, so the required check is still
+  # reported. Anything undeterminable falls through to building.
+  changes:
+    name: Does this change need a build?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.relevant.outputs.run }}
+    steps:
+      - name: Changed files
         id: relevant
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,8 +75,7 @@ jobs:
             exit 0
           fi
 
-          # `case` globs span slashes, so site/* covers site/a/b and *.md covers
-          # any depth — the same reach the old "site/**" / "**/*.md" had.
+          # `case` globs span slashes: site/* covers site/a/b, *.md any depth.
           needs_build=false
           while IFS= read -r f; do
             [ -z "$f" ] && continue
@@ -106,56 +92,124 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Which SDK actually ran matters when a failure reproduces nowhere else.
-      - name: Toolchain
-        if: steps.relevant.outputs.run == 'true'
-        run: flutter --version
+  analyze:
+    name: analyze
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      # --enforce-lockfile: a stale lock fails here instead of quietly resolving.
+      - run: flutter pub get --enforce-lockfile
+      # Fix a red run with `dart format lib test tool`, never by hand.
+      - run: dart format --output=none --set-exit-if-changed lib test tool
+      - run: flutter analyze
 
-      # --enforce-lockfile, so a stale lock fails here instead of quietly
-      # resolving something else. Committing the lock only guarantees a
-      # reproducible build while pub is actually made to honour it.
-      - name: Dependencies
-        if: steps.relevant.outputs.run == 'true'
-        run: flutter pub get --enforce-lockfile
-
-      # Style is not a judgement call any more: `dart format` is the whole of
-      # it, so a diff carries only the change it is about. Fix a red run with
-      # `dart format lib test tool`, never by hand.
-      - name: Format
-        if: steps.relevant.outputs.run == 'true'
-        run: dart format --output=none --set-exit-if-changed lib test tool
-
-      - name: Analyze
-        if: steps.relevant.outputs.run == 'true'
-        run: flutter analyze
-
+  # Everything but test/a11y, which is most of the wall clock and has its own jobs.
+  test:
+    name: test
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
       - name: Test
-        if: steps.relevant.outputs.run == 'true'
-        run: flutter test
+        run: |
+          mapfile -t files < <(find test -name '*_test.dart' -not -path 'test/a11y/*' | sort)
+          flutter test --concurrency=4 "${files[@]}"
 
+  # One `flutter test` process per job (several in one workspace corrupt
+  # build/test_cache); the shards are separate VMs.
+  a11y:
+    name: a11y (${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: A11y guideline tests
+        run: |
+          mapfile -t files < <(find test/a11y -name '*_test.dart' | sort | awk -v s=${{ matrix.shard }} 'NR % 3 == s')
+          [ "${#files[@]}" -gt 0 ] || { echo "empty shard"; exit 1; }
+          flutter test --concurrency=4 "${files[@]}"
+
+  build:
+    name: build
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
       - name: Compile check (mobile)
-        if: steps.relevant.outputs.run == 'true'
         run: flutter build apk --debug --flavor mobile --target-platform android-arm64
-
       - name: Compile check (wear)
-        if: steps.relevant.outputs.run == 'true'
         run: |
           flutter build apk --debug --flavor wear \
             --target lib/wear/main_wear.dart --target-platform android-arm64
-
-      # The two things about the watch build that nothing in `flutter test` can
-      # see, because Gradle and the manifest merger decide them: the phone-only
-      # assets pruned out of the APK (~2.2 MB), and the ContentProviders that
-      # would otherwise run in `Application.onCreate` on every cold start. Both
-      # fail silently — the build still succeeds, the weight just comes back.
-      #
-      # Runs against the two APKs the compile steps above have just produced,
-      # so it costs a few seconds and no extra build. The phone APK is the
-      # control: the same assets must still be there, or the prune is matching
-      # the wrong flavor.
+      # What `flutter test` cannot see: phone-only assets pruned from the watch
+      # APK, and no ContentProviders in `Application.onCreate`. Both fail silently.
+      # Runs on the APKs built above; the phone APK is the control.
       - name: Watch APK contents
-        if: steps.relevant.outputs.run == 'true'
         run: |
           python3 tool/check_wear_apk.py \
             build/app/outputs/flutter-apk/app-wear-debug.apk \
             --mobile build/app/outputs/flutter-apk/app-mobile-debug.apk
+
+  # The one status master requires. A skipped job (docs-only change) counts as
+  # passed; a failed or cancelled one does not.
+  check:
+    name: analyze · test · build
+    needs: [changes, analyze, test, a11y, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed or was skipped
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "$results"
+          case " $results " in *" failure "*|*" cancelled "*) exit 1 ;; esac
