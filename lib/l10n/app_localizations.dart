@@ -2660,6 +2660,30 @@ abstract class AppLocalizations {
   /// **'This demo printer is offline, so there is no camera picture.'**
   String get cameraDemoUnavailable;
 
+  /// No description provided for @nozzleRack.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle rack'**
+  String get nozzleRack;
+
+  /// Screen-reader suffix of the rack position whose nozzle is on the toolhead
+  ///
+  /// In en, this message translates to:
+  /// **'on the toolhead'**
+  String get nozzleRackMounted;
+
+  /// Screen-reader label of one nozzle rack position
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}: {diameter} mm'**
+  String nozzleRackPosition(int position, String diameter);
+
+  /// No description provided for @nozzleRackPositionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}: empty'**
+  String nozzleRackPositionEmpty(int position);
+
   /// No description provided for @externalInputs.
   ///
   /// In en, this message translates to:

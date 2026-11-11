@@ -1362,6 +1362,91 @@ void main() {
         expect(find.text(pl.traySlotEmpty), findsNothing);
       });
 
+      // The rack from the server's H3C capture: slot 6's hotend on the
+      // toolhead (id 0, addr_id 6), its dock id 22 absent.
+      List<Map<String, Object?>> h3cRack() => [
+        {'id': 0, 'nozzle_diameter': '0.6', 'addr_id': 6},
+        for (var i = 0; i < 9; i++)
+          if (i != 6)
+            {
+              'id': 16 + i,
+              'nozzle_diameter': '0.4',
+              'filament_color': 'DE4343FF',
+              'addr_id': i,
+            },
+      ];
+
+      // The card is one merged semantics node, so the chips are read by the
+      // label each one gives.
+      Finder chipLabelled(Pattern label) => find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            w.excludeSemantics &&
+            label.allMatches(w.properties.label ?? '').isNotEmpty &&
+            (label is! String || w.properties.label == label),
+      );
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('the H3C rack draws nine positions, the mounted one named, '
+            'at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': h3cRack()}),
+          );
+          expect(find.text(pl.nozzleRack.toUpperCase()), findsOneWidget);
+          for (var n = 1; n <= 9; n++) {
+            expect(find.text('$n'), findsWidgets, reason: 'position $n');
+          }
+          expect(
+            chipLabelled(
+              '${pl.nozzleRackPosition(7, '0.6')}, ${pl.nozzleRackMounted}',
+            ),
+            findsOneWidget,
+          );
+          expect(chipLabelled(RegExp(pl.nozzleRackMounted)), findsOneWidget);
+        });
+      }
+
+      testWidgets('an H2C rack draws six, none ringed without addr_id', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            top: {
+              'nozzle_rack': [
+                {'id': 0, 'nozzle_diameter': '0.4'},
+                {'id': 1, 'nozzle_diameter': '0.4'},
+                for (final id in [16, 18, 19, 20, 21])
+                  {'id': id, 'nozzle_diameter': '0.4'},
+              ],
+            },
+          ),
+        );
+        expect(chipLabelled(pl.nozzleRackPositionEmpty(2)), findsOneWidget);
+        expect(chipLabelled(pl.nozzleRackPosition(6, '0.4')), findsOneWidget);
+        expect(chipLabelled(pl.nozzleRackPosition(7, '0.4')), findsNothing);
+        expect(chipLabelled(RegExp(pl.nozzleRackMounted)), findsNothing);
+      });
+
+      testWidgets('a printer without a rack shows none', (tester) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            top: {
+              'nozzle_rack': [
+                {'id': 0, 'nozzle_diameter': '0.4'},
+                {'id': 1, 'nozzle_diameter': '0.4'},
+              ],
+            },
+          ),
+        );
+        expect(find.text(pl.nozzleRack.toUpperCase()), findsNothing);
+      });
+
       testWidgets("a rack printer's input takes no slot action", (
         tester,
       ) async {

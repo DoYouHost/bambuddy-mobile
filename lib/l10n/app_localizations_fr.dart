@@ -1635,6 +1635,22 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette imprimante de démo est hors ligne, il n\'y a donc pas d\'image de caméra.';
 
   @override
+  String get nozzleRack => 'Rack à buses';
+
+  @override
+  String get nozzleRackMounted => 'sur la tête d\'outil';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Position $position : $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Position $position : vide';
+  }
+
+  @override
   String get externalInputs => 'Entrées externes';
 
   @override

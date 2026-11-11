@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +10,8 @@ import 'contract_harness.dart';
 import 'sent_writes.dart';
 
 /// The H3C (server #3442) as the app reads it: its AMS 3H as unit 32, slots
-/// numbered 28-36, and the dryer's own slots and readings.
+/// numbered 28-36, the dryer's own slots and readings, and the rack with the
+/// mounted nozzle's home (`addr_id`).
 ///
 /// The report is the live capture from the server's `test_h3c_ams3h.py`
 /// (`FRAME`, firmware 01.01.03.00, mid-print, tray_now "6", slot 7 empty) with
@@ -32,8 +34,34 @@ void main() {
       'tag_uid': '0000000000000000',
     };
 
+    // The capture's nine hotends: slot 6's on the toolhead (id 0, addr_id 6),
+    // 23 an empty high-temperature one.
+    Map<String, Object?> hotend(int id, int addr, String colour) => {
+      'id': id,
+      'addr_id': addr,
+      'type': id == 23 ? 'HT01' : 'HS01',
+      'diameter': 0.4,
+      'color_m': colour,
+      'fila_id': colour == '00000000' ? '' : 'GFL99',
+    };
+
     final report = <String, Object?>{
       'command': 'push_status',
+      'device': {
+        'nozzle': {
+          'info': [
+            hotend(16, 0, 'DE4343FF'),
+            hotend(17, 1, 'FFFFFFFF'),
+            hotend(18, 2, '757575FF'),
+            hotend(19, 3, '000000FF'),
+            hotend(20, 4, '0178BFFF'),
+            hotend(21, 5, 'AE96D4FF'),
+            hotend(0, 6, 'F7D959FF'),
+            hotend(23, 7, '00000000'),
+            hotend(24, 8, '61C680FF'),
+          ],
+        },
+      },
       'ams': {
         'tray_now': '6',
         'tray_pre': '6',
@@ -156,6 +184,19 @@ void main() {
         [28, 29, 30, 31, 32, 33, 34, 36],
         reason: 'slot 7 (35) is empty',
       );
+
+      // The rack card: nine positions, the toolhead's nozzle at its home 7.
+      final rack = rackCardPositions(status.nozzleRack, rackPrinter: true)!;
+      expect(rack, hasLength(rackSlotCount));
+      expect(
+        [
+          for (final p in rack)
+            if (p.mounted) p.position,
+        ],
+        [7],
+      );
+      expect(rack[6].slot?.filamentColor, 'F7D959FF');
+      expect(rack.where((p) => p.slot == null), isEmpty);
     });
 
     test('the drying sheet starts the AMS 3H on its drying zone', () async {

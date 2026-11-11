@@ -95,6 +95,7 @@ NozzleRackSlot _$NozzleRackSlotFromJson(Map<String, dynamic> json) =>
       nozzleDiameter: json['nozzle_diameter'] as String?,
       filamentColor: json['filament_color'] as String?,
       filamentType: json['filament_type'] as String?,
+      addrId: toIntOrNull(json['addr_id']),
     );
 
 FilaSwitch _$FilaSwitchFromJson(Map<String, dynamic> json) => FilaSwitch(

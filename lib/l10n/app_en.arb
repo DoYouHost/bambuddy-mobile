@@ -1024,6 +1024,31 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "This demo printer is offline, so there is no camera picture.",
+  "nozzleRack": "Nozzle rack",
+  "nozzleRackMounted": "on the toolhead",
+  "@nozzleRackMounted": {
+    "description": "Screen-reader suffix of the rack position whose nozzle is on the toolhead"
+  },
+  "nozzleRackPosition": "Position {position}: {diameter} mm",
+  "@nozzleRackPosition": {
+    "description": "Screen-reader label of one nozzle rack position",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "diameter": {
+        "type": "String"
+      }
+    }
+  },
+  "nozzleRackPositionEmpty": "Position {position}: empty",
+  "@nozzleRackPositionEmpty": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
   "externalInputs": "External inputs",
   "externalInputsEmpty": "All {count} external inputs are empty",
   "@externalInputsEmpty": {

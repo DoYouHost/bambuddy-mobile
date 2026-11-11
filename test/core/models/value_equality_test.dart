@@ -282,6 +282,7 @@ void main() {
         nozzleDiameter: '0.4',
         filamentColor: 'FF',
         filamentType: 'PLA',
+        addrId: 6,
       ),
       {
         'id': () => const NozzleRackSlot(
@@ -290,6 +291,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'nozzleType': () => const NozzleRackSlot(
           id: 16,
@@ -297,6 +299,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'nozzleDiameter': () => const NozzleRackSlot(
           id: 16,
@@ -304,6 +307,7 @@ void main() {
           nozzleDiameter: '0.6',
           filamentColor: 'FF',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'filamentColor': () => const NozzleRackSlot(
           id: 16,
@@ -311,6 +315,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: '00',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'filamentType': () => const NozzleRackSlot(
           id: 16,
@@ -318,6 +323,14 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PETG',
+        ),
+        'addrId': () => const NozzleRackSlot(
+          id: 16,
+          nozzleType: 'HS00',
+          nozzleDiameter: '0.4',
+          filamentColor: 'FF',
+          filamentType: 'PLA',
+          addrId: 7,
         ),
       },
     ),

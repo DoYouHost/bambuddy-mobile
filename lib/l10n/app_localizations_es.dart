@@ -1620,6 +1620,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta impresora de demostración está desconectada, así que no hay imagen de cámara.';
 
   @override
+  String get nozzleRack => 'Soporte de boquillas';
+
+  @override
+  String get nozzleRackMounted => 'en el cabezal';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Posición $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Posición $position: vacía';
+  }
+
+  @override
   String get externalInputs => 'Entradas externas';
 
   @override

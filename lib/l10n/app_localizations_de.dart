@@ -1626,6 +1626,22 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.';
 
   @override
+  String get nozzleRack => 'Düsenhalter';
+
+  @override
+  String get nozzleRackMounted => 'am Werkzeugkopf';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Position $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Position $position: leer';
+  }
+
+  @override
   String get externalInputs => 'Externe Eingänge';
 
   @override

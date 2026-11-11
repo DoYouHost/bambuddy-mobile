@@ -626,7 +626,9 @@ class _DetailsPanel extends ConsumerWidget {
     int trayIdOf(int i) =>
         externalSlotIndex(spools[i].id ?? externalTrayIdBase);
 
+    final rackCard = rackCardPositions(status.nozzleRack, rackPrinter: rack);
     final blocks = <Widget>[
+      if (rackCard != null) _NozzleRackSection(positions: rackCard),
       for (var i = 0; i < ams.length; i++)
         _AmsSection(
           unit: ams[i],
@@ -1121,6 +1123,112 @@ class _SpoolSection extends StatelessWidget {
             slot: slotRef(i),
           ),
       ],
+    );
+  }
+}
+
+/// The nozzle rack as the web's rack card draws it: one chip per position in
+/// the colour of the filament on that nozzle, the diameter on it and the
+/// position under it; the nozzle on the toolhead ringed.
+class _NozzleRackSection extends StatelessWidget {
+  const _NozzleRackSection({required this.positions});
+
+  final List<RackCardPosition> positions;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.nozzleRack.toUpperCase(),
+          style: t.label.copyWith(
+            color: t.textPrimary,
+            letterSpacing: DashTracking.label,
+          ),
+        ),
+        const SizedBox(height: DashSpace.md),
+        Wrap(
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
+          children: [for (final p in positions) _RackChip(position: p)],
+        ),
+      ],
+    );
+  }
+}
+
+class _RackChip extends StatelessWidget {
+  const _RackChip({required this.position});
+
+  final RackCardPosition position;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final slot = position.slot;
+    final empty = slot == null || slot.isEmpty;
+    final diameter = empty ? null : nozzleDiameterLabel(slot.nozzleDiameter);
+    // "00000000" is the printer's way of saying no filament.
+    final filament = empty ? null : parseTrayColor(slot.filamentColor);
+    final fill = filament == null || filament.a == 0
+        ? null
+        : Color.alphaBlend(filament, t.overlaySurface);
+    final number = position.position;
+    final label = [
+      diameter == null
+          ? l10n.nozzleRackPositionEmpty(number)
+          : l10n.nozzleRackPosition(number, diameter),
+      if (position.mounted) l10n.nozzleRackMounted,
+    ].join(', ');
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: DashSize.d32,
+            height: DashSize.d32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: fill ?? t.subCard,
+              borderRadius: BorderRadius.circular(DashRadius.sm),
+              border: Border.all(
+                color: position.mounted ? t.accentGreen : t.subCardBorder,
+                width: position.mounted
+                    ? DashStroke.regular
+                    : DashStroke.hairline,
+              ),
+            ),
+            // Clamped so the diameter stays inside the fixed chip; the label
+            // above reads it out at full size.
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: Text(
+                diameter ?? '—',
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: DashFontSize.micro,
+                  fontWeight: DashWeight.bold,
+                  color: fill == null ? t.textTertiary : _inkOn(fill),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: DashSpace.xs),
+          Text(
+            '$number',
+            style: t.monoLabel.copyWith(
+              color: position.mounted ? t.accentGreenInk : t.textTertiary,
+              fontWeight: position.mounted ? DashWeight.bold : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

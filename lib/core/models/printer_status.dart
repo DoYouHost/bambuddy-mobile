@@ -1066,6 +1066,7 @@ class NozzleRackSlot with ValueEquality {
     this.nozzleDiameter,
     this.filamentColor,
     this.filamentType,
+    this.addrId,
   });
 
   factory NozzleRackSlot.fromJson(Map<String, dynamic> json) =>
@@ -1090,6 +1091,11 @@ class NozzleRackSlot with ValueEquality {
   /// frame, which carries every other field of this record.
   final String? filamentType;
 
+  /// H3C only: the home rack position (0-8) of the nozzle; the one on the
+  /// toolhead reports id 0 and this. Null on an H2C and an older server.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? addrId;
+
   /// Whether the position holds a nozzle at all. A dock the operator left
   /// empty still arrives, with its properties blank.
   bool get isEmpty =>
@@ -1103,6 +1109,7 @@ class NozzleRackSlot with ValueEquality {
     nozzleDiameter,
     filamentColor,
     filamentType,
+    addrId,
   ];
 }
 

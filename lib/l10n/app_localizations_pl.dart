@@ -1655,6 +1655,22 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ta drukarka demo jest offline, więc nie ma obrazu z kamery.';
 
   @override
+  String get nozzleRack => 'Magazyn dysz';
+
+  @override
+  String get nozzleRackMounted => 'na głowicy';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Pozycja $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Pozycja $position: pusta';
+  }
+
+  @override
   String get externalInputs => 'Wejścia zewnętrzne';
 
   @override
