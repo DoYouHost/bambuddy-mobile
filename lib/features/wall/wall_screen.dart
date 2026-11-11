@@ -229,8 +229,9 @@ class _WallGrid extends ConsumerWidget {
 
   static const _gap = 10.0;
 
-  /// A tile shorter than this no longer fits its text; past it the grid
-  /// scrolls instead of shrinking further.
+  /// A tile shorter than this no longer fits its text at 100 %; past it the
+  /// grid scrolls instead of shrinking further. Scaled with the text, which at
+  /// 150 % overflowed a seven-printer wall.
   static const _minTileHeight = 120.0;
 
   @override
@@ -258,13 +259,16 @@ class _WallGrid extends ConsumerWidget {
     final camera =
         ref.watch(serverProfileProvider) != null &&
         ref.watch(wallLiveCameraProvider);
+    final minTileHeight = MediaQuery.textScalerOf(
+      context,
+    ).scale(_minTileHeight);
     return LayoutBuilder(
       builder: (context, box) {
         final cols = wallColumns(
           printers.length,
           box.biggest,
           gap: _gap,
-          minTileHeight: _minTileHeight,
+          minTileHeight: minTileHeight,
         );
         final rows = (printers.length / cols).ceil();
         final fitted = (box.maxHeight - _gap * (rows - 1)) / rows;
@@ -275,7 +279,7 @@ class _WallGrid extends ConsumerWidget {
             crossAxisCount: cols,
             crossAxisSpacing: _gap,
             mainAxisSpacing: _gap,
-            mainAxisExtent: fitted < _minTileHeight ? _minTileHeight : fitted,
+            mainAxisExtent: fitted < minTileHeight ? minTileHeight : fitted,
           ),
           itemBuilder: (_, i) => WallTile(
             key: ValueKey(printers[i].printer.id),

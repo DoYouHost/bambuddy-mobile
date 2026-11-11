@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:app_util/app_util.dart';
 
+import '../ams/slot_addressing.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
@@ -1520,6 +1521,20 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 2,
     },
+    // The only rack printer: an AMS 3H numbered 28-36 with its dryer, nine
+    // external inputs and the nine-nozzle rack, none of which another machine
+    // reports.
+    {
+      'id': 7,
+      'name': 'H3C',
+      'serial_number': '0A0000C10300000',
+      'ip_address': '192.168.4.27',
+      'access_code': '73059182',
+      'model': 'H3C',
+      'location': 'Office',
+      'is_active': true,
+      'nozzle_count': 1,
+    },
   ];
 
   /// Full status for the REST endpoint (`id`+`name` included).
@@ -1538,6 +1553,7 @@ class DemoBackend {
       4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
       5 => _maybePrinting(5, _statusSecondX1c(), 'Server rack – plate 22'),
       6 => _maybePrinting(6, _statusDualNozzle(), 'Gear set'),
+      7 => _statusH3c(),
       // Printer 3, and anything the fleet does not list. Written as the
       // fallback rather than as `3 =>` because an id that reached here at all
       // is one nothing should have asked about.
@@ -1842,6 +1858,114 @@ class DemoBackend {
     'ipcam': true,
   };
 
+  /// The H3C as the server reports the live capture in `test_h3c_ams3h.py`:
+  /// slot 6's filament loaded and its hotend on the toolhead, slot 7 empty.
+  Map<String, dynamic> _statusH3c() {
+    const colours = [
+      'DE4343FF',
+      'FFFFFFFF',
+      '757575FF',
+      '000000FF',
+      '0178BFFF',
+      'AE96D4FF',
+      'F7D959FF',
+      null,
+      '61C680FF',
+    ];
+    final drying = (_dryTime[ams3hUnit] ?? 0) > 0;
+    return {
+      'name': 'H3C',
+      'model': 'H3C',
+      'connected': true,
+      'state': 'IDLE',
+      'current_print': null,
+      'gcode_file': null,
+      'progress': 0,
+      'remaining_time': 0,
+      'layer_num': 0,
+      'total_layers': 0,
+      'temperatures': {
+        'nozzle': _r1(25.1 + _wiggle(0.3, phase: 15)),
+        'nozzle_target': 0.0,
+        'bed': _r1(24.4 + _wiggle(0.2, phase: 40)),
+        'bed_target': 0.0,
+        'chamber': _r1(26.0 + _wiggle(0.3, phase: 65)),
+        'chamber_target': 0.0,
+      },
+      'cooling_fan_speed': 0,
+      'big_fan1_speed': 0,
+      'big_fan2_speed': 0,
+      'heatbreak_fan_speed': 0,
+      'speed_level': _speedLevel[7] ?? 2,
+      'chamber_light': _chamberLight[7] ?? false,
+      'airduct_mode': _airductMode[7] ?? 0,
+      'wifi_signal': -55,
+      'door_open': false,
+      'ams_exists': true,
+      'ams': [
+        {
+          'id': ams3hUnit,
+          'ams_type': AmsType.zmultiA,
+          'module_type': 'n10a',
+          'humidity': 33,
+          'temp': 27.6,
+          'dry_time': _dryTime[ams3hUnit] ?? 0,
+          'dry_status': drying ? 2 : 0,
+          'dryer_slots': const [5, 7],
+          'dryer_humidity': drying ? 25 : 31,
+          'dryer_temp': drying ? 55.5 : 27.9,
+          'tray': [
+            for (final (i, colour) in colours.indexed)
+              colour == null
+                  ? {'id': i}
+                  : {
+                      'id': i,
+                      'tray_type': 'PLA',
+                      'tray_sub_brands': 'PLA Basic',
+                      'tray_color': colour,
+                      'tray_info_idx': 'GFA00',
+                      'remain': 40 + i * 6,
+                    },
+          ],
+        },
+      ],
+      // One input per hotend, Ext-6 loaded.
+      'vt_tray': [
+        for (var id = rackExternalFirst; id <= 255; id++)
+          id == 250
+              ? {
+                  'id': id,
+                  'tray_type': 'PETG',
+                  'tray_sub_brands': 'PETG HF',
+                  'tray_color': '2FBF5AFF',
+                  'remain': -1,
+                }
+              : {'id': id, 'tray_type': '', 'tray_color': '', 'remain': 0},
+      ],
+      'tray_now': globalTrayId(amsId: ams3hUnit, trayId: 6),
+      'active_extruder': 0,
+      'nozzle_rack': [
+        for (var i = 0; i < rackSlotCount; i++)
+          {
+            // The toolhead's nozzle reports id 0 and its home in addr_id.
+            'id': i == 6 ? 0 : 16 + i,
+            'addr_id': i,
+            'nozzle_type': i == 7 ? 'HT01' : 'HS01',
+            'nozzle_diameter': i == 3 ? '0.6' : '0.4',
+            'filament_color': colours[i] ?? '00000000',
+            'filament_type': colours[i] == null ? '' : 'PLA',
+          },
+      ],
+      'hms_errors': const <Object>[],
+      'firmware_version': '01.01.03.00',
+      'cover_url': null,
+      'supports_drying': true,
+      'awaiting_plate_clear': false,
+      'sdcard': true,
+      'ipcam': true,
+    };
+  }
+
   /// P2S wearing both accessory fan kits: `left_aux_fan_speed` is reported
   /// (airduct part 10 present) and `exhaust_fan_present` is true (part 3), so
   /// the card shows four fan tiles with the enclosure one labelled "Exhaust".
@@ -2028,8 +2152,11 @@ class DemoBackend {
   String _slotKey(int printerId, int amsId, int trayId) =>
       '$printerId:$amsId:$trayId';
 
-  int _serverSlotKey(int amsId, int trayId) =>
-      amsId >= 128 && amsId <= 135 ? amsId : amsId * 4 + trayId;
+  /// `_slot_preset_key`: the slot's global tray id, the external inputs
+  /// keeping their `255 * 4 + tray` key.
+  int _serverSlotKey(int amsId, int trayId) => amsId == externalHolderUnit
+      ? amsId * 4 + trayId
+      : globalTrayId(amsId: amsId, trayId: trayId);
 
   /// `GET`/`PUT /printers/{id}/slot-presets/{ams}/{tray}`. An unmapped slot
   /// answers a bare `null`, which is what the real route does and what the

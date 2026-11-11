@@ -1,3 +1,5 @@
+import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
+import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'dart:io';
 
 import 'package:app_util/app_util.dart';
@@ -75,12 +77,34 @@ void main() {
     );
 
   group('printers', () {
+    test('the H3C shows the rack printer features', () async {
+      final h3c = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 7).status!;
+      final unit = h3c.ams!.single;
+      expect(unit.isAms3h, isTrue);
+      expect(unit.hasDryer, isTrue);
+      expect(unit.trays, hasLength(rackSlotCount));
+      expect(h3c.trayLayout.rack, isTrue);
+      expect(h3c.activeTray?.trayColor, 'F7D959FF');
+      expect(h3c.vtTray, hasLength(9));
+      final rack = rackCardPositions(h3c.nozzleRack, rackPrinter: true)!;
+      expect(
+        [
+          for (final p in rack)
+            if (p.mounted) p.position,
+        ],
+        [7],
+      );
+    });
+
     test('list + statuses parse; simulated print is running', () async {
       final all = await PrintersRepository(dio).fetchAll();
       // Five, not four: the second X1C exists so a pipeline can target the X1C
       // *class* and have more than one candidate — see `_statusSecondX1c`.
       // And a sixth, the H2D, for the one thing none of them has: two nozzles.
-      expect(all, hasLength(6));
+      // The seventh, the H3C, is the only rack printer (AMS 3H, nine inputs).
+      expect(all, hasLength(7));
       final dual = all.firstWhere((p) => p.printer.id == 6);
       expect(dual.printer.nozzleCount, 2);
       expect(dual.status!.temperatures, contains('nozzle_2'));
@@ -1216,7 +1240,7 @@ void main() {
       final overview = await repo.fetchOverview();
       expect(
         overview,
-        hasLength(6),
+        hasLength(7),
         reason: 'one row per printer in the fleet',
       );
       final x1c = overview.firstWhere((o) => o.printerId == 1);
@@ -1703,8 +1727,11 @@ void main() {
       // REST poll, and the service isolate — which polls no statuses of its
       // own — never: the notification said "2 printing" while the dashboard
       // said three.
-      expect(DemoBackend.instance.printerIds, hasLength(6));
-      expect(DemoBackend.instance.printerIds, containsAll([1, 2, 3, 4, 5, 6]));
+      expect(DemoBackend.instance.printerIds, hasLength(7));
+      expect(
+        DemoBackend.instance.printerIds,
+        containsAll([1, 2, 3, 4, 5, 6, 7]),
+      );
     });
 
     test('a poke broadcasts now, instead of at the next tick', () async {
@@ -2542,7 +2569,7 @@ void main() {
 
       expect(byName['Workshop']!.printerCount, 5);
       expect(byName['Workshop']!.icon, 'wrench');
-      expect(byName['Office']!.printerCount, 1);
+      expect(byName['Office']!.printerCount, 2);
       expect(byName['Storage']!.printerCount, 0);
       expect(rows.map((l) => l.name), orderedEquals([...byName.keys]..sort()));
     });
@@ -2564,12 +2591,12 @@ void main() {
             icon: 'home',
           ),
         );
-        expect(renamed.printerCount, 1);
+        expect(renamed.printerCount, 2);
         expect(
           (await PrintersRepository(
             dio,
           ).fetchAll()).where((p) => p.printer.location == 'Front office'),
-          hasLength(1),
+          hasLength(2),
         );
 
         await repo.update(
