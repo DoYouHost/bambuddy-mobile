@@ -270,11 +270,7 @@ class _DashTag extends StatelessWidget {
         horizontal: DashSpace.sm,
         vertical: DashSpace.xs,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.xl),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.xl),
       child: Text(label, style: t.micro.copyWith(color: t.textSecondary)),
     );
   }
@@ -468,11 +464,7 @@ class _StatTile extends StatelessWidget {
         horizontal: DashSpace.md,
         vertical: DashSpace.sm,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Row(
         children: [
           Icon(icon, size: DashIcon.md, color: t.accentGreenInk),

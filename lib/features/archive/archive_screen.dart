@@ -929,11 +929,7 @@ class _PlateBadge extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.all(DashSpace.xs),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashRadius.sm),
-          border: Border.all(color: t.subCardBorder),
-        ),
+        decoration: t.subCardBox(DashRadius.sm),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -981,11 +977,7 @@ class _MediaBadges extends StatelessWidget {
     if (badges.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(DashSpace.xs),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.sm),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.sm),
       child: Row(mainAxisSize: MainAxisSize.min, children: badges),
     );
   }

@@ -147,11 +147,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
             onTap: _saving ? null : _edit,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.md),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.lg),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.lg),
               child: Row(
                 children: [
                   Icon(

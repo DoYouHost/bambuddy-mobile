@@ -1091,11 +1091,7 @@ class _TopBar extends StatelessWidget {
             // A minimum, centred: a larger font makes the name and the icon taller.
             constraints: const BoxConstraints(minHeight: _lockHeight),
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(DashSpace.md),
-              border: Border.all(color: t.subCardBorder),
-            ),
+            decoration: t.subCardBox(DashSpace.md),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

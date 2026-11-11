@@ -35,7 +35,7 @@ is the map and the decisions.
 | What | Where |
 | --- | --- |
 | `DashIconTile`, `DashProgressBar`, `ThumbnailPlaceholder`, `SheetSurface`, `InlineNote`, `TappableCard`, `DashStepper`, `dashCombo` / `dashPickerField` (`dash_input.dart`), `screenListPadding` (padding of every screen list), `ButtonPair`, `confirmDialog` | `dash_kit` package |
-| `DashPill`, `DashSpace`, the `cardBox` decoration, `buildDashThemeData` | `dash_ui` package |
+| `DashPill`, `DashSpace`, the `cardBox` and `subCardBox(radius)` decorations, `buildDashThemeData` | `dash_ui` package |
 | `textWidth` (`text_measure.dart`), `classifyDioException` (`dio_failure.dart`), `ServerReachability` | `app_util` package |
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
@@ -101,7 +101,7 @@ more than the lines it saves.
 
 - **A shared card tile.** `subCardBorder` stands in about 90 places in about 50
   files; one widget would be a design-system change, not de-duplication. The
-  decoration alone is shared (`cardBox`), without layout.
+  decoration alone is shared (`cardBox`, and `subCardBox` for the box inside a card), without layout.
 - **`_StateChip` (printer card header) vs `DashPill`.** Radius 14 vs 20, offline
   gets a solid 1.5 px border where `DashPill` has a 0.4-alpha one, upper-case, and an
   ellipsis that carries the header's layout. Four parameters for two users, and

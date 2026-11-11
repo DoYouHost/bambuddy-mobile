@@ -736,11 +736,7 @@ class _DetailCard extends StatelessWidget {
         horizontal: DashSpace.lg,
         vertical: DashSpace.xs,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }

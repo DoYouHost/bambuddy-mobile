@@ -884,11 +884,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     return Tooltip(
       message: l10n.inventoryQuantityHint,
       child: Container(
-        decoration: BoxDecoration(
-          color: t.subCard,
-          border: Border.all(color: t.subCardBorder),
-          borderRadius: BorderRadius.circular(DashRadius.xl),
-        ),
+        decoration: t.subCardBox(DashRadius.xl),
         // One id for both buttons, as it has always been logged.
         child: DashStepper(
           value: _quantity,

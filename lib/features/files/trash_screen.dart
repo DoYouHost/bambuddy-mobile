@@ -192,11 +192,7 @@ class _TrashTile extends StatelessWidget {
           horizontal: DashSpace.md,
           vertical: DashSpace.sm,
         ),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashRadius.xl),
-          border: Border.all(color: t.subCardBorder),
-        ),
+        decoration: t.subCardBox(DashRadius.xl),
         child: ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(

@@ -352,11 +352,7 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: DashSpace.sm),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(DashRadius.xl),
-              border: Border.all(color: t.subCardBorder),
-            ),
+            decoration: t.subCardBox(DashRadius.xl),
             child: Text('$count', style: t.monoLabel),
           ),
         ],
@@ -472,11 +468,7 @@ class _SwatchTile extends StatelessWidget {
                 DashSpace.sm,
                 DashSpace.md,
               ),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.xl),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -556,11 +548,7 @@ class _UncodedTile extends StatelessWidget {
             onTap: onGenerate,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.md),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.xl),
               child: Row(
                 children: [
                   _ColorSwatch(rgba: identity.rgba, size: DashSize.d40),

@@ -488,11 +488,7 @@ class _PanelItem extends StatelessWidget {
     final stripe = this.stripe;
     return Container(
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.md),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.md),
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: stripe == null

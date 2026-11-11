@@ -76,11 +76,7 @@ class QueueSectionCard extends StatelessWidget {
       open ? DashSpace.md : DashSpace.lg,
     );
     return Container(
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(_sectionRadius),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(_sectionRadius),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
