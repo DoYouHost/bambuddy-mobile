@@ -866,6 +866,15 @@ class AmsUnit with ValueEquality {
 
   bool get hasDryer => dryerSlots.isNotEmpty;
 
+  /// Wider than [isDrying]: the web lights the dryer through every phase from
+  /// checking to stopping (`ams3hDryerActive`, `PrintersPage.tsx`), not only 2.
+  /// Unlike the web's dryer box, a parked timer stays dark — the server flags
+  /// it so no amber badge claims a cycle that is not running.
+  bool get isDryerActive =>
+      hasDryer &&
+      ((!dryCountdownStalled && (dryTime ?? 0) > 0) ||
+          const [1, 2, 3, 4].contains(dryStatus));
+
   /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
   /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
   final String? moduleType;

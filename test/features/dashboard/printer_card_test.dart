@@ -1189,7 +1189,7 @@ void main() {
         });
       }
 
-      testWidgets('is orange while the unit dries, grey when idle', (
+      testWidgets('is orange through the whole cycle, grey when idle', (
         tester,
       ) async {
         Color flameInk() => tester
@@ -1200,7 +1200,12 @@ void main() {
               ),
             )
             .color!;
-        await pumpAt(tester, 1.0, realItem(unit: {...dryer, 'dry_time': 90}));
+        // Cooling: no countdown left, still a running cycle.
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: {...dryer, 'dry_time': 0, 'dry_status': 3}),
+        );
         final t = DashTokens.of(tester.element(byLogId('printer.ams_dryer')));
         expect(flameInk(), t.accentOrangeInk);
 
@@ -1208,7 +1213,7 @@ void main() {
         await pumpAt(
           tester,
           1.0,
-          realItem(unit: {...dryer, 'dry_time': 0}),
+          realItem(unit: {...dryer, 'dry_time': 0, 'dry_status': 0}),
           expand: false,
         );
         expect(flameInk(), t.textTertiary);
@@ -1223,6 +1228,22 @@ void main() {
           realItem(unit: {...dryer, 'dryer_humidity': null}),
         );
         expect(find.text('55°'), findsOneWidget);
+      });
+
+      testWidgets('with no reading at all only the slots mark the dryer', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            unit: {...dryer, 'dryer_humidity': null, 'dryer_temp': null},
+          ),
+        );
+        expect(byLogId('printer.ams_dryer'), findsNothing);
+        expect(flames(), findsNWidgets(2));
+        handle.dispose();
       });
 
       testWidgets('an older server, or any other AMS, shows no dryer', (

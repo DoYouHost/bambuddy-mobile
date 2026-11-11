@@ -309,6 +309,32 @@ void main() {
         );
       });
 
+      test('the dryer is active from checking to stopping, as on the web', () {
+        bool active(Map<String, Object?> json) => AmsUnit.fromJson({
+          'id': 32,
+          'dryer_slots': [3, 4],
+          ...json,
+        }).isDryerActive;
+        expect(active({}), isFalse);
+        expect(active({'dry_time': 30}), isTrue);
+        for (final status in [1, 2, 3, 4]) {
+          expect(active({'dry_status': status}), isTrue, reason: '$status');
+        }
+        // 5 is an error, not a phase of a cycle.
+        expect(active({'dry_status': 5}), isFalse);
+        expect(active({'dry_status': 0}), isFalse);
+        // A parked timer is not a running cycle.
+        expect(
+          active({'dry_time': 30, 'dry_countdown_stalled': true}),
+          isFalse,
+        );
+        // A unit drying as a whole has no AMS 3H dryer to light.
+        expect(
+          AmsUnit.fromJson({'id': 0, 'dry_time': 30}).isDryerActive,
+          isFalse,
+        );
+      });
+
       test('a changed dryer reading is a changed unit', () {
         AmsUnit unit(int humidity) => AmsUnit.fromJson({
           'id': 32,

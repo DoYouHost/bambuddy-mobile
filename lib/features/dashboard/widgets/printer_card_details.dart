@@ -927,8 +927,12 @@ class _AmsSection extends ConsumerWidget {
         ),
       );
     }
-    final dryerInk = unit.isDrying ? t.accentOrangeInk : t.textTertiary;
-    if (unit.hasDryer) metaParts.add(_AmsDryerChip(unit: unit, ink: dryerInk));
+    final dryerInk = unit.isDryerActive ? t.accentOrangeInk : t.textTertiary;
+    // Without a reading the chip would be a bare flame; the slots carry it.
+    if (unit.hasDryer &&
+        (unit.dryerHumidity != null || unit.dryerTemp != null)) {
+      metaParts.add(_AmsDryerChip(unit: unit, ink: dryerInk));
+    }
 
     // Report positions in slot order: an AMS can report only some trays, or
     // report them out of order.
@@ -1438,7 +1442,7 @@ class _AmsDryerChip extends StatelessWidget {
       label: AppLocalizations.of(context).amsDryer,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: unit.isDrying
+          color: unit.isDryerActive
               ? t.accentOrange.withValues(alpha: DashAlpha.wash)
               : null,
           borderRadius: BorderRadius.circular(DashRadius.sm),
