@@ -2,8 +2,8 @@ name: Claude Code
 
 # The permission gate, the runner setup and the tool allowlist are shared with
 # lubelogger-mobile; what is here is the trigger, the server reference and the
-# two tools only this app grants. Pinned to `master` until app-shared cuts a tag
-# that carries it.
+# two tools only this app grants. Pinned to the app-shared tag that moved the job
+# to hosted runners.
 
 on:
   issue_comment:
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   claude:
-    uses: DoYouHost/app-shared/.github/workflows/claude.yml@master
+    uses: DoYouHost/app-shared/.github/workflows/claude.yml@v0.14.9
     permissions:
       contents: read
       pull-requests: write
@@ -29,6 +29,8 @@ jobs:
       id-token: write
       actions: read
     with:
+      # Same version as FLUTTER_VERSION in ci.yml; `env` is not readable in `with`.
+      flutter_version: "3.47.7"
       server_ref_url: https://github.com/maziggy/bambuddy.git
       # CLAUDE.md tells @claude the reference is at this path; keep them equal.
       server_ref_dir: /tmp/bambuddy-server-ref
