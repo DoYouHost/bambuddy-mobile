@@ -274,5 +274,55 @@ void main() {
       expect(command['temp'], query['temp']);
       expect(command['duration'], query['duration']);
     });
+
+    // `_rack_change_filament`: Studio 02.09's direct-rack command. A load
+    // targets the AMS 3H at its slot; an unload retracts feeder 255 - slot.
+    for (final (recording, target, slotId) in [
+      ('ams3h_load', 32, 3),
+      ('ams3h_unload', 255, 252),
+    ]) {
+      test('$recording reaches the AMS 3H as Studio sends it', () async {
+        if (!knowsH3c) {
+          markTestSkipped('server predates the H3C (#3442)');
+          return;
+        }
+        // Recorded by the card's AMS 3H slot tests in printer_card_test.dart.
+        final sent = recordedWrites(recording);
+        late List<Response<dynamic>> answers;
+        final command = await firstRequest(
+          serial,
+          () async => answers = await replayWrites(
+            dio,
+            sent,
+            item: printerId,
+            itemIn: RegExp(r'(?<=/printers/)\d+'),
+          ),
+          where: (print) => print['command'] == 'ams_change_filament',
+        );
+
+        expect(
+          answers.single.statusCode,
+          200,
+          reason: '${answers.single.data}',
+        );
+        expect(command['ams_id'], 32);
+        expect(command['target'], target);
+        expect(command['slot_id'], slotId);
+      });
+    }
+
+    test('loading an AMS 3H slot that holds no filament is a 409', () async {
+      if (!knowsH3c) {
+        markTestSkipped('server predates the H3C (#3442)');
+        return;
+      }
+      // Slot 8 of the report (state 160, no tray_type): global 28 + 7.
+      final answer = await dio.post<dynamic>(
+        Endpoints.amsLoad(printerId),
+        queryParameters: {'tray_id': 35},
+        options: Options(validateStatus: (_) => true),
+      );
+      expect(answer.statusCode, 409, reason: '${answer.data}');
+    });
   });
 }

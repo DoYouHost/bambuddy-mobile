@@ -558,6 +558,49 @@ void main() {
       expect(byLogId('controller.unload'), findsNothing);
     });
 
+    testWidgets('an AMS 3H slot loads by 28 + slot', (tester) async {
+      await pump(tester, _status(ams: [_unit(32)]));
+
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:28:-']);
+    });
+
+    testWidgets("a rack printer's input is not loaded, not even 254", (
+      tester,
+    ) async {
+      // The AMS 3H makes it a rack printer, where 254 is input Ext-2, not a
+      // holder side; the web offers no load there.
+      await pump(
+        tester,
+        _status(ams: [_unit(32)], external: [_tray(254, 'TPU', '2E6FD8FF')]),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(find.text('TPU'), findsOneWidget);
+      expect(byLogId('controller.load'), findsNothing);
+      expect(byLogId('controller.unload'), findsNothing);
+    });
+
+    testWidgets("the pencil names a rack printer's input Ext-n, with no load", (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(ams: [_unit(32)], external: [_tray(254, 'TPU', '2E6FD8FF')]),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+      await tester.tap(byLogId('controller.slot_edit'));
+      await settle(tester);
+
+      expect(find.textContaining('Ext-2'), findsWidgets);
+      expect(byLogId('assign_spool.ams_load'), findsNothing);
+      expect(byLogId('assign_spool.ams_unload'), findsNothing);
+    });
+
     testWidgets('load the external spool by its holder number', (tester) async {
       await pump(tester, _status(external: [_tray(254, 'TPU', '2E6FD8FF')]));
       await tester.tap(byLogId('controller.filament_unit').at(1));

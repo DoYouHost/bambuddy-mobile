@@ -255,6 +255,14 @@ void main() {
       expect(amsLoadTrayId(amsId: 135, trayId: 0), isNull);
     });
 
+    test('numbers the AMS 3H 28..36, and only the AMS 3H', () {
+      expect(amsLoadTrayId(amsId: 32, trayId: 0), 28);
+      expect(amsLoadTrayId(amsId: 32, trayId: 8), 36);
+      // A unit 7 would land on 28 as well; the server refuses that on a
+      // printer without an AMS 3H.
+      expect(amsLoadTrayId(amsId: 7, trayId: 0), isNull);
+    });
+
     test('answers null for a unit between the AMS and A2L windows', () {
       // Unit 5 would be 20..23 — inside neither range, so the server 400s.
       expect(amsLoadTrayId(amsId: 5, trayId: 0), isNull);

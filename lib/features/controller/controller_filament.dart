@@ -395,13 +395,15 @@ class _Pane extends ConsumerWidget {
     // runout needs a reload ([docs/single-printer-controller.md] §2).
     final locked = status.isPrinting && !status.isPaused;
     final chosen = slot;
-    // A slot with no global tray number (AMS-HT) cannot be loaded by one.
+    // A slot with no global tray number (AMS-HT) cannot be loaded by one, and
+    // the web offers no load on a rack printer's inputs.
     final addressable =
         chosen != null &&
+        !(unit == null && status.trayLayout.rack) &&
         amsLoadTrayId(
               amsId: amsId,
               trayId: unit == null
-                  ? (externalSideOf(trays[chosen].id) ?? 0)
+                  ? externalSlotIndex(trays[chosen].id ?? externalTrayIdBase)
                   : unit.slotAt(chosen),
             ) !=
             null;
@@ -580,7 +582,7 @@ class _Pane extends ConsumerWidget {
                       tray,
                       amsId: amsId,
                       trayId: unit == null
-                          ? (externalSideOf(tray.id) ?? 0)
+                          ? externalSlotIndex(tray.id ?? externalTrayIdBase)
                           : unit.slotAt(i),
                       serial: serial,
                     ),

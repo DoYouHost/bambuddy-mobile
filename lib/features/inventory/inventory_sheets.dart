@@ -66,6 +66,12 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     if (!unitOptions.contains(_amsUnit)) {
       _amsUnit = unitOptions.first;
     }
+    // Nine on an AMS 3H, four everywhere else; the same stale-value trap.
+    final unit = status?.ams?.where((u) => u.id == _amsUnit).firstOrNull;
+    final slotCount = isRackAms(unitAmsType(_amsUnit, unit?.amsType))
+        ? rackSlotCount
+        : 4;
+    if (_amsSlot >= slotCount) _amsSlot = 0;
 
     return DraggableSheetSurface(
       initialSize: 0.55,
@@ -170,10 +176,13 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: _NumberDropdown(
+                      key: ValueKey((_printerId, _amsUnit)),
                       id: 'spool_assign.slot',
                       label: l10n.inventoryAssignSlot,
                       value: _amsSlot,
-                      items: {for (var s = 0; s < 4; s++) s: '${s + 1}'},
+                      items: {
+                        for (var s = 0; s < slotCount; s++) s: '${s + 1}',
+                      },
                       onChanged: (v) => setState(() => _amsSlot = v),
                     ),
                   ),

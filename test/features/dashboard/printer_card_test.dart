@@ -1297,6 +1297,76 @@ void main() {
         expectSentAsRecorded('ams3h_drying_start', writesOf(log.requests));
       });
 
+      for (final (action, recording) in [
+        ('assign_spool.ams_load', 'ams3h_load'),
+        ('assign_spool.ams_unload', 'ams3h_unload'),
+      ]) {
+        testWidgets('$action on an AMS 3H slot sends what the server replays', (
+          tester,
+        ) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final dio = testDio();
+          mockServer(dio)
+            ..onPost(
+              '/api/v1/printers/1/ams/load',
+              (server) => server.reply(200, {'success': true}),
+              queryParameters: {'tray_id': 31},
+            )
+            ..onPost(
+              '/api/v1/printers/1/ams/unload',
+              (server) => server.reply(200, {'success': true}),
+              queryParameters: {'tray_id': 31},
+            );
+          final log = captureRequests(dio);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: realItem(
+                      unit: dryer,
+                      top: {'tray_now': 255, 'state': 'IDLE'},
+                    ),
+                  ),
+                ),
+              ),
+              extra: [
+                printerCommandsRepositoryProvider.overrideWithValue(
+                  PrinterCommandsRepository(dio),
+                ),
+              ],
+            ),
+          );
+          Future<void> settle() async {
+            for (var i = 0; i < 5; i++) {
+              await tester.pump(const Duration(milliseconds: 200));
+            }
+          }
+
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          await settle();
+          // Slot 4 of the AMS 3H, the fixture's one PLA: global 28 + 3.
+          final row = find
+              .byWidgetPredicate(
+                (w) =>
+                    w is Semantics &&
+                    (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+              )
+              .first;
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await settle();
+          await tester.tap(byLogId(action));
+          await settle();
+
+          // Replayed on an H3C by `h3c_contract_test.dart`.
+          expectSentAsRecorded(recording, writesOf(log.requests));
+        });
+      }
+
       testWidgets('without the drying control a chip shows the readings', (
         tester,
       ) async {

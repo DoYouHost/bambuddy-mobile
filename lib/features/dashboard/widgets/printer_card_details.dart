@@ -682,7 +682,6 @@ class _DetailsPanel extends ConsumerWidget {
             l10n: AppLocalizations.of(context),
             status: status,
             dual: dual,
-            rack: rack,
             spool: spools[i],
             assigned: assigned,
           ),
@@ -770,10 +769,10 @@ _SlotRef _externalSlotRef({
   required bool dual,
   required AmsTray spool,
   required AssignedSpools assigned,
-  bool rack = false,
 }) {
+  final rack = status.trayLayout.rack;
   final global = spool.id ?? externalTrayIdBase;
-  final side = rack ? externalSlotIndex(global) : externalSideOf(global) ?? 0;
+  final side = externalSlotIndex(global);
   final extruder = dual && !rack ? status.extruderForExternal(spool.id) : null;
   return _SlotRef(
     printerId: status.id,

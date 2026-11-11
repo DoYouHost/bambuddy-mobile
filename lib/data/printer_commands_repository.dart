@@ -295,13 +295,21 @@ int? amsLoadTrayId({required int amsId, required int trayId}) {
   // load a different spool with nothing on the way flagging it.
   if (isExternalHolder(amsId) && trayId != 0 && trayId != 1) return null;
   final global = globalTrayId(amsId: amsId, trayId: trayId);
+  // 28..36 only from the AMS 3H: a unit 7 lands there too, and the server
+  // refuses an AMS 3H id on a printer without one (`_refuse_foreign_ams3h_tray`).
+  if (_isAms3hTrayId(global) && amsId != ams3hUnit) return null;
   return _isLoadableTrayId(global) ? global : null;
 }
 
 /// Mirrors the server's own validation (`printers.py` `ams_load`): AMS slots
-/// 0..15, the A2L AMS-Lite's normalised 24..27, and the two external ids.
+/// 0..15, the A2L AMS-Lite's normalised 24..27, the AMS 3H's 28..36 (#3442; an
+/// older server answers 400, and it never knew an H3C's AMS 3H anyway), and the
+/// two external ids.
 bool _isLoadableTrayId(int trayId) =>
     (trayId >= 0 && trayId <= 15) ||
     (trayId >= 24 && trayId <= 27) ||
+    _isAms3hTrayId(trayId) ||
     trayId == 254 ||
     trayId == 255;
+
+bool _isAms3hTrayId(int trayId) => trayId >= 28 && trayId <= 36;
