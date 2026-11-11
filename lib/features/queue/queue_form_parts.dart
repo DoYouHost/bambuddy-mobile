@@ -225,6 +225,34 @@ class _ToneEdgePainter extends CustomPainter {
 /// That reads right — `auto` still lets the printer calibrate — and it cannot
 /// quietly rewrite the stored value, because the save path omits an untouched
 /// field entirely (see `_calibrationUpdate`).
+String calibrationLabel(
+  AppLocalizations l10n,
+  CalibrationOption value,
+  bool triState,
+) {
+  if (!triState) return value.asSwitch ? l10n.commonOn : l10n.commonOff;
+  return switch (value) {
+    CalibrationOption.auto => l10n.commonAuto,
+    CalibrationOption.on => l10n.commonOn,
+    CalibrationOption.off => l10n.commonOff,
+  };
+}
+
+/// A calibration toggle's segments in the order every print form shows them;
+/// without [triState] there is no Auto, which the server could not keep.
+List<DashSegment<CalibrationOption>> calibrationSegments(
+  AppLocalizations l10n, {
+  required bool triState,
+}) => [
+  for (final option in const [
+    CalibrationOption.auto,
+    CalibrationOption.on,
+    CalibrationOption.off,
+  ])
+    if (triState || option != CalibrationOption.auto)
+      (value: option, label: calibrationLabel(l10n, option, true), icon: null),
+];
+
 class QueueCalibrationRow extends StatelessWidget {
   const QueueCalibrationRow({
     super.key,
@@ -274,15 +302,7 @@ class QueueCalibrationRow extends StatelessWidget {
           DashSegToggle<CalibrationOption>(
             id: id,
             selected: value,
-            segments: [
-              (
-                value: CalibrationOption.auto,
-                label: l10n.commonAuto,
-                icon: null,
-              ),
-              (value: CalibrationOption.on, label: l10n.commonOn, icon: null),
-              (value: CalibrationOption.off, label: l10n.commonOff, icon: null),
-            ],
+            segments: calibrationSegments(l10n, triState: true),
             onChanged: onChanged,
           ),
         ],

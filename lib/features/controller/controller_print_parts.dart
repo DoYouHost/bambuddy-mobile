@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/models/calibration_option.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../l10n/app_localizations.dart';
 import 'controller_controls.dart';
 
 /// A − / + row with the value between: plate, copies and the chamber target.
@@ -157,18 +156,5 @@ CalibrationOption nextCalibration(CalibrationOption now, bool triState) {
     CalibrationOption.auto => CalibrationOption.on,
     CalibrationOption.on => CalibrationOption.off,
     CalibrationOption.off => CalibrationOption.auto,
-  };
-}
-
-String calibrationLabel(
-  AppLocalizations l10n,
-  CalibrationOption value,
-  bool triState,
-) {
-  if (!triState) return value.asSwitch ? l10n.commonOn : l10n.commonOff;
-  return switch (value) {
-    CalibrationOption.auto => l10n.commonAuto,
-    CalibrationOption.on => l10n.commonOn,
-    CalibrationOption.off => l10n.commonOff,
   };
 }
