@@ -93,6 +93,11 @@ is the map and the decisions.
 Each of these was measured; the merge either changes pixels or behaviour, or costs
 more than the lines it saves.
 
+- **`_rgb` and `_hexToHsl` vs `rgbFromHex`.** `filament_mapping.dart` and
+  `color_names.dart` keep their own readers instead of `app_util`'s. They port the web's per-channel `parseInt` and are pinned
+  by goldens generated from the web; `rgbFromHex` parses all six digits at once, so a
+  string like `+12345` reads as a colour there and as none here.
+
 - **A shared card tile.** `subCardBorder` stands in about 90 places in about 50
   files; one widget would be a design-system change, not de-duplication. The
   decoration alone is shared (`cardBox`), without layout.
