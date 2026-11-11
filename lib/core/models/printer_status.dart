@@ -807,6 +807,9 @@ class AmsUnit with ValueEquality {
     this.dryStatus,
     this.moduleType,
     this.dryCountdownStalled = false,
+    this.dryerSlots = const [],
+    this.dryerHumidity,
+    this.dryerTemp,
   });
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
@@ -847,6 +850,22 @@ class AmsUnit with ValueEquality {
   @JsonKey(fromJson: toBoolOrFalse)
   final bool dryCountdownStalled;
 
+  /// The AMS 3H's built-in dryer: the 0-based slots its drying zone holds, and
+  /// that zone's own humidity and temperature, apart from the unit's
+  /// [humidity]/[temp]. Empty and null on every other unit and on a server
+  /// older than the field (`_dryer_fields`, `printer_manager.py`), so
+  /// [hasDryer] is false there.
+  @JsonKey(fromJson: _toSlotList)
+  final List<int> dryerSlots;
+
+  @JsonKey(fromJson: toIntOrNull)
+  final int? dryerHumidity;
+
+  @JsonKey(fromJson: toDoubleOrNull)
+  final double? dryerTemp;
+
+  bool get hasDryer => dryerSlots.isNotEmpty;
+
   /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
   /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
   final String? moduleType;
@@ -880,6 +899,9 @@ class AmsUnit with ValueEquality {
     dryStatus,
     moduleType,
     dryCountdownStalled,
+    dryerSlots,
+    dryerHumidity,
+    dryerTemp,
     trays,
   ];
 }
@@ -1347,6 +1369,10 @@ Map<int, String>? _toInletMapOrNull(dynamic value) =>
 
 List<AmsUnit>? _toAmsListOrNull(dynamic value) =>
     parseJsonListOrNull(value, AmsUnit.fromJson);
+
+/// Entries that are not a number are dropped rather than failing the unit.
+List<int> _toSlotList(dynamic value) =>
+    value is List ? [for (final item in value) ?toIntOrNull(item)] : const [];
 
 /// Filament slots — AMS trays and external spools share one shape.
 List<AmsTray>? _toTrayListOrNull(dynamic value) =>

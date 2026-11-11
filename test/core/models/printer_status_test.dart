@@ -259,6 +259,67 @@ void main() {
       );
     });
 
+    group('AMS 3H dryer', () {
+      test('reads the drying zone apart from the unit readings', () {
+        final unit = AmsUnit.fromJson({
+          'id': 32,
+          'humidity': 40,
+          'temp': 26.0,
+          'dryer_slots': [3, 4],
+          'dryer_humidity': 12,
+          'dryer_temp': '55.5',
+        });
+        expect(unit.hasDryer, isTrue);
+        expect(unit.dryerSlots, [3, 4]);
+        expect(unit.dryerHumidity, 12);
+        expect(unit.dryerTemp, 55.5);
+        expect(unit.humidity, 40);
+        expect(unit.temp, 26.0);
+      });
+
+      test('an older server, without the fields, has no dryer', () {
+        final unit = AmsUnit.fromJson({'id': 0, 'humidity': 30});
+        expect(unit.hasDryer, isFalse);
+        expect(unit.dryerSlots, isEmpty);
+        expect(unit.dryerHumidity, isNull);
+        expect(unit.dryerTemp, isNull);
+      });
+
+      test('a unit without a dryer sends an empty list and nulls', () {
+        final unit = AmsUnit.fromJson({
+          'id': 0,
+          'dryer_slots': <int>[],
+          'dryer_humidity': null,
+          'dryer_temp': null,
+        });
+        expect(unit.hasDryer, isFalse);
+      });
+
+      test('odd entries are dropped instead of failing the unit', () {
+        expect(
+          AmsUnit.fromJson({
+            'id': 32,
+            'dryer_slots': [3, 'x', null, '4'],
+          }).dryerSlots,
+          [3, 4],
+        );
+        expect(
+          AmsUnit.fromJson({'id': 32, 'dryer_slots': 'nonsense'}).hasDryer,
+          isFalse,
+        );
+      });
+
+      test('a changed dryer reading is a changed unit', () {
+        AmsUnit unit(int humidity) => AmsUnit.fromJson({
+          'id': 32,
+          'dryer_slots': [3, 4],
+          'dryer_humidity': humidity,
+        });
+        expect(unit(12), equals(unit(12)));
+        expect(unit(12), isNot(equals(unit(13))));
+      });
+    });
+
     test('parses external spool (vt_tray) and tray_now/model', () {
       final status = realStatus();
 
