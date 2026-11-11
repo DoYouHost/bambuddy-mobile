@@ -1,3 +1,6 @@
+import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -198,6 +201,48 @@ void main() {
       expect(rack[6].slot?.filamentColor, 'F7D959FF');
       expect(rack.where((p) => p.slot == null), isEmpty);
     });
+
+    test(
+      "a spool assigned to a rack input reads back under it, as Ext-n",
+      () async {
+        final source = NativeInventorySource(dio);
+        final spool = await source.createSpool(
+          SpoolDraft(
+            material: 'PETG',
+            brand: 'H3C ${DateTime.now().millisecondsSinceEpoch}',
+            labelWeight: 1000,
+          ),
+        );
+        final quiet = Options(validateStatus: (_) => true);
+        addTearDown(() async {
+          await dio.delete<dynamic>(
+            Endpoints.inventoryAssignment(printerId, externalHolderUnit, 5),
+            options: quiet,
+          );
+          await dio.delete<dynamic>(
+            Endpoints.inventorySpool(spool.id),
+            options: quiet,
+          );
+        });
+
+        // Input 250, which the card files under tray externalSlotIndex(250).
+        await source.assignSpool(
+          SpoolAssignmentDraft(
+            spoolId: spool.id,
+            printerId: printerId,
+            amsId: externalHolderUnit,
+            trayId: externalSlotIndex(250),
+          ),
+        );
+        final held = (await source.fetchAssignments(
+          printerId: printerId,
+        )).singleWhere((a) => a.spoolId == spool.id);
+        expect((held.amsId, held.trayId), (externalHolderUnit, 5));
+        expect(held.isRackExternal, isTrue);
+        expect(held.extruder, isNull);
+        if (knowsH3c) expect(held.printerModel, 'H3C');
+      },
+    );
 
     test('the drying sheet starts the AMS 3H on its drying zone', () async {
       if (!knowsH3c) {

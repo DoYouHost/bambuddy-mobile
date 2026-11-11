@@ -323,6 +323,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PETG',
+          addrId: 6,
         ),
         'addrId': () => const NozzleRackSlot(
           id: 16,

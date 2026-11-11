@@ -69,32 +69,47 @@ bool isExternalTray(int? global, {bool rack = false}) {
   return rack && global != null && global >= rackExternalFirst && global < 256;
 }
 
-/// The hotend (0-8) a rack printer's external input [global] feeds.
+/// The hotend (0-8) a rack printer's external input [global] feeds: 255 feeds
+/// hotend 0.
 int externalHotend(int global) => 255 - global;
 
 /// The tray id an external input is stored under: 254 -> 0, 255 -> 1,
 /// 247-253 -> 2-8.
-int externalSlotIndex(int global) => global >= externalTrayIdBase
+int externalSlotIndex(int global) =>
+    (global == externalTrayIdBase || global == externalTrayIdBase + 1)
     ? global - externalTrayIdBase
     : global - rackExternalFirst + 2;
 
 /// The inverse of [externalSlotIndex].
-int externalTrayId(int slotIndex) => slotIndex < 2
+int externalTrayId(int slotIndex) => (slotIndex == 0 || slotIndex == 1)
     ? externalTrayIdBase + slotIndex
     : rackExternalFirst + slotIndex - 2;
 
-/// A rack printer's external input as Bambu Studio names it: "Ext-n" feeds
-/// hotend n.
+/// A rack printer's external input as Bambu Studio names it, counting hotends
+/// from 1: "Ext-1" is input 255, which feeds hotend 0.
 String rackExternalLabel(int global) => 'Ext-${externalHotend(global) + 1}';
+
+/// Models with a nozzle rack (`RACK_PRINTER_MODELS`), for what carries the
+/// printer's model but no status, as a stored assignment does.
+bool isRackPrinterModel(String? model) =>
+    const {'H3C', 'N10'}.contains(model?.trim().toUpperCase());
 
 /// How one printer numbers its trays: its units' types, and whether it is a
 /// rack printer — it has a rack AMS or reports an external input 247-253
 /// (`trayLayoutOf`).
 class TrayLayout {
+  ///
+  /// [model] is the last resort: an H3C that lists no AMS unit at all (its
+  /// AMS 3H unplugged) is still a rack printer with one, as on the web and the
+  /// server (`TrayLayout.from_state`). It never outranks a listed unit.
   TrayLayout.of(
     Iterable<({int id, int? amsType})> units, [
     Iterable<int?> externalIds = const [],
+    String? model,
   ]) : units = {for (final u in units) u.id: unitAmsType(u.id, u.amsType)} {
+    if (this.units.isEmpty && isRackPrinterModel(model)) {
+      this.units[ams3hUnit] = AmsType.zmultiA;
+    }
     rack =
         this.units.values.any(isRackAms) ||
         externalIds.any(

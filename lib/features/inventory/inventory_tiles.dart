@@ -333,6 +333,7 @@ class _LowBadge extends StatelessWidget {
 /// consistent with dashboard; mapping from [SpoolAssignment.extruder].
 String assignmentSlotLabel(AppLocalizations l10n, SpoolAssignment a) {
   if (!a.isExternalSpool) return a.slotLabel;
+  if (a.isRackExternal) return rackExternalLabel(externalTrayId(a.trayId));
   return switch (a.extruder) {
     1 => l10n.extruderLeft,
     0 => l10n.extruderRight,

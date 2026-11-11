@@ -708,6 +708,7 @@ class SpoolAssignment {
     this.printerName,
     this.amsLabel,
     this.spool,
+    this.printerModel,
   });
 
   factory SpoolAssignment.fromNative(Map<String, dynamic> json) =>
@@ -718,6 +719,7 @@ class SpoolAssignment {
         trayId: toIntOrNull(json['tray_id']) ?? -1,
         printerName: toStringOrNull(json['printer_name']),
         amsLabel: toStringOrNull(json['ams_label']),
+        printerModel: toStringOrNull(json['printer_model']),
         spool: switch (json['spool']) {
           final Map<String, dynamic> spool => Spool.fromNative(spool),
           _ => null,
@@ -732,6 +734,7 @@ class SpoolAssignment {
         trayId: toIntOrNull(json['tray_id']) ?? -1,
         printerName: toStringOrNull(json['printer_name']),
         amsLabel: toStringOrNull(json['ams_label']),
+        printerModel: toStringOrNull(json['printer_model']),
       );
 
   final int spoolId;
@@ -740,6 +743,17 @@ class SpoolAssignment {
   final int trayId;
   final String? printerName;
   final String? amsLabel;
+
+  /// The printer's model, which names a rack printer's external inputs "Ext-n"
+  /// (server #3442); absent on an older server.
+  final String? printerModel;
+
+  /// A rack printer's external input: by model, or by a tray past the two a
+  /// holder has, which only a rack printer reports.
+  bool get isRackExternal =>
+      isExternalSpool &&
+      trayId >= 0 &&
+      (trayId >= 2 || isRackPrinterModel(printerModel));
 
   /// The spool itself, which the built-in inventory sends inside each
   /// assignment (`SpoolAssignmentResponse.spool`); the web reads a slot's
@@ -758,7 +772,9 @@ class SpoolAssignment {
   /// physically LEFT, PLA `ams=255, tray=1` RIGHT. Note that [trayId] here is
   /// the holder **side**, not the `vt_tray` id the dashboard shows — see
   /// [slot_addressing] for the two.
-  int? get extruder => isExternalSpool ? extruderForExternalSide(trayId) : null;
+  int? get extruder => isExternalSpool && !isRackExternal
+      ? extruderForExternalSide(trayId)
+      : null;
 
   /// AMS slot label for UI, the unit named by the user's `ams_label` when it
   /// has one. For external spool, label built in UI (needs l10n) — see

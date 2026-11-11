@@ -193,6 +193,34 @@ void main() {
       }
       expect(rackExternalLabel(255), 'Ext-1');
       expect(rackExternalLabel(247), 'Ext-9');
+      // Out of range as on the web: not folded onto a holder side.
+      expect(externalSlotIndex(256), 11);
+    });
+
+    test('a rack printer is told by its model where no status says it', () {
+      for (final model in ['H3C', 'h3c', ' N10 ']) {
+        expect(isRackPrinterModel(model), isTrue, reason: model);
+      }
+      for (final model in ['H2C', 'X1C', '', null]) {
+        expect(isRackPrinterModel(model), isFalse, reason: '$model');
+      }
+    });
+
+    test('an H3C listing no AMS unit is a rack printer by its model', () {
+      final bare = TrayLayout.of(const [], const [254, 255], 'H3C');
+      expect(bare.rack, isTrue);
+      expect(bare.units, {ams3hUnit: AmsType.zmultiA});
+      // Never over a listed unit, and not for another model.
+      expect(
+        TrayLayout.of(
+          const [(id: 0, amsType: AmsType.ams)],
+          const [254],
+          'H3C',
+        ).rack,
+        isFalse,
+      );
+      expect(TrayLayout.of(const [], const [254, 255], 'X2D').rack, isFalse);
+      expect(externalTrayId(-1), 244, reason: 'as on the web, not 253');
     });
 
     test('reporting one of 247-253 makes a rack printer', () {

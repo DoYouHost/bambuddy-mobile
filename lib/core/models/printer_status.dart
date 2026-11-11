@@ -707,6 +707,7 @@ class PrinterStatus {
         (id: unit.id ?? i, amsType: unit.amsType),
     ],
     [for (final t in vtTray ?? const <AmsTray>[]) t.id],
+    model,
   );
 
   /// External spools sorted by global id ascending (254 = Ext-L first).
@@ -767,9 +768,10 @@ class PrinterStatus {
     if (now == null) return null;
 
     // A rack printer has one extruder and an input per hotend: the id alone
-    // names the spool.
+    // names the spool. 255 there is "nothing loaded" (`NO_TRAY`), not Ext-1.
     final layout = trayLayout;
     if (layout.rack && isExternalTray(now, rack: true)) {
+      if (now == 255) return null;
       return externalSpools.firstWhereOrNull((t) => t.id == now);
     }
     if (isExternalHolder(now)) {
@@ -1091,8 +1093,9 @@ class NozzleRackSlot with ValueEquality {
   /// frame, which carries every other field of this record.
   final String? filamentType;
 
-  /// H3C only: the home rack position (0-8) of the nozzle; the one on the
-  /// toolhead reports id 0 and this. Null on an H2C and an older server.
+  /// H3C only: every nozzle's home rack position (0-8), the docked ones and
+  /// the one on the toolhead, which reports id 0 and is placed by this alone.
+  /// Null on an H2C and an older server.
   @JsonKey(fromJson: toIntOrNull)
   final int? addrId;
 

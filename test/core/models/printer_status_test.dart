@@ -988,6 +988,26 @@ void main() {
       }
     });
 
+    test('an H3C with its AMS unplugged still reads 255 as nothing loaded', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'model': 'H3C',
+        'tray_now': 255,
+        'ams': const <Object>[],
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'PLA'},
+          {'id': 255, 'tray_type': 'PLA'},
+        ],
+      });
+      expect(status.trayLayout.rack, isTrue);
+      expect(status.activeTray, isNull);
+    });
+
+    test('255 on a rack printer is nothing loaded, not Ext-1', () {
+      expect(h3c(trayNow: 255).activeTray, isNull);
+      expect(h3c(trayNow: 254).activeTray?.id, 254);
+    });
+
     test('an input 247-253 is the active spool by its own id', () {
       expect(h3c(trayNow: 250).activeTray?.trayType, 'PETG');
       expect(h3c(trayNow: 250).activeTray?.id, 250);

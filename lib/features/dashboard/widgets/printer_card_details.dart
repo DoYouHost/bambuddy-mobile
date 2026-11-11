@@ -678,16 +678,14 @@ class _DetailsPanel extends ConsumerWidget {
             trayId: trayIdOf(i),
             serial: serial,
           ),
-          // No slot actions on a rack printer's inputs, as on the web.
-          slotRef: (i) => rack
-              ? null
-              : _externalSlotRef(
-                  l10n: AppLocalizations.of(context),
-                  status: status,
-                  dual: dual,
-                  spool: spools[i],
-                  assigned: assigned,
-                ),
+          slotRef: (i) => _externalSlotRef(
+            l10n: AppLocalizations.of(context),
+            status: status,
+            dual: dual,
+            rack: rack,
+            spool: spools[i],
+            assigned: assigned,
+          ),
         ),
     ];
 
@@ -772,21 +770,29 @@ _SlotRef _externalSlotRef({
   required bool dual,
   required AmsTray spool,
   required AssignedSpools assigned,
+  bool rack = false,
 }) {
-  final side = externalSideOf(spool.id) ?? 0;
-  final extruder = dual ? status.extruderForExternal(spool.id) : null;
+  final global = spool.id ?? externalTrayIdBase;
+  final side = rack ? externalSlotIndex(global) : externalSideOf(global) ?? 0;
+  final extruder = dual && !rack ? status.extruderForExternal(spool.id) : null;
   return _SlotRef(
     printerId: status.id,
     printerName: status.name,
     amsId: externalHolderUnit,
     trayId: side,
-    label: switch (extruder) {
-      1 => l10n.extruderLeft,
-      0 => l10n.extruderRight,
-      _ => l10n.externalSpool,
-    },
+    label: rack
+        ? rackExternalLabel(global)
+        : switch (extruder) {
+            1 => l10n.extruderLeft,
+            0 => l10n.extruderRight,
+            _ => l10n.externalSpool,
+          },
     printing: status.isPrinting && !status.isPaused,
-    loadTrayId: amsLoadTrayId(amsId: externalHolderUnit, trayId: side),
+    // The web offers no load or unload on a rack printer's inputs; assigning
+    // and configuring stay.
+    loadTrayId: rack
+        ? null
+        : amsLoadTrayId(amsId: externalHolderUnit, trayId: side),
     trayInfoIdx: spool.trayInfoIdx,
     trayColour: spool.trayColor,
     caliIdx: spool.caliIdx,

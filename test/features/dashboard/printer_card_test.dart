@@ -1447,19 +1447,24 @@ void main() {
         expect(find.text(pl.nozzleRack.toUpperCase()), findsNothing);
       });
 
-      testWidgets("a rack printer's input takes no slot action", (
+      testWidgets("a rack printer's input opens its sheet without load", (
         tester,
       ) async {
         await pumpAt(
           tester,
           1.0,
-          realItem(unit: dryer, top: {'vt_tray': inputs(loaded: 250)}),
+          // 254 is a holder side elsewhere, the one input load would reach.
+          realItem(unit: dryer, top: {'vt_tray': inputs(loaded: 254)}),
         );
-        final row = find.ancestor(
-          of: find.text('PA6-CF'),
-          matching: find.byType(InkWell),
-        );
-        expect(row, findsNothing);
+        await tester.tap(find.text('PA6-CF'));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        // The web keeps assigning and configuring; load and unload go.
+        expect(find.textContaining('Ext-2'), findsWidgets);
+        expect(byLogId('assign_spool.ams_load'), findsNothing);
+        expect(byLogId('assign_spool.ams_unload'), findsNothing);
+        expect(byLogId('assign_spool.configure'), findsOneWidget);
       });
     });
 
