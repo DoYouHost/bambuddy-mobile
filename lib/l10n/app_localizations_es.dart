@@ -1620,6 +1620,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta impresora de demostración está desconectada, así que no hay imagen de cámara.';
 
   @override
+  String get externalInputs => 'Entradas externas';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Las $count entradas externas están vacías';
+  }
+
+  @override
   String get externalSpool => 'Bobina externa';
 
   @override

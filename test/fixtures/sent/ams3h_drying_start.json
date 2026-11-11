@@ -1,0 +1,13 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/printers/1/drying/start",
+    "body": null,
+    "query": {
+      "ams_id": 32,
+      "temp": 45,
+      "duration": 12,
+      "filament": "PLA"
+    }
+  }
+]

@@ -55,6 +55,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 import '../../hms_samples.dart';
 
@@ -945,13 +946,15 @@ void main() {
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
     /// [trays] patches fields of AMS 1's trays, by index; [trayOrder] then
-    /// reports only those trays, in that order. [unit] patches AMS 1 itself.
+    /// reports only those trays, in that order. [unit] patches AMS 1 itself,
+    /// [top] the status.
     PrinterWithStatus realItem({
       bool tagged = false,
       bool oneHolder = false,
       Map<int, Map<String, Object?>> trays = const {},
       List<int>? trayOrder,
       Map<String, Object?> unit = const {},
+      Map<String, Object?> top = const {},
     }) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
@@ -963,6 +966,7 @@ void main() {
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
+      data.addAll(top);
       if (unit.isNotEmpty) {
         final units = List<dynamic>.from(data['ams'] as List);
         units[0] = {...Map<String, dynamic>.from(units.first as Map), ...unit};
@@ -1134,13 +1138,28 @@ void main() {
       });
     }
 
-    group('AMS 3H dryer', () {
+    group('H3C', () {
+      // The AMS 3H as the server reports it, over AMS 1 of the fixture.
       const dryer = {
+        'id': 32,
+        'ams_type': 6,
+        'module_type': 'n10a',
         'dryer_slots': [2, 3],
         'dryer_humidity': 12,
         'dryer_temp': 55.4,
       };
-      Finder flames() => find.bySemanticsLabel(RegExp(pl.amsDryer));
+      Finder slotFlames() => find.descendant(
+        of: find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+        ),
+        matching: find.byIcon(Icons.local_fire_department),
+      );
+      Finder controlText(String text) => find.descendant(
+        of: byLogId('printer.drying'),
+        matching: find.text(text),
+      );
 
       Future<void> pumpAt(
         WidgetTester tester,
@@ -1172,42 +1191,34 @@ void main() {
       }
 
       for (final scale in [1.0, 1.5, 2.0]) {
-        testWidgets('shows its readings and marks its two slots at text scale '
-            '$scale', (tester) async {
-          final handle = tester.ensureSemantics();
+        testWidgets('the drying control carries the dryer readings at text '
+            'scale $scale', (tester) async {
           await pumpAt(tester, scale, realItem(unit: dryer));
           // An overflow is a FlutterError, which fails the test on its own.
 
-          expect(find.text('12% · 55°'), findsOneWidget);
+          expect(controlText('${pl.ctrlDry} · 12% · 55°'), findsOneWidget);
+          expect(byLogId('printer.ams_dryer'), findsNothing);
+          expect(find.text('AMS 3H'), findsOneWidget);
           // The unit's own readings stay beside it.
           expect(find.text('28%'), findsOneWidget);
-          final chip = tester.getSize(byLogId('printer.ams_dryer'));
-          expect(chip.height, greaterThanOrEqualTo(48));
-          // The chip and the two slots in the dryer, nothing else.
-          expect(flames(), findsNWidgets(3));
-          handle.dispose();
+          final control = tester.getSize(byLogId('printer.drying'));
+          expect(control.height, greaterThanOrEqualTo(48));
+          // The two slots in the dryer, nothing else.
+          expect(slotFlames(), findsNWidgets(2));
         });
       }
 
-      testWidgets('is orange through the whole cycle, grey when idle', (
-        tester,
-      ) async {
-        Color flameInk() => tester
-            .widget<Icon>(
-              find.descendant(
-                of: byLogId('printer.ams_dryer'),
-                matching: find.byIcon(Icons.local_fire_department),
-              ),
-            )
-            .color!;
+      testWidgets('the slot marks are orange through the whole cycle, grey '
+          'when idle', (tester) async {
+        Color ink() => tester.widget<Icon>(slotFlames().first).color!;
         // Cooling: no countdown left, still a running cycle.
         await pumpAt(
           tester,
           1.0,
           realItem(unit: {...dryer, 'dry_time': 0, 'dry_status': 3}),
         );
-        final t = DashTokens.of(tester.element(byLogId('printer.ams_dryer')));
-        expect(flameInk(), t.accentOrangeInk);
+        final t = DashTokens.of(tester.element(slotFlames().first));
+        expect(ink(), t.accentOrangeInk);
 
         // The same card, still expanded, with the next frame's unit.
         await pumpAt(
@@ -1216,44 +1227,154 @@ void main() {
           realItem(unit: {...dryer, 'dry_time': 0, 'dry_status': 0}),
           expand: false,
         );
-        expect(flameInk(), t.textTertiary);
+        expect(ink(), t.textTertiary);
       });
 
-      testWidgets('a reading the server left out is left out of the chip', (
-        tester,
-      ) async {
+      testWidgets('a reading the server left out is left out', (tester) async {
         await pumpAt(
           tester,
           1.0,
           realItem(unit: {...dryer, 'dryer_humidity': null}),
         );
-        expect(find.text('55°'), findsOneWidget);
-      });
+        expect(controlText('${pl.ctrlDry} · 55°'), findsOneWidget);
 
-      testWidgets('with no reading at all only the slots mark the dryer', (
-        tester,
-      ) async {
-        final handle = tester.ensureSemantics();
         await pumpAt(
           tester,
           1.0,
           realItem(
             unit: {...dryer, 'dryer_humidity': null, 'dryer_temp': null},
           ),
+          expand: false,
         );
-        expect(byLogId('printer.ams_dryer'), findsNothing);
-        expect(flames(), findsNWidgets(2));
-        handle.dispose();
+        expect(controlText(pl.ctrlDry), findsOneWidget);
+        expect(slotFlames(), findsNWidgets(2));
+      });
+
+      testWidgets('starting a drying cycle sends what the server replays', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final dio = testDio();
+        mockServer(dio).onPost(
+          '/api/v1/printers/1/drying/start',
+          (server) => server.reply(200, {'status': 'drying_started'}),
+        );
+        final log = captureRequests(dio);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(item: realItem(unit: dryer)),
+              ),
+            ),
+            extra: [
+              printerCommandsRepositoryProvider.overrideWithValue(
+                PrinterCommandsRepository(dio),
+              ),
+            ],
+          ),
+        );
+        // The card animates for ever: fixed pumps, never pumpAndSettle.
+        Future<void> settle() async {
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+        }
+
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await settle();
+
+        await tester.tap(byLogId('printer.drying'));
+        await settle();
+        await tester.ensureVisible(byLogId('drying.start'));
+        await tester.tap(byLogId('drying.start'));
+        await settle();
+
+        // Replayed on an H3C by `h3c_contract_test.dart`.
+        expectSentAsRecorded('ams3h_drying_start', writesOf(log.requests));
+      });
+
+      testWidgets('without the drying control a chip shows the readings', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'supports_drying': false}),
+        );
+        expect(byLogId('printer.drying'), findsNothing);
+        expect(
+          find.descendant(
+            of: byLogId('printer.ams_dryer'),
+            matching: find.text('12% · 55°'),
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('an older server, or any other AMS, shows no dryer', (
         tester,
       ) async {
-        final handle = tester.ensureSemantics();
         await pumpAt(tester, 1.0, realItem());
         expect(byLogId('printer.ams_dryer'), findsNothing);
-        expect(flames(), findsNothing);
-        handle.dispose();
+        expect(slotFlames(), findsNothing);
+        expect(controlText(pl.ctrlDry), findsOneWidget);
+      });
+
+      // Nine inputs, one per hotend; 250 feeds hotend 5, shown as 6.
+      List<Map<String, Object?>> inputs({int? loaded}) => [
+        for (var id = 247; id <= 255; id++)
+          {
+            'id': id,
+            'tray_type': id == loaded ? 'PA6-CF' : '',
+            'tray_color': id == loaded ? '2FBF5AFF' : '',
+          },
+      ];
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('a rack printer lists only its loaded input, by hotend, '
+            'at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'vt_tray': inputs(loaded: 250)}),
+          );
+          expect(find.text(pl.externalInputs.toUpperCase()), findsOneWidget);
+          expect(find.text(pl.externalSpool.toUpperCase()), findsNothing);
+          expect(find.text('PA6-CF'), findsOneWidget);
+          expect(find.text('6'), findsOneWidget);
+          expect(find.text(pl.traySlotEmpty), findsNothing);
+        });
+      }
+
+      testWidgets('a rack printer with no input loaded says so in one line', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'vt_tray': inputs()}),
+        );
+        expect(find.text(pl.externalInputsEmpty(9)), findsOneWidget);
+        expect(find.text(pl.traySlotEmpty), findsNothing);
+      });
+
+      testWidgets("a rack printer's input takes no slot action", (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'vt_tray': inputs(loaded: 250)}),
+        );
+        final row = find.ancestor(
+          of: find.text('PA6-CF'),
+          matching: find.byType(InkWell),
+        );
+        expect(row, findsNothing);
       });
     });
 

@@ -2660,6 +2660,18 @@ abstract class AppLocalizations {
   /// **'This demo printer is offline, so there is no camera picture.'**
   String get cameraDemoUnavailable;
 
+  /// No description provided for @externalInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'External inputs'**
+  String get externalInputs;
+
+  /// A rack printer (H3C) with none of its per-hotend external inputs loaded
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} external inputs are empty'**
+  String externalInputsEmpty(int count);
+
   /// No description provided for @externalSpool.
   ///
   /// In en, this message translates to:

@@ -1635,6 +1635,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette imprimante de démo est hors ligne, il n\'y a donc pas d\'image de caméra.';
 
   @override
+  String get externalInputs => 'Entrées externes';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Les $count entrées externes sont vides';
+  }
+
+  @override
   String get externalSpool => 'Bobine externe';
 
   @override

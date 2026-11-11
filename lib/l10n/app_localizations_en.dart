@@ -1605,6 +1605,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'This demo printer is offline, so there is no camera picture.';
 
   @override
+  String get externalInputs => 'External inputs';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'All $count external inputs are empty';
+  }
+
+  @override
   String get externalSpool => 'External spool';
 
   @override

@@ -1024,6 +1024,16 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "This demo printer is offline, so there is no camera picture.",
+  "externalInputs": "External inputs",
+  "externalInputsEmpty": "All {count} external inputs are empty",
+  "@externalInputsEmpty": {
+    "description": "A rack printer (H3C) with none of its per-hotend external inputs loaded",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
   "amsSlotFilament": "Filament",

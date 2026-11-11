@@ -1655,6 +1655,21 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ta drukarka demo jest offline, więc nie ma obrazu z kamery.';
 
   @override
+  String get externalInputs => 'Wejścia zewnętrzne';
+
+  @override
+  String externalInputsEmpty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Wszystkie $count wejścia zewnętrzne są puste',
+      many: 'Wszystkie $count wejść zewnętrznych jest pustych',
+      few: 'Wszystkie $count wejścia zewnętrzne są puste',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get externalSpool => 'Szpula zewnętrzna';
 
   @override

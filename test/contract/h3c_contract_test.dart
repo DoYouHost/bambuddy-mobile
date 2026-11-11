@@ -1,9 +1,12 @@
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// The H3C (server #3442) as the app reads it: its AMS 3H as unit 32, slots
 /// numbered 28-36, and the dryer's own slots and readings.
@@ -76,8 +79,14 @@ void main() {
       },
     };
 
-    test('the AMS 3H reaches the app numbered as on the web', () async {
-      final dio = await authenticatedDio();
+    late Dio dio;
+    late int printerId;
+    late PrinterStatus status;
+    // Whether the server knows the H3C (#3442): it then types the unit.
+    late bool knowsH3c;
+
+    setUpAll(() async {
+      dio = await authenticatedDio();
       final created = (await dio.post<Map<String, dynamic>>(
         '/api/v1/printers/',
         data: {
@@ -88,13 +97,12 @@ void main() {
           'model': 'H3C',
         },
       )).data!;
-      final printerId = created['id'] as int;
-      addTearDown(() => dio.delete<void>('/api/v1/printers/$printerId'));
+      printerId = created['id'] as int;
       final printers = PrintersRepository(dio);
 
       // Published again on every poll: the server subscribes some time after
       // the printer is created, and a report before that is lost.
-      final status = await pollUntil(
+      status = await pollUntil(
         'the AMS 3H',
         () async {
           await publishReport(serial, report);
@@ -105,6 +113,19 @@ void main() {
         within: const Duration(seconds: 30),
         every: const Duration(seconds: 2),
       );
+
+      final raw = (await dio.get<Map<String, dynamic>>(
+        '/api/v1/printers/$printerId/status',
+      )).data!;
+      knowsH3c = (raw['ams'] as List)
+          .cast<Map<String, dynamic>>()
+          .single
+          .containsKey('ams_type');
+    });
+
+    tearDownAll(() => dio.delete<void>('/api/v1/printers/$printerId'));
+
+    test('the AMS 3H reaches the app numbered as on the web', () {
       final unit = status.ams!.singleWhere((u) => u.id == 32);
 
       // Unit 32 is the AMS 3H by its id alone, so the name and numbering hold
@@ -112,11 +133,7 @@ void main() {
       expect(amsUnitName(unit.id!, amsType: unit.amsType), 'AMS 3H');
       expect(status.trayLayout.rack, isTrue);
 
-      final raw = (await dio.get<Map<String, dynamic>>(
-        '/api/v1/printers/$printerId/status',
-      )).data!;
-      final rawUnit = (raw['ams'] as List).cast<Map<String, dynamic>>().single;
-      if (!rawUnit.containsKey('ams_type')) {
+      if (!knowsH3c) {
         // A server older than the H3C: no type, no dryer, its own tray_now.
         // The app still reads the status, and shows no dryer.
         expect(unit.hasDryer, isFalse);
@@ -139,6 +156,37 @@ void main() {
         [28, 29, 30, 31, 32, 33, 34, 36],
         reason: 'slot 7 (35) is empty',
       );
+    });
+
+    test('the drying sheet starts the AMS 3H on its drying zone', () async {
+      if (!knowsH3c) {
+        markTestSkipped('server predates the H3C (#3442)');
+        return;
+      }
+      // Recorded by the card's drying test in printer_card_test.dart.
+      final sent = recordedWrites('ams3h_drying_start');
+      late List<Response<dynamic>> answers;
+      final command = await firstRequest(
+        serial,
+        () async => answers = await replayWrites(
+          dio,
+          sent,
+          item: printerId,
+          itemIn: RegExp(r'(?<=/printers/)\d+'),
+        ),
+        where: (print) => print['command'] == 'ams_filament_drying',
+      );
+
+      expect(answers.single.statusCode, 200, reason: '${answers.single.data}');
+      // `send_drying_command`: the firmware's own unit id and the zone that
+      // holds two slots, and no spool turning on an AMS 3H.
+      expect(command['ams_id'], 32);
+      expect(command['zone_id'], 0);
+      expect(command['mode'], 1);
+      expect(command['rotate_tray'], isFalse);
+      final query = sent.single.query!;
+      expect(command['temp'], query['temp']);
+      expect(command['duration'], query['duration']);
     });
   });
 }

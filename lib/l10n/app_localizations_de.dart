@@ -1626,6 +1626,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.';
 
   @override
+  String get externalInputs => 'Externe Eingänge';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Alle $count externen Eingänge sind leer';
+  }
+
+  @override
   String get externalSpool => 'Externe Spule';
 
   @override
