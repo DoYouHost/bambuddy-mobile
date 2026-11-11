@@ -440,6 +440,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlNozzleActive => 'Aktiv';
 
   @override
+  String get amsDryer => 'Trockner';
+
+  @override
   String get ctrlDry => 'Trocknen';
 
   @override

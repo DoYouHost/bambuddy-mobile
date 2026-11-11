@@ -438,6 +438,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlNozzleActive => 'Aktywna';
 
   @override
+  String get amsDryer => 'Suszarka';
+
+  @override
   String get ctrlDry => 'Suszenie';
 
   @override

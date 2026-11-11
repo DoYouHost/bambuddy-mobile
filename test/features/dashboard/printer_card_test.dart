@@ -7,13 +7,12 @@ import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dar
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/models/k_profile.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:clock/clock.dart';
-import 'package:dash_kit/dash_kit.dart'
-    show ContentGrid, DashSpinner, DashTracking;
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/next_pause.dart';
@@ -946,12 +945,13 @@ void main() {
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
     /// [trays] patches fields of AMS 1's trays, by index; [trayOrder] then
-    /// reports only those trays, in that order.
+    /// reports only those trays, in that order. [unit] patches AMS 1 itself.
     PrinterWithStatus realItem({
       bool tagged = false,
       bool oneHolder = false,
       Map<int, Map<String, Object?>> trays = const {},
       List<int>? trayOrder,
+      Map<String, Object?> unit = const {},
     }) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
@@ -963,6 +963,11 @@ void main() {
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
+      if (unit.isNotEmpty) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        units[0] = {...Map<String, dynamic>.from(units.first as Map), ...unit};
+        data['ams'] = units;
+      }
       if (trays.isNotEmpty) {
         final units = List<dynamic>.from(data['ams'] as List);
         final unit = Map<String, dynamic>.from(units.first as Map);
@@ -1128,6 +1133,108 @@ void main() {
         }
       });
     }
+
+    group('AMS 3H dryer', () {
+      const dryer = {
+        'dryer_slots': [2, 3],
+        'dryer_humidity': 12,
+        'dryer_temp': 55.4,
+      };
+      Finder flames() => find.bySemanticsLabel(RegExp(pl.amsDryer));
+
+      Future<void> pumpAt(
+        WidgetTester tester,
+        double scale,
+        PrinterWithStatus item, {
+        bool expand = true,
+      }) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(360, 3000),
+            ),
+            child: _scope(
+              Scaffold(
+                body: SingleChildScrollView(child: PrinterCard(item: item)),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        if (!expand) return;
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('shows its readings and marks its two slots at text scale '
+            '$scale', (tester) async {
+          final handle = tester.ensureSemantics();
+          await pumpAt(tester, scale, realItem(unit: dryer));
+          // An overflow is a FlutterError, which fails the test on its own.
+
+          expect(find.text('12% · 55°'), findsOneWidget);
+          // The unit's own readings stay beside it.
+          expect(find.text('28%'), findsOneWidget);
+          final chip = tester.getSize(byLogId('printer.ams_dryer'));
+          expect(chip.height, greaterThanOrEqualTo(48));
+          // The chip and the two slots in the dryer, nothing else.
+          expect(flames(), findsNWidgets(3));
+          handle.dispose();
+        });
+      }
+
+      testWidgets('is orange while the unit dries, grey when idle', (
+        tester,
+      ) async {
+        Color flameInk() => tester
+            .widget<Icon>(
+              find.descendant(
+                of: byLogId('printer.ams_dryer'),
+                matching: find.byIcon(Icons.local_fire_department),
+              ),
+            )
+            .color!;
+        await pumpAt(tester, 1.0, realItem(unit: {...dryer, 'dry_time': 90}));
+        final t = DashTokens.of(tester.element(byLogId('printer.ams_dryer')));
+        expect(flameInk(), t.accentOrangeInk);
+
+        // The same card, still expanded, with the next frame's unit.
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: {...dryer, 'dry_time': 0}),
+          expand: false,
+        );
+        expect(flameInk(), t.textTertiary);
+      });
+
+      testWidgets('a reading the server left out is left out of the chip', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: {...dryer, 'dryer_humidity': null}),
+        );
+        expect(find.text('55°'), findsOneWidget);
+      });
+
+      testWidgets('an older server, or any other AMS, shows no dryer', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpAt(tester, 1.0, realItem());
+        expect(byLogId('printer.ams_dryer'), findsNothing);
+        expect(flames(), findsNothing);
+        handle.dispose();
+      });
+    });
 
     for (final scale in [1.0, 1.5, 2.0]) {
       testWidgets('the door reading holds on a 360 dp phone at text scale '

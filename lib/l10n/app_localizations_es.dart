@@ -441,6 +441,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlNozzleActive => 'Activa';
 
   @override
+  String get amsDryer => 'Secador';
+
+  @override
   String get ctrlDry => 'Secar';
 
   @override

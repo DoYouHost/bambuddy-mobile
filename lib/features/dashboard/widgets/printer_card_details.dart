@@ -927,6 +927,8 @@ class _AmsSection extends ConsumerWidget {
         ),
       );
     }
+    final dryerInk = unit.isDrying ? t.accentOrangeInk : t.textTertiary;
+    if (unit.hasDryer) metaParts.add(_AmsDryerChip(unit: unit, ink: dryerInk));
 
     // Report positions in slot order: an AMS can report only some trays, or
     // report them out of order.
@@ -1026,6 +1028,9 @@ class _AmsSection extends ConsumerWidget {
               preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
               last: i == order.last,
               badge: '${unit.slotAt(i) + 1}',
+              dryerInk: unit.dryerSlots.contains(unit.slotAt(i))
+                  ? dryerInk
+                  : null,
               slot: slotRef(i),
             ),
       ],
@@ -1142,6 +1147,7 @@ class _FilamentRow extends ConsumerWidget {
     required this.preset,
     required this.last,
     this.badge,
+    this.dryerInk,
     this.slot,
   });
 
@@ -1163,6 +1169,9 @@ class _FilamentRow extends ConsumerWidget {
 
   /// The slot's number, or the external holder's side on a dual machine.
   final String? badge;
+
+  /// Set on a slot inside the AMS 3H's dryer, in the dryer chip's colour.
+  final Color? dryerInk;
   final _SlotRef? slot;
 
   @override
@@ -1202,6 +1211,7 @@ class _FilamentRow extends ConsumerWidget {
             badge: badge,
             percent: percent,
             active: active,
+            dryerInk: dryerInk,
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(
@@ -1287,6 +1297,7 @@ class _SlotSwatch extends StatelessWidget {
     required this.badge,
     required this.percent,
     required this.active,
+    this.dryerInk,
   });
 
   /// Null for an empty slot, drawn as an outline.
@@ -1294,10 +1305,12 @@ class _SlotSwatch extends StatelessWidget {
   final String? badge;
   final int? percent;
   final bool active;
+  final Color? dryerInk;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final dryerInk = this.dryerInk;
     final color = this.color;
     final percent = this.percent;
     // A translucent filament reads as it shows over the card, not as its hex.
@@ -1352,6 +1365,25 @@ class _SlotSwatch extends StatelessWidget {
                     ),
                   ),
           ),
+          if (dryerInk != null)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: DashIcon.sm,
+                height: DashIcon.sm,
+                decoration: BoxDecoration(
+                  color: t.overlaySurface,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.local_fire_department,
+                  size: DashIcon.xs,
+                  color: dryerInk,
+                  semanticLabel: AppLocalizations.of(context).amsDryer,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1386,6 +1418,42 @@ class _AmsMeta extends StatelessWidget {
       text: text,
       onTap: onTap,
     ).tagged('printer.ams_meta');
+  }
+}
+
+/// The AMS 3H dryer's own humidity and temperature, apart from the unit's.
+/// No history to open: the server records only the unit's readings.
+class _AmsDryerChip extends StatelessWidget {
+  const _AmsDryerChip({required this.unit, required this.ink});
+
+  final AmsUnit unit;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final humidity = unit.dryerHumidity;
+    final temp = unit.dryerTemp;
+    return Semantics(
+      label: AppLocalizations.of(context).amsDryer,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: unit.isDrying
+              ? t.accentOrange.withValues(alpha: DashAlpha.wash)
+              : null,
+          borderRadius: BorderRadius.circular(DashRadius.sm),
+        ),
+        child: _AmsChip(
+          icon: Icons.local_fire_department,
+          color: ink,
+          text: [
+            if (humidity != null) '$humidity%',
+            if (temp != null) '${temp.toStringAsFixed(0)}°',
+          ].join(' · '),
+          onTap: null,
+        ),
+      ),
+    ).tagged('printer.ams_dryer');
   }
 }
 

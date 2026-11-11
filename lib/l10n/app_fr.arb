@@ -161,6 +161,7 @@
   "ctrlSet": "Définir",
   "ctrlActivate": "Activer",
   "ctrlNozzleActive": "Active",
+  "amsDryer": "Séchoir",
   "ctrlDry": "Séchage",
   "ctrlDrying": "Séchage en cours",
   "ctrlDryNotRunning": "À l'arrêt",

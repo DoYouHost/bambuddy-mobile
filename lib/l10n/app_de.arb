@@ -161,6 +161,7 @@
   "ctrlSet": "Einstellen",
   "ctrlActivate": "Aktivieren",
   "ctrlNozzleActive": "Aktiv",
+  "amsDryer": "Trockner",
   "ctrlDry": "Trocknen",
   "ctrlDrying": "Trocknung läuft",
   "ctrlDryNotRunning": "Läuft nicht",

@@ -884,6 +884,12 @@ abstract class AppLocalizations {
   /// **'Active'**
   String get ctrlNozzleActive;
 
+  /// Screen-reader label of the AMS 3H built-in dryer: its readings chip and the mark on the slots it holds (a noun, the device)
+  ///
+  /// In en, this message translates to:
+  /// **'Dryer'**
+  String get amsDryer;
+
   /// No description provided for @ctrlDry.
   ///
   /// In en, this message translates to:

@@ -193,6 +193,10 @@
   "ctrlSet": "Set",
   "ctrlActivate": "Activate",
   "ctrlNozzleActive": "Active",
+  "amsDryer": "Dryer",
+  "@amsDryer": {
+    "description": "Screen-reader label of the AMS 3H built-in dryer: its readings chip and the mark on the slots it holds (a noun, the device)"
+  },
   "ctrlDry": "Dry",
   "ctrlDrying": "Drying",
   "ctrlDryNotRunning": "Not running",
