@@ -498,6 +498,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       l10n: l10n,
       catalog: catalog,
       spools: spools,
+      rackExternals: status?.trayLayout.rack ?? false,
       dualExternal: (status?.vtTray?.length ?? 0) > 1,
       // `ftsInletForAms`: the inlet an AMS is plumbed into, when a Filament
       // Track Switch is fitted.
@@ -1305,6 +1306,7 @@ class _SlotOptions {
     required this.catalog,
     required this.spools,
     required this.dualExternal,
+    required this.rackExternals,
     required this.inletOf,
   });
 
@@ -1312,11 +1314,16 @@ class _SlotOptions {
   final ColorCatalog catalog;
   final Map<int, SlotSpool> spools;
   final bool dualExternal;
+
+  /// A rack printer's inputs are named by hotend (`rackExternalLabel`) and win
+  /// over [dualExternal], which their count would otherwise set.
+  final bool rackExternals;
   final String? Function(int amsId) inletOf;
 
   String slotOf(LoadedFilament f) {
     if (f.isExternal) {
       // `useFilamentMapping.ts`: the letters on the machine, not translated.
+      if (rackExternals) return rackExternalLabel(f.globalTrayId);
       if (!dualExternal) return l10n.mappingExternalSpool;
       return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
     }

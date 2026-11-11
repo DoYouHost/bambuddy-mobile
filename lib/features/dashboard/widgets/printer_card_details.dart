@@ -903,7 +903,7 @@ class _AmsSection extends ConsumerWidget {
             context,
             printerId: printerId,
             amsId: unit.id ?? unitIndex,
-            amsLabel: amsUnitName(unit.id ?? unitIndex),
+            amsLabel: amsUnitName(unit.id ?? unitIndex, amsType: unit.amsType),
             initialMetric: metric,
           )
         : null;
@@ -956,7 +956,10 @@ class _AmsSection extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    amsUnitName(unit.id ?? unitIndex).toUpperCase(),
+                    amsUnitName(
+                      unit.id ?? unitIndex,
+                      amsType: unit.amsType,
+                    ).toUpperCase(),
                     style: t.bodyBold.copyWith(
                       color: t.textPrimary,
                       letterSpacing: DashTracking.label,
@@ -984,7 +987,10 @@ class _AmsSection extends ConsumerWidget {
                       _AmsDryControl(
                         printerId: printerId,
                         amsId: unit.id ?? unitIndex,
-                        amsLabel: amsUnitName(unit.id ?? unitIndex),
+                        amsLabel: amsUnitName(
+                          unit.id ?? unitIndex,
+                          amsType: unit.amsType,
+                        ),
                         unit: unit,
                       ),
                   ],

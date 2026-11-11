@@ -1477,7 +1477,12 @@ class PrintMonitor {
       for (final AmsTray t in units[u].trays ?? const []) {
         final int? remain = t.remain;
         if (remain != null && remain >= 0 && !t.isEmpty) {
-          out[globalTrayId(amsId: unitId, trayId: t.id ?? 0)] = remain;
+          out[globalTrayId(
+                amsId: unitId,
+                trayId: t.id ?? 0,
+                amsType: units[u].amsType,
+              )] =
+              remain;
         }
       }
     }

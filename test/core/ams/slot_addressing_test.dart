@@ -84,6 +84,132 @@ void main() {
     });
   });
 
+  // Ported from the web's `__tests__/utils/trayIds.test.ts`, which pins the
+  // server's `utils/tray_ids.py` values.
+  group('rack printer (H3C)', () {
+    final h3c = TrayLayout.of(const [(id: 32, amsType: AmsType.zmultiA)]);
+
+    test('a unit type is told from the id when the server sends none', () {
+      expect(unitAmsType(0), AmsType.ams);
+      expect(unitAmsType(128), AmsType.n3s);
+      expect(unitAmsType(32), AmsType.zmultiA);
+      expect(unitAmsType(32, AmsType.zmultiB), AmsType.zmultiB);
+      expect(unitAmsType(128, AmsType.ams), AmsType.n3s);
+      expect(unitAmsType(5, 0), AmsType.ams, reason: 'EXT_SPOOL is no unit');
+      expect(unitAmsType(5, 99), AmsType.ams, reason: 'nonsense type');
+    });
+
+    test('the AMS 3H numbers its nine slots 28-36, an AMS-B from 37', () {
+      expect(
+        [for (var s = 0; s < 9; s++) globalTrayId(amsId: 32, trayId: s)],
+        [for (var s = 0; s < 9; s++) 28 + s],
+      );
+      expect(globalTrayId(amsId: 40, trayId: 2, amsType: AmsType.zmultiB), 39);
+      // The A2L's AMS Lite by its type, the same 24-27 as unit 6.
+      expect(
+        globalTrayId(amsId: 6, trayId: 1, amsType: AmsType.amsLiteMixed),
+        25,
+      );
+    });
+
+    test('numbers the H3C both ways', () {
+      expect(h3c.rack, isTrue);
+      for (var slot = 0; slot < rackSlotCount; slot++) {
+        final tray = h3c.globalTrayIdOf(32, slot);
+        expect(tray, 28 + slot);
+        expect(h3c.locate(tray), (amsId: 32, trayId: slot));
+        expect(localSlotOf(tray, h3c), (amsId: 32, trayId: slot));
+      }
+    });
+
+    test('a regular printer is numbered as before', () {
+      final layout = TrayLayout.of(
+        const [
+          (id: 0, amsType: null),
+          (id: 1, amsType: AmsType.n3f),
+          (id: 128, amsType: null),
+        ],
+        const [254, 255],
+      );
+      expect(layout.rack, isFalse);
+      expect(layout.globalTrayIdOf(1, 3), 7);
+      expect(layout.locate(7), (amsId: 1, trayId: 3));
+      expect(layout.locate(128), (amsId: 128, trayId: 0));
+      expect(layout.locate(250), isNull);
+    });
+
+    test('28-36 are the AMS 3H without live data, but not past a unit 7', () {
+      final empty = TrayLayout.of(const []);
+      expect(empty.locate(30), (amsId: 32, trayId: 2));
+      final unit7 = TrayLayout.of(const [(id: 7, amsType: null)]);
+      expect(unit7.locate(28), (amsId: 7, trayId: 0));
+      expect(unit7.locate(31), (amsId: 7, trayId: 3));
+    });
+
+    test('an explicit type from the API wins', () {
+      final layout = TrayLayout.of(const [
+        (id: 32, amsType: AmsType.zmultiA),
+        (id: 32, amsType: AmsType.zmultiA),
+      ]);
+      expect(layout.units, {32: AmsType.zmultiA});
+      expect(layout.locate(32), (amsId: 32, trayId: 4));
+    });
+
+    test('external inputs 247-253 exist only on a rack printer', () {
+      for (final tray in [254, 255]) {
+        expect(isExternalTray(tray), isTrue);
+        expect(isExternalTray(tray, rack: true), isTrue);
+      }
+      for (var tray = 247; tray <= 253; tray++) {
+        expect(isExternalTray(tray), isFalse);
+        expect(isExternalTray(tray, rack: true), isTrue);
+      }
+      for (final tray in [0, 15, 28, 36, 128, 246, 256]) {
+        expect(isExternalTray(tray, rack: true), isFalse, reason: '$tray');
+      }
+      expect(isExternalTray(null, rack: true), isFalse);
+    });
+
+    test('an input feeds hotend 255 - id and is stored as tray 0-8', () {
+      expect(
+        [255, 254, 253, 252, 251, 250, 249, 248, 247].map(externalHotend),
+        [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      );
+      expect(externalSlotIndex(254), 0);
+      expect(externalSlotIndex(255), 1);
+      expect(
+        [for (var t = 247; t <= 253; t++) externalSlotIndex(t)],
+        [
+          2, 3, 4, 5, 6, 7, 8, //
+        ],
+      );
+      for (var tray = 247; tray <= 255; tray++) {
+        expect(externalTrayId(externalSlotIndex(tray)), tray);
+        expect(globalTrayId(amsId: 255, trayId: externalSlotIndex(tray)), tray);
+        expect(localSlotOf(tray), (
+          amsId: externalHolderUnit,
+          trayId: externalSlotIndex(tray),
+        ));
+      }
+      expect(rackExternalLabel(255), 'Ext-1');
+      expect(rackExternalLabel(247), 'Ext-9');
+    });
+
+    test('reporting one of 247-253 makes a rack printer', () {
+      expect(TrayLayout.of(const [], const [250]).rack, isTrue);
+      expect(TrayLayout.of(const [], const [254, 255]).rack, isFalse);
+      expect(TrayLayout.of(const [], const [null]).rack, isFalse);
+    });
+
+    test('names the AMS 3H and its slots as the web does', () {
+      expect(amsUnitName(32), 'AMS 3H');
+      expect(amsUnitName(40, amsType: AmsType.zmultiA), 'AMS 3H');
+      expect(amsSlotName(32, 6), 'AMS 3H · 7');
+      expect(formatSlotLabel(32, 6, isHt: false), '3H-7');
+      expect(formatSlotLabel(1, 2, isHt: false), 'B3');
+    });
+  });
+
   group('AMS names', () {
     test('a unit is lettered from its id, as the web letters it', () {
       expect(amsUnitName(0), 'AMS-A');

@@ -130,6 +130,10 @@ void main() {
     int? dryStatus = 1,
     String? module = 'n3f',
     bool stalled = false,
+    List<int> dryerSlots = const [2, 3],
+    int? dryerHumidity = 12,
+    double? dryerTemp = 55,
+    int? amsType = 6,
   }) => AmsUnit(
     id: id,
     humidity: humidity,
@@ -140,6 +144,10 @@ void main() {
     dryStatus: dryStatus,
     moduleType: module,
     dryCountdownStalled: stalled,
+    dryerSlots: dryerSlots,
+    dryerHumidity: dryerHumidity,
+    dryerTemp: dryerTemp,
+    amsType: amsType,
   );
 
   HmsError hms({
@@ -248,6 +256,10 @@ void main() {
       'trays (one tray changed)': () => unit(trays: [tray(remain: 1)]),
       'isAmsHt': () => unit(ht: true),
       'dryTime': () => unit(dryTime: 11),
+      'dryerSlots': () => unit(dryerSlots: const [2, 4]),
+      'dryerHumidity': () => unit(dryerHumidity: 13),
+      'dryerTemp': () => unit(dryerTemp: 56),
+      'amsType': () => unit(amsType: 7),
       'dryStatus': () => unit(dryStatus: 2),
       'moduleType': () => unit(module: 'n3s'),
       'dryCountdownStalled': () => unit(stalled: true),

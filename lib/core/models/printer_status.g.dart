@@ -68,6 +68,7 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
       : _toSlotList(json['dryer_slots']),
   dryerHumidity: toIntOrNull(json['dryer_humidity']),
   dryerTemp: toDoubleOrNull(json['dryer_temp']),
+  amsType: toIntOrNull(json['ams_type']),
 );
 
 AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(

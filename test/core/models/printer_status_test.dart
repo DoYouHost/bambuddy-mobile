@@ -956,6 +956,74 @@ void main() {
     });
   });
 
+  group('H3C (rack printer)', () {
+    // Shaped like the server's status for the live H3C capture in
+    // `test_h3c_ams3h.py`: one AMS 3H as unit 32, nine inputs 247-255.
+    PrinterStatus h3c({int? trayNow, int? amsType = 6}) =>
+        PrinterStatus.fromJson({
+          'id': 1,
+          'tray_now': trayNow,
+          'ams': [
+            {
+              'id': 32,
+              'ams_type': ?amsType,
+              'module_type': 'n10a',
+              'tray': [
+                for (var i = 0; i < 9; i++)
+                  {'id': i, 'tray_type': 'PLA', 'tray_color': '0000${i}0FF'},
+              ],
+            },
+          ],
+          'vt_tray': [
+            for (var id = 247; id <= 255; id++)
+              {'id': id, 'tray_type': id == 250 ? 'PETG' : ''},
+          ],
+        });
+
+    test('tray_now 28-36 names an AMS 3H slot, with or without ams_type', () {
+      for (final type in [6, null]) {
+        final status = h3c(trayNow: 34, amsType: type);
+        expect(status.trayLayout.rack, isTrue);
+        expect(status.activeTray?.trayColor, '000060FF', reason: '$type');
+      }
+    });
+
+    test('an input 247-253 is the active spool by its own id', () {
+      expect(h3c(trayNow: 250).activeTray?.trayType, 'PETG');
+      expect(h3c(trayNow: 250).activeTray?.id, 250);
+    });
+
+    test('the AMS 3H dries with the AMS-HT presets', () {
+      final unit = h3c().ams!.single;
+      expect(unit.isAms3h, isTrue);
+      expect(unit.canDry, isTrue);
+      expect(unit.isHtDryModule, isTrue);
+    });
+
+    test('an X1C-style report stays a regular printer', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'tray_now': 6,
+        'ams': [
+          {
+            'id': 1,
+            'module_type': 'ams',
+            'tray': [
+              for (var i = 0; i < 4; i++) {'id': i, 'tray_type': 'PLA'},
+            ],
+          },
+        ],
+        'vt_tray': [
+          {'id': 254},
+          {'id': 255},
+        ],
+      });
+      expect(status.trayLayout.rack, isFalse);
+      expect(status.activeTray, same(status.ams!.single.trays![2]));
+      expect(status.ams!.single.canDry, isFalse);
+    });
+  });
+
   group('slot addressing', () {
     test('a holder\'s side is its id, however many the report carries', () {
       // A two-nozzle printer can report one holder for a while — the server

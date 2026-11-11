@@ -468,6 +468,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     Widget row(int i) => _FilamentRow(
       comparison: comparison[i],
       catalog: catalog,
+      rackExternals: status.value?.trayLayout.rack ?? false,
       dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
       onTap: () => _editMapping(),
     );
@@ -1266,12 +1267,17 @@ class _FilamentRow extends StatelessWidget {
     required this.comparison,
     required this.catalog,
     required this.dualExternal,
+    required this.rackExternals,
     required this.onTap,
   });
 
   final FilamentComparison comparison;
   final ColorCatalog catalog;
   final bool dualExternal;
+
+  /// A rack printer's inputs are named by hotend (`rackExternalLabel`) and win
+  /// over [dualExternal], which their count would otherwise set.
+  final bool rackExternals;
   final VoidCallback onTap;
 
   @override
@@ -1353,6 +1359,7 @@ class _FilamentRow extends StatelessWidget {
 
   String _slotName(AppLocalizations l10n, LoadedFilament f) {
     if (f.isExternal) {
+      if (rackExternals) return rackExternalLabel(f.globalTrayId);
       if (!dualExternal) return l10n.mappingExternalSpool;
       return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
     }

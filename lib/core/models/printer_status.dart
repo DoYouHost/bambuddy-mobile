@@ -699,6 +699,16 @@ class PrinterStatus {
     _ => false,
   };
 
+  /// How this printer numbers its trays: unit types, and whether it is a rack
+  /// printer with nine external inputs.
+  TrayLayout get trayLayout => TrayLayout.of(
+    [
+      for (final (i, unit) in (ams ?? const <AmsUnit>[]).indexed)
+        (id: unit.id ?? i, amsType: unit.amsType),
+    ],
+    [for (final t in vtTray ?? const <AmsTray>[]) t.id],
+  );
+
   /// External spools sorted by global id ascending (254 = Ext-L first).
   List<AmsTray> get externalSpools {
     final list = [...?vtTray];
@@ -756,6 +766,12 @@ class PrinterStatus {
     final now = trayNow;
     if (now == null) return null;
 
+    // A rack printer has one extruder and an input per hotend: the id alone
+    // names the spool.
+    final layout = trayLayout;
+    if (layout.rack && isExternalTray(now, rack: true)) {
+      return externalSpools.firstWhereOrNull((t) => t.id == now);
+    }
     if (isExternalHolder(now)) {
       final spools = externalSpools;
       if (spools.isEmpty) return null;
@@ -778,7 +794,7 @@ class PrinterStatus {
         // An id-less tray cannot be addressed; assuming slot 0 for it would
         // match some other unit's slot rather than admit the gap.
         if (slot == null) continue;
-        if (globalTrayId(amsId: unitId, trayId: slot) == now) return t;
+        if (layout.globalTrayIdOf(unitId, slot) == now) return t;
       }
     }
     return null;
@@ -810,6 +826,7 @@ class AmsUnit with ValueEquality {
     this.dryerSlots = const [],
     this.dryerHumidity,
     this.dryerTemp,
+    this.amsType,
   });
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
@@ -866,6 +883,14 @@ class AmsUnit with ValueEquality {
 
   bool get hasDryer => dryerSlots.isNotEmpty;
 
+  /// Bambu Studio's AMS type ([AmsType]); absent on a server older than the
+  /// H3C, where [unitAmsType] tells the type from the id.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? amsType;
+
+  /// The H3C's nine-slot AMS 3H.
+  bool get isAms3h => unitAmsType(id ?? -1, amsType) == AmsType.zmultiA;
+
   /// Wider than [isDrying]: the web lights the dryer through every phase from
   /// checking to stopping (`ams3hDryerActive`, `PrintersPage.tsx`), not only 2.
   /// Unlike the web's dryer box, a parked timer stays dark — the server flags
@@ -879,15 +904,17 @@ class AmsUnit with ValueEquality {
   /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
   final String? moduleType;
 
-  /// Whether this AMS module can dry filament (AMS 2 Pro or AMS-HT).
-  bool get canDry => moduleType == 'n3f' || moduleType == 'n3s';
+  /// Whether this AMS module can dry filament: an AMS 2 Pro, an AMS-HT or the
+  /// AMS 3H (`isAms3hUnit` in the web's drying gate).
+  bool get canDry => moduleType == 'n3f' || moduleType == 'n3s' || isAms3h;
 
   /// [slotOfTray] for the entry of [trays] at [position].
   int slotAt(int position) =>
       slotOfTray([for (final t in trays ?? const <AmsTray>[]) t.id], position);
 
-  /// AMS-HT (high-temp) module — dries hotter (up to 85 °C vs 65 °C).
-  bool get isHtDryModule => moduleType == 'n3s';
+  /// AMS-HT (high-temp) module — dries hotter (up to 85 °C vs 65 °C). The web
+  /// opens the AMS 3H's drying with the AMS-HT's presets too.
+  bool get isHtDryModule => moduleType == 'n3s' || isAms3h;
 
   /// Whether a drying cycle is currently running (time remaining or an active
   /// status phase).
@@ -911,6 +938,7 @@ class AmsUnit with ValueEquality {
     dryerSlots,
     dryerHumidity,
     dryerTemp,
+    amsType,
     trays,
   ];
 }
