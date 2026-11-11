@@ -9,7 +9,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/device_files.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_form_screen.dart';
@@ -124,14 +123,8 @@ class ProjectsScreen extends ConsumerWidget {
   Future<void> _importProject(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickFileFromDevice();
-    final file = picked.file;
-    if (file == null) {
-      if (picked.outcome == DeviceFileOutcome.failed) {
-        messenger.snack(l10n.filePickerFailed);
-      }
-      return;
-    }
+    final file = await pickProjectFile(messenger, l10n);
+    if (file == null) return;
     messenger.snack(l10n.projectUploading);
     try {
       await ref

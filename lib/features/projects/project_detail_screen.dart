@@ -659,16 +659,12 @@ class _OverflowMenu extends ConsumerWidget {
   Future<void> _uploadCover(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickFileFromDevice(
+    final file = await pickProjectFile(
+      messenger,
+      l10n,
       allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'gif'],
     );
-    final file = picked.file;
-    if (file == null) {
-      if (picked.outcome == DeviceFileOutcome.failed) {
-        messenger.snack(l10n.filePickerFailed);
-      }
-      return;
-    }
+    if (file == null) return;
     try {
       await ref
           .read(projectsRepositoryProvider)
