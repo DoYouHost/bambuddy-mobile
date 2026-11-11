@@ -8,13 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/color_names.dart';
 import '../../core/ams/filament_mapping.dart';
-import '../../core/ams/slot_addressing.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/printer.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/printers/gcode_compat.dart';
 import '../../core/settings/print_options.dart';
@@ -468,8 +468,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     Widget row(int i) => _FilamentRow(
       comparison: comparison[i],
       catalog: catalog,
-      rackExternals: status.value?.trayLayout.rack ?? false,
-      dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
+      status: status.value,
       onTap: () => _editMapping(),
     );
     final caption = Text(
@@ -1266,18 +1265,15 @@ class _FilamentRow extends StatelessWidget {
   const _FilamentRow({
     required this.comparison,
     required this.catalog,
-    required this.dualExternal,
-    required this.rackExternals,
+    required this.status,
     required this.onTap,
   });
 
   final FilamentComparison comparison;
   final ColorCatalog catalog;
-  final bool dualExternal;
 
-  /// A rack printer's inputs are named by hotend (`rackExternalLabel`) and win
-  /// over [dualExternal], which their count would otherwise set.
-  final bool rackExternals;
+  /// The printer the file maps onto, which names its external inputs.
+  final PrinterStatus? status;
   final VoidCallback onTap;
 
   @override
@@ -1357,14 +1353,8 @@ class _FilamentRow extends StatelessWidget {
     );
   }
 
-  String _slotName(AppLocalizations l10n, LoadedFilament f) {
-    if (f.isExternal) {
-      if (rackExternals) return rackExternalLabel(f.globalTrayId);
-      if (!dualExternal) return l10n.mappingExternalSpool;
-      return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
-    }
-    return formatSlotLabel(f.amsId, f.trayId, isHt: f.isHt);
-  }
+  String _slotName(AppLocalizations l10n, LoadedFilament f) =>
+      mappingSlotLabel(f, status) ?? l10n.mappingExternalSpool;
 }
 
 class _Slot extends StatelessWidget {

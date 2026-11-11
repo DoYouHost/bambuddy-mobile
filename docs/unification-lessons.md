@@ -41,7 +41,8 @@ is the map and the decisions.
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
 | `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
-| `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else | [json_utils.dart](../lib/core/models/json_utils.dart) |
+| `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else; `intListFromJson`: a server-sent id list | [json_utils.dart](../lib/core/models/json_utils.dart) |
+| `TrayLayout`, `globalTrayId`, `rackExternalLabel`: a slot's numbers on any printer, the H3C's rack included; `mappingSlotLabel`: a slot as the filament mapping names it, on the phone's form and the controller's | [slot_addressing.dart](../lib/core/ams/slot_addressing.dart), [filament_mapping.dart](../lib/core/ams/filament_mapping.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
 | `TimerFactory`, the injectable timer | [offline_debounce.dart](../lib/core/printers/offline_debounce.dart) |
 | `startQueueItem`, `removeFromQueue`: a job's Start and Remove, from the queue screen and the controller alike | [queue_actions.dart](../lib/features/queue/queue_actions.dart) |
@@ -53,7 +54,7 @@ is the map and the decisions.
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
 | `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
-| `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
+| `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test; `firstRequest`: what the server published to the stand-in printer | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
 
 ## Traps that cost real debugging
 

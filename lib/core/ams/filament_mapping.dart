@@ -128,6 +128,26 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
   return out;
 }
 
+/// The slot [f] sits in as the mapping names it (`useFilamentMapping.ts`):
+/// `A1`, `HT-A`, `3H-7`; on the machine's own letters for an external input —
+/// `Ext-n` by hotend on a rack printer, `Ext-L`/`Ext-R` with two holders. Null
+/// for the one external spool of a single holder, which the caller names in
+/// its own language.
+String? mappingSlotLabel(LoadedFilament f, PrinterStatus? status) {
+  final layout = status?.trayLayout;
+  if (f.isExternal) {
+    if (layout?.rack ?? false) return rackExternalLabel(f.globalTrayId);
+    if ((status?.vtTray?.length ?? 0) <= 1) return null;
+    return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
+  }
+  return formatSlotLabel(
+    f.amsId,
+    f.trayId,
+    isHt: f.isHt,
+    amsType: layout?.amsTypeOf(f.amsId),
+  );
+}
+
 /// `normalizeColor`: `#RRGGBB`, keeping the alpha only below `ff`; grey for
 /// no colour at all.
 String normalizeColor(String? color) {
