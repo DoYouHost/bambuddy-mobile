@@ -92,9 +92,7 @@ class Spool {
   /// Native `SpoolResponse` from `GET /inventory/spools`.
   factory Spool.fromNative(Map<String, dynamic> json) => Spool(
     id: toIntOrNull(json['id']) ?? -1,
-    material: (json['material'] as String?)?.trim().isNotEmpty == true
-        ? json['material'] as String
-        : 'Unknown',
+    material: toStringOrNull(json['material']) ?? 'Unknown',
     subtype: toStringOrNull(json['subtype']),
     colorName: toStringOrNull(json['color_name']),
     rgba: toStringOrNull(json['rgba']),
