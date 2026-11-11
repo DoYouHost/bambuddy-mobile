@@ -6,6 +6,7 @@ import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
 import 'next_pause.dart';
 import 'value_equality.dart';
+import 'json_utils.dart';
 
 part 'printer_status.g.dart';
 
@@ -874,7 +875,7 @@ class AmsUnit with ValueEquality {
   /// [humidity]/[temp]. Empty and null on every other unit and on a server
   /// older than the field (`_dryer_fields`, `printer_manager.py`), so
   /// [hasDryer] is false there.
-  @JsonKey(fromJson: _toSlotList)
+  @JsonKey(fromJson: intListFromJson)
   final List<int> dryerSlots;
 
   @JsonKey(fromJson: toIntOrNull)
@@ -1416,10 +1417,6 @@ Map<int, String>? _toInletMapOrNull(dynamic value) =>
 
 List<AmsUnit>? _toAmsListOrNull(dynamic value) =>
     parseJsonListOrNull(value, AmsUnit.fromJson);
-
-/// Entries that are not a number are dropped rather than failing the unit.
-List<int> _toSlotList(dynamic value) =>
-    value is List ? [for (final item in value) ?toIntOrNull(item)] : const [];
 
 /// Filament slots — AMS trays and external spools share one shape.
 List<AmsTray>? _toTrayListOrNull(dynamic value) =>

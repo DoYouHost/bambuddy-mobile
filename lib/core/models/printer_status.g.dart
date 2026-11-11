@@ -65,7 +65,7 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
       : toBoolOrFalse(json['dry_countdown_stalled']),
   dryerSlots: json['dryer_slots'] == null
       ? const []
-      : _toSlotList(json['dryer_slots']),
+      : intListFromJson(json['dryer_slots']),
   dryerHumidity: toIntOrNull(json['dryer_humidity']),
   dryerTemp: toDoubleOrNull(json['dryer_temp']),
   amsType: toIntOrNull(json['ams_type']),
