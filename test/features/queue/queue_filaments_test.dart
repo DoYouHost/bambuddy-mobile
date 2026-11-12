@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/features/queue/queue_filaments.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 QueueItem _item({
+  String status = 'pending',
   List<int>? mapping,
   int? plateId,
   List<Map<String, dynamic>>? overrides,
@@ -13,7 +14,7 @@ QueueItem _item({
 }) => QueueItem.fromJson({
   'id': 1,
   'position': 1,
-  'status': 'pending',
+  'status': status,
   'printer_id': 1,
   'ams_mapping': ?mapping,
   'plate_id': ?plateId,
@@ -154,5 +155,62 @@ void main() {
     ).single;
     expect((fallback.type, fallback.color), ('PLA', '#ABCDEF'));
     expect(resolveQueueFilaments(_item(), const [], const [], null), isEmpty);
+  });
+
+  group('backupTrays (the web\'s cases)', () {
+    test('a mapped tray that ran out hands over to the next one logged', () {
+      expect(backupTrays([2], [(2, 0), (1, 350)]), {2: 1});
+    });
+
+    test('a backup that ran out in turn is followed', () {
+      expect(backupTrays([2], [(2, 0), (1, 120), (0, 400)]), {2: 0});
+    });
+
+    test(
+      'a change to another mapped tray is a colour change, not a backup',
+      () {
+        expect(backupTrays([2, 1], [(2, 0), (1, 30)]), isEmpty);
+      },
+    );
+
+    test('nothing logged or nothing mapped is no backup', () {
+      expect(backupTrays([2], null), isEmpty);
+      expect(backupTrays(null, [(2, 0), (1, 5)]), isEmpty);
+      expect(backupTrays([-1], [(2, 0), (1, 5)]), isEmpty);
+    });
+  });
+
+  group('the chip of a printing job', () {
+    // A2 is empty: its spool ran out and A1 took over.
+    final printing = PrinterStatus(
+      id: 1,
+      connected: true,
+      ams: status.ams,
+      trayChangeLog: const [(1, 0), (0, 350)],
+    );
+    final plates = [
+      _plate(1, [_slot(1)]),
+    ];
+
+    test('shows the backup the printer switched to', () {
+      final f = resolveQueueFilaments(
+        _item(status: 'printing', mapping: [1]),
+        plates,
+        buildLoadedFilaments(printing),
+        printing,
+      ).single;
+      expect((f.slotLabel, f.type, f.emptySlot), ('A1', 'PETG', false));
+    });
+
+    test('a queued job keeps pointing at its own mapped tray', () {
+      // The log belongs to whatever the printer prints now, not this job.
+      final f = resolveQueueFilaments(
+        _item(mapping: [1]),
+        plates,
+        buildLoadedFilaments(printing),
+        printing,
+      ).single;
+      expect((f.slotLabel, f.emptySlot), ('A2', true));
+    });
   });
 }

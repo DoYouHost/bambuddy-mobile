@@ -78,8 +78,15 @@ A mapped tray gets the warning chip (`A2 · Empty · White`) only when the print
 **positively** reports it empty (`AmsTray.emptyKind` is `empty`): the scheduler
 dispatches a stored mapping as-is, so a spool unloaded after queueing sends the job to
 an empty slot. Offline, a unit gone, an external input (it sends no presence signal)
-and a spool nobody named (#2527) say nothing. Not ported: the backup-spool hand-over
-while printing, which needs the status's `tray_change_log`.
+and a spool nobody named (#2527) say nothing.
+
+While the job prints, a slot whose spool ran out shows the backup Filament Backup
+moved it to (`backupTrays`): in the status's `tray_change_log` (`[[tray, layer], …]`,
+absent on 1.2.5, which then shows the mapped tray as before) a tray the mapping does
+not name, right after the one it took over from; a backup that runs out in turn hands
+over again. A pending job ignores the log, which belongs to whatever prints now. The
+server logs a swap at the layer it already holds, so a frame that carries the new tray
+and a new layer together is logged at the old layer.
 
 ## Batch orders (`/orders`)
 

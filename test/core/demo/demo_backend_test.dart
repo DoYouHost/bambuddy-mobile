@@ -1284,6 +1284,20 @@ void main() {
 
     final source = NativeInventorySource(dio);
 
+    test('the printing job follows its backup spool', () async {
+      final item = (await QueueRepository(
+        dio,
+      ).fetch()).firstWhere((i) => i.status == 'printing');
+      final status = (await PrintersRepository(dio).fetchStatus(1))!;
+      final chip = resolveQueueFilaments(
+        item,
+        const [],
+        buildLoadedFilaments(status),
+        status,
+      ).single;
+      expect((chip.slotLabel, chip.emptySlot), ('A2', false));
+    });
+
     test(
       'a queued job mapped to an empty tray shows the warning chip',
       () async {

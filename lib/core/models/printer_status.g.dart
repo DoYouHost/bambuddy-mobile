@@ -47,6 +47,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       nozzleRack: _toNozzleRackListOrNull(json['nozzle_rack']),
       filaSwitch: _toFilaSwitchOrNull(json['fila_switch']),
       amsFilamentBackup: json['ams_filament_backup'] as bool?,
+      trayChangeLog: _trayChangeLogOrNull(json['tray_change_log']),
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
       nextPause: nextPauseFromJson(json['next_pause']),
     );

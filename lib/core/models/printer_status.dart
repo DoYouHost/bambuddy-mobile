@@ -60,6 +60,7 @@ class PrinterStatus {
     this.nozzleRack,
     this.filaSwitch,
     this.amsFilamentBackup,
+    this.trayChangeLog,
     this.extruderSlots,
     this.nextPause,
   });
@@ -246,6 +247,14 @@ class PrinterStatus {
   /// near-empty spool (`effectivePreferLowest`).
   final bool? amsFilamentBackup;
 
+  /// The trays the running print has fed from, in order, each with the layer
+  /// it took over at (`tray_change_log`, `[[tray, layer], …]`). A spool that
+  /// runs out with AMS Filament Backup on hands over to a tray the job's mapping
+  /// does not name — what a queue row's chip follows (`backupTrays`). Null on
+  /// a server that does not send it.
+  @JsonKey(fromJson: _trayChangeLogOrNull)
+  final List<(int, int)>? trayChangeLog;
+
   /// The next pause the slicer put into the running print, null when none is
   /// ahead — and on a server that does not send it (docs/server-gates.md).
   /// **Not inherited by [mergedWith]**: the server writes the key into every
@@ -345,6 +354,7 @@ class PrinterStatus {
     filaSwitch,
     extruderSlots,
     amsFilamentBackup,
+    trayChangeLog,
     nextPause,
   ];
 
@@ -433,6 +443,7 @@ class PrinterStatus {
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
       amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
+      trayChangeLog: trayChangeLog ?? previous.trayChangeLog,
       nextPause: nextPause,
     )._clearedIfOffline();
   }
@@ -1507,3 +1518,15 @@ Map<int, ExtruderSlot>? _toExtruderSlotMapOrNull(dynamic value) =>
       value,
       (e) => parseJsonObjectOrNull(e, ExtruderSlot.fromJson),
     );
+
+/// `[[tray, layer], …]`; a malformed entry is dropped, not the whole log.
+List<(int, int)>? _trayChangeLogOrNull(Object? json) => json is List
+    ? [
+        for (final e in json)
+          if (e is List &&
+              e.length >= 2 &&
+              toIntOrNull(e[0]) != null &&
+              toIntOrNull(e[1]) != null)
+            (toIntOrNull(e[0])!, toIntOrNull(e[1])!),
+      ]
+    : null;

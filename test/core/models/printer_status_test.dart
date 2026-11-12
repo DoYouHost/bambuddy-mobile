@@ -458,6 +458,44 @@ void main() {
     });
   });
 
+  group('tray_change_log', () {
+    test('reads [[tray, layer], …] and drops a malformed entry', () {
+      final s = PrinterStatus.fromJson({
+        'id': 1,
+        'tray_change_log': [
+          [2, 0],
+          ['1', '350'],
+          [7],
+          'x',
+        ],
+      });
+      expect(s.trayChangeLog, [(2, 0), (1, 350)]);
+      expect(PrinterStatus.fromJson({'id': 1}).trayChangeLog, isNull);
+    });
+
+    test('a frame without it keeps the last one; offline drops it', () {
+      const prev = PrinterStatus(
+        id: 1,
+        connected: true,
+        trayChangeLog: [(2, 0), (1, 5)],
+      );
+      expect(
+        const PrinterStatus(
+          id: 1,
+          connected: true,
+        ).mergedWith(prev).trayChangeLog,
+        [(2, 0), (1, 5)],
+      );
+      expect(
+        const PrinterStatus(
+          id: 1,
+          connected: false,
+        ).mergedWith(prev).trayChangeLog,
+        isNull,
+      );
+    });
+  });
+
   group('PrinterStatus.mergedWith', () {
     test(
       'a WS frame (without airduct) inherits chamber mode from the last poll',

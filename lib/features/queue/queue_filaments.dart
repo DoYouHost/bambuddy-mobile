@@ -21,16 +21,18 @@ typedef QueueFilament = ({
 /// and where the stored mapping names a tray, that tray's live filament.
 ///
 /// The plate metadata decides which slots the job uses; before it arrives (or
-/// with none) the queue overrides, then the item's own filament colour.
-/// shortcut: no backup-spool hand-over while printing (the web reads
-/// `tray_change_log`, which the app's status does not carry); add it with that
-/// field.
+/// with none) the queue overrides, then the item's own filament colour. While
+/// the job prints, a slot whose spool ran out shows the backup the printer
+/// switched to ([backupTrays]).
 List<QueueFilament> resolveQueueFilaments(
   QueueItem item,
   List<PlateInfo> plates,
   List<LoadedFilament> loaded,
   PrinterStatus? status,
 ) {
+  final backups = item.status == 'printing'
+      ? backupTrays(item.amsMapping, status?.trayChangeLog)
+      : const <int, int>{};
   QueueFilament resolveSlot(QueueFilament planned) {
     final slotId = planned.slotId;
     final mapping = item.amsMapping;
@@ -38,7 +40,8 @@ List<QueueFilament> resolveQueueFilaments(
         ? mapping[slotId - 1]
         : null;
     if (stored == null || stored < 0) return planned;
-    final live = loaded.where((f) => f.globalTrayId == stored).firstOrNull;
+    final tray = backups[stored] ?? stored;
+    final live = loaded.where((f) => f.globalTrayId == tray).firstOrNull;
     if (live != null) {
       return (
         slotId: slotId,
@@ -49,7 +52,7 @@ List<QueueFilament> resolveQueueFilaments(
         emptySlot: false,
       );
     }
-    final empty = emptyMappedSlotLabel(status, stored);
+    final empty = emptyMappedSlotLabel(status, tray);
     if (empty == null) return planned;
     return (
       slotId: slotId,
@@ -112,6 +115,41 @@ List<QueueFilament> resolveQueueFilaments(
     return [resolveSlot(planned(1, item.filamentType ?? '', colour, null))];
   }
   return const [];
+}
+
+/// `backupTrays`: the backup tray each mapped tray handed over to during the
+/// running print. With AMS Filament Backup on, a spool that runs out is
+/// replaced by an identical one in another slot while the stored mapping still
+/// names the empty one. The log shows the switch: a tray the mapping does not
+/// name, right after the tray it took over from. A backup that runs out in turn
+/// hands over again, so the chain resolves to the slot the mapping named.
+Map<int, int> backupTrays(List<int>? mapping, List<(int, int)>? log) {
+  final backups = <int, int>{};
+  if (mapping == null || mapping.isEmpty || log == null || log.isEmpty) {
+    return backups;
+  }
+  final mapped = {
+    for (final t in mapping)
+      if (t >= 0) t,
+  };
+  // Backup tray -> the mapped tray it stands in for.
+  final standsInFor = <int, int>{};
+  int? previous;
+  for (final (tray, _) in log) {
+    if (previous != null &&
+        !mapped.contains(tray) &&
+        !standsInFor.containsKey(tray)) {
+      final original = mapped.contains(previous)
+          ? previous
+          : standsInFor[previous];
+      if (original != null) {
+        standsInFor[tray] = original;
+        backups[original] = tray;
+      }
+    }
+    previous = tray;
+  }
+  return backups;
 }
 
 /// `emptyMappedSlotLabel`: the label of mapped tray [global] when the printer

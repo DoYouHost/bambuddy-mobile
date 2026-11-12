@@ -1704,6 +1704,14 @@ class DemoBackend {
       'ams': [_amsUnit1()],
       'vt_tray': const <Object>[],
       'tray_now': printing ? 1 : 255,
+      // The job started on AMS-A slot 4, which ran out; Filament Backup moved
+      // it to slot 2, which the queue row's chip follows.
+      'tray_change_log': printing
+          ? const [
+              [3, 0],
+              [1, 40],
+            ]
+          : const <Object>[],
       'active_extruder': 0,
       'ams_status_main': 0,
       'ams_status_sub': 0,
@@ -3185,6 +3193,7 @@ class DemoBackend {
             color: '#7B2FF7',
             createdDaysAgo: 0,
             libraryFileId: 4,
+            amsMapping: const [3],
           ),
           'started_at': isoUtc(
             DateTime.now().subtract(Duration(seconds: _elapsedSec)),
