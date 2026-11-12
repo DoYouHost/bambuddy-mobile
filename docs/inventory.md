@@ -256,7 +256,7 @@ The stock picker lists the built-in labels, the sheets saved on the server and a
   composition); every other refusal goes through `showApiFailure`, and anything that is not
   an `AppApiException` is rethrown with the busy flag lowered. The list behind the form is
   refetched after every write, refusals included: a 404 is a template someone deleted.
-- **"Save as new"** sits beside "Save changes" in the editor: the same `POST` as a first
+- **"Save as new"** sits below "Save changes" in the editor: the same `POST` as a first
   save, from the name and layout on screen, so a template becomes a copy without retyping
   it. Under the same name it is a 409, said on the name field.
 - **The PNG cap is said before "Print"** (`pngSheetOverCap`, `spool_label.dart`): the server

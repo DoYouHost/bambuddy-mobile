@@ -1,6 +1,6 @@
 part of 'inventory_screen.dart';
 
-/// Step 3 of label printing: what goes on the label and where the file goes.
+/// Step 4 of label printing: what goes on the label and where the file goes.
 ///
 /// Every control writes straight to [labelPrintPrefsProvider], so the sheet
 /// opens next time as it was left; "Print" closes it with the destination it

@@ -253,7 +253,7 @@ void main() {
       },
     );
 
-    test('what the three buttons send is accepted and stored', () async {
+    test('what the template editor's buttons send is accepted and stored', () async {
       if (!hasTemplates) {
         markTestSkipped('server predates #3296');
         return;
