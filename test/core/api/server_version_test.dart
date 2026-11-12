@@ -194,6 +194,12 @@ void main() {
     );
   });
 
+  test('an AMS-HT loads from 1.3.0, as measured on the images', () {
+    expect(parse('1.2.5.7').supports(ServerFeature.amsHtLoad), isFalse);
+    expect(parse('1.3.0').supports(ServerFeature.amsHtLoad), isTrue);
+    expect(parse('1.3.1').supports(ServerFeature.amsHtLoad), isTrue);
+  });
+
   test('an assignment takes `move` from 1.3.1, not before', () {
     expect(parse('1.3.0').supports(ServerFeature.assignmentMove), isFalse);
     expect(parse('1.3.0b1').supports(ServerFeature.assignmentMove), isFalse);

@@ -242,11 +242,7 @@ class _PrintPanel extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

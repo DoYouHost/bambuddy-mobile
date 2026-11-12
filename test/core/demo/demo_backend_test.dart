@@ -1,3 +1,5 @@
+import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
+import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'dart:io';
 
 import 'package:app_util/app_util.dart';
@@ -62,6 +64,9 @@ import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/features/queue/queue_filaments.dart';
+import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Contract test: every repository the app uses must parse DemoBackend's
@@ -75,12 +80,34 @@ void main() {
     );
 
   group('printers', () {
+    test('the H3C shows the rack printer features', () async {
+      final h3c = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 7).status!;
+      final unit = h3c.ams!.single;
+      expect(unit.isAms3h, isTrue);
+      expect(unit.hasDryer, isTrue);
+      expect(unit.trays, hasLength(rackSlotCount));
+      expect(h3c.trayLayout.rack, isTrue);
+      expect(h3c.activeTray?.trayColor, 'F7D959FF');
+      expect(h3c.vtTray, hasLength(9));
+      final rack = rackCardPositions(h3c.nozzleRack, rackPrinter: true)!;
+      expect(
+        [
+          for (final p in rack)
+            if (p.mounted) p.position,
+        ],
+        [7],
+      );
+    });
+
     test('list + statuses parse; simulated print is running', () async {
       final all = await PrintersRepository(dio).fetchAll();
       // Five, not four: the second X1C exists so a pipeline can target the X1C
       // *class* and have more than one candidate — see `_statusSecondX1c`.
       // And a sixth, the H2D, for the one thing none of them has: two nozzles.
-      expect(all, hasLength(6));
+      // The seventh, the H3C, is the only rack printer (AMS 3H, nine inputs).
+      expect(all, hasLength(7));
       final dual = all.firstWhere((p) => p.printer.id == 6);
       expect(dual.printer.nozzleCount, 2);
       expect(dual.status!.temperatures, contains('nozzle_2'));
@@ -996,6 +1023,19 @@ void main() {
       },
     );
 
+    test(
+      "the H3C's loaded inputs come back as trays 0-8 of unit 255",
+      () async {
+        final printers = (await SlicerRepository(dio).loadedSpools())!;
+        final h3c = printers.singleWhere((p) => p.model == 'H3C');
+        expect(h3c.external, isNotEmpty);
+        for (final tray in h3c.external) {
+          expect(tray.amsId, 255);
+          expect(tray.trayId, inInclusiveRange(0, 8));
+        }
+      },
+    );
+
     test('the stored preset refs resolve against /slicer/presets', () async {
       // The same catalogue the slice form's pickers read, or every row of the card would
       // read "No longer in the catalog".
@@ -1216,7 +1256,7 @@ void main() {
       final overview = await repo.fetchOverview();
       expect(
         overview,
-        hasLength(6),
+        hasLength(7),
         reason: 'one row per printer in the fleet',
       );
       final x1c = overview.firstWhere((o) => o.printerId == 1);
@@ -1243,6 +1283,48 @@ void main() {
     });
 
     final source = NativeInventorySource(dio);
+
+    test('the printing job follows its backup spool', () async {
+      final item = (await QueueRepository(
+        dio,
+      ).fetch()).firstWhere((i) => i.status == 'printing');
+      final status = (await PrintersRepository(dio).fetchStatus(1))!;
+      final chip = resolveQueueFilaments(
+        item,
+        const [],
+        buildLoadedFilaments(status),
+        status,
+      ).single;
+      expect((chip.slotLabel, chip.emptySlot), ('A2', false));
+    });
+
+    test(
+      'a queued job mapped to an empty tray shows the warning chip',
+      () async {
+        final item = (await QueueRepository(
+          dio,
+        ).fetch()).firstWhere((i) => i.id == 101);
+        final status = (await PrintersRepository(dio).fetchStatus(1))!;
+        final chips = resolveQueueFilaments(
+          item,
+          const [],
+          buildLoadedFilaments(status),
+          status,
+        );
+        expect(chips.single.emptySlot, isTrue);
+        expect(chips.single.slotLabel, 'A4');
+      },
+    );
+
+    test('the second X1C shows unconfigured slots, one with a spool', () async {
+      final status = (await PrintersRepository(dio).fetchStatus(5))!;
+      final trays = status.ams!.single.trays!;
+      expect(trays[2].emptyKind, EmptySlotKind.unconfigured);
+      expect(trays[3].emptyKind, EmptySlotKind.unconfigured);
+      final assignments = await source.fetchAssignments(printerId: 5);
+      expect(assignments.any((a) => a.amsId == 0 && a.trayId == 2), isTrue);
+      expect(assignments.any((a) => a.amsId == 0 && a.trayId == 3), isFalse);
+    });
 
     test('spools, assignments, reference data', () async {
       final spools = await source.fetchSpools();
@@ -1703,8 +1785,11 @@ void main() {
       // REST poll, and the service isolate — which polls no statuses of its
       // own — never: the notification said "2 printing" while the dashboard
       // said three.
-      expect(DemoBackend.instance.printerIds, hasLength(6));
-      expect(DemoBackend.instance.printerIds, containsAll([1, 2, 3, 4, 5, 6]));
+      expect(DemoBackend.instance.printerIds, hasLength(7));
+      expect(
+        DemoBackend.instance.printerIds,
+        containsAll([1, 2, 3, 4, 5, 6, 7]),
+      );
     });
 
     test('a poke broadcasts now, instead of at the next tick', () async {
@@ -2542,7 +2627,7 @@ void main() {
 
       expect(byName['Workshop']!.printerCount, 5);
       expect(byName['Workshop']!.icon, 'wrench');
-      expect(byName['Office']!.printerCount, 1);
+      expect(byName['Office']!.printerCount, 2);
       expect(byName['Storage']!.printerCount, 0);
       expect(rows.map((l) => l.name), orderedEquals([...byName.keys]..sort()));
     });
@@ -2564,12 +2649,12 @@ void main() {
             icon: 'home',
           ),
         );
-        expect(renamed.printerCount, 1);
+        expect(renamed.printerCount, 2);
         expect(
           (await PrintersRepository(
             dio,
           ).fetchAll()).where((p) => p.printer.location == 'Front office'),
-          hasLength(1),
+          hasLength(2),
         );
 
         await repo.update(

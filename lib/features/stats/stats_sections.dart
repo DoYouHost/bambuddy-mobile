@@ -1118,11 +1118,7 @@ class _ColorChip extends StatelessWidget {
         horizontal: DashSpace.sm,
         vertical: DashSpace.xs,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.xl),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.xl),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

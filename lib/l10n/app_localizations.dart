@@ -884,6 +884,12 @@ abstract class AppLocalizations {
   /// **'Active'**
   String get ctrlNozzleActive;
 
+  /// Screen-reader label of the AMS 3H built-in dryer: its readings chip and the mark on the slots it holds (a noun, the device)
+  ///
+  /// In en, this message translates to:
+  /// **'Dryer'**
+  String get amsDryer;
+
   /// No description provided for @ctrlDry.
   ///
   /// In en, this message translates to:
@@ -2654,6 +2660,42 @@ abstract class AppLocalizations {
   /// **'This demo printer is offline, so there is no camera picture.'**
   String get cameraDemoUnavailable;
 
+  /// No description provided for @nozzleRack.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle rack'**
+  String get nozzleRack;
+
+  /// Screen-reader suffix of the rack position whose nozzle is on the toolhead
+  ///
+  /// In en, this message translates to:
+  /// **'on the toolhead'**
+  String get nozzleRackMounted;
+
+  /// Screen-reader label of one nozzle rack position
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}: {diameter} mm'**
+  String nozzleRackPosition(int position, String diameter);
+
+  /// No description provided for @nozzleRackPositionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}: empty'**
+  String nozzleRackPositionEmpty(int position);
+
+  /// No description provided for @externalInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'External inputs'**
+  String get externalInputs;
+
+  /// A rack printer (H3C) with none of its per-hotend external inputs loaded
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} external inputs are empty'**
+  String externalInputsEmpty(int count);
+
   /// No description provided for @externalSpool.
   ///
   /// In en, this message translates to:
@@ -2665,6 +2707,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Empty'**
   String get traySlotEmpty;
+
+  /// No description provided for @traySlotUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set up'**
+  String get traySlotUnconfigured;
 
   /// No description provided for @amsSlotFilament.
   ///
@@ -2737,6 +2785,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No nozzle is fed from this slot'**
   String get amsUnloadSlotNotLoaded;
+
+  /// No description provided for @amsUnloadAms3h.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading slot {slot}. When the printer asks, pull the filament back out of the AMS 3H by hand.'**
+  String amsUnloadAms3h(int slot);
+
+  /// No description provided for @amsLoadAms3hEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.'**
+  String amsLoadAms3hEmpty(int slot);
+
+  /// No description provided for @dryAms3hSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS 3H dries slots {a} and {b} only'**
+  String dryAms3hSlots(int a, int b);
 
   /// No description provided for @amsActionsWhilePrinting.
   ///
@@ -5425,6 +5491,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot'**
   String get inventoryAssignSlot;
+
+  /// No description provided for @inventoryAssignInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get inventoryAssignInput;
 
   /// No description provided for @inventoryAssignExtruder.
   ///

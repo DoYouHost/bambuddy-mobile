@@ -531,6 +531,14 @@ class AssignedSpools {
   Spool? builtInAt(int amsId, int trayId) =>
       _builtInSlots[slotKey(amsId, trayId)];
 
+  /// Whether a spool is assigned to the slot: the web's
+  /// `rackExternalAssigned`, an inventory assignment or, in Spoolman mode, a
+  /// slot assignment.
+  bool assignedAt(int amsId, int trayId) =>
+      (_tagShelf != null ? _spoolmanSlots : _builtInSlots).containsKey(
+        slotKey(amsId, trayId),
+      );
+
   /// The fill a slot shows, the grams left on the spool it was read from and
   /// that spool — both null when the AMS's own reading won. A linked spool
   /// off the shelf still has its grams, from the linked map. The web's chain branch for branch
@@ -1031,16 +1039,18 @@ LocationClimate? climateOfSpool(
 final locationOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final catalog = ref.watch(locationCatalogProvider).value ?? const [];
   final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
-  final set = <String>{
-    for (final l in catalog)
-      if (l.name.trim().isNotEmpty) l.name.trim(),
-    for (final s in spools)
-      if (s.storageLocation != null && s.storageLocation!.trim().isNotEmpty)
-        s.storageLocation!.trim(),
-  };
-  final list = set.toList()..sort();
-  return list;
+  return sortedDistinct([
+    for (final l in catalog) l.name,
+    for (final s in spools) s.storageLocation,
+  ]);
 });
+
+/// A form's suggestions: trimmed, blanks dropped, each once, in plain `sort`
+/// order (capitals before lower case).
+List<String> sortedDistinct(Iterable<String?> values) => {
+  for (final v in values)
+    if (v?.trim() case final t? when t.isNotEmpty) t,
+}.toList()..sort();
 
 /// Material dropdown options: fixed popular ones + materials from catalog profiles
 /// and existing spools (preserved user values). Sorted, unique.
@@ -1091,14 +1101,10 @@ final materialOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final presets = ref.watch(filamentPresetsProvider).value ?? const [];
   final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
-  final set = <String>{
-    for (final p in presets)
-      if (p.brand != null && p.brand!.trim().isNotEmpty) p.brand!.trim(),
-    for (final s in spools)
-      if (s.brand != null && s.brand!.trim().isNotEmpty) s.brand!.trim(),
-  };
-  final list = set.toList()..sort();
-  return list;
+  return sortedDistinct([
+    for (final p in presets) p.brand,
+    for (final s in spools) s.brand,
+  ]);
 });
 
 /// Material numbers already in use, for the form's suggestions.
@@ -1113,11 +1119,8 @@ final materialNumberOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 
 final subtypeOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
-  final set = <String>{
+  return sortedDistinct([
     ..._commonSubtypes,
-    for (final s in spools)
-      if (s.subtype != null && s.subtype!.trim().isNotEmpty) s.subtype!.trim(),
-  };
-  final list = set.toList()..sort();
-  return list;
+    for (final s in spools) s.subtype,
+  ]);
 });

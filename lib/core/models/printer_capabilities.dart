@@ -14,6 +14,7 @@ const _chamberHeaterModels = <String>{
   'H2D',
   'H2DPRO',
   'H2S',
+  'H3C',
   'X2D',
   'O1C',
   'O1C2',
@@ -22,9 +23,10 @@ const _chamberHeaterModels = <String>{
   'O2D',
   'O1S',
   'N6',
+  'N10',
 };
 
-/// Models with a cooling/heating airduct flap toggle (P2S/X2D/H2*). Distinct
+/// Models with a cooling/heating airduct flap toggle (P2S/X2D/H2*/H3C). Distinct
 /// from the heater set: P2S has the flap but no heater; X1E has a heater but
 /// no flap.
 const _airductModels = <String>{
@@ -34,6 +36,7 @@ const _airductModels = <String>{
   'H2D',
   'H2DPRO',
   'H2S',
+  'H3C',
   'N7',
   'N6',
   'O1C',
@@ -42,6 +45,7 @@ const _airductModels = <String>{
   'O1E',
   'O2D',
   'O1S',
+  'N10',
 };
 
 /// Whether the model can actively heat its chamber (M141 has an effect).

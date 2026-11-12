@@ -441,6 +441,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlNozzleActive => 'Activa';
 
   @override
+  String get amsDryer => 'Secador';
+
+  @override
   String get ctrlDry => 'Secar';
 
   @override
@@ -1617,10 +1620,37 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta impresora de demostración está desconectada, así que no hay imagen de cámara.';
 
   @override
+  String get nozzleRack => 'Soporte de boquillas';
+
+  @override
+  String get nozzleRackMounted => 'en el cabezal';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Posición $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Posición $position: vacía';
+  }
+
+  @override
+  String get externalInputs => 'Entradas externas';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Las $count entradas externas están vacías';
+  }
+
+  @override
   String get externalSpool => 'Bobina externa';
 
   @override
   String get traySlotEmpty => 'Vacía';
+
+  @override
+  String get traySlotUnconfigured => 'Sin configurar';
 
   @override
   String get amsSlotFilament => 'Filamento';
@@ -1662,6 +1692,21 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get amsUnloadSlotNotLoaded =>
       'Ninguna boquilla se alimenta desde esta ranura';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Descargando la ranura $slot. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'La ranura $slot no tiene filamento. Empújalo en la entrada hasta que el AMS 3H lo recoja y vuelve a cargar.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'El AMS 3H seca solo las ranuras $a y $b';
+  }
 
   @override
   String get amsActionsWhilePrinting =>
@@ -3274,6 +3319,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Ranura';
+
+  @override
+  String get inventoryAssignInput => 'Entrada';
 
   @override
   String get inventoryAssignExtruder => 'Extrusor';

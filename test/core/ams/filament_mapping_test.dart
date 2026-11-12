@@ -116,4 +116,58 @@ void main() {
     expect(effectivePreferLowest(true, null), isTrue);
     expect(effectivePreferLowest(false, true), isFalse);
   });
+
+  group('mappingSlotLabel', () {
+    LoadedFilament slot(int amsId, int trayId, {bool ht = false}) =>
+        LoadedFilament(
+          type: 'PLA',
+          color: '#FFFFFF',
+          amsId: amsId,
+          trayId: trayId,
+          isHt: ht,
+          isExternal: false,
+          globalTrayId: 0,
+        );
+    LoadedFilament input(int global) => LoadedFilament(
+      type: 'PLA',
+      color: '#FFFFFF',
+      amsId: -1,
+      trayId: 0,
+      isHt: false,
+      isExternal: true,
+      globalTrayId: global,
+    );
+    PrinterStatus printer(List<int> inputs, {List<Object> ams = const []}) =>
+        PrinterStatus.fromJson({
+          'id': 1,
+          'ams': ams,
+          'vt_tray': [
+            for (final id in inputs) {'id': id},
+          ],
+        });
+
+    test('an AMS slot is lettered, the AMS 3H numbered', () {
+      expect(mappingSlotLabel(slot(1, 2), null), 'B3');
+      expect(mappingSlotLabel(slot(128, 0, ht: true), null), 'HT-A');
+      expect(mappingSlotLabel(slot(32, 6), null), '3H-7');
+    });
+
+    test('one holder is left to the caller to name', () {
+      expect(mappingSlotLabel(input(254), printer([254])), isNull);
+      expect(mappingSlotLabel(input(254), null), isNull);
+    });
+
+    test('two holders are Ext-L and Ext-R', () {
+      final dual = printer([254, 255]);
+      expect(mappingSlotLabel(input(254), dual), 'Ext-L');
+      expect(mappingSlotLabel(input(255), dual), 'Ext-R');
+    });
+
+    test("a rack printer's inputs are named by hotend", () {
+      final h3c = printer([for (var id = 247; id <= 255; id++) id]);
+      expect(mappingSlotLabel(input(255), h3c), 'Ext-1');
+      expect(mappingSlotLabel(input(254), h3c), 'Ext-2');
+      expect(mappingSlotLabel(input(250), h3c), 'Ext-6');
+    });
+  });
 }

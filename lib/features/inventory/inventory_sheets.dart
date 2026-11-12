@@ -31,6 +31,9 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
   int _amsUnit = 0;
   int _amsSlot = 0;
   int _externalTray = 0; // Holder side — see `slot_addressing`.
+
+  /// Whether the user picked a rack printer's input; until then it is Ext-1.
+  bool _inputPicked = false;
   bool _saving = false;
 
   @override
@@ -53,11 +56,22 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         .firstOrNull
         ?.printer;
     final dual = status?.isDualNozzle(printer?.nozzleCount) ?? false;
-    // AMS units detected live (their ids) — if none, provide 0..3.
+    // A rack printer (H3C) has nine external inputs, one per hotend, stored as
+    // tray 0-8 of unit 255, and an AMS 3H; known by its model before any
+    // status arrives (`TrayLayout.from_state`).
+    final rack =
+        (status?.trayLayout.rack ?? false) ||
+        isRackPrinterModel(printer?.model);
+    // AMS units detected live (their ids) — if none, provide 0..3, or the AMS
+    // 3H on a rack printer.
     final unitIds =
         (status?.ams ?? const []).map((u) => u.id ?? 0).toSet().toList()
           ..sort();
-    final unitOptions = unitIds.isNotEmpty ? unitIds : const [0, 1, 2, 3];
+    final unitOptions = unitIds.isNotEmpty
+        ? unitIds
+        : rack
+        ? const [ams3hUnit]
+        : const [0, 1, 2, 3];
     // Keep the persisted selection in sync with the current printer's actual
     // units — without this, switching to a printer with fewer AMS units only
     // fixes the *displayed* value (see `_NumberDropdown` below) while
@@ -66,6 +80,16 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     if (!unitOptions.contains(_amsUnit)) {
       _amsUnit = unitOptions.first;
     }
+    // Nine on an AMS 3H, four everywhere else; the same stale-value trap.
+    final unit = status?.ams?.where((u) => u.id == _amsUnit).firstOrNull;
+    final slotCount = isRackAms(unitAmsType(_amsUnit, unit?.amsType))
+        ? rackSlotCount
+        : 4;
+    if (_amsSlot >= slotCount) _amsSlot = 0;
+    // A tray past the holder's two sides names nothing off a rack printer,
+    // and with one holder only its tray 0 exists.
+    if (rack && !_inputPicked) _externalTray = externalSlotIndex(255);
+    if (!rack && (!dual || _externalTray > 1)) _externalTray = 0;
 
     return DraggableSheetSurface(
       initialSize: 0.55,
@@ -100,7 +124,12 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               context,
               id: 'spool_assign.printer',
               initialSelection: _printerId,
-              onSelected: (v) => setState(() => _printerId = v),
+              // Another printer's inputs: a pick made on the last one does
+              // not carry over, so it starts on Ext-1 again.
+              onSelected: (v) => setState(() {
+                _printerId = v;
+                _inputPicked = false;
+              }),
               entries: [
                 for (final p in roster)
                   DropdownMenuEntry(
@@ -128,7 +157,26 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
             const SizedBox(height: DashSpace.lg),
 
             if (_external) ...[
-              if (dual) ...[
+              if (rack)
+                _NumberDropdown(
+                  key: ValueKey(_printerId),
+                  id: 'spool_assign.input',
+                  label: l10n.inventoryAssignInput,
+                  value: _externalTray,
+                  items: {
+                    for (var n = 1; n <= rackSlotCount; n++)
+                      externalSlotIndex(256 - n): _inputLabel(
+                        l10n,
+                        status,
+                        256 - n,
+                      ),
+                  },
+                  onChanged: (v) => setState(() {
+                    _externalTray = v;
+                    _inputPicked = true;
+                  }),
+                )
+              else if (dual) ...[
                 Text(
                   l10n.inventoryAssignExtruder,
                   style: theme.textTheme.labelLarge,
@@ -170,10 +218,13 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: _NumberDropdown(
+                      key: ValueKey((_printerId, _amsUnit)),
                       id: 'spool_assign.slot',
                       label: l10n.inventoryAssignSlot,
                       value: _amsSlot,
-                      items: {for (var s = 0; s < 4; s++) s: '${s + 1}'},
+                      items: {
+                        for (var s = 0; s < slotCount; s++) s: '${s + 1}',
+                      },
                       onChanged: (v) => setState(() => _amsSlot = v),
                     ),
                   ),
@@ -192,6 +243,17 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         ],
       ),
     );
+  }
+
+  /// "Ext-4 · PETG", or "Ext-4 · Empty": what the input holds now, so the
+  /// choice is made by the spool in it rather than by counting hotends.
+  String _inputLabel(AppLocalizations l10n, PrinterStatus? status, int global) {
+    final type = status?.externalSpools
+        .where((t) => t.id == global)
+        .firstOrNull
+        ?.trayType;
+    final held = type == null || type.isEmpty ? l10n.traySlotEmpty : type;
+    return '${rackExternalLabel(global)} · $held';
   }
 
   Future<void> _assign() async {

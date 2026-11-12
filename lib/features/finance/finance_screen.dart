@@ -474,11 +474,7 @@ class _CostCenterTile extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.xl),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -616,11 +612,7 @@ class _TransactionTile extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.xl),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

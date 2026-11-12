@@ -1370,11 +1370,7 @@ class _FolderTile extends StatelessWidget {
                 horizontal: DashSpace.lg,
                 vertical: DashSpace.md,
               ),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.xl),
               child: Row(
                 children: [
                   DashIconTile(

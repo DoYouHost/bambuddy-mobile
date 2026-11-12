@@ -47,7 +47,15 @@ const _plates = [
     objects: ['Dispenser body'],
     printTimeSeconds: 1800,
     filamentUsedGrams: 32.1,
-    filaments: [(type: 'PLA', color: '#000000')],
+    filaments: [
+      (
+        type: 'PLA',
+        color: '#000000',
+        slotId: 1,
+        usedGrams: 12,
+        usedInPlate: true,
+      ),
+    ],
   ),
   PlateInfo(index: 2, objects: ['Lid', 'Lid'], printTimeSeconds: 1800),
   PlateInfo(index: 3, name: 'Wall bracket'),

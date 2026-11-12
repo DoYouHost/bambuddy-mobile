@@ -302,11 +302,7 @@ class _RunTile extends ConsumerWidget {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(DashSpace.md),
-          decoration: BoxDecoration(
-            color: t.subCard,
-            borderRadius: BorderRadius.circular(DashRadius.xl),
-            border: Border.all(color: t.subCardBorder),
-          ),
+          decoration: t.subCardBox(DashRadius.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

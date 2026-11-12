@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,7 +24,9 @@ const _phone = Size(844, 390);
 AmsTray _tray(int id, String type, String color, {int? remain = 80}) =>
     AmsTray(id: id, trayType: type, trayColor: color, remain: remain);
 
-const _empty = AmsTray(id: 3);
+// An empty slot as the server sends one: the status route always carries the
+// tray's state, and 9 is empty (a slot without it would read unconfigured).
+const _empty = AmsTray(id: 3, state: 9);
 
 const _serial = '01P00A123456789';
 
@@ -109,6 +112,7 @@ void main() {
     String? serial,
     InventoryState? inventory,
     bool reflows = false,
+    bool amsHtLoad = false,
   }) async {
     useLogicalWindow(tester, size);
     commands = RecordingCommands();
@@ -149,6 +153,7 @@ void main() {
           ),
         ),
         printerStatusesProvider.overrideWith(() => statuses),
+        amsHtLoadProvider.overrideWithValue(AsyncData(amsHtLoad)),
         if (inventory != null) ...[
           inventoryProvider.overrideWith(() => FixedInventory(inventory)),
           inventoryBackendOverride(InventoryBackend.spoolman),
@@ -549,6 +554,17 @@ void main() {
       expect(commands.calls, ['amsLoad:1:0:-']);
     });
 
+    testWidgets('load an AMS-HT by its unit id where the server takes it', (
+      tester,
+    ) async {
+      await pump(tester, _status(ams: [_unit(128)]), amsHtLoad: true);
+
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:128:-']);
+    });
+
     testWidgets('are not offered on a slot with no global number (AMS-HT)', (
       tester,
     ) async {
@@ -556,6 +572,49 @@ void main() {
 
       expect(byLogId('controller.load'), findsNothing);
       expect(byLogId('controller.unload'), findsNothing);
+    });
+
+    testWidgets('an AMS 3H slot loads by 28 + slot', (tester) async {
+      await pump(tester, _status(ams: [_unit(32)]));
+
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:28:-']);
+    });
+
+    testWidgets("a rack printer's input is not loaded, not even 254", (
+      tester,
+    ) async {
+      // The AMS 3H makes it a rack printer, where 254 is input Ext-2, not a
+      // holder side; the web offers no load there.
+      await pump(
+        tester,
+        _status(ams: [_unit(32)], external: [_tray(254, 'TPU', '2E6FD8FF')]),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(find.text('TPU'), findsOneWidget);
+      expect(byLogId('controller.load'), findsNothing);
+      expect(byLogId('controller.unload'), findsNothing);
+    });
+
+    testWidgets("the pencil names a rack printer's input Ext-n, with no load", (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(ams: [_unit(32)], external: [_tray(254, 'TPU', '2E6FD8FF')]),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+      await tester.tap(byLogId('controller.slot_edit'));
+      await settle(tester);
+
+      expect(find.textContaining('Ext-2'), findsWidgets);
+      expect(byLogId('assign_spool.ams_load'), findsNothing);
+      expect(byLogId('assign_spool.ams_unload'), findsNothing);
     });
 
     testWidgets('load the external spool by its holder number', (tester) async {
@@ -567,6 +626,175 @@ void main() {
       await settle(tester);
 
       expect(commands.calls, ['amsLoad:1:254:-']);
+    });
+  });
+
+  group('a slot holding a spool the printer cannot name', () {
+    testWidgets('reads unconfigured, or the spool assigned to it', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          ams: [
+            AmsUnit(
+              id: 0,
+              trays: [
+                _tray(0, 'PLA', '1D1D1FFF'),
+                const AmsTray(id: 1, exists: true),
+                const AmsTray(id: 2, exists: true),
+                const AmsTray(id: 3, exists: false),
+              ],
+            ),
+          ],
+        ),
+        inventory: InventoryState(
+          spools: [Spool(id: 7, material: 'PETG', rgba: '0178BFFF')],
+          assignments: const [
+            SpoolAssignment(spoolId: 7, printerId: 1, amsId: 0, trayId: 2),
+          ],
+        ),
+      );
+      expect(find.text(pl.traySlotUnconfigured), findsOneWidget);
+      expect(find.text('PETG'), findsOneWidget);
+      expect(find.text(pl.traySlotEmpty), findsOneWidget);
+    });
+  });
+
+  group('an H3C', () {
+    final ams3h = AmsUnit(
+      id: 32,
+      amsType: 6,
+      humidity: 33,
+      dryerSlots: const [5, 7],
+      trays: [
+        for (var slot = 0; slot < 9; slot++)
+          _tray(slot, slot == 4 ? 'PETG' : 'PLA', 'DE4343FF'),
+      ],
+    );
+    Finder card(String number) =>
+        find.ancestor(of: find.text(number), matching: slots());
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('lays the AMS 3H out as the unit, two rows, at text scale '
+          '$scale', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pump(
+          tester,
+          _status(ams: [ams3h]),
+          size: scale > 1 ? const Size(891, 450) : _phone,
+          reflows: scale > 1,
+        );
+        expect(tester.takeException(), isNull);
+
+        expect(slots(), findsNWidgets(9));
+        final one = tester.getRect(card('1').first);
+        final two = tester.getRect(card('2').first);
+        final three = tester.getRect(card('3').first);
+        // 2 behind 1 and 3, half a slot in.
+        expect(two.bottom, lessThanOrEqualTo(one.top));
+        expect(two.left, greaterThan(one.left));
+        expect(two.left, lessThan(three.left));
+        expect(one.top, three.top);
+        // Wide enough to name the material.
+        expect(one.width, greaterThan(60));
+      });
+    }
+
+    testWidgets('tints the dryer slots', (tester) async {
+      await pump(tester, _status(ams: [ams3h]));
+      final t = DashTokens.of(tester.element(slots().first));
+      // The card's own Material is the nearest one around its slot tag.
+      Color? fill(String n) => tester
+          .widget<Material>(
+            find
+                .ancestor(of: card(n).first, matching: find.byType(Material))
+                .first,
+          )
+          .color;
+      expect(fill('6'), t.accentOrange.withValues(alpha: DashAlpha.faint));
+      expect(fill('8'), fill('6'));
+      expect(fill('5'), t.subCard);
+    });
+
+    testWidgets('lists only loaded inputs, as Ext-n, Ext-1 first', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          ams: [ams3h],
+          external: [
+            _tray(250, 'TPU', '2E6FD8FF'),
+            const AmsTray(id: 251),
+            _tray(255, 'PETG', 'FFFFFFFF'),
+          ],
+        ),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(find.text(pl.externalInputs), findsWidgets);
+      expect(slots(), findsNWidgets(2));
+      expect(
+        tester.getRect(find.text('Ext-1')).left,
+        lessThan(tester.getRect(find.text('Ext-6')).left),
+      );
+    });
+
+    testWidgets('keeps an empty input that has a spool assigned', (
+      tester,
+    ) async {
+      // Input 251 (Ext-5, tray 6) is empty, but a spool is assigned to it: the
+      // tile stays so the assignment can be seen and undone.
+      await pump(
+        tester,
+        _status(
+          ams: [ams3h],
+          external: [for (var id = 247; id <= 255; id++) AmsTray(id: id)],
+        ),
+        inventory: InventoryState(
+          spools: [Spool(id: 7, material: 'PETG')],
+          assignments: const [
+            SpoolAssignment(spoolId: 7, printerId: 1, amsId: 255, trayId: 6),
+          ],
+        ),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(slots(), findsOneWidget);
+      expect(find.text('Ext-5'), findsOneWidget);
+    });
+
+    testWidgets('an AMS unit reporting no trays is not called the inputs', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          ams: [const AmsUnit(id: 32, amsType: 6, trays: [])],
+          external: [for (var id = 247; id <= 255; id++) AmsTray(id: id)],
+        ),
+      );
+      expect(find.text(pl.externalInputsEmpty(9)), findsNothing);
+      expect(find.text('—'), findsOneWidget);
+    });
+
+    testWidgets('says so when none of the inputs is loaded', (tester) async {
+      await pump(
+        tester,
+        _status(
+          ams: [ams3h],
+          external: [for (var id = 247; id <= 255; id++) AmsTray(id: id)],
+        ),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(slots(), findsNothing);
+      expect(find.text(pl.externalInputsEmpty(9)), findsOneWidget);
     });
   });
 

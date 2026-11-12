@@ -440,6 +440,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlNozzleActive => 'Aktiv';
 
   @override
+  String get amsDryer => 'Trockner';
+
+  @override
   String get ctrlDry => 'Trocknen';
 
   @override
@@ -1623,10 +1626,37 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.';
 
   @override
+  String get nozzleRack => 'Düsenhalter';
+
+  @override
+  String get nozzleRackMounted => 'am Werkzeugkopf';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Position $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Position $position: leer';
+  }
+
+  @override
+  String get externalInputs => 'Externe Eingänge';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Alle $count externen Eingänge sind leer';
+  }
+
+  @override
   String get externalSpool => 'Externe Spule';
 
   @override
   String get traySlotEmpty => 'Leer';
+
+  @override
+  String get traySlotUnconfigured => 'Nicht konfiguriert';
 
   @override
   String get amsSlotFilament => 'Filament';
@@ -1668,6 +1698,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get amsUnloadSlotNotLoaded =>
       'Aus diesem Slot wird keine Düse versorgt';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Slot $slot wird entladen. Sobald der Drucker dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'In Slot $slot ist kein Filament. Schieb es in den Einlass, bis der AMS 3H es einzieht, und lade dann erneut.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'Der AMS 3H trocknet nur die Slots $a und $b';
+  }
 
   @override
   String get amsActionsWhilePrinting =>
@@ -3284,6 +3329,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Slot';
+
+  @override
+  String get inventoryAssignInput => 'Eingang';
 
   @override
   String get inventoryAssignExtruder => 'Extruder';

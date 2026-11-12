@@ -17,6 +17,7 @@ import '../../core/ams/slot_addressing.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
