@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
@@ -188,6 +191,105 @@ void main() {
       await controller().probe('http://other.local:8000');
       expect(state().busy, isFalse);
     });
+  });
+
+  // #66: five 200s from /auth/status and no way to tell from the log which of
+  // three screens followed each one.
+  group('what a probe leaves in a bug report', () {
+    late DiagnosticRecorder recorder;
+    // stop() hands the log over once; a test that reads two kinds of row
+    // shares it.
+    Future<String>? stopped;
+    Future<String> log() => stopped ??= recorder.stop();
+
+    setUp(() async {
+      stopped = null;
+      TestWidgetsFlutterBinding.ensureInitialized();
+      recorder = testRecorder();
+      addTearDown(recorder.discard);
+      await recorder.start();
+    });
+
+    Future<List<Map<String, dynamic>>> records(String evt) async => [
+      for (final line in const LineSplitter().convert(await log()))
+        if (jsonDecode(line) case final Map<String, dynamic> row
+            when row['evt'] == evt)
+          row,
+    ];
+
+    void replyHtml({Duration? delay}) => adapter.onGet(
+      '$_baseUrl/api/v1/auth/status',
+      (server) => server.reply(
+        200,
+        '<!doctype html><html></html>',
+        headers: {
+          Headers.contentTypeHeader: ['text/html'],
+        },
+        delay: delay,
+      ),
+    );
+
+    for (final (fixture, authEnabled, requiresSetup) in [
+      ('auth_status_fresh_server.json', false, true),
+      ('auth_status_enabled.json', true, false),
+    ]) {
+      test('$fixture → both flags, no failure', () async {
+        mockAuthStatus(fixture);
+
+        await controller().probe(_baseUrl);
+
+        final probe = (await records('server_probe')).single;
+        expect(probe['auth_enabled'], authEnabled);
+        expect(probe['requires_setup'], requiresSetup);
+      });
+    }
+
+    test('a probe that ends in an error is an action_failed', () async {
+      adapter.onGet(
+        '$_baseUrl/api/v1/auth/status',
+        (server) => server.reply(500, {'detail': 'boom'}),
+      );
+
+      await controller().probe(_baseUrl);
+
+      final failure = (await records('action_failed')).single;
+      expect(failure['action'], 'setup.test_connection');
+      expect(failure['code'], AppErrorCode.badResponse.name);
+      expect(failure, isNot(contains('shown')));
+    });
+
+    test('a 200 HTML page is a failure, not a probe result', () async {
+      // What a reverse proxy or another web app answers: the `http` lane logs
+      // a plain 200, so without this record the log reads as a success.
+      replyHtml();
+
+      await controller().probe(_baseUrl);
+
+      expect(state().error, isA<NetworkException>());
+      expect(await records('server_probe'), isEmpty);
+      expect(
+        (await records('action_failed')).single['code'],
+        AppErrorCode.connectionError.name,
+      );
+    });
+
+    test(
+      'leaving the screen mid-probe records the error as not shown',
+      () async {
+        replyHtml(delay: const Duration(milliseconds: 50));
+        final left = ProviderContainer(retry: neverRetry, overrides: overrides);
+        addTearDown(left.dispose);
+        final keepAlive = left.listen(setupControllerProvider, (_, _) {});
+
+        final probing = left
+            .read(setupControllerProvider.notifier)
+            .probe(_baseUrl);
+        keepAlive.close();
+        await probing;
+
+        expect((await records('action_failed')).single['shown'], isFalse);
+      },
+    );
   });
 
   group('SetupController.connectWithLogin', () {

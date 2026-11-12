@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_failure.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/auth/two_factor.dart';
@@ -138,6 +139,10 @@ class SetupController extends Notifier<SetupState> {
     state = const SetupState(busy: true);
     try {
       final probe = await ref.read(authServiceProvider).probeAuthStatus(url);
+      AuthProbe.serverProbed(
+        authEnabled: probe.authEnabled,
+        requiresSetup: probe.requiresSetup,
+      );
       if (!ref.mounted) return;
       // Only a server that has neither finished setup NOR got auth turned on is
       // genuinely unusable — that's also the sole case the web UI redirects to
@@ -158,6 +163,13 @@ class SetupController extends Notifier<SetupState> {
       }
       state = SetupState(probe: probe, baseUrl: effectiveUrl);
     } on AppApiException catch (e) {
+      // A 200 the client could not parse (an HTML page) has no `http` error
+      // record of its own; this is the only line that says the probe failed.
+      recordActionFailure(
+        e,
+        action: 'setup.test_connection',
+        shown: ref.mounted,
+      );
       if (!ref.mounted) return;
       state = SetupState(error: e);
     }
