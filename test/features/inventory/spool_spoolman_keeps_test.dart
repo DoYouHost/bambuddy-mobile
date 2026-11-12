@@ -11,11 +11,10 @@ import '../../helpers.dart';
 /// Spoolman changes a spool's brand and price but cannot empty them: its route
 /// keeps the old value on null and on an empty string. A form that let the user
 /// blank them would report a removal that never happens.
-class _Shelf extends InventoryNotifier {
-  final drafts = <SpoolDraft>[];
+class _Shelf extends FixedInventory {
+  _Shelf() : super(InventoryState());
 
-  @override
-  Future<InventoryState> build() async => InventoryState();
+  final drafts = <SpoolDraft>[];
 
   @override
   Future<void> refresh({bool askBackend = false}) async {}

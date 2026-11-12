@@ -285,11 +285,11 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// buttons wait for the answer to "did it work".
   Future<HmsClearOutcome> clearHmsErrors(int id) async {
     int? remaining;
+    // Read now: the read-back runs after a request, when `ref` may be gone.
+    final printers = ref.read(printersRepositoryProvider);
     final outcome = await _run(id, ControlAction.hms, () async {
       await _repo.clearHmsErrors(id);
-      remaining = await hmsStillReported(
-        () => ref.read(printersRepositoryProvider).fetchStatus(id),
-      );
+      remaining = await hmsStillReported(() => printers.fetchStatus(id));
     });
     return (outcome: outcome, remaining: outcome.isOk ? remaining : null);
   }
@@ -562,11 +562,16 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
     try {
       await send();
+      if (!ref.mounted) return ActionOutcome.ok;
       // Success: remove "in flight", keep override and schedule cleanup.
       _setPending(id, _withoutInFlight(state.pendingFor(id), action));
       if (clearKey != null) _scheduleClear(id, clearKey);
       return ActionOutcome.ok;
     } catch (e) {
+      if (!ref.mounted) {
+        if (e is! AppApiException) rethrow;
+        return ActionOutcome.failed(e, action: 'printer.${action.name}');
+      }
       // Rollback: remove "in flight" and restore override to pre-action state.
       // On any failure — a lock left behind keeps the button dead until the
       // server profile changes.

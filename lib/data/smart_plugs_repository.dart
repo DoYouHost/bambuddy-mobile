@@ -1,7 +1,7 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/smart_plug.dart';
 
@@ -29,11 +29,7 @@ class SmartPlugsRepository {
   /// `GET /smart-plugs/` — all plugs with config (including `printer_id`).
   /// Skip unparseable entries.
   Future<List<SmartPlug>> fetchPlugs() async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.smartPlugs);
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, SmartPlug.fromJson);
+    return guard(() => _dio.getList(Endpoints.smartPlugs, SmartPlug.fromJson));
   }
 
   /// `GET /smart-plugs/{id}/status` — live state + measurement. Auth errors bubble up

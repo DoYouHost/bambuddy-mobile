@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/firmware.dart';
 
@@ -19,16 +20,12 @@ class FirmwareRepository {
   final Dio _dio;
 
   /// `GET /firmware/updates` — firmware for entire farm in one request.
-  Future<FirmwareUpdatesResponse> fetchUpdates() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.firmwareUpdates,
-      );
-      return FirmwareUpdatesResponse.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<FirmwareUpdatesResponse> fetchUpdates() => guard(() async {
+    return _dio.getObject(
+      Endpoints.firmwareUpdates,
+      FirmwareUpdatesResponse.fromJson,
+    );
+  });
 
   /// `GET /firmware/updates/{id}` — firmware for one printer. Auth errors bubble up
   /// (UI → /setup); other errors degrade to `null`.
@@ -51,43 +48,31 @@ class FirmwareRepository {
   // --- Firmware update execution (for future use; not yet used in UI) ---
 
   /// `GET /firmware/updates/{id}/prepare` — probe before firmware upload.
-  Future<FirmwareUploadPrepare> prepareUpload(int printerId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.firmwarePrepare(printerId),
-      );
-      return FirmwareUploadPrepare.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<FirmwareUploadPrepare> prepareUpload(int printerId) => guard(() async {
+    return _dio.getObject(
+      Endpoints.firmwarePrepare(printerId),
+      FirmwareUploadPrepare.fromJson,
+    );
+  });
 
   /// `POST /firmware/updates/{id}/upload` — start upload. Optional `version`
   /// (server uses latest if omitted). 403 = key lacks permissions.
   Future<FirmwareUploadStartResult> startUpload(
     int printerId, {
     String? version,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        Endpoints.firmwareUpload(printerId),
-        queryParameters: {'version': ?version},
-      );
-      return FirmwareUploadStartResult.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  }) => guard(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.firmwareUpload(printerId),
+      queryParameters: {'version': ?version},
+    );
+    return FirmwareUploadStartResult.fromJson(res.data ?? const {});
+  });
 
   /// `GET /firmware/updates/{id}/upload/status` — upload progress.
-  Future<FirmwareUploadStatus> uploadStatus(int printerId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.firmwareUploadStatus(printerId),
-      );
-      return FirmwareUploadStatus.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<FirmwareUploadStatus> uploadStatus(int printerId) => guard(() async {
+    return _dio.getObject(
+      Endpoints.firmwareUploadStatus(printerId),
+      FirmwareUploadStatus.fromJson,
+    );
+  });
 }

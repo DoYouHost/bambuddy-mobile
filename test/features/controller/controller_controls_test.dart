@@ -364,15 +364,25 @@ void main() {
     ) async {
       await pump(tester, _printing(speed: 3));
 
+      // Closed, the field says which level it is on.
+      expect(find.textContaining('124%'), findsOneWidget);
+      for (final level in [1, 2, 3, 4]) {
+        expect(byLogId('controller.speed.$level'), findsNothing);
+      }
+
+      await tester.tap(byLogId('controller.speed'));
+      await settle(tester);
+
       for (final level in [1, 2, 3, 4]) {
         expect(byLogId('controller.speed.$level'), findsOneWidget);
       }
-      expect(find.text('124%'), findsOneWidget);
     });
 
     testWidgets('choosing one sends it for this printer', (tester) async {
       await pump(tester, _printing());
 
+      await tester.tap(byLogId('controller.speed'));
+      await settle(tester);
       await tester.tap(byLogId('controller.speed.4'));
       await tester.pump();
 
@@ -382,7 +392,7 @@ void main() {
     testWidgets('an idle printer has no speed to change', (tester) async {
       await pump(tester, _printing(state: 'IDLE'));
 
-      expect(byLogId('controller.speed.1'), findsNothing);
+      expect(byLogId('controller.speed'), findsNothing);
     });
   });
 
@@ -393,10 +403,12 @@ void main() {
       await pump(tester, _printing());
       commands.error = const AuthException(AppErrorCode.forbidden);
 
+      await tester.tap(byLogId('controller.speed'));
+      await settle(tester);
       await tester.tap(byLogId('controller.speed.4'));
       await settle(tester);
 
-      expect(byLogId('controller.speed.1'), findsNothing);
+      expect(byLogId('controller.speed'), findsNothing);
       expect(byLogId('controller.light'), findsNothing);
     });
   });

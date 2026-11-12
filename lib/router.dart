@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'features/announcements/announcements_screen.dart';
+import 'features/links/external_links_screen.dart';
 import 'features/about/about_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/admin/api_keys_screen.dart';
@@ -26,6 +27,8 @@ import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/inventory/profile_defaults_screen.dart';
+import 'features/settings/pause_warning_screen.dart';
 import 'features/settings/queue_settings_screen.dart';
 import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
@@ -168,6 +171,14 @@ GoRouter buildAppRouter({
         path: '/settings/queue',
         builder: (_, _) => const QueueSettingsScreen(),
       ),
+      GoRoute(
+        path: '/settings/pause-warning',
+        builder: (_, _) => const PauseWarningScreen(),
+      ),
+      GoRoute(
+        path: '/settings/profile-defaults',
+        builder: (_, _) => const ProfileDefaultsScreen(),
+      ),
 
       // Maintenance settings (types + per-printer overrides) — full screen
       // outside shell (pushed from the Maintenance status screen's gear, and
@@ -199,6 +210,9 @@ GoRouter buildAppRouter({
         path: '/announcements',
         builder: (_, _) => const AnnouncementsScreen(),
       ),
+
+      // The server's sidebar links — full screen outside shell (pushed from drawer).
+      GoRoute(path: '/links', builder: (_, _) => const ExternalLinksScreen()),
 
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),
@@ -373,10 +387,7 @@ GoRouter buildAppRouter({
       // rather than opening a player with nothing to play.
       GoRoute(
         path: '/timelapse',
-        redirect: (_, state) =>
-            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
-            ? '/archive'
-            : null,
+        redirect: (_, state) => _archiveOrBack(state),
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return TimelapseScreen(
@@ -389,10 +400,7 @@ GoRouter buildAppRouter({
       // Photos of a finished print — same shape as the timelapse route above.
       GoRoute(
         path: '/archive/photos',
-        redirect: (_, state) =>
-            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
-            ? '/archive'
-            : null,
+        redirect: (_, state) => _archiveOrBack(state),
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return ArchivePhotosScreen(
@@ -406,10 +414,7 @@ GoRouter buildAppRouter({
       // when the server re-encoded, which is the player's cue to reload.
       GoRoute(
         path: '/timelapse/edit',
-        redirect: (_, state) =>
-            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
-            ? '/archive'
-            : null,
+        redirect: (_, state) => _archiveOrBack(state),
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return TimelapseEditorScreen(
@@ -478,3 +483,10 @@ GoRouter buildAppRouter({
     ],
   );
 }
+
+/// The archive-id routes read `archive` with `int.parse`, so a missing or
+/// malformed id is sent back to the list instead of reaching the builder.
+String? _archiveOrBack(GoRouterState state) =>
+    int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
+    ? '/archive'
+    : null;

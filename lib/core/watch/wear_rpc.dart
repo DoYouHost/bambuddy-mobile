@@ -6,6 +6,8 @@ library;
 
 import 'dart:math';
 
+import 'package:app_util/app_util.dart';
+
 /// Actions the watch can ask the phone to relay to the bambuddy server.
 enum WearRpcAction {
   /// Printers + statuses. Response `data`: `{"printers": [{"printer": {...},
@@ -133,11 +135,6 @@ dynamic deepSanitize(dynamic value) => switch (value) {
   _ => value,
 };
 
-/// Blank is how a value the sender did not have arrives over the bridge, and it
-/// is never a valid code, action key or job id.
-String? _stringOrNull(Object? value) =>
-    value is String && value.trim().isNotEmpty ? value.trim() : null;
-
 /// Watch→phone request.
 class WearRpcRequest {
   const WearRpcRequest({
@@ -227,9 +224,10 @@ class WearRpcRequest {
       // that did not send one it could be trusted for.
       version: version is int ? version : 1,
       printerId: printerId is int ? printerId : null,
-      printError: _stringOrNull(map[_kPrintError]),
-      hmsAction: _stringOrNull(map[_kHmsAction]),
-      jobId: _stringOrNull(map[_kJobId]),
+      // Blank is how a value the sender did not have arrives over the bridge.
+      printError: toStringOrNull(map[_kPrintError]),
+      hmsAction: toStringOrNull(map[_kHmsAction]),
+      jobId: toStringOrNull(map[_kJobId]),
     );
   }
 }
@@ -318,7 +316,7 @@ class WearRpcAck {
     if (id is! String || id.isEmpty) return null;
     return WearRpcAck(
       id,
-      state: _stringOrNull(map[_kState]) ?? wearRpcAckWaking,
+      state: toStringOrNull(map[_kState]) ?? wearRpcAckWaking,
     );
   }
 }

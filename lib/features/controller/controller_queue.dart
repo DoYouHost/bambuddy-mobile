@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/api_failure_snack.dart';
 import '../dashboard/ws_providers.dart';
 import '../queue/queue_actions.dart';
 import '../queue/queue_item_view.dart';
@@ -82,20 +84,39 @@ class _ControllerQueueState extends ConsumerState<ControllerQueue> {
     super.dispose();
   }
 
+  /// A tap on Refresh says when it failed: the poll stays silent (it tries again
+  /// in ten seconds), but someone who pressed the button and sees nothing
+  /// changes presses it again.
+  Future<void> _refresh() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    await ref.read(queueProvider.notifier).refresh();
+    if (!mounted) return;
+    if (ref.read(queueProvider) case AsyncError(
+      :final error,
+      :final stackTrace,
+    )) {
+      if (error is! AppApiException) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      showApiFailure(
+        messenger,
+        error,
+        l10n,
+        action: 'controller.queue.refresh',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(queueProvider);
-    final model = ref.watch(
-      controllerPrinterProvider(
-        widget.printerId,
-      ).select((p) => p.item?.printer.model),
-    );
-    final items = async.valueOrNull == null
+    final model = ref.watch(controllerModelProvider(widget.printerId));
+    final items = async.value == null
         ? null
         : queueForPrinter(
-            async.valueOrNull!,
+            async.value!,
             printerId: widget.printerId,
             model: model,
           );
@@ -123,31 +144,19 @@ class _ControllerQueueState extends ConsumerState<ControllerQueue> {
               id: 'controller.queue.refresh',
               tooltip: l10n.pfmRefreshTooltip,
               icon: Icons.refresh_rounded,
-              onPressed: async.isLoading
-                  ? null
-                  : ref.read(queueProvider.notifier).refresh,
+              onPressed: async.isLoading ? null : _refresh,
             ),
           ],
         ),
         const SizedBox(height: DashSpace.md),
-        Expanded(
-          child: Container(
-            decoration: t.cardBox,
-            padding: const EdgeInsets.all(DashSpace.sm),
-            child: switch ((items, async)) {
-              (final list?, _) => _Grid(
-                items: list,
-                printerId: widget.printerId,
-                refreshing: async.isLoading,
-              ),
-              (_, AsyncError(:final error)) => ControllerListFailure(
-                error: error,
-                retryId: 'controller.queue.retry',
-                onRetry: ref.read(queueProvider.notifier).refresh,
-              ),
-              _ => const Center(child: CircularProgressIndicator()),
-            },
-          ),
+        ControllerListBody<List<QueueItem>>(
+          async: async,
+          value: items,
+          retryId: 'controller.queue.retry',
+          // Polled every ten seconds, so a failed poll is tried again by the next.
+          onFailure: ControllerListFailureMode.hidden,
+          onRetry: ref.read(queueProvider.notifier).refresh,
+          grid: (list) => _Grid(items: list, printerId: widget.printerId),
         ),
       ],
     );
@@ -155,15 +164,10 @@ class _ControllerQueueState extends ConsumerState<ControllerQueue> {
 }
 
 class _Grid extends ConsumerWidget {
-  const _Grid({
-    required this.items,
-    required this.printerId,
-    required this.refreshing,
-  });
+  const _Grid({required this.items, required this.printerId});
 
   final List<QueueItem> items;
   final int printerId;
-  final bool refreshing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -174,24 +178,17 @@ class _Grid extends ConsumerWidget {
         text: l10n.controllerQueueEmpty,
       );
     }
-    return Column(
-      children: [
-        if (refreshing) const LinearProgressIndicator(),
-        Expanded(
-          child: GridView.builder(
-            gridDelegate: controllerTileGrid(context),
-            itemCount: items.length,
-            // The grid's context, not the tile's: a refresh while the dialog
-            // is open may take the tile away, and the choice must still land
-            // where it is checked again.
-            itemBuilder: (_, i) => _QueueTile(
-              item: items[i],
-              place: i + 1,
-              onTap: () => _open(context, ref, items[i], i + 1),
-            ),
-          ),
-        ),
-      ],
+    return GridView.builder(
+      gridDelegate: controllerTileGrid(context),
+      itemCount: items.length,
+      // The grid's context, not the tile's: a refresh while the dialog
+      // is open may take the tile away, and the choice must still land
+      // where it is checked again.
+      itemBuilder: (_, i) => _QueueTile(
+        item: items[i],
+        place: i + 1,
+        onTap: () => _open(context, ref, items[i], i + 1),
+      ),
     );
   }
 
@@ -220,7 +217,7 @@ class _Grid extends ConsumerWidget {
     // running print and Start would start it somewhere else.
     final current = ref
         .read(queueProvider)
-        .valueOrNull
+        .value
         ?.where((i) => i.id == item.id)
         .firstOrNull;
     final model = ref
@@ -348,7 +345,7 @@ class _QueueTile extends ConsumerWidget {
               Flexible(
                 child: ControllerChip(
                   label: queueTargetLabel(l10n, item),
-                  ink: t.accentBlue,
+                  ink: t.accentBlueInk,
                 ),
               ),
             ],
@@ -386,7 +383,7 @@ class _Place extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: _size, minHeight: _size),
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
       decoration: BoxDecoration(
-        color: t.overlaySurface.withValues(alpha: 0.85),
+        color: t.overlaySurface.withValues(alpha: DashAlpha.heavy),
         borderRadius: BorderRadius.circular(_size / 2),
       ),
       child: Center(
@@ -458,7 +455,7 @@ class _QueueDialog extends ConsumerWidget {
           ControllerFact(
             Icons.print_outlined,
             queueTargetLabel(l10n, item),
-            ink: t.accentBlue,
+            ink: t.accentBlueInk,
           ),
         if (item.printTimeSeconds case final s?)
           ControllerFact(Icons.schedule_rounded, formatSeconds(l10n, s)),

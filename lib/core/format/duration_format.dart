@@ -1,4 +1,7 @@
+import 'package:clock/clock.dart';
+
 import '../../l10n/app_localizations.dart';
+import 'datetime_format.dart';
 
 /// How long something took or has left — `1h 23min`, `45min`, `30s`.
 ///
@@ -19,6 +22,11 @@ String formatMinutes(AppLocalizations l10n, int minutes) {
 String formatSeconds(AppLocalizations l10n, int seconds) => seconds < 60
     ? l10n.durationSeconds(seconds)
     : formatMinutes(l10n, seconds ~/ 60);
+
+/// The clock reading [minutes] from now — the finish time shown next to a
+/// remaining time. Reads `clock.now()` so tests can pin it.
+String etaClock(DateTimeFormats fmt, int minutes) =>
+    fmt.time(clock.now().add(Duration(minutes: minutes)));
 
 /// [formatSeconds] without the truncation, for a span the user is **setting**
 /// rather than reading back.

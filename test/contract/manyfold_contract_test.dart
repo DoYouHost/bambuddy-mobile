@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/manyfold.dart';
-import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/manyfold_repository.dart';
 import 'package:dio/dio.dart';
@@ -147,30 +146,10 @@ void main() {
         final nobody = await contractUser(dio, ['printers:read']);
         expect(await ManyfoldRepository(nobody.dio).status(), isNull);
 
-        final keys = ApiKeysRepository(dio);
-        final key = await keys.create(
-          ApiKeyCreateInput(
-            name: 'contract manyfold',
-            scopes: {ApiKeyScope.readStatus},
-          ),
-        );
-        addTearDown(
-          () => dio.delete<dynamic>(
-            Endpoints.apiKeyById(key.apiKey.id),
-            options: Options(validateStatus: (_) => true),
-          ),
-        );
-        await pollUntil(
-          'key ${key.apiKey.id} to be committed',
-          () async => (await keys.list()).any((k) => k.id == key.apiKey.id)
-              ? true
-              : null,
-          within: const Duration(seconds: 10),
-          every: const Duration(milliseconds: 100),
-        );
         final asKey = ManyfoldRepository(
-          Dio(BaseOptions(baseUrl: contractBaseUrl))
-            ..options.headers['X-API-Key'] = key.key,
+          await contractApiKeyDio(dio, {
+            ApiKeyScope.readStatus,
+          }, name: 'contract manyfold'),
         );
         expect(await asKey.status(), isNotNull);
         await expectLater(

@@ -3,10 +3,11 @@ import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/models/printer_location.dart';
+import '../../core/notifications/hms_catalog.dart';
+import '../../core/printers/printer_bucket.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../dashboard/dashboard_filters.dart';
 import '../dashboard/widgets/dashboard_filter_sheet.dart'
     show statusBucketLabel;
 import 'printer_location_icons.dart';
@@ -26,17 +27,17 @@ class LocationIconTile extends StatelessWidget {
     final t = DashTokens.of(context);
     final stripe = colorFromHex(location.color);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       child: Container(
-        width: 44,
-        height: 44,
+        width: DashSize.d48,
+        height: DashSize.d48,
         color: t.subCard,
         child: Stack(
           alignment: Alignment.center,
           children: [
             Icon(
               printerLocationIcon(location.icon),
-              size: 24,
+              size: DashIcon.lg,
               color: t.textSecondary,
             ),
             if (stripe != null)
@@ -108,45 +109,50 @@ class LocationCard extends StatelessWidget {
                       selected: selecting ? picked : null,
                       expanded: selecting ? null : expanded,
                       InkWell(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
                         onTap: onTap,
-                        child: Row(
-                          children: [
-                            Icon(
-                              selecting
-                                  ? (picked
-                                        ? Icons.check_box
-                                        : Icons.check_box_outline_blank)
-                                  : (expanded
-                                        ? Icons.expand_less
-                                        : Icons.expand_more),
-                              color: picked && selecting
-                                  ? t.accentGreen
-                                  : t.textSecondary,
-                            ),
-                            const SizedBox(width: DashSpace.sm),
-                            LocationIconTile(location: location),
-                            const SizedBox(width: DashSpace.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    location.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: t.titleSm,
-                                  ),
-                                  Text(
-                                    l10n.printerLocationsPrinterCount(
-                                      location.printerCount,
-                                    ),
-                                    style: t.bodyPlain,
-                                  ),
-                                ],
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: kMinInteractiveDimension,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selecting
+                                    ? (picked
+                                          ? Icons.check_box
+                                          : Icons.check_box_outline_blank)
+                                    : (expanded
+                                          ? Icons.expand_less
+                                          : Icons.expand_more),
+                                color: picked && selecting
+                                    ? t.accentGreen
+                                    : t.textSecondary,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: DashSpace.sm),
+                              LocationIconTile(location: location),
+                              const SizedBox(width: DashSpace.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      location.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: t.titleSm,
+                                    ),
+                                    Text(
+                                      l10n.printerLocationsPrinterCount(
+                                        location.printerCount,
+                                      ),
+                                      style: t.bodyPlain,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -215,7 +221,10 @@ class LocationPrinterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final bucket = classifyPrinter(printer.status);
+    final bucket = classifyPrinter(
+      printer.status,
+      describe: HmsCatalog.instance.describe,
+    );
     final (accent, ink) = switch (bucket) {
       PrinterStatusBucket.printing => (t.accentOrange, t.accentOrangeInk),
       PrinterStatusBucket.paused => (t.warning, t.warningInk),
@@ -225,15 +234,28 @@ class LocationPrinterRow extends StatelessWidget {
       _ => (t.textSecondary, t.textSecondary),
     };
     final model = printer.printer.model;
+    final pill = Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: DashPill(
+        label: statusBucketLabel(l10n, bucket),
+        accent: accent,
+        accentInk: ink,
+        leadingDot: true,
+        dense: true,
+      ),
+    );
+    final pillBelow = dashLargeText(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: picked ? t.accentGreen.withValues(alpha: 0.1) : t.subCard,
-          borderRadius: BorderRadius.circular(16),
+          color: picked
+              ? t.accentGreen.withValues(alpha: DashAlpha.faint)
+              : t.subCard,
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(
             color: picked
-                ? t.accentGreen.withValues(alpha: 0.3)
+                ? t.accentGreen.withValues(alpha: DashAlpha.soft)
                 : t.subCardBorder,
           ),
         ),
@@ -269,17 +291,16 @@ class LocationPrinterRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: t.bodyPlain,
                       ),
+                    // Under the name at large text: beside it, with three
+                    // buttons, it leaves the name nothing.
+                    if (pillBelow) ...[
+                      const SizedBox(height: DashSpace.xs),
+                      pill,
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: DashSpace.sm),
-              DashPill(
-                label: statusBucketLabel(l10n, bucket),
-                accent: accent,
-                accentInk: ink,
-                leadingDot: true,
-                dense: true,
-              ),
+              if (!pillBelow) ...[const SizedBox(width: DashSpace.sm), pill],
               if (canEdit)
                 IconButton(
                   tooltip: l10n.printerLocationsMove,
@@ -343,29 +364,56 @@ class LocationSelectionBar extends StatelessWidget {
             horizontal: DashSpace.gutter,
             vertical: DashSpace.md,
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.printerLocationsSelected(count),
-                  style: t.bodyStrong,
-                ),
-              ),
-              TextButton(
-                onPressed: busy ? null : onCancel,
-                child: Text(l10n.cancel),
-              ).tagged(cancelId),
-              const SizedBox(width: DashSpace.sm),
-              FilledButton.icon(
-                onPressed: busy ? null : onAction,
-                style: destructive ? dashDangerButtonStyle(t) : null,
-                icon: Icon(actionIcon),
-                label: Text(actionLabel),
-              ).tagged(id),
-            ],
-          ),
+          child: _barBody(context, t, l10n),
         ),
       ),
+    );
+  }
+
+  Widget _barBody(BuildContext context, DashTokens t, AppLocalizations l10n) {
+    final countText = Text(
+      l10n.printerLocationsSelected(count),
+      style: t.bodyStrong,
+    );
+    final cancel = TextButton(
+      onPressed: busy ? null : onCancel,
+      child: Text(l10n.cancel),
+    ).tagged(cancelId);
+    final action = FilledButton.icon(
+      onPressed: busy ? null : onAction,
+      style: destructive ? dashDangerButtonStyle(t) : null,
+      icon: Icon(actionIcon),
+      label: Text(actionLabel),
+    ).tagged(id);
+    // Count and buttons share a row until the text is large: then the count
+    // gets a line of its own and the buttons share the width, or stack when a
+    // label does not fit in half of it.
+    if (!dashLargeText(context)) {
+      return Row(
+        children: [
+          Expanded(child: countText),
+          cancel,
+          const SizedBox(width: DashSpace.sm),
+          action,
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        countText,
+        const SizedBox(height: DashSpace.sm),
+        ButtonPair(
+          primary: cancel,
+          primaryLabel: l10n.cancel,
+          primaryStyle: TextButtonTheme.of(context).style,
+          secondary: action,
+          secondaryLabel: actionLabel,
+          secondaryStyle: destructive
+              ? dashDangerButtonStyle(t)
+              : FilledButtonTheme.of(context).style,
+        ),
+      ],
     );
   }
 }

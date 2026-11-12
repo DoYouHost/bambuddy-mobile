@@ -1,6 +1,10 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/features/settings/server_settings_screen.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -15,6 +19,8 @@ void main() {
     WidgetTester tester, {
     AuthMode authMode = AuthMode.none,
     CurrentUser? user,
+    AsyncValue<bool> profileDefaults = const AsyncData(false),
+    Map<String, dynamic> serverSettings = const {},
   }) async {
     await pumpPhone(
       tester,
@@ -22,10 +28,42 @@ void main() {
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         currentUserOverride(user),
+        profileDefaultsSupportedProvider.overrideWithValue(profileDefaults),
+        serverSettingsRepositoryProvider.overrideWithValue(
+          _SettingsRepo(serverSettings),
+        ),
       ],
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('the profile defaults entry waits for a server that has them', (
+    tester,
+  ) async {
+    await pumpHub(tester, profileDefaults: const AsyncData(true));
+    expect(find.text(pl.profileDefaultsTitle), findsOneWidget);
+  });
+
+  testWidgets('a server without profile defaults, or one that has not '
+      'answered yet, shows no entry', (tester) async {
+    await pumpHub(tester);
+    expect(find.text(pl.profileDefaultsTitle), findsNothing);
+
+    await pumpHub(tester, profileDefaults: const AsyncLoading());
+    expect(find.text(pl.profileDefaultsTitle), findsNothing);
+  });
+
+  testWidgets('the pause warning entry is offered only to a server that '
+      'answers its key', (tester) async {
+    await pumpHub(tester, serverSettings: {'pause_warning_minutes': 5});
+    expect(find.text(pl.pauseWarningTitle), findsOneWidget);
+  });
+
+  testWidgets('a server that does not send the key shows no pause warning '
+      'entry', (tester) async {
+    await pumpHub(tester, serverSettings: {'queue_shortest_first': true});
+    expect(find.text(pl.pauseWarningTitle), findsNothing);
+  });
 
   testWidgets('an anonymous session gets the settings entries', (tester) async {
     await pumpHub(tester);
@@ -61,4 +99,14 @@ void main() {
     expect(find.text(pl.queueSettingsTitle), findsOneWidget);
     expect(find.text(pl.adminTitle), findsOneWidget);
   });
+}
+
+/// The settings a server answers, with nothing to write.
+class _SettingsRepo extends ServerSettingsRepository {
+  _SettingsRepo(this._settings) : super(Dio());
+
+  final Map<String, dynamic> _settings;
+
+  @override
+  Future<Map<String, dynamic>> fetch() async => _settings;
 }

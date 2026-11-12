@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import '../../core/models/printable_object.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -15,6 +16,9 @@ import '../common/dash_async.dart';
 import 'object_pick_mask.dart';
 import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
+
+/// The share of the header a counter may take and still sit beside the texts.
+const _counterInlineShare = 0.4;
 
 /// Skip-objects screen: shows the current print's objects (with their printer
 /// display IDs) over a top-down build-plate render, and lets the user select
@@ -56,7 +60,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(skipObjectsProvider(widget.printerId));
-    final pending = _pendingIn(async.valueOrNull);
+    final pending = _pendingIn(async.value);
     final status = ref.watch(
       printerStatusesProvider.select((m) => m[widget.printerId]),
     );
@@ -84,7 +88,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   widget.printerName,
-                  style: TextStyle(fontSize: 12, color: t.textSecondary),
+                  style: TextStyle(
+                    fontSize: DashFontSize.label,
+                    color: t.textSecondary,
+                  ),
                 ),
               ),
             ),
@@ -134,7 +141,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                         padding: const EdgeInsets.only(bottom: DashSpace.sm),
                         child: Text(
                           l10n.skipObjectsSelectHint,
-                          style: TextStyle(fontSize: 12, color: t.textTertiary),
+                          style: TextStyle(
+                            fontSize: DashFontSize.label,
+                            color: t.textTertiary,
+                          ),
                         ),
                       ),
                     for (final obj in data.objects)
@@ -300,7 +310,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
       if (_skipping)
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: DashSpace.lg),
-          child: DashSpinner(size: 20),
+          child: DashSpinner(size: DashSize.d20),
         )
       else
         FilledButton(
@@ -313,7 +323,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
 
   Future<void> _confirmSkipSelected() async {
     final l10n = AppLocalizations.of(context);
-    final data = ref.read(skipObjectsProvider(widget.printerId)).valueOrNull;
+    final data = ref.read(skipObjectsProvider(widget.printerId)).value;
     if (data == null) return;
     final objs = _pendingIn(data);
     if (objs.isEmpty) return;
@@ -330,25 +340,30 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
     if (!confirmed || !mounted) return;
 
     setState(() => _skipping = true);
-    // From `objs`, not `_selected`: the background poll can drop an object
-    // between selecting it and confirming (a 3MF reload) or mark it skipped,
-    // and `objs` is exactly what the dialog just showed — the request must
-    // match that, or an id the user never saw confirmed would go out anyway.
-    final ids = objs.map((o) => o.id).toList();
-    final result = await ref
-        .read(skipObjectsProvider(widget.printerId).notifier)
-        .skip(ids);
-    if (!mounted) return;
-    setState(() {
-      _skipping = false;
-      if (result.isForbidden) _forbidden = true;
-      if (result.isOk) _selected.clear();
-    });
+    try {
+      // From `objs`, not `_selected`: the background poll can drop an object
+      // between selecting it and confirming (a 3MF reload) or mark it skipped,
+      // and `objs` is exactly what the dialog just showed — the request must
+      // match that, or an id the user never saw confirmed would go out anyway.
+      final ids = objs.map((o) => o.id).toList();
+      final result = await ref
+          .read(skipObjectsProvider(widget.printerId).notifier)
+          .skip(ids);
+      if (!mounted) return;
+      setState(() {
+        _skipping = false;
+        if (result.isForbidden) _forbidden = true;
+        if (result.isOk) _selected.clear();
+      });
 
-    final msg =
-        result.messageFor(l10n) ??
-        l10n.skipObjectsSkippedToast(objs.length, names);
-    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
+      final msg =
+          result.messageFor(l10n) ??
+          l10n.skipObjectsSkippedToast(objs.length, names);
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
+    } catch (_) {
+      if (mounted) setState(() => _skipping = false);
+      rethrow;
+    }
   }
 }
 
@@ -368,39 +383,64 @@ class _InfoBanner extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: t.accentBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: t.accentBlue.withValues(alpha: 0.3)),
+        color: t.accentBlue.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: t.accentBlue.withValues(alpha: DashAlpha.soft),
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.desktop_windows_outlined, size: 20, color: t.accentBlue),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.skipObjectsMatchInfo,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final counter = l10n.skipObjectsCounter(
+            data.skippedCount,
+            data.total,
+          );
+          final counterStyle = t.labelSoft.copyWith(color: t.textSecondary);
+          // Beside the texts while it leaves them room; under them at large
+          // text, where it would squeeze the hint into a sliver.
+          final measured = DefaultTextStyle.of(
+            context,
+          ).style.merge(counterStyle);
+          final inline =
+              textWidth(context, counter, measured) <=
+              box.maxWidth * _counterInlineShare;
+          final counterText = Text(counter, style: counterStyle);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.desktop_windows_outlined,
+                    size: DashIcon.md,
+                    color: t.accentBlue,
                   ),
-                ),
-                Text(
-                  l10n.skipObjectsMatchHint,
-                  style: TextStyle(fontSize: 11, color: t.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: DashSpace.sm),
-          Text(
-            l10n.skipObjectsCounter(data.skippedCount, data.total),
-            style: TextStyle(fontSize: 12, color: t.textSecondary),
-          ),
-        ],
+                  const SizedBox(width: DashSpace.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.skipObjectsMatchInfo,
+                          style: t.label.copyWith(color: t.textPrimary),
+                        ),
+                        Text(
+                          l10n.skipObjectsMatchHint,
+                          style: t.microSoft.copyWith(color: t.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (inline) ...[
+                    const SizedBox(width: DashSpace.sm),
+                    counterText,
+                  ],
+                ],
+              ),
+              if (!inline) counterText,
+            ],
+          );
+        },
       ),
     );
   }
@@ -422,18 +462,25 @@ class _LayerWarning extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: amber.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: amber.withValues(alpha: 0.4)),
+        color: amber.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(color: amber.withValues(alpha: DashAlpha.outline)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 18, color: amber),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: DashIcon.md,
+            color: amber,
+          ),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               l10n.skipObjectsWaitForLayer(layer),
-              style: const TextStyle(fontSize: 12, color: amber),
+              // The ink, not the swatch: the amber reads 1.9:1 as text.
+              style: DashTokens.of(
+                context,
+              ).labelSoft.copyWith(color: DashTokens.of(context).warningInk),
             ),
           ),
         ],
@@ -500,7 +547,9 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     // plate edges are — and it keeps that job when the render is missing
     // entirely (demo mode, a printer with no cover).
     final grid = CustomPaint(
-      painter: _PlateGridPainter(line: t.textTertiary.withValues(alpha: 0.18)),
+      painter: _PlateGridPainter(
+        line: t.textTertiary.withValues(alpha: DashAlpha.wash),
+      ),
       child: const SizedBox.expand(),
     );
     const noRender = SizedBox.expand();
@@ -518,9 +567,7 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     // Real footprints when the slicer's object-ID mask is available; badges
     // placed from each object's centre point when it isn't, which is all
     // `/print/objects` carries.
-    final mask = ref
-        .watch(objectPickMaskProvider(widget.printerId))
-        .valueOrNull;
+    final mask = ref.watch(objectPickMaskProvider(widget.printerId)).value;
 
     Widget marker(int i) {
       final obj = data.objects[i];
@@ -562,7 +609,7 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       child: AspectRatio(
         aspectRatio: 1,
         child: Stack(
@@ -683,7 +730,7 @@ class _PlateGridPainter extends CustomPainter {
     // Brighter outer frame so the plate edge reads clearly.
     canvas.drawRect(
       Offset.zero & size,
-      paint..color = line.withValues(alpha: 0.5),
+      paint..color = line.withValues(alpha: DashAlpha.scrim),
     );
   }
 
@@ -776,7 +823,10 @@ class _ObjectShapesPainter extends CustomPainter {
       final color = _colorOf(object);
       canvas.drawPath(
         shape.fill,
-        Paint()..color = color.withValues(alpha: marked ? 0.45 : 0.16),
+        Paint()
+          ..color = color.withValues(
+            alpha: marked ? DashAlpha.scrim : DashAlpha.wash,
+          ),
       );
       // Round caps because the outline is loose unit segments: butt caps would
       // notch every staircase corner once the stroke is wider than a mask pixel.
@@ -817,7 +867,7 @@ class _ObjectShapesPainter extends CustomPainter {
     final style = TextStyle(
       fontFamily: DashTokens.fontMono,
       fontSize: fontSize,
-      fontWeight: FontWeight.w800,
+      fontWeight: DashWeight.bold,
       height: 1,
       decoration: object.skipped ? TextDecoration.lineThrough : null,
       decorationColor: Colors.white,
@@ -833,7 +883,7 @@ class _ObjectShapesPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = fontSize * 0.3
             ..strokeJoin = StrokeJoin.round
-            ..color = Colors.black.withValues(alpha: 0.85),
+            ..color = Colors.black.withValues(alpha: DashAlpha.heavy),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -915,16 +965,18 @@ class _ObjectMarker extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: bg.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(8),
+              // Nearly opaque: over a bright plate the blend lightens the blue
+              // until black on it is under 4.5:1, over a dark one white is.
+              color: bg.withValues(alpha: DashAlpha.cover),
+              borderRadius: BorderRadius.circular(DashRadius.sm),
               border: Border.all(
                 color: selected ? Colors.white : Colors.black38,
-                width: selected ? 2 : 1,
+                width: selected ? DashStroke.regular : DashStroke.hairline,
               ),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black45,
-                  blurRadius: 4,
+                  blurRadius: DashBlur.sm,
                   offset: Offset(0, 1),
                 ),
               ],
@@ -936,9 +988,8 @@ class _ObjectMarker extends StatelessWidget {
                 child: Text(
                   '${object.id}',
                   maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+                  style: tokens.micro.copyWith(
+                    fontWeight: DashWeight.bold,
                     color: skipped ? tokens.onDanger : fg,
                     decoration: skipped ? TextDecoration.lineThrough : null,
                   ),
@@ -967,14 +1018,14 @@ class _CountBadge extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.black.withValues(alpha: DashAlpha.strong),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
       ),
       child: Text(
         l10n.skipObjectsActiveCount(count),
         style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
+          fontSize: DashFontSize.micro,
+          fontWeight: DashWeight.semibold,
           color: Colors.white,
         ),
       ),
@@ -1010,7 +1061,7 @@ class _ObjectTile extends StatelessWidget {
         : (selected ? t.accentBlue : t.accentGreenInk);
     final accentBg =
         (skipped ? t.danger : (selected ? t.accentBlue : t.accentGreen))
-            .withValues(alpha: 0.15);
+            .withValues(alpha: DashAlpha.wash);
 
     return Tooltip(
       message: blockedReason ?? '',
@@ -1018,35 +1069,42 @@ class _ObjectTile extends StatelessWidget {
           ? TooltipTriggerMode.manual
           : TooltipTriggerMode.tap,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: (canSelect && !skipped) ? onToggle : null,
         child: Container(
           padding: const EdgeInsets.all(DashSpace.md),
           decoration: BoxDecoration(
             color: skipped
-                ? t.danger.withValues(alpha: 0.06)
-                : (selected ? t.accentBlue.withValues(alpha: 0.08) : t.subCard),
-            borderRadius: BorderRadius.circular(14),
+                ? t.danger.withValues(alpha: DashAlpha.faint)
+                : (selected
+                      ? t.accentBlue.withValues(alpha: DashAlpha.faint)
+                      : t.subCard),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: skipped
-                  ? t.danger.withValues(alpha: 0.3)
+                  ? t.danger.withValues(alpha: DashAlpha.soft)
                   : (selected
-                        ? t.accentBlue.withValues(alpha: 0.5)
+                        ? t.accentBlue.withValues(alpha: DashAlpha.scrim)
                         : t.subCardBorder),
             ),
           ),
           child: Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
-                alignment: Alignment.center,
+                constraints: const BoxConstraints(
+                  minWidth: kMinInteractiveDimension,
+                  minHeight: kMinInteractiveDimension,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
                 decoration: BoxDecoration(
                   color: accentBg,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: accent.withValues(alpha: 0.4)),
+                  borderRadius: BorderRadius.circular(DashRadius.md),
+                  border: Border.all(
+                    color: accent.withValues(alpha: DashAlpha.outline),
+                  ),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
@@ -1056,9 +1114,9 @@ class _ObjectTile extends StatelessWidget {
                     Text(
                       'ID',
                       style: TextStyle(
-                        fontSize: 8,
-                        letterSpacing: 1,
-                        color: accent.withValues(alpha: 0.7),
+                        fontSize: DashFontSize.micro,
+                        letterSpacing: DashTracking.caps,
+                        color: accent.withValues(alpha: DashAlpha.strong),
                       ),
                     ),
                   ],
@@ -1071,7 +1129,7 @@ class _ObjectTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: DashFontSize.title,
                     color: skipped ? t.dangerInk : t.textPrimary,
                     decoration: skipped ? TextDecoration.lineThrough : null,
                   ),
@@ -1081,11 +1139,7 @@ class _ObjectTile extends StatelessWidget {
               if (skipped)
                 Text(
                   l10n.skipObjectsSkippedTag,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: t.dangerInk,
-                  ),
+                  style: t.label.copyWith(color: t.dangerInk),
                 )
               else
                 Icon(
@@ -1115,23 +1169,33 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.view_in_ar_outlined, size: 48, color: t.textTertiary),
+            Icon(
+              Icons.view_in_ar_outlined,
+              size: DashIcon.xxl,
+              color: t.textTertiary,
+            ),
             const SizedBox(height: DashSpace.lg),
             Text(
               l10n.skipObjectsEmpty,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: t.textPrimary),
+              style: TextStyle(
+                fontSize: DashFontSize.lead,
+                color: t.textPrimary,
+              ),
             ),
             const SizedBox(height: DashSpace.sm),
             Text(
               l10n.skipObjectsEmptyHint,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: t.textSecondary),
+              style: TextStyle(
+                fontSize: DashFontSize.label,
+                color: t.textSecondary,
+              ),
             ),
             const SizedBox(height: DashSpace.xl),
             OutlinedButton.icon(
               onPressed: onReload,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(Icons.refresh, size: DashIcon.md),
               label: Text(l10n.skipObjectsReload),
             ).tagged('skip_objects.reload'),
           ],

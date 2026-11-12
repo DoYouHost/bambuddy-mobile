@@ -2,11 +2,13 @@ import 'package:bambuddy_mobile/features/common/photo_pager.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 
 void main() {
   Widget pager(List<String> paths, {int initialPage = 0}) => ProviderScope(
+    retry: neverRetry,
     overrides: [noServerProfileOverride, mediaAuthOverride()],
     child: plApp(
       Scaffold(

@@ -55,9 +55,8 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final printers =
-        ref.watch(pipelineTargetPrintersProvider).valueOrNull ?? const [];
-    final classes =
-        ref.watch(pipelinePrinterClassesProvider).valueOrNull ?? const [];
+        ref.watch(pipelineTargetPrintersProvider).value ?? const [];
+    final classes = ref.watch(pipelinePrinterClassesProvider).value ?? const [];
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.pipelineEditTitle),
@@ -228,6 +227,9 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
         l10n,
         action: 'pipeline_edit.save',
       );
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 }

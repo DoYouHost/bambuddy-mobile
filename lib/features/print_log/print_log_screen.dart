@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:app_util/app_util.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -16,8 +15,10 @@ import '../../providers.dart';
 import '../archive/archive_providers.dart' show printersForPickerProvider;
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
+import '../common/pick_date_range.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
+import '../common/search_debouncer.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
@@ -37,21 +38,20 @@ class PrintLogScreen extends ConsumerStatefulWidget {
 }
 
 class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 350));
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 
   /// Unlike the archive's, this search is a server-side filter — every
   /// keystroke would be a request, so the debounce is doing real work.
   void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () {
+    _debounce.run(q, (trimmed) {
       if (!mounted) return;
-      ref.read(printLogFiltersProvider.notifier).setQuery(q.trim());
+      ref.read(printLogFiltersProvider.notifier).setQuery(trimmed);
     });
   }
 
@@ -78,7 +78,7 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final filters = ref.read(printLogFiltersProvider);
     final narrowed = filters.activeCount > 0 || filters.query.isNotEmpty;
-    final total = ref.read(printLogProvider).valueOrNull?.total ?? 0;
+    final total = ref.read(printLogProvider).value?.total ?? 0;
     final confirmed = await confirmDialog(
       context,
       title: l10n.printLogClearTitle,
@@ -179,18 +179,14 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
                     ),
                   ),
                   if (state.items.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message:
-                            filters.activeCount > 0 || filters.query.isNotEmpty
-                            ? l10n.printLogNoMatches
-                            : l10n.printLogEmpty,
-                        icon:
-                            filters.activeCount > 0 || filters.query.isNotEmpty
-                            ? Icons.search_off
-                            : Icons.receipt_long_outlined,
-                      ),
+                    SliverEmptyState(
+                      message:
+                          filters.activeCount > 0 || filters.query.isNotEmpty
+                          ? l10n.printLogNoMatches
+                          : l10n.printLogEmpty,
+                      icon: filters.activeCount > 0 || filters.query.isNotEmpty
+                          ? Icons.search_off
+                          : Icons.receipt_long_outlined,
                     )
                   else
                     SliverPadding(
@@ -235,7 +231,7 @@ class _SortMenu extends ConsumerWidget {
     /// not a choice — tapping it must not close the menu.
     PopupMenuEntry<String> caption(String text) => PopupMenuItem<String>(
       enabled: false,
-      height: 32,
+      height: DashSize.d32,
       child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
     );
 
@@ -340,7 +336,7 @@ class _ListFooter extends ConsumerWidget {
       ),
       child: Center(
         child: state.loadingMore
-            ? const DashSpinner(size: 22)
+            ? const DashSpinner(size: DashSize.d24)
             : logTag(
                 'print_log.load_more',
                 TextButton(
@@ -398,13 +394,13 @@ class _PrintLogCard extends ConsumerWidget {
         child: logTag(
           'print_log.card',
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -412,7 +408,7 @@ class _PrintLogCard extends ConsumerWidget {
                 children: [
                   PrintThumbnail.printLogEntry(
                     printLogEntryId: entry.hasThumbnail ? entry.id : null,
-                    size: 52,
+                    size: DashSize.d56,
                   ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
@@ -514,12 +510,11 @@ class _PrintLogFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(printLogFiltersProvider);
     final notifier = ref.read(printLogFiltersProvider.notifier);
-    final printers =
-        ref.watch(printersForPickerProvider).valueOrNull ?? const [];
+    final printers = ref.watch(printersForPickerProvider).value ?? const [];
     // Empty (including on 403) hides the picker, mirroring the Stats screen:
     // the server decides who may list users, and the app has no permission
     // model of its own to ask.
-    final users = ref.watch(statsUsersProvider).valueOrNull ?? const [];
+    final users = ref.watch(statsUsersProvider).value ?? const [];
 
     return logTag(
       'sheet.print_log_filters',
@@ -537,7 +532,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
           ),
           children: [
             SizedBox(
-              height: 48,
+              height: DashSize.d48,
               child: Row(
                 children: [
                   Text(l10n.printLogFilters, style: theme.textTheme.titleLarge),
@@ -625,7 +620,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
             logTag(
               'print_log.filters.dates',
               OutlinedButton.icon(
-                icon: const Icon(Icons.date_range, size: 18),
+                icon: const Icon(Icons.date_range, size: DashIcon.md),
                 label: Text(
                   filters.from == null && filters.to == null
                       ? l10n.printLogFilterDates
@@ -634,12 +629,9 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                             '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
                 ),
                 onPressed: () async {
-                  final now = DateTime.now();
-                  final picked = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(now.year - 5),
-                    lastDate: now,
-                    initialDateRange: filters.from != null && filters.to != null
+                  final picked = await pickDateRange(
+                    context,
+                    initial: filters.from != null && filters.to != null
                         ? DateTimeRange(start: filters.from!, end: filters.to!)
                         : null,
                   );

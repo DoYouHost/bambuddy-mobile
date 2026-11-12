@@ -45,7 +45,7 @@ class PrintStepper extends StatelessWidget {
             padding: EdgeInsets.zero,
           ),
           onPressed: onTap,
-          child: Icon(icon),
+          child: Icon(icon, semanticLabel: tip),
         ),
       );
       return tip == null ? b : Tooltip(message: tip, child: b);
@@ -101,39 +101,41 @@ class PrintOptionRow extends StatelessWidget {
     return logTag(
       id,
       Material(
-        color: on ? t.accent.withValues(alpha: 0.16) : t.subCard,
+        color: on ? t.accent.withValues(alpha: DashAlpha.wash) : t.subCard,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
           side: BorderSide(
-            color: on ? t.accent.withValues(alpha: 0.4) : t.subCardBorder,
+            color: on
+                ? t.accent.withValues(alpha: DashAlpha.outline)
+                : t.subCardBorder,
           ),
         ),
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: SizedBox(
-            height: printOptionHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: t.bodyPlain,
-                      // Two lines where a language names the option at length.
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+          // A minimum: a language that names the option at length takes two lines.
+          child: Container(
+            constraints: const BoxConstraints(minHeight: printOptionHeight),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: t.bodyPlain,
+                    // Two lines where a language names the option at length.
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: DashSpace.sm),
-                  Text(
-                    value,
-                    style: t.bodyBold.copyWith(color: on ? t.accentInk : null),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  value,
+                  style: t.bodyBold.copyWith(color: on ? t.accentInk : null),
+                  maxLines: 1,
+                ),
+              ],
             ),
           ),
         ),

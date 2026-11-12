@@ -21,7 +21,7 @@ class ConnectionModeChip extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final live =
-        ref.watch(wsConnectionStateProvider).valueOrNull ==
+        ref.watch(wsConnectionStateProvider).value ==
         WsConnectionState.connected;
 
     final accent = live ? t.accentGreen : t.accentOrange;
@@ -45,24 +45,26 @@ class ConnectionModeChip extends ConsumerWidget {
           vertical: DashSpace.xs,
         ),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: accent.withValues(alpha: 0.4)),
+          color: accent.withValues(alpha: DashAlpha.wash),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
+          border: Border.all(
+            color: accent.withValues(alpha: DashAlpha.outline),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (live)
               Container(
-                width: 8,
-                height: 8,
+                width: DashSize.d8,
+                height: DashSize.d8,
                 decoration: BoxDecoration(
                   color: accent,
                   shape: BoxShape.circle,
                 ),
               )
             else
-              Icon(Icons.sync, size: 13, color: ink),
+              Icon(Icons.sync, size: DashIcon.xs, color: ink),
             const SizedBox(width: DashSpace.sm),
             Text(label, style: t.label.copyWith(color: ink)),
           ],

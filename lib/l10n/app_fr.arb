@@ -45,6 +45,8 @@
   "addPrinterIp": "Adresse IP",
   "addPrinterSerial": "Numéro de série",
   "addPrinterAccessCode": "Code d'accès",
+  "addPrinterRevealAccessCode": "Afficher le code d'accès",
+  "addPrinterHideAccessCode": "Masquer le code d'accès",
   "addPrinterModel": "Modèle",
   "addPrinterModelOptional": "Facultatif",
   "addPrinterModelNone": "Non défini",
@@ -218,10 +220,9 @@
   "ctrlMoveHome": "Retour à l'origine",
   "ctrlMoveHomeStarted": "Retour à l'origine démarré",
   "ctrlMoveStep": "Pas",
-  "ctrlMoveZ": "Z (écart du plateau)",
+  "ctrlMoveZ": "Z",
   "ctrlMoveZUp": "Haut",
   "ctrlMoveZDown": "Bas",
-  "ctrlMoveZToolhead": "Z (tête)",
   "ctrlMoveZUnknownDirection": "Le sens de l'axe Z de cette imprimante dépend de la version du serveur, qui n'a pas pu être confirmée : les mouvements en Z sont donc désactivés ici. Si le serveur était injoignable, rouvrez ce panneau ; sinon, mettez-le à jour.",
   "ctrlMoveZNoModel": "Aucun modèle n'est défini pour cette imprimante dans Bambuddy : l'application ne sait donc pas si l'axe Z déplace le plateau ou la tête, et les mouvements en Z sont désactivés ici. Définissez le modèle de l'imprimante dans Bambuddy pour les utiliser.",
   "ctrlMoveExtrude": "Extruder",
@@ -232,6 +233,22 @@
     "placeholders": {
       "d": {
         "type": "int"
+      }
+    }
+  },
+  "ctrlMoveAxisPlus": "Déplacer {axis}, sens positif",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "Déplacer {axis}, sens négatif",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
       }
     }
   },
@@ -347,6 +364,13 @@
   "plugStateOff": "Éteint",
   "queueEmpty": "La file d'attente est vide",
   "queueAmsFromSlicer": "AMS depuis le slicer",
+  "queueColorSubstitution": "L'emplacement {slot} a imprimé en {got}, le fichier demande {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} emplacement} other{{count} emplacements}}",
+  "queueColorSubstitutionTitle": "Imprimé dans une autre couleur",
+  "queueColorSubstitutionWhy": "Aucune bobine de la couleur du fichier n'était chargée, ou l'emplacement a été choisi à la main.",
+  "queueColorSubstitutionSlot": "Emplacement {slot}",
+  "queueColorSubstitutionPrinted": "Imprimé en",
+  "queueColorSubstitutionWanted": "Le fichier demande",
   "queueAnyOfModels": "Au choix parmi : {models}",
   "@queueAnyOfModels": {
     "placeholders": {
@@ -841,7 +865,6 @@
   "sensorHistoryError": "Impossible de charger l'historique",
   "amsHistoryRecordingInfo": "Enregistré toutes les 5 minutes lorsque l'imprimante est connectée",
   "heaterHistoryTitle": "Historique des températures",
-  "heaterHistoryOpen": "Historique des températures",
   "heaterHistoryReading": "Mesure",
   "heaterHistoryTarget": "Cible",
   "heaterHistoryRecordingInfo": "Enregistré chaque minute lorsque l'imprimante est connectée",
@@ -864,7 +887,6 @@
   "widgetStatusPrinting": "Impression",
   "widgetStatusPaused": "En pause",
   "widgetStatusFinished": "Terminée",
-  "widgetStatusFailed": "Échouée",
   "widgetStatusIdle": "Inactive",
   "widgetStatusOffline": "Hors ligne",
   "widgetStatusError": "Erreur",
@@ -992,6 +1014,7 @@
   "scanApiKeyHint": "Pointez l'appareil photo vers le code QR de la clé API",
   "cameraPermissionTitle": "Accès à l'appareil photo requis",
   "cameraPermissionBody": "Autorisez l'accès à l'appareil photo pour scanner des codes QR.",
+  "scannerTorch": "Lampe torche",
   "errMissingUrl": "Saisissez l'adresse du serveur",
   "errMissingApiKey": "Saisissez la clé API",
   "errMissingCredentials": "Saisissez le nom d'utilisateur et le mot de passe",
@@ -1235,6 +1258,17 @@
       }
     }
   },
+  "printPauseAtLayer": "couche {layer}",
+  "printPauseA11yIn": "Pause suivante dans {duration}, à la couche {layer}",
+  "printPauseA11yLayer": "Prochaine pause à la couche {layer}",
+  "serverSettingsPauseWarningSubtitle": "Combien de temps avant une pause prévenir",
+  "pauseWarningTitle": "Avertissement de pause",
+  "pauseWarningLabel": "Prévenir {duration} avant une pause",
+  "pauseWarningDesc": "Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s'applique à tous les appareils.",
+  "notifEvtPauseUpcoming": "Pause à venir",
+  "notifEvtPauseUpcomingDesc": "Avertissement avant une pause placée par le slicer dans l'impression",
+  "notifPauseUpcomingTitle": "Pause à venir",
+  "notifPauseUpcomingBody": "{name} : une pause dans {minutes, plural, =0{moins d'une minute} one{{minutes} minute} other{{minutes} minutes}}, à la couche {layer}",
   "notifHumidityThreshold": "Humidité AMS au-dessus de {value} %",
   "@notifHumidityThreshold": {
     "placeholders": {
@@ -1437,7 +1471,24 @@
     }
   },
   "inventoryPrinterPresetsLoadFailed": "Non lus — l'enregistrement les laissera inchangés.",
-  "inventoryPrinterPresetsSaveFailed": "Bobine enregistrée, mais ses préréglages par modèle ne l'ont pas été.",
+  "inventoryProfileDefaultPrefilled": "Rempli d'après les valeurs par défaut de {product}",
+  "inventoryProfileDefaultUse": "Utiliser par défaut",
+  "inventoryProfileDefaultFor": "pour {product}",
+  "inventoryProfileDefaultNeedsMaterial": "Indiquez d'abord le matériau",
+  "inventoryProfileDefaultScope": "S'applique à",
+  "inventoryProfileDefaultAllColors": "Toutes les couleurs",
+  "inventoryProfileDefaultColorOnly": "Seulement {color}",
+  "inventoryProfileDefaultSaveFailed": "Bobine enregistrée, mais pas ses valeurs par défaut.",
+  "serverSettingsProfileDefaultsSubtitle": "Ce que reçoivent les nouvelles bobines",
+  "profileDefaultsTitle": "Valeurs par défaut des profils",
+  "profileDefaultsDescription": "Enregistrez-en une avec « Utiliser par défaut » dans le formulaire de la bobine. Appliquer ne complète que ce qui manque aux bobines.",
+  "profileDefaultsEmpty": "Aucune valeur par défaut enregistrée",
+  "profileDefaultsApply": "Appliquer aux bobines",
+  "profileDefaultsApplied": "{count, plural, =0{Aucune bobine n'en avait besoin} one{{count} bobine complétée} other{{count} bobines complétées}}",
+  "profileDefaultsDeleteTitle": "Supprimer ces valeurs par défaut ?",
+  "profileDefaultsDeleteBody": "{product} : les nouvelles bobines ne démarreront plus avec. Celles qui l'ont déjà reçu le gardent.",
+  "profileDefaultsModelPresets": "{count, plural, one{{count} préréglage par modèle} other{{count} préréglages par modèle}}",
+  "profileDefaultsKProfiles": "{count, plural, one{{count} profil K} other{{count} profils K}}",
   "inventoryFieldMaterial": "Matériau",
   "inventoryFieldBrand": "Marque",
   "inventoryFieldSubtype": "Variante",
@@ -1516,8 +1567,6 @@
   "inventorySpoolArchived": "Bobine archivée",
   "inventorySpoolRestored": "Bobine restaurée",
   "inventoryUsageReset": "Compteur réinitialisé",
-  "inventorySaveFailed": "Impossible d'enregistrer la bobine",
-  "inventoryActionFailed": "Échec de l'action",
   "inventoryUnassign": "Désassigner",
   "inventoryAssign": "Assigner à un emplacement",
   "inventoryAssignPrinter": "Imprimante",
@@ -2194,6 +2243,7 @@
   },
   "fmVariantsGone": "Ce groupe n'existe plus",
   "fmUpload": "Téléverser un fichier",
+  "fmAddFiles": "Ajouter des fichiers",
   "fmUploading": "Téléversement…",
   "fmUploaded": "Téléversement terminé : {name}",
   "@fmUploaded": {
@@ -2402,7 +2452,7 @@
   "mwInLibrary": "Dans la bibliothèque",
   "mwImported": "Importé dans votre bibliothèque",
   "mwAlreadyInLibrary": "Déjà dans votre bibliothèque",
-  "mwViewInFiles": "Afficher dans le gestionnaire de fichiers",
+  "mwViewInFiles": "Ouvrir les fichiers",
   "mwRecentImports": "Importations récentes",
   "mwNoRecent": "Aucune importation récente pour l'instant",
   "mwOpenOnMakerworld": "Ouvrir sur MakerWorld",
@@ -2412,6 +2462,8 @@
   "cloudCredsNote": "Connectez-vous avec votre compte Bambu Lab. Ces identifiants sont uniquement utilisés pour télécharger des modèles depuis MakerWorld.",
   "cloudEmail": "E-mail",
   "cloudPassword": "Mot de passe",
+  "cloudShowPassword": "Afficher le mot de passe",
+  "cloudHidePassword": "Masquer le mot de passe",
   "cloudRegionGlobal": "Global",
   "cloudRegionChina": "Chine",
   "cloudSignIn": "Se connecter",
@@ -4390,6 +4442,8 @@
   "announcementsTitle": "Annonces",
   "announcementsUnread": "Annonces non lues : {count}",
   "announcementsEmpty": "Aucune annonce pour le moment.",
+  "linkedAppsTitle": "Applications liées",
+  "linkedAppsEmpty": "Aucune application liée.",
   "announcementsEarlier": "Précédentes ({count})",
   "announcementsNew": "Nouveau",
   "announcementsReadMore": "En savoir plus",

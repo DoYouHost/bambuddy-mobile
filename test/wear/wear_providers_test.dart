@@ -17,6 +17,7 @@ void main() {
   test('wearTransportProvider survives being only read '
       '(autoDispose killed the reply listener mid-request)', () async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         watchConnectivityProvider.overrideWithValue(FakeWatchConnectivity()),
         noServerProfileOverride,
@@ -44,6 +45,7 @@ void main() {
       WearFleetCache cache = const _NoCache(),
     }) {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           serverProfileProvider.overrideWith(() => profile),
           wearFleetCacheProvider.overrideWithValue(cache),
@@ -203,6 +205,7 @@ void main() {
 
     ProviderContainer containerWith(_CountingTransport transport) {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           wearFleetCacheProvider.overrideWithValue(const _NoCache()),
@@ -377,6 +380,11 @@ class _RebuildableProfile extends ServerProfileNotifier {
   @override
   ServerProfile? build() =>
       ServerProfile(baseUrl: fakeServerBaseUrl, authMode: AuthMode.none);
+
+  /// Riverpod 3 tells dependents only when the value `==` changes, and this one
+  /// never does; the re-read has to say it counts anyway.
+  @override
+  bool updateShouldNotify(ServerProfile? previous, ServerProfile? next) => true;
 
   /// What adopting a pushed config does.
   void rebuild() => ref.invalidateSelf();

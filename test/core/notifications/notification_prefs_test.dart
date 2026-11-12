@@ -112,7 +112,35 @@ void main() {
         NotifEvent.milestones,
         NotifEvent.outcomeRequest,
         NotifEvent.billingAlert,
+        NotifEvent.pauseUpcoming,
       });
+    });
+
+    test('the pause warning comes on for an install that predates it, and '
+        'stays off once the user has seen the switch', () {
+      // A manifest from the build before the event: it never offered the
+      // switch, so everything else is the user's choice (off here) and the new
+      // event takes the default it ships with.
+      final before = NotificationPrefs.decode(
+        jsonEncode({
+          'enabled': <String>[],
+          'known': [
+            for (final e in NotifEvent.values)
+              if (e != NotifEvent.pauseUpcoming) e.name,
+          ],
+        }),
+      );
+      expect(before.isOn(NotifEvent.pauseUpcoming), isTrue);
+      expect(before.isOn(NotifEvent.printFinished), isFalse);
+
+      // A manifest that lists it and an enabled list that does not: declined.
+      final declined = NotificationPrefs.decode(
+        jsonEncode({
+          'enabled': <String>[],
+          'known': [for (final e in NotifEvent.values) e.name],
+        }),
+      );
+      expect(declined.isOn(NotifEvent.pauseUpcoming), isFalse);
     });
 
     test('the manifest round-trips and lists every event', () {

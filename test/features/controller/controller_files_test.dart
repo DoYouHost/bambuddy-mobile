@@ -15,6 +15,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -55,6 +56,9 @@ class _Library extends FileManagerNotifier {
   final Completer<void>? openGate;
   final Completer<void>? refreshGate;
 
+  /// Held until completed by the NEXT build only: a retry in flight.
+  Completer<void>? holdBuild;
+
   /// How often the library was built, which is how often it is fetched.
   final builds = <int>[];
 
@@ -69,6 +73,7 @@ class _Library extends FileManagerNotifier {
     builds.add(builds.length + 1);
     ref.onDispose(() => disposals.add(disposals.length + 1));
     await gate?.future;
+    await holdBuild?.future;
     if (failWith != null) throw failWith!;
     return FileManagerState(
       allFolders: folders,
@@ -82,13 +87,10 @@ class _Library extends FileManagerNotifier {
     calls.add('open $folderId');
     final before = state;
     if (openGate != null || openFailsWith != null) {
-      state = const AsyncLoading<FileManagerState>().copyWithPrevious(before);
+      state = const AsyncLoading<FileManagerState>();
       await openGate?.future;
       if (openFailsWith != null) {
-        state = AsyncError<FileManagerState>(
-          openFailsWith!,
-          StackTrace.empty,
-        ).copyWithPrevious(before);
+        state = AsyncError<FileManagerState>(openFailsWith!, StackTrace.empty);
         return;
       }
     }
@@ -118,7 +120,7 @@ class _Library extends FileManagerNotifier {
     final gate = refreshGate;
     if (gate == null) return;
     final before = state;
-    state = const AsyncLoading<FileManagerState>().copyWithPrevious(before);
+    state = const AsyncLoading<FileManagerState>();
     await gate.future;
     state = before;
   }
@@ -229,7 +231,9 @@ void main() {
       tester,
       model: model,
       size: size,
-      overrides: [fileManagerProvider.overrideWith(() => library), ...extra],
+      overrides: layerOverrides([
+        fileManagerProvider.overrideWith(() => library),
+      ], extra),
     );
   }
 
@@ -255,7 +259,13 @@ void main() {
         tabs.indexOf(ControllerTab.settings),
         tabs.indexOf(ControllerTab.prints) + 1,
       );
-      expect(find.text(pl.controllerTabPrints), findsOneWidget);
+      // On the rail the tabs run down in that order.
+      double top(ControllerTab tab) => tester.getRect(byLogId(tab.logId)).top;
+      expect(
+        top(ControllerTab.prints),
+        greaterThan(top(ControllerTab.filament)),
+      );
+      expect(top(ControllerTab.prints), lessThan(top(ControllerTab.settings)));
       expect(find.byType(ControllerFiles), findsNothing);
 
       await openFiles(tester);
@@ -557,6 +567,28 @@ void main() {
 
       expect(find.text(pl.connectFailed), findsOneWidget);
       expect(find.text('benchy.gcode.3mf'), findsNothing);
+    });
+
+    testWidgets('a retry under way shows neither the old folder nor the '
+        'failure', (tester) async {
+      await pump(tester, lib: tree(openFailsWith: Exception('down')));
+      await openFiles(tester);
+      await tester.tap(find.text('Alpha'));
+      await settle(tester);
+      expect(find.text(pl.connectFailed), findsOneWidget);
+
+      final hold = Completer<void>();
+      library.holdBuild = hold;
+      await tester.tap(byLogId('controller.files.retry'));
+      await tester.pump();
+
+      expect(find.text('benchy.gcode.3mf'), findsNothing);
+      expect(find.text(pl.connectFailed), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      hold.complete();
+      await settle(tester);
+      expect(find.text('benchy.gcode.3mf'), findsOneWidget);
     });
 
     testWidgets('while a step is under way Up and the folders wait', (
@@ -1015,6 +1047,37 @@ void main() {
       // Back to something a second tap can act on.
       expect(enabled(tester, 'controller.files.dialog.delete'), isTrue);
       expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    testWidgets('a Delete that fails with an unexpected error keeps the dialog '
+        'usable, and the error is still reported', (tester) async {
+      final repo = _Repo()..deleteFails = StateError('unreadable answer');
+      await pump(
+        tester,
+        lib: _Library(
+          folders: const [LibraryFolder(id: 1, name: 'Alpha')],
+          startFolderId: 1,
+          filesByFolder: {
+            1: [_file(10, 'benchy.gcode.3mf', folderId: 1)],
+          },
+        ),
+        extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+      );
+      await openFiles(tester);
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      // The delete carries on after the confirmation closes, in the zone of the
+      // tap that opened it, so the whole flow is captured together.
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(byLogId('controller.files.dialog.delete'));
+        await settle(tester);
+        await tester.tap(find.text(pl.fmDelete).last);
+        await settle(tester);
+      }, (e, _) => errors.add(e));
+
+      expect(errors.single, isA<StateError>());
+      expect(enabled(tester, 'controller.files.dialog.delete'), isTrue);
     });
   });
 

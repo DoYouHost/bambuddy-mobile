@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 
@@ -21,6 +22,7 @@ void main() {
   ];
 
   Widget app() => ProviderScope(
+    retry: neverRetry,
     overrides: [statsUsersProvider.overrideWith((ref) async => users)],
     child: plApp(const StatisticsScreen()),
   );

@@ -31,3 +31,10 @@ class WearHeader extends StatelessWidget {
     ),
   );
 }
+
+/// A centred sentence at the watch's body size; [color] dims it.
+Widget wearBodyLine(String text, {Color? color}) => Text(
+  text,
+  textAlign: TextAlign.center,
+  style: WearText.body.copyWith(color: color),
+);

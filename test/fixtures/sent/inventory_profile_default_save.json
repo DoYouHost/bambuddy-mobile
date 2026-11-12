@@ -1,0 +1,31 @@
+[
+  {
+    "method": "PUT",
+    "path": "/api/v1/inventory/profile-defaults",
+    "body": {
+      "brand": "",
+      "material": "PLA",
+      "subtype": "",
+      "color_name": "",
+      "slicer_filament": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "presets": [
+        {
+          "printer_model": "X1C",
+          "nozzle_diameter": "",
+          "slicer_filament": "GFA00_X1C",
+          "slicer_filament_name": "Bambu PLA Basic @BBL X1C"
+        }
+      ],
+      "k_profiles": [
+        {
+          "printer_id": 1,
+          "extruder": 0,
+          "nozzle_diameter": "0.4",
+          "k_value": 0.02,
+          "name": "Bambu PLA Basic"
+        }
+      ]
+    }
+  }
+]

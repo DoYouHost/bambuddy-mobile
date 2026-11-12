@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 
@@ -22,6 +23,7 @@ void main() {
     late DetachedHandles handles;
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [serverAnswer.overrideWithValue('from the app container')],
         child: plApp(
           Scaffold(
@@ -37,6 +39,7 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [serverAnswer.overrideWithValue('from the app container')],
         child: plApp(const Scaffold(body: Text('the screen is gone'))),
       ),

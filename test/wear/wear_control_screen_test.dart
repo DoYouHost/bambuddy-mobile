@@ -82,15 +82,35 @@ WearFleet _offlineAwaiting() => WearFleet(
   queuePending: 0,
 );
 
+/// A printer that is printing, or still preparing when [progress] is zero.
+WearFleet _running({double progress = 0, String? stage}) => WearFleet(
+  printers: [
+    PrinterWithStatus(
+      printer: const Printer(id: 7, name: 'X2D-3DP'),
+      status: PrinterStatus(
+        id: 7,
+        connected: true,
+        state: 'RUNNING',
+        progress: progress,
+        remainingTime: 12,
+        stgCurName: stage,
+      ),
+    ),
+  ],
+  queuePending: 0,
+);
+
 Future<void> _pump(
   WidgetTester tester,
   WearFleet fleet, {
   Size face = wearFaceSmall,
   WearTransport? transport,
+  bool animated = false,
 }) => pumpWear(
   tester,
   const WearPrinterControlScreen(printerId: 7),
   face: face,
+  animated: animated,
   overrides: [
     noServerProfileOverride,
     wearTransportProvider.overrideWith(
@@ -165,6 +185,47 @@ void main() {
 
       expect(find.text(pl.wearPlateNeedsOnline), findsOneWidget);
       expect(ack, findsNothing);
+    });
+  });
+
+  group('the progress line', () {
+    LinearProgressIndicator bar(WidgetTester tester) =>
+        tester.widget(find.byType(LinearProgressIndicator));
+
+    testWidgets('names the preparation stage instead of a stalled 0%, as the '
+        'phone card does', (tester) async {
+      await _pump(
+        tester,
+        _running(stage: ' Auto bed leveling '),
+        animated: true,
+      );
+
+      expect(find.textContaining('Auto bed leveling'), findsOneWidget);
+      expect(find.textContaining('0%'), findsNothing);
+      expect(
+        bar(tester).value,
+        isNull,
+        reason: 'indeterminate while preparing',
+      );
+    });
+
+    testWidgets('shows the percentage once the print has progress', (
+      tester,
+    ) async {
+      await _pump(tester, _running(progress: 42, stage: 'Printing'));
+
+      expect(find.textContaining('42%'), findsOneWidget);
+      expect(find.textContaining('Printing'), findsNothing);
+      expect(bar(tester).value, closeTo(0.42, 1e-9));
+    });
+
+    testWidgets('keeps the percentage when the server names no stage', (
+      tester,
+    ) async {
+      await _pump(tester, _running());
+
+      expect(find.textContaining('0%'), findsOneWidget);
+      expect(bar(tester).value, 0);
     });
   });
 

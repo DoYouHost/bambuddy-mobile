@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -44,13 +45,13 @@ class HeaterHistoryRepository {
       // No 404 anywhere in `routes/printer_sensor_history.py`: a printer with
       // nothing recorded answers an empty series, so a 404 is the route.
       historyCapability.watching(observing: treat404AsAbsent, () async {
-        final res = await _dio.get<Map<String, dynamic>>(
+        return _dio.getObject(
           Endpoints.printerSensorHistory(printerId),
-          queryParameters: {
+          HeaterHistory.fromJson,
+          query: {
             'hours': hours,
             if (kinds.isNotEmpty) 'kinds': kinds.join(','),
           },
         );
-        return HeaterHistory.fromJson(res.data ?? const {});
       });
 }

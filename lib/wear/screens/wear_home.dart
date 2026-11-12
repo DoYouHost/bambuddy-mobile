@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,8 +43,8 @@ class WearHome extends ConsumerWidget {
       child: fleet.when(
         loading: () => const Center(
           child: SizedBox(
-            width: 26,
-            height: 26,
+            width: DashSize.d24,
+            height: DashSize.d24,
             child: CircularProgressIndicator(),
           ),
         ),

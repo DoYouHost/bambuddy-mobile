@@ -1,7 +1,7 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/current_user.dart';
 import '../core/models/user_items_count.dart';
@@ -25,8 +25,7 @@ class UsersRepository {
   /// `created_at`). `users:read`; an identity without it gets a 403.
   Future<List<CurrentUser>> list() {
     return guardKeepingDetail(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.users);
-      return parseJsonList(res.data, CurrentUser.fromJson);
+      return _dio.getList(Endpoints.users, CurrentUser.fromJson);
     });
   }
 
@@ -34,10 +33,10 @@ class UsersRepository {
   /// created by this account.
   Future<UserItemsCount> itemsCount(int userId) {
     return guardKeepingDetail(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
+      return _dio.getObject(
         Endpoints.userItemsCount(userId),
+        UserItemsCount.fromJson,
       );
-      return UserItemsCount.fromJson(res.data ?? const {});
     });
   }
 
@@ -85,10 +84,10 @@ class UsersRepository {
   /// form.
   Future<AdvancedAuthStatus> advancedAuthStatus() async {
     try {
-      final res = await _dio.get<Map<String, dynamic>>(
+      return await _dio.getObject(
         Endpoints.advancedAuthStatus,
+        AdvancedAuthStatus.fromJson,
       );
-      return AdvancedAuthStatus.fromJson(res.data ?? const {});
     } on DioException {
       return AdvancedAuthStatus.legacy;
     }

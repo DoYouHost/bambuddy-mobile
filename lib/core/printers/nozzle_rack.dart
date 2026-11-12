@@ -9,6 +9,7 @@
 /// orifice.
 library;
 
+import '../format/fixed_format.dart';
 import '../models/filament_requirement.dart';
 import '../models/printer_status.dart';
 
@@ -182,8 +183,5 @@ String nozzleDiameterLabel(String? raw) {
   final text = raw?.trim() ?? '';
   final value = double.tryParse(text);
   if (value == null) return text;
-  return value
-      .toStringAsFixed(2)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
+  return trimFixedZeros(value.toStringAsFixed(2));
 }

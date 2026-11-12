@@ -42,6 +42,7 @@ void main() {
   setUp(() {
     ledger = _HeldLedger();
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         noServerProfileOverride,
         financeRepositoryProvider.overrideWithValue(ledger),

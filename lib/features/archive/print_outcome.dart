@@ -98,13 +98,13 @@ class ArchiveVerdictMark extends StatelessWidget {
         decoration: BoxDecoration(
           // Opaque, so the mark reads the same over any thumbnail.
           color: Color.alphaBlend(
-            tone.withValues(alpha: 0.25),
+            tone.withValues(alpha: DashAlpha.soft),
             t.overlaySurface,
           ),
           shape: BoxShape.circle,
-          border: Border.all(color: tone.withValues(alpha: 0.6)),
+          border: Border.all(color: tone.withValues(alpha: DashAlpha.strong)),
         ),
-        child: Icon(icon, size: 13, color: ink),
+        child: Icon(icon, size: DashIcon.xs, color: ink),
       ),
     );
   }
@@ -213,34 +213,32 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
     };
     final label = good ? l10n.outcomeGood : l10n.outcomeReject;
     final onPressed = writable && !_saving ? () => _choose(choice) : null;
+    // The state goes inside the button: a `Semantics` around an `IconButton` is
+    // sealed off from its node, which is the one a screen reader focuses.
+    final mark = Semantics(selected: chosen, child: Icon(icon));
     final button = chosen
         ? IconButton.filled(
             onPressed: onPressed,
+            tooltip: label,
             style: IconButton.styleFrom(
               backgroundColor: fill,
               foregroundColor: good ? t.onAccent : t.onDanger,
-              disabledBackgroundColor: fill.withValues(alpha: 0.5),
+              disabledBackgroundColor: fill.withValues(alpha: DashAlpha.scrim),
               disabledForegroundColor: good ? t.onAccent : t.onDanger,
             ),
-            icon: Icon(icon),
+            icon: mark,
           )
         : IconButton.outlined(
             onPressed: onPressed,
+            tooltip: label,
             style: IconButton.styleFrom(
               foregroundColor: ink,
-              side: BorderSide(color: fill.withValues(alpha: 0.5)),
+              side: BorderSide(color: fill.withValues(alpha: DashAlpha.scrim)),
             ),
-            icon: Icon(icon),
+            icon: mark,
           );
-    return Semantics(
-      label: label,
-      selected: chosen,
-      child: Tooltip(
-        message: label,
-        child: button.tagged(
-          good ? 'archive.verdict_good' : 'archive.verdict_reject',
-        ),
-      ),
+    return button.tagged(
+      good ? 'archive.verdict_good' : 'archive.verdict_reject',
     );
   }
 

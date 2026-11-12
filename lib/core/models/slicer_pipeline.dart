@@ -42,49 +42,39 @@ class PresetRef {
 /// Which printers a pipeline run may dispatch to.
 enum PipelineTargetKind {
   /// One pinned printer (`target_printer_id`).
-  specificPrinter,
+  specificPrinter('specific_printer'),
 
   /// Every printer of one model (`target_model_class`), with copies spread by
   /// the [FanoutStrategy].
-  printerClass;
+  printerClass('printer_class');
+
+  const PipelineTargetKind(this.wire);
+
+  final String wire;
 
   /// The server's own default for a pipeline that has never been targeted
   /// (`SlicerPipelineResponse.target_kind`).
   static const fallback = PipelineTargetKind.printerClass;
 
-  static PipelineTargetKind parse(String? raw) => switch (raw) {
-    'specific_printer' => PipelineTargetKind.specificPrinter,
-    'printer_class' => PipelineTargetKind.printerClass,
-    _ => fallback,
-  };
-
-  String get wire => switch (this) {
-    PipelineTargetKind.specificPrinter => 'specific_printer',
-    PipelineTargetKind.printerClass => 'printer_class',
-  };
+  static PipelineTargetKind parse(String? raw) =>
+      enumByWire(values, raw, (k) => k.wire) ?? fallback;
 }
 
 /// How copies are spread over the printers of a targeted class. Ignored for
 /// [PipelineTargetKind.specificPrinter], which has one printer by definition.
 enum FanoutStrategy {
-  maxParallel,
-  fillOneFirst,
-  roundRobin;
+  maxParallel('max_parallel'),
+  fillOneFirst('fill_one_first'),
+  roundRobin('round_robin');
+
+  const FanoutStrategy(this.wire);
+
+  final String wire;
 
   static const fallback = FanoutStrategy.maxParallel;
 
-  static FanoutStrategy parse(String? raw) => switch (raw) {
-    'max_parallel' => FanoutStrategy.maxParallel,
-    'fill_one_first' => FanoutStrategy.fillOneFirst,
-    'round_robin' => FanoutStrategy.roundRobin,
-    _ => fallback,
-  };
-
-  String get wire => switch (this) {
-    FanoutStrategy.maxParallel => 'max_parallel',
-    FanoutStrategy.fillOneFirst => 'fill_one_first',
-    FanoutStrategy.roundRobin => 'round_robin',
-  };
+  static FanoutStrategy parse(String? raw) =>
+      enumByWire(values, raw, (s) => s.wire) ?? fallback;
 }
 
 /// One saved pipeline (`SlicerPipelineResponse`).

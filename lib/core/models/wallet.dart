@@ -33,10 +33,8 @@ enum WalletTransactionType {
 
   final String wire;
 
-  static WalletTransactionType parse(Object? wire) => values.firstWhere(
-    (t) => t.wire.isNotEmpty && t.wire == wire,
-    orElse: () => other,
-  );
+  static WalletTransactionType parse(Object? wire) =>
+      enumByWire(values, wire, (t) => t.wire) ?? other;
 }
 
 /// How a print charge ended when it was not a clean finish — the server appends

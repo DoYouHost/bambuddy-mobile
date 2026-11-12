@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:app_util/app_util.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
@@ -9,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
+import '../../core/format/money_format.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/print_batch.dart';
 import '../../core/theme/dash_theme.dart';
@@ -275,7 +275,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     // Every write but cancel looks the batch up for its owner, and answers
     // someone else's with a 404 unless the caller may change all of them.
     // Unknown identity: offered, and the server decides.
-    final me = ref.watch(currentUserProvider).valueOrNull;
+    final me = ref.watch(currentUserProvider).value;
     final canTouch =
         b.createdById == null ||
         me == null ||
@@ -365,7 +365,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                       value: total > 0
                           ? (b.completedCount / total).clamp(0.0, 1.0)
                           : 0,
-                      height: 6,
+                      height: DashSize.d8,
                       color: b.status == PrintBatchStatus.completed
                           ? null
                           : t.accentBlue,
@@ -559,7 +559,7 @@ class _Numbers extends ConsumerWidget {
     final t = DashTokens.of(context);
     final b = batch;
     final currency = ref.watch(currencySymbolProvider);
-    String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
+    String money(double v) => formatMoneyValue(currency, v);
     final parts = <String>[
       if (b.printingCount > 0) l10n.ordersPrinting(b.printingCount),
       if (b.pendingCount > 0) l10n.ordersPending(b.pendingCount),
@@ -610,7 +610,7 @@ class _PlateRow extends StatelessWidget {
       padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Row(
         children: [
-          Icon(Icons.layers_outlined, size: 18, color: t.textTertiary),
+          Icon(Icons.layers_outlined, size: DashIcon.md, color: t.textTertiary),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Column(

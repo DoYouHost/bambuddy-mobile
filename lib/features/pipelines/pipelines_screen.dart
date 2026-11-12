@@ -96,7 +96,7 @@ class _PipelineCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final catalog = ref.watch(slicerPresetsProvider).valueOrNull;
+    final catalog = ref.watch(slicerPresetsProvider).value;
     final canWrite = ref.watch(canWritePipelinesProvider).orFalse;
 
     return Card(
@@ -223,7 +223,7 @@ class _PipelineCard extends ConsumerWidget {
             _targetLine(
               theme,
               l10n,
-              ref.watch(pipelineTargetPrintersProvider).valueOrNull,
+              ref.watch(pipelineTargetPrintersProvider).value,
             ),
           ],
         ),
@@ -243,7 +243,7 @@ class _PipelineCard extends ConsumerWidget {
         children: [
           Icon(
             Icons.warning_amber_rounded,
-            size: 18,
+            size: DashIcon.md,
             color: theme.colorScheme.tertiary,
           ),
           const SizedBox(width: DashSpace.sm),
@@ -270,7 +270,7 @@ class _PipelineCard extends ConsumerWidget {
       children: [
         Icon(
           Icons.print_outlined,
-          size: 18,
+          size: DashIcon.md,
           color: theme.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: DashSpace.sm),

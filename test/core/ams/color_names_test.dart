@@ -73,4 +73,22 @@ void main() {
       );
     }
   });
+
+  group('colorHexLabel', () {
+    test('writes a hex as #RRGGBB in capitals, with or without the hash', () {
+      expect(colorHexLabel('#2e9f55'), '#2E9F55');
+      expect(colorHexLabel('2e9f55'), '#2E9F55');
+    });
+
+    test('drops the alpha pair of an eight-digit hex', () {
+      expect(colorHexLabel('#2E9F55FF'), '#2E9F55');
+    });
+
+    test('is empty for no hex, a short one and one that is not hex', () {
+      expect(colorHexLabel(null), isEmpty);
+      expect(colorHexLabel(''), isEmpty);
+      expect(colorHexLabel('#FFF'), isEmpty);
+      expect(colorHexLabel('#GGGGGG'), isEmpty);
+    });
+  });
 }

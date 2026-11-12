@@ -11,14 +11,20 @@ import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/relative_time.dart';
 import '../../core/models/current_user.dart';
+import '../../core/models/json_utils.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/color_dot.dart';
 import '../common/dash_async.dart';
+import 'color_substitution_chip.dart';
 import 'queue_edit_screen.dart';
 import 'queue_item_view.dart';
 import 'queue_removal.dart';
+
+/// The share of a row a time may take and still sit beside the name.
+const _timeBesideShare = 0.35;
 
 /// The queue's History tab, as the web's `QueuePage.tsx` (`HistorySection`,
 /// `CompactHistoryRow`) shows it: every finished, failed, skipped and
@@ -44,10 +50,7 @@ class QueueHistoryOrderNotifier extends Notifier<QueueHistoryOrder> {
     final prefs = ref.watch(sharedPreferencesProvider);
     final by = prefs.getString(_byKey);
     return (
-      by: QueueHistorySort.values.firstWhere(
-        (s) => s.name == by,
-        orElse: () => QueueHistorySort.date,
-      ),
+      by: enumByName(QueueHistorySort.values, by) ?? QueueHistorySort.date,
       ascending: prefs.getBool(_ascendingKey) ?? false,
     );
   }
@@ -77,7 +80,7 @@ final queueHistoryProvider =
 /// The history a page at a time, as the web reads it since #2960: "show more"
 /// asks for a longer first page rather than the next one, so a batch on it
 /// keeps every run. An older server sends everything and is paged here.
-class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
+class QueueHistoryNotifier extends AsyncNotifier<QueueHistoryState> {
   int _limit = QueueHistoryView.pageSize;
 
   /// Bumped by every load, so an answer overtaken by a newer one is dropped.
@@ -93,7 +96,7 @@ class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
     // A rebuild, not a refresh: the build still out for the old order would
     // otherwise land after the new answer and replace it.
     ref.listen(queueHistoryOrderProvider, (_, _) {
-      final shown = state.valueOrNull;
+      final shown = state.value;
       if (shown != null && !shown.serverOrdered) {
         _limit = QueueHistoryView.pageSize;
         state = AsyncData(_withLimit(shown));
@@ -107,17 +110,15 @@ class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
   /// Keeps the rows on screen while the new answer is out.
   Future<void> refresh() async {
     final generation = ++_generation;
-    state = const AsyncValue<QueueHistoryState>.loading().copyWithPrevious(
-      state,
-    );
+    state = const AsyncLoading<QueueHistoryState>();
     final next = await AsyncValue.guard(_load);
-    if (generation == _generation) state = next;
+    if (ref.mounted && generation == _generation) state = next;
   }
 
   /// One more page.
   Future<void> showMore() async {
     _limit += QueueHistoryView.pageSize;
-    final shown = state.valueOrNull;
+    final shown = state.value;
     if (shown != null && !shown.serverOrdered) {
       state = AsyncData(_withLimit(shown));
       return;
@@ -425,7 +426,7 @@ class _SortMenu extends ConsumerWidget {
     final notifier = ref.read(queueHistoryOrderProvider.notifier);
     PopupMenuEntry<String> caption(String text) => PopupMenuItem<String>(
       enabled: false,
-      height: 32,
+      height: DashSize.d32,
       child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
     );
     return logTag(
@@ -523,7 +524,7 @@ class _HistoryRow extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final (icon, ink) = _statusLook(t, item.statusKind);
-    final me = ref.watch(currentUserProvider).valueOrNull;
+    final me = ref.watch(currentUserProvider).value;
     final canRequeue = ref.watch(permissionProvider(Permissions.queueCreate));
     final canRemove = canModifyOwned(
       me,
@@ -567,58 +568,78 @@ class _HistoryRow extends ConsumerWidget {
         ),
         decoration: BoxDecoration(
           gradient: t.cardGradient,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(color: t.cardBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(icon, size: _statusSize, color: ink),
-                const SizedBox(width: DashSpace.sm),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: QueueThumbnail(item: item, size: _thumbSize),
-                ),
-                const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: Text(
-                    item.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.body.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: DashSpace.xs),
-                Text(
-                  relativeTime(
-                    l10n,
-                    DateTimeFormats.of(context),
-                    item.completedAt ?? item.createdAt,
-                    now: DateTime.now(),
-                  ),
-                  style: meta,
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: canRequeue
-                      ? l10n.queueHistoryRequeue
-                      : l10n.queueHistoryNoRequeue,
-                  icon: Icon(Icons.refresh, color: t.accentGreenInk),
-                  onPressed: canRequeue && hasSource
-                      ? () => _requeue(context)
-                      : null,
-                ).tagged('queue_history.requeue'),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: canRemove
-                      ? l10n.queueHistoryRemove
-                      : l10n.queueHistoryNoRemove,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: canRemove ? () => _remove(context, ref) : null,
-                ).tagged('queue_history.remove'),
-              ],
+            LayoutBuilder(
+              builder: (context, box) {
+                final time = relativeTime(
+                  l10n,
+                  DateTimeFormats.of(context),
+                  item.completedAt ?? item.createdAt,
+                  now: DateTime.now(),
+                );
+                // Beside the name while it is short; under it at large text,
+                // where beside it would leave the name a letter and an ellipsis.
+                final timeBeside =
+                    textWidth(
+                      context,
+                      time,
+                      DefaultTextStyle.of(context).style.merge(meta),
+                    ) <=
+                    box.maxWidth * _timeBesideShare;
+                final name = Text(
+                  item.displayName,
+                  maxLines: timeBeside ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.body.copyWith(fontWeight: DashWeight.semibold),
+                );
+                return Row(
+                  children: [
+                    Icon(icon, size: _statusSize, color: ink),
+                    const SizedBox(width: DashSpace.sm),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(DashRadius.sm),
+                      child: QueueThumbnail(item: item, size: _thumbSize),
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: timeBeside
+                          ? name
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                name,
+                                Text(time, style: meta),
+                              ],
+                            ),
+                    ),
+                    if (timeBeside) ...[
+                      const SizedBox(width: DashSpace.xs),
+                      Text(time, style: meta),
+                    ],
+                    IconButton(
+                      tooltip: canRequeue
+                          ? l10n.queueHistoryRequeue
+                          : l10n.queueHistoryNoRequeue,
+                      icon: Icon(Icons.refresh, color: t.accentGreenInk),
+                      onPressed: canRequeue && hasSource
+                          ? () => _requeue(context)
+                          : null,
+                    ).tagged('queue_history.requeue'),
+                    IconButton(
+                      tooltip: canRemove
+                          ? l10n.queueHistoryRemove
+                          : l10n.queueHistoryNoRemove,
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: canRemove ? () => _remove(context, ref) : null,
+                    ).tagged('queue_history.remove'),
+                  ],
+                );
+              },
             ),
             Padding(
               padding: const EdgeInsets.only(left: _indent),
@@ -628,7 +649,11 @@ class _HistoryRow extends ConsumerWidget {
                 children: [
                   if (item.printerName case final printer?)
                     metaItem(
-                      Icon(Icons.print_outlined, size: 12, color: meta.color),
+                      Icon(
+                        Icons.print_outlined,
+                        size: DashIcon.xs,
+                        color: meta.color,
+                      ),
                       printer,
                     ),
                   if (swatch != null || mass != null)
@@ -636,34 +661,35 @@ class _HistoryRow extends ConsumerWidget {
                       swatch == null
                           ? Icon(
                               Icons.scale_outlined,
-                              size: 12,
+                              size: DashIcon.xs,
                               color: meta.color,
                             )
-                          : Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: swatch,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: t.hairline),
-                              ),
-                            ),
+                          : ColorDot(color: swatch),
                       filament,
                     ),
                   if (item.printTimeSeconds case final seconds?
                       when seconds > 0)
                     metaItem(
-                      Icon(Icons.timer_outlined, size: 12, color: meta.color),
+                      Icon(
+                        Icons.timer_outlined,
+                        size: DashIcon.xs,
+                        color: meta.color,
+                      ),
                       formatSeconds(l10n, seconds),
                     ),
                   if (item.createdByUsername case final user?)
                     Tooltip(
                       message: l10n.queueHistoryAddedBy(user),
                       child: metaItem(
-                        Icon(Icons.person_outline, size: 12, color: meta.color),
+                        Icon(
+                          Icons.person_outline,
+                          size: DashIcon.xs,
+                          color: meta.color,
+                        ),
                         user,
                       ),
                     ),
+                  ColorSubstitutionChip(item: item),
                 ],
               ),
             ),
@@ -676,7 +702,11 @@ class _HistoryRow extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.error_outline, size: 12, color: t.dangerInk),
+                    Icon(
+                      Icons.error_outline,
+                      size: DashIcon.xs,
+                      color: t.dangerInk,
+                    ),
                     const SizedBox(width: DashSpace.xs),
                     Expanded(
                       child: Text(
@@ -724,11 +754,11 @@ class _HistoryRow extends ConsumerWidget {
         deleted ? l10n.queueHistoryRemoved : l10n.queueHistoryKeptForOrder,
       );
     } on AppApiException catch (e) {
-      final text = queueWriteMessage(
-        l10n,
+      snackQueueOutcome(
+        messenger,
         ActionOutcome.failed(e, action: 'queue_history.remove'),
+        l10n,
       );
-      if (text != null) messenger.snack(text);
     }
     await ref.read(queueHistoryProvider.notifier).refresh();
   }
@@ -769,68 +799,25 @@ class _BatchRow extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DashSpace.md,
-                vertical: DashSpace.sm,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    expanded ? Icons.expand_more : Icons.chevron_right,
-                    size: 18,
-                    color: t.textTertiary,
-                  ),
-                  const SizedBox(width: DashSpace.xs),
-                  Icon(
-                    expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
-                    size: 18,
-                    color: t.accentBlue,
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      row.batchName ?? l10n.queueHistoryBatch,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.body.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  for (final (kind, n) in counts)
-                    if (n > 0) ...[
-                      const SizedBox(width: DashSpace.sm),
-                      Icon(
-                        _statusLook(t, kind).$1,
-                        size: 12,
-                        color: _statusLook(t, kind).$2,
-                      ),
-                      Text(
-                        ' $n',
-                        style: meta.copyWith(color: _statusLook(t, kind).$2),
-                      ),
-                    ],
-                  const SizedBox(width: DashSpace.sm),
-                  Text(
-                    latest == null
-                        ? ''
-                        : relativeTime(
-                            l10n,
-                            DateTimeFormats.of(context),
-                            latest,
-                            now: DateTime.now(),
-                          ),
-                    style: meta,
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.md,
+                  vertical: DashSpace.sm,
+                ),
+                child: _batchHeader(context, t, l10n, meta, latest, counts),
               ),
             ),
           ).tagged('queue_history.batch', expanded: expanded),
@@ -854,6 +841,96 @@ class _BatchRow extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  /// Name, status counts and the latest time. At large text the counts and the
+  /// time go to a line of their own, so the name keeps room to be read.
+  Widget _batchHeader(
+    BuildContext context,
+    DashTokens t,
+    AppLocalizations l10n,
+    TextStyle meta,
+    DateTime? latest,
+    List<(QueueItemStatusKind, int)> counts,
+  ) {
+    final large = dashLargeText(context);
+    final countWidgets = [
+      for (final (kind, n) in counts)
+        if (n > 0)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _statusLook(t, kind).$1,
+                size: DashIcon.xs,
+                color: _statusLook(t, kind).$2,
+              ),
+              Text(' $n', style: meta.copyWith(color: _statusLook(t, kind).$2)),
+            ],
+          ),
+    ];
+    final time = Text(
+      latest == null
+          ? ''
+          : relativeTime(
+              l10n,
+              DateTimeFormats.of(context),
+              latest,
+              now: DateTime.now(),
+            ),
+      style: meta,
+    );
+    final name = Text(
+      row.batchName ?? l10n.queueHistoryBatch,
+      maxLines: large ? 2 : 1,
+      overflow: TextOverflow.ellipsis,
+      style: t.body.copyWith(fontWeight: DashWeight.semibold),
+    );
+    final lead = [
+      Icon(
+        expanded ? Icons.expand_more : Icons.chevron_right,
+        size: DashIcon.md,
+        color: t.textTertiary,
+      ),
+      const SizedBox(width: DashSpace.xs),
+      Icon(
+        expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
+        size: DashIcon.md,
+        color: t.accentBlue,
+      ),
+      const SizedBox(width: DashSpace.sm),
+    ];
+    if (!large) {
+      return Row(
+        children: [
+          ...lead,
+          Expanded(child: name),
+          for (final c in countWidgets) ...[
+            const SizedBox(width: DashSpace.sm),
+            c,
+          ],
+          const SizedBox(width: DashSpace.sm),
+          time,
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            ...lead,
+            Expanded(child: name),
+          ],
+        ),
+        Wrap(
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [...countWidgets, time],
+        ),
+      ],
     );
   }
 }

@@ -186,22 +186,14 @@ class AmsSlotConfigRepository {
     required int trayId,
   }) => _post(Endpoints.amsSlotReset(printerId, amsId, trayId));
 
-  Future<T?> _get<T>(String path, {Map<String, dynamic>? query}) async {
-    try {
-      final res = await _dio.get<T>(path, queryParameters: query);
-      return res.data;
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<T?> _get<T>(String path, {Map<String, dynamic>? query}) =>
+      guard(() async {
+        final res = await _dio.get<T>(path, queryParameters: query);
+        return res.data;
+      });
 
-  Future<void> _post(String path, {Map<String, dynamic>? query}) async {
-    try {
-      await _dio.post<dynamic>(path, queryParameters: query);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> _post(String path, {Map<String, dynamic>? query}) =>
+      guard(() => _dio.post<dynamic>(path, queryParameters: query));
 }
 
 /// Read a list of presets, skipping entries that are not objects and those a

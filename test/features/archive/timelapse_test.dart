@@ -20,6 +20,7 @@ Archive _archive({String? timelapsePath}) => Archive(
 );
 
 Widget _archiveScreen(Archive archive) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     archiveListOverride([archive]),
     sharedPreferencesProvider.overrideWithValue(_prefs),

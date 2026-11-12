@@ -133,6 +133,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addPrinterAccessCode => 'Code d\'accès';
 
   @override
+  String get addPrinterRevealAccessCode => 'Afficher le code d\'accès';
+
+  @override
+  String get addPrinterHideAccessCode => 'Masquer le code d\'accès';
+
+  @override
   String get addPrinterModel => 'Modèle';
 
   @override
@@ -564,16 +570,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlMoveStep => 'Pas';
 
   @override
-  String get ctrlMoveZ => 'Z (écart du plateau)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'Haut';
 
   @override
   String get ctrlMoveZDown => 'Bas';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (tête)';
 
   @override
   String get ctrlMoveZUnknownDirection =>
@@ -595,6 +598,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String ctrlMoveMm(int d) {
     return '$d mm';
+  }
+
+  @override
+  String ctrlMoveAxisPlus(String axis) {
+    return 'Déplacer $axis, sens positif';
+  }
+
+  @override
+  String ctrlMoveAxisMinus(String axis) {
+    return 'Déplacer $axis, sens négatif';
   }
 
   @override
@@ -788,6 +801,40 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueAmsFromSlicer => 'AMS depuis le slicer';
+
+  @override
+  String queueColorSubstitution(int slot, String got, String wanted) {
+    return 'L\'emplacement $slot a imprimé en $got, le fichier demande $wanted';
+  }
+
+  @override
+  String queueColorSubstitutionSlots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count emplacements',
+      one: '$count emplacement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueColorSubstitutionTitle => 'Imprimé dans une autre couleur';
+
+  @override
+  String get queueColorSubstitutionWhy =>
+      'Aucune bobine de la couleur du fichier n\'était chargée, ou l\'emplacement a été choisi à la main.';
+
+  @override
+  String queueColorSubstitutionSlot(int slot) {
+    return 'Emplacement $slot';
+  }
+
+  @override
+  String get queueColorSubstitutionPrinted => 'Imprimé en';
+
+  @override
+  String get queueColorSubstitutionWanted => 'Le fichier demande';
 
   @override
   String queueAnyOfModels(String models) {
@@ -1811,9 +1858,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get heaterHistoryTitle => 'Historique des températures';
 
   @override
-  String get heaterHistoryOpen => 'Historique des températures';
-
-  @override
   String get heaterHistoryReading => 'Mesure';
 
   @override
@@ -1860,9 +1904,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get widgetStatusFinished => 'Terminée';
-
-  @override
-  String get widgetStatusFailed => 'Échouée';
 
   @override
   String get widgetStatusIdle => 'Inactive';
@@ -2047,6 +2088,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get cameraPermissionBody =>
       'Autorisez l\'accès à l\'appareil photo pour scanner des codes QR.';
+
+  @override
+  String get scannerTorch => 'Lampe torche';
 
   @override
   String get errMissingUrl => 'Saisissez l\'adresse du serveur';
@@ -2357,6 +2401,59 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String notifBedCooledThreshold(int temp) {
     return 'Plateau refroidi en dessous de $temp °C';
+  }
+
+  @override
+  String printPauseAtLayer(int layer) {
+    return 'couche $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Pause suivante dans $duration, à la couche $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Prochaine pause à la couche $layer';
+  }
+
+  @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'Combien de temps avant une pause prévenir';
+
+  @override
+  String get pauseWarningTitle => 'Avertissement de pause';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Prévenir $duration avant une pause';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s\'applique à tous les appareils.';
+
+  @override
+  String get notifEvtPauseUpcoming => 'Pause à venir';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Avertissement avant une pause placée par le slicer dans l\'impression';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Pause à venir';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: '$minutes minute',
+      zero: 'moins d\'une minute',
+    );
+    return '$name : une pause dans $_temp0, à la couche $layer';
   }
 
   @override
@@ -2759,8 +2856,95 @@ class AppLocalizationsFr extends AppLocalizations {
       'Non lus — l\'enregistrement les laissera inchangés.';
 
   @override
-  String get inventoryPrinterPresetsSaveFailed =>
-      'Bobine enregistrée, mais ses préréglages par modèle ne l\'ont pas été.';
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Rempli d\'après les valeurs par défaut de $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Utiliser par défaut';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'pour $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial =>
+      'Indiquez d\'abord le matériau';
+
+  @override
+  String get inventoryProfileDefaultScope => 'S\'applique à';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Toutes les couleurs';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Seulement $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Bobine enregistrée, mais pas ses valeurs par défaut.';
+
+  @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'Ce que reçoivent les nouvelles bobines';
+
+  @override
+  String get profileDefaultsTitle => 'Valeurs par défaut des profils';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Enregistrez-en une avec « Utiliser par défaut » dans le formulaire de la bobine. Appliquer ne complète que ce qui manque aux bobines.';
+
+  @override
+  String get profileDefaultsEmpty => 'Aucune valeur par défaut enregistrée';
+
+  @override
+  String get profileDefaultsApply => 'Appliquer aux bobines';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bobines complétées',
+      one: '$count bobine complétée',
+      zero: 'Aucune bobine n\'en avait besoin',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle => 'Supprimer ces valeurs par défaut ?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product : les nouvelles bobines ne démarreront plus avec. Celles qui l\'ont déjà reçu le gardent.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count préréglages par modèle',
+      one: '$count préréglage par modèle',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count profils K',
+      one: '$count profil K',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get inventoryFieldMaterial => 'Matériau';
@@ -2922,12 +3106,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryUsageReset => 'Compteur réinitialisé';
-
-  @override
-  String get inventorySaveFailed => 'Impossible d\'enregistrer la bobine';
-
-  @override
-  String get inventoryActionFailed => 'Échec de l\'action';
 
   @override
   String get inventoryUnassign => 'Désassigner';
@@ -4099,6 +4277,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fmUpload => 'Téléverser un fichier';
 
   @override
+  String get fmAddFiles => 'Ajouter des fichiers';
+
+  @override
   String get fmUploading => 'Téléversement…';
 
   @override
@@ -4567,7 +4748,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Déjà dans votre bibliothèque';
 
   @override
-  String get mwViewInFiles => 'Afficher dans le gestionnaire de fichiers';
+  String get mwViewInFiles => 'Ouvrir les fichiers';
 
   @override
   String get mwRecentImports => 'Importations récentes';
@@ -4597,6 +4778,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cloudPassword => 'Mot de passe';
+
+  @override
+  String get cloudShowPassword => 'Afficher le mot de passe';
+
+  @override
+  String get cloudHidePassword => 'Masquer le mot de passe';
 
   @override
   String get cloudRegionGlobal => 'Global';
@@ -9480,6 +9667,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get announcementsEmpty => 'Aucune annonce pour le moment.';
+
+  @override
+  String get linkedAppsTitle => 'Applications liées';
+
+  @override
+  String get linkedAppsEmpty => 'Aucune application liée.';
 
   @override
   String announcementsEarlier(int count) {

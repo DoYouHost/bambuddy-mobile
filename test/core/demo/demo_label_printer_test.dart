@@ -117,6 +117,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           serverProfileProvider.overrideWith(_DemoProfile.new),

@@ -336,7 +336,7 @@ enum PrintVerdict {
   /// Null for a missing verdict and for a spelling this build does not know —
   /// an unknown verdict is not a verdict it can show.
   static PrintVerdict? fromWire(Object? value) =>
-      values.where((v) => v.wire == value).firstOrNull;
+      enumByWire(values, value, (v) => v.wire);
 }
 
 ({int printerId, List<int> mapping})? _slicerAmsMapping(Object? extraData) {

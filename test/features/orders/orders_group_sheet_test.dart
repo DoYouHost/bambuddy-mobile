@@ -1,9 +1,11 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/orders/orders_group_sheet.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -23,6 +25,24 @@ Map<String, dynamic> _item(
   'batch_id': batchId,
 };
 
+/// A server answer the app cannot read: the write fails with something that is
+/// not an `AppApiException`.
+class _UnreadableBatches extends BatchRepository {
+  _UnreadableBatches(super.dio);
+
+  @override
+  Future<PrintBatch> create({
+    required String name,
+    List<int>? itemIds,
+    int? archiveId,
+    int? libraryFileId,
+    List<BatchPlateTarget>? plates,
+    int? projectId,
+    DateTime? dueDate,
+    String? notes,
+  }) async => throw StateError('unreadable answer');
+}
+
 void main() {
   // The mock matches any body containing the mocked keys.
   late RequestLog sent;
@@ -31,6 +51,7 @@ void main() {
     WidgetTester tester,
     List<Map<String, dynamic>> pending, {
     CurrentUser? user,
+    BatchRepository Function(Dio dio)? repoOn,
   }) async {
     final dio = testDio();
     final adapter = mockServer(dio)
@@ -53,7 +74,9 @@ void main() {
       overrides: [
         noServerProfileOverride,
         queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
-        batchRepositoryProvider.overrideWithValue(BatchRepository(dio)),
+        batchRepositoryProvider.overrideWithValue(
+          repoOn?.call(dio) ?? BatchRepository(dio),
+        ),
         if (user != null) currentUserOverride(user),
       ],
     );
@@ -68,6 +91,26 @@ void main() {
       matching: find.byType(FilledButton),
     ),
   );
+
+  testWidgets('a group that fails with an unexpected error unlocks the sheet, '
+      'and still reports it', (tester) async {
+    await pumpSheet(tester, [
+      _item(1, 'Clip'),
+      _item(2, 'Hook'),
+    ], repoOn: _UnreadableBatches.new);
+
+    await tester.tap(find.text('Clip'));
+    await tester.tap(find.text('Hook'));
+    await tester.enterText(byLogId('orders_group.name'), 'Hardware');
+    await tester.pump();
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('orders_group.confirm'),
+    );
+
+    expect(errors.single, isA<StateError>());
+    expect(confirm(tester).onPressed, isNotNull);
+  });
 
   testWidgets('groups the picked waiting jobs under the typed name', (
     tester,

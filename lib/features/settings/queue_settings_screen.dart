@@ -32,7 +32,7 @@ class QueueSettingsScreen extends ConsumerWidget {
     // writable: defaulting to "yes" lit the controls for a second on a session
     // that would only ever get a 403 out of them, and the lock banner then
     // arrived on top of a tap the user had already made.
-    final lock = ref.watch(queueSettingsLockProvider).valueOrNull;
+    final lock = ref.watch(queueSettingsLockProvider).value;
 
     return DashBackground(
       child: Scaffold(

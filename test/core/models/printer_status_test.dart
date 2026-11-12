@@ -180,6 +180,37 @@ void main() {
       expect(status.isPreparing, isTrue);
     });
 
+    group('preparingStage', () {
+      PrinterStatus of({
+        String state = 'RUNNING',
+        double progress = 0,
+        String? stage = 'Auto bed leveling',
+      }) => PrinterStatus(
+        id: 1,
+        state: state,
+        progress: progress,
+        stgCurName: stage,
+      );
+
+      test('is the trimmed stage name while the print prepares', () {
+        expect(of(stage: '  Heating bed ').preparingStage, 'Heating bed');
+      });
+
+      test('is null once the print has progress', () {
+        expect(of(progress: 3).preparingStage, isNull);
+      });
+
+      test('is null for a blank or missing name', () {
+        expect(of(stage: '   ').preparingStage, isNull);
+        expect(of(stage: null).preparingStage, isNull);
+      });
+
+      test('is null when the printer is not printing', () {
+        expect(of(state: 'IDLE').preparingStage, isNull);
+        expect(of(state: 'FINISH').preparingStage, isNull);
+      });
+    });
+
     test('FAILED is not printing despite positive progress', () {
       const status = PrinterStatus(
         id: 1,

@@ -71,7 +71,7 @@ class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
     MakerWorldInstance plate,
   ) async {
     // Login gate: without valid cloud token — go to login screen.
-    final status = ref.read(makerworldStatusProvider).valueOrNull;
+    final status = ref.read(makerworldStatusProvider).value;
     if (status == null || !status.canDownload) {
       _snack(_l10n.mwLoginRequired);
       await context.push('/settings/cloud');
@@ -115,7 +115,7 @@ class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
     final l10n = _l10n;
     final t = DashTokens.of(context);
     final resolveAsync = ref.watch(makerworldResolveProvider);
-    final status = ref.watch(makerworldStatusProvider).valueOrNull;
+    final status = ref.watch(makerworldStatusProvider).value;
     final canDownload = status?.canDownload ?? false;
 
     return ListView(
@@ -232,9 +232,11 @@ class _LoginBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: Row(
         children: [
@@ -309,10 +311,10 @@ class _ResolvedModelState extends State<_ResolvedModel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 child: MakerWorldThumbnail(
                   coverUrl: model.design.coverUrl,
-                  size: 72,
+                  size: DashSize.d72,
                 ),
               ),
               const SizedBox(width: DashSpace.md),
@@ -336,7 +338,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
               ),
             ],
           ),
-          Divider(height: 24, color: t.hairline),
+          Divider(height: DashSize.d24, color: t.hairline),
           if (model.instances.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -398,8 +400,11 @@ class _PlateRow extends StatelessWidget {
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: MakerWorldThumbnail(coverUrl: plate.coverUrl, size: 48),
+            borderRadius: BorderRadius.circular(DashRadius.md),
+            child: MakerWorldThumbnail(
+              coverUrl: plate.coverUrl,
+              size: DashSize.d48,
+            ),
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(
@@ -421,10 +426,10 @@ class _PlateRow extends StatelessWidget {
               onPressed: null,
               style: TextButton.styleFrom(
                 disabledForegroundColor: t.accentGreenInk.withValues(
-                  alpha: 0.6,
+                  alpha: DashAlpha.strong,
                 ),
               ),
-              icon: const Icon(Icons.check_circle, size: 18),
+              icon: const Icon(Icons.check_circle, size: DashIcon.md),
               label: Text(l10n.mwInLibrary),
             ).tagged('makerworld.plate')
           else
@@ -442,10 +447,10 @@ class _PlateRow extends StatelessWidget {
                 onPressed: importing ? null : onImport,
                 icon: importing
                     ? DashSpinner(
-                        size: 16,
+                        size: DashSize.d16,
                         color: DashTokens.of(context).onAccent,
                       )
-                    : const Icon(Icons.download, size: 18),
+                    : const Icon(Icons.download, size: DashIcon.md),
                 label: Text(l10n.mwImport),
               ),
             ),
@@ -502,7 +507,7 @@ class _RecentRow extends StatelessWidget {
         child: logTag(
           'makerworld.recent_import',
           InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             onTap: () => context.push('/files'),
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -511,17 +516,17 @@ class _RecentRow extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(DashRadius.md),
                     child: LibraryThumbnail(
                       fileId: item.libraryFileId,
                       hasThumbnail: item.hasThumbnail,
-                      size: 48,
+                      size: DashSize.d48,
                     ),
                   ),
                   const SizedBox(width: DashSpace.md),
@@ -540,7 +545,7 @@ class _RecentRow extends StatelessWidget {
                         tooltip: l10n.mwOpenOnMakerworld,
                         icon: Icon(
                           Icons.open_in_new,
-                          size: 18,
+                          size: DashIcon.md,
                           color: t.textSecondary,
                         ),
                         onPressed: () => openWebLink(context, source),
@@ -571,7 +576,7 @@ class _InlineError extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
       child: Column(
         children: [
-          Icon(Icons.error_outline, size: 40, color: t.dangerInk),
+          Icon(Icons.error_outline, size: DashIcon.xxl, color: t.dangerInk),
           const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
           const SizedBox(height: DashSpace.md),

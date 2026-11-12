@@ -57,31 +57,36 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
     final original = widget.entry.failureReason ?? '';
 
     setState(() => _saving = true);
-    final error = await ref
-        .read(printLogProvider.notifier)
-        .reclassify(
-          widget.entry.id,
-          // Each field is sent only when the user moved it: an unsent field is
-          // a no-op server-side, which is what keeps an unwritable status.
-          failureReason: _reason != original && _reason.isNotEmpty
-              ? _reason
-              : null,
-          clearFailureReason: _reason != original && _reason.isEmpty,
-          status: _status == widget.entry.status ? null : _status,
+    try {
+      final error = await ref
+          .read(printLogProvider.notifier)
+          .reclassify(
+            widget.entry.id,
+            // Each field is sent only when the user moved it: an unsent field is
+            // a no-op server-side, which is what keeps an unwritable status.
+            failureReason: _reason != original && _reason.isNotEmpty
+                ? _reason
+                : null,
+            clearFailureReason: _reason != original && _reason.isEmpty,
+            status: _status == widget.entry.status ? null : _status,
+          );
+      if (!mounted) return;
+      setState(() => _saving = false);
+      if (error != null) {
+        showApiFailure(
+          messenger,
+          error,
+          l10n,
+          action: 'print_log.classify.save',
+          message: l10n.printLogSaveFailed,
         );
-    if (!mounted) return;
-    setState(() => _saving = false);
-    if (error != null) {
-      showApiFailure(
-        messenger,
-        error,
-        l10n,
-        action: 'print_log.classify.save',
-        message: l10n.printLogSaveFailed,
-      );
-      return;
+        return;
+      }
+      navigator.pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    navigator.pop();
   }
 
   Future<void> _delete() async {
@@ -289,7 +294,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                     onPressed: _saving ? null : _delete,
                     icon: Icon(
                       Icons.delete_outline,
-                      size: 18,
+                      size: DashIcon.md,
                       color: t.dangerInk,
                     ),
                     label: Text(

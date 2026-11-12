@@ -37,18 +37,21 @@ class _CollapsedCard extends ConsumerWidget {
     final printing = !offline && (status?.isPrinting ?? false);
     final progress = status?.progress;
     final showPercent =
-        printing && progress != null && _preparingStage(status!) == null;
+        printing && progress != null && status!.preparingStage == null;
 
     return _CardShell(
       tokens: t,
       child: _HeaderLine(
         leading: _leadIcon(context, ref, t, l10n),
         name: name,
-        afterName: showPercent ? '${progress.toStringAsFixed(0)}%' : null,
+        afterName: showPercent ? '${status.progressPercent}%' : null,
         belowName: printing
             ? Padding(
                 padding: const EdgeInsets.only(top: DashSpace.xs),
-                child: _PrintProgressBar(status: status!, height: 3),
+                child: _PrintProgressBar(
+                  status: status!,
+                  height: DashStroke.regular,
+                ),
               )
             : null,
         status: _StateChip(

@@ -135,8 +135,8 @@ bridge for an answer that is not coming.
 ## `WearFleetView.drawable`
 
 Riverpod keeps the previous value when the state is set to an error, so
-`valueOrNull` still answers with the fleet that was on screen. A screen switching
-on the variant (`WearHome`'s `when`) never sees that; a body reading `valueOrNull`
+`value` still answers with the fleet that was on screen. A screen switching
+on the variant (`WearHome`'s `when`) never sees that; a body reading `value`
 would draw last run's printers under a dead bridge. An error is therefore always
 the answer, never the old frame: the notifier only sets one where the data on
 screen has not been confirmed, and a `build` that fails after a server switch

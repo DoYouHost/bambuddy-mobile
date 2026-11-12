@@ -8,11 +8,12 @@ import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import 'camera_token.dart';
 import 'cached_token_service.dart';
+import '../models/value_equality.dart';
 
 /// The credential a media request carries. `Image.network` and the video player
 /// build their own request, so the Dio interceptor never sees these — each URL
 /// has to arrive already signed, or already paired with a header.
-class MediaAuth {
+class MediaAuth with ValueEquality {
   const MediaAuth({this.queryToken, this.headers = const {}});
 
   final String? queryToken;
@@ -30,26 +31,7 @@ class MediaAuth {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is MediaAuth &&
-      other.queryToken == queryToken &&
-      _sameHeaders(other.headers);
-
-  bool _sameHeaders(Map<String, String> other) {
-    if (other.length != headers.length) return false;
-    for (final entry in headers.entries) {
-      if (other[entry.key] != entry.value) return false;
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    queryToken,
-    Object.hashAllUnordered(
-      headers.entries.map((e) => Object.hash(e.key, e.value)),
-    ),
-  );
+  List<Object?> get props => [queryToken, headers];
 }
 
 /// Picks the credential this server and this sign-in accept on the media

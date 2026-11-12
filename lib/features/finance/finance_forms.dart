@@ -196,8 +196,7 @@ Widget _userPicker(
 }) {
   final l10n = AppLocalizations.of(context);
   final users = [
-    for (final u
-        in ref.watch(statsUsersProvider).valueOrNull ?? <UserSummary>[])
+    for (final u in ref.watch(statsUsersProvider).value ?? <UserSummary>[])
       if (!except.contains(u.id)) u,
   ];
   return dashCombo<int>(
@@ -260,7 +259,10 @@ Widget _saveButton(
   child: FilledButton(
     onPressed: saving ? null : onPressed,
     child: saving
-        ? DashSpinner(size: 20, color: DashTokens.of(context).onAccent)
+        ? DashSpinner(
+            size: DashSize.d20,
+            color: DashTokens.of(context).onAccent,
+          )
         : Text(label),
   ).tagged(id),
 );
@@ -322,29 +324,34 @@ class _CostCenterFormState extends ConsumerState<_CostCenterForm> {
     final existing = widget.existing;
     final name = _name.text.trim();
     setState(() => _saving = true);
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_center',
-      done: existing == null
-          ? l10n.financeCostCenterCreated
-          : l10n.financeCostCenterUpdated,
-      write: (repo) async {
-        if (existing == null) {
-          await repo.createCostCenter(name: name, budget: _budget);
-          return;
-        }
-        // A personal center's name field is locked, so only a shared one differs.
-        if (name != existing.name) {
-          await repo.updateCostCenter(existing.id, name: name);
-        }
-        await repo.setBudget(existing.id, _budget);
-      },
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_center',
+        done: existing == null
+            ? l10n.financeCostCenterCreated
+            : l10n.financeCostCenterUpdated,
+        write: (repo) async {
+          if (existing == null) {
+            await repo.createCostCenter(name: name, budget: _budget);
+            return;
+          }
+          // A personal center's name field is locked, so only a shared one differs.
+          if (name != existing.name) {
+            await repo.updateCostCenter(existing.id, name: name);
+          }
+          await repo.setBudget(existing.id, _budget);
+        },
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -465,31 +472,36 @@ class _WalletAdjustFormState extends ConsumerState<_WalletAdjustForm> {
     if (!valid || _userId == null) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
-    final description = _description.text.trim();
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_adjust',
-      done: _deposit ? l10n.financeDepositDone : l10n.financeWithdrawDone,
-      write: (repo) => repo.adjustWallet(
-        _userId!,
-        amount: parseUserDecimal(_amount.text)!,
-        deposit: _deposit,
-        description: description.isEmpty ? null : description,
-        costCenterId: _centerId,
-      ),
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      final description = _description.text.trim();
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_adjust',
+        done: _deposit ? l10n.financeDepositDone : l10n.financeWithdrawDone,
+        write: (repo) => repo.adjustWallet(
+          _userId!,
+          amount: parseUserDecimal(_amount.text)!,
+          deposit: _deposit,
+          description: description.isEmpty ? null : description,
+          costCenterId: _centerId,
+        ),
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final centers = ref.watch(allCostCentersProvider).valueOrNull ?? const [];
+    final centers = ref.watch(allCostCentersProvider).value ?? const [];
     return _formSheet(
       id: 'sheet.wallet_adjust',
       title: l10n.financeAdjustWallet,
@@ -607,30 +619,35 @@ class _ManualPrintFormState extends ConsumerState<_ManualPrintForm> {
     if (!valid || _userId == null || _centerId == null) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
-    final description = _description.text.trim();
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_manual',
-      done: l10n.financeManualPrintDone,
-      write: (repo) => repo.addManualPrint(
-        userId: _userId!,
-        costCenterId: _centerId!,
-        amount: parseUserDecimal(_amount.text)!.abs(),
-        description: description.isEmpty ? null : description,
-      ),
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      final description = _description.text.trim();
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_manual',
+        done: l10n.financeManualPrintDone,
+        write: (repo) => repo.addManualPrint(
+          userId: _userId!,
+          costCenterId: _centerId!,
+          amount: parseUserDecimal(_amount.text)!.abs(),
+          description: description.isEmpty ? null : description,
+        ),
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final centers = ref.watch(allCostCentersProvider).valueOrNull ?? const [];
+    final centers = ref.watch(allCostCentersProvider).value ?? const [];
     return _formSheet(
       id: 'sheet.manual_print',
       title: l10n.financeAddManualPrint,
@@ -734,34 +751,39 @@ class _TransactionEditFormState extends ConsumerState<_TransactionEditForm> {
     final amount = parseUserDecimal(_amount.text);
     final description = _description.text.trim();
     setState(() => _saving = true);
-    // Only what changed goes out: the server marks any description it is sent
-    // as an admin edit, and rebuilds the ledger for each.
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_transaction',
-      done: l10n.financeTransactionEdited,
-      write: (repo) => repo.editTransaction(
-        tx.id,
-        userId: _userId != tx.userId ? _userId : null,
-        costCenterId: _centerId != tx.costCenterId ? _centerId : null,
-        amount: amount != null && amount != tx.amount ? amount : null,
-        description: description.isNotEmpty && description != tx.description
-            ? description
-            : null,
-      ),
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      // Only what changed goes out: the server marks any description it is sent
+      // as an admin edit, and rebuilds the ledger for each.
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_transaction',
+        done: l10n.financeTransactionEdited,
+        write: (repo) => repo.editTransaction(
+          tx.id,
+          userId: _userId != tx.userId ? _userId : null,
+          costCenterId: _centerId != tx.costCenterId ? _centerId : null,
+          amount: amount != null && amount != tx.amount ? amount : null,
+          description: description.isNotEmpty && description != tx.description
+              ? description
+              : null,
+        ),
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final centers = ref.watch(allCostCentersProvider).valueOrNull ?? const [];
+    final centers = ref.watch(allCostCentersProvider).value ?? const [];
     final t = DashTokens.of(context);
     return _formSheet(
       id: 'sheet.transaction_edit',
@@ -855,18 +877,23 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
     String? done,
   }) async {
     setState(() => _busy = true);
-    final ok = await runFinanceWrite(
-      context,
-      action: action,
-      write: write,
-      done: done,
-    );
-    if (!mounted) return;
-    if (ok) ref.invalidate(costCenterDetailProvider(widget.center.id));
-    setState(() {
-      _busy = false;
-      if (ok) _newUser = null;
-    });
+    try {
+      final ok = await runFinanceWrite(
+        context,
+        action: action,
+        write: write,
+        done: done,
+      );
+      if (!mounted) return;
+      if (ok) ref.invalidate(costCenterDetailProvider(widget.center.id));
+      setState(() {
+        _busy = false;
+        if (ok) _newUser = null;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
   }
 
   @override
@@ -876,11 +903,10 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
     final id = widget.center.id;
     final detail = ref.watch(costCenterDetailProvider(id));
     final names = {
-      for (final u
-          in ref.watch(statsUsersProvider).valueOrNull ?? <UserSummary>[])
+      for (final u in ref.watch(statsUsersProvider).value ?? <UserSummary>[])
         u.id: u.username,
     };
-    final members = detail.valueOrNull?.members ?? const <CostCenterMember>[];
+    final members = detail.value?.members ?? const <CostCenterMember>[];
     return _formSheet(
       id: 'sheet.cost_center_members',
       title: widget.center.name,
@@ -888,47 +914,42 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
         Text(l10n.financeManageMembers, style: t.labelSoft),
         _gap(),
         if (detail.isLoading && !detail.hasValue)
-          const Center(child: DashSpinner(size: 22))
+          const Center(child: DashSpinner(size: DashSize.d24))
         else if (detail.hasError && !detail.hasValue)
           Text(l10n.financeLoadFailed, style: t.labelSoft)
         else if (members.isEmpty)
           Text(l10n.financeNoMembers, style: t.labelSoft)
         else
+          // The name is the row's title, so a reader says whose switch it is.
           for (final m in members)
-            Padding(
-              padding: const EdgeInsets.only(bottom: DashSpace.sm),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      names[m.userId] ?? l10n.financeUserWithId(m.userId),
-                      style: t.bodyBold,
-                    ),
-                  ),
-                  Text(l10n.financeCanPrint, style: t.labelSoft),
-                  Switch(
+            Row(
+              children: [
+                Expanded(
+                  child: SettingsSwitchRow(
+                    tag: 'finance_form.member_can_print',
+                    title: names[m.userId] ?? l10n.financeUserWithId(m.userId),
+                    subtitle: l10n.financeCanPrint,
                     value: m.canPrint,
-                    activeThumbColor: t.accentGreen,
                     onChanged: _busy
                         ? null
                         : (v) => _write(
                             'finance_form.member_can_print',
                             (repo) => repo.setMember(id, m.userId, canPrint: v),
                           ),
-                  ).tagged('finance_form.member_can_print'),
-                  IconButton(
-                    tooltip: l10n.financeRemoveMember,
-                    onPressed: _busy
-                        ? null
-                        : () => _write(
-                            'finance_form.member_remove',
-                            (repo) => repo.removeMember(id, m.userId),
-                            done: l10n.financeMemberRemoved,
-                          ),
-                    icon: const Icon(Icons.person_remove_outlined),
-                  ).tagged('finance_form.member_remove'),
-                ],
-              ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.financeRemoveMember,
+                  onPressed: _busy
+                      ? null
+                      : () => _write(
+                          'finance_form.member_remove',
+                          (repo) => repo.removeMember(id, m.userId),
+                          done: l10n.financeMemberRemoved,
+                        ),
+                  icon: const Icon(Icons.person_remove_outlined),
+                ).tagged('finance_form.member_remove'),
+              ],
             ),
         const Divider(height: DashSpace.xl),
         _userPicker(

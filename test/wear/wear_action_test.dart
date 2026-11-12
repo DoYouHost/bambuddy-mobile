@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/wear/wear_action.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 /// The guards every wear action shares. Each one here is a bug this app shipped
 /// or nearly shipped, which is the reason they live in one mixin instead of
@@ -38,7 +39,12 @@ void main() {
   final key = GlobalKey<State<_Host>>();
 
   Future<_HostState> pumpHost(WidgetTester tester) async {
-    await tester.pumpWidget(ProviderScope(child: _Host(key: key)));
+    await tester.pumpWidget(
+      ProviderScope(
+        retry: neverRetry,
+        child: _Host(key: key),
+      ),
+    );
     return key.currentState! as _HostState;
   }
 

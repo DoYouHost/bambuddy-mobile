@@ -211,7 +211,7 @@ final presetValuesProvider = FutureProvider.autoDispose
 final processSettingsAvailableProvider = Provider<AsyncValue<bool>>((ref) {
   final server = ref.watch(processOverridesProvider);
   // A server that said no — or could not be asked — costs no 164 KB decode.
-  if (server.hasError || server.valueOrNull == false) return server;
+  if (server.hasError || server.value == false) return server;
   final schema = ref.watch(processSchemaProvider);
   return server.and(schema.whenData((catalog) => catalog != null));
 });

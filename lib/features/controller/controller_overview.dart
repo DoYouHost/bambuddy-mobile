@@ -2,6 +2,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/printers_repository.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
@@ -14,7 +15,9 @@ import '../dashboard/skip_objects_screen.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../dashboard/widgets/print_meta_row.dart';
 import '../wall/wall_camera.dart';
+import 'scale_to_fit.dart';
 import 'controller_controls.dart';
+import 'controller_faults.dart';
 import 'controller_providers.dart';
 
 /// The Overview tab: what the printer is doing and the controls used while it
@@ -28,6 +31,11 @@ class ControllerOverview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final item = ref.watch(controllerPrinterProvider(printerId)).item;
+    // A large text size needs more room than the box has for everything at
+    // once, so it has a layout of its own: still one screen, more compact.
+    if (controllerPaged(context) && item != null) {
+      return _LargeOverview(printerId: printerId, item: item);
+    }
     final status = item?.status;
     final printing = status?.isPrinting ?? false;
     // A printer that does not answer cannot be told to pause: the card hides
@@ -139,6 +147,77 @@ class _RightColumn extends ConsumerWidget {
   }
 }
 
+/// The Overview at a large text size, still one screen: what grows with the text
+/// is text, so what is not text gives way. The camera is a strip above the
+/// buttons, and the readings are lines of a grid of two with no bar.
+class _LargeOverview extends ConsumerWidget {
+  const _LargeOverview({required this.printerId, required this.item});
+
+  final int printerId;
+  final PrinterWithStatus item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = item.status;
+    final refused = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
+    final hasPlug = ref.watch(
+      smartPlugsProvider.select((s) => s.plugForPrinterCard(printerId) != null),
+    );
+    final printing = status?.isPrinting ?? false;
+    final reachable = status != null && (status.connected ?? false);
+    final readings = status != null && controllerReadings(status).isNotEmpty;
+    Widget column(List<Widget> children) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, child) in children.indexed) ...[
+          if (i > 0) const SizedBox(height: DashSpace.sm),
+          child,
+        ],
+      ],
+    );
+    final left = column([
+      SizedBox(
+        height: _stripHeight,
+        child: _ViewCard(printerId: printerId, status: status),
+      ),
+      if (printing && reachable)
+        _Lifecycle(printerId: printerId, status: status),
+      if (printing)
+        _SkipObjectsRow(printerId: printerId, printerName: item.printer.name),
+      // The select's label sits on its top edge and, at this size, reaches
+      // into the gap above it.
+      if (status != null && controllerSpeedVisible(status, refused: refused))
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.sm),
+          child: ControllerSpeed(printerId: printerId, status: status),
+        ),
+    ]);
+    final right = status == null
+        ? const SizedBox.shrink()
+        : column([
+            if (printing) _JobCard(status: status),
+            if (readings) ControllerReadings(status: status),
+            if (controllerLightVisible(status, refused: refused) || hasPlug)
+              ControllerSwitches(printerId: printerId, status: status),
+          ]);
+    return ControllerPage(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 4, child: left),
+          const SizedBox(width: DashSpace.md),
+          Expanded(flex: 6, child: right),
+        ],
+      ),
+    );
+  }
+
+  /// The camera is a strip, as tall as this whatever the text.
+  static const _stripHeight = 152.0;
+}
+
 /// The camera, or — with "Live camera" off — the cover of the file being
 /// printed. Without a cover, an icon and "No preview".
 class _ViewCard extends ConsumerWidget {
@@ -150,6 +229,7 @@ class _ViewCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
+    final onDark = DashTokens.resolve(Brightness.dark, t.brand);
     final l10n = AppLocalizations.of(context);
     final liveSetting = ref.watch(
       controllerPrefsProvider.select((p) => p.liveCamera),
@@ -181,20 +261,40 @@ class _ViewCard extends ConsumerWidget {
           Positioned(
             left: DashSpace.md,
             top: DashSpace.md,
-            child: live
-                ? DashPill(
-                    label: l10n.controllerLiveBadge,
-                    accent: t.danger,
-                    accentInk: t.dangerInk,
-                    leadingDot: true,
-                    dense: true,
-                  )
-                : DashPill(
-                    label: l10n.controllerPreviewBadge,
-                    accent: t.textSecondary,
-                    icon: Icons.image_outlined,
-                    dense: true,
-                  ),
+            // On the picture, whatever it shows (a white bed too): a dark scrim and
+            // the inks the dark theme uses, whichever theme the app is in.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: DashAlpha.cover),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
+              ),
+              child: live
+                  ? DashPill(
+                      label: l10n.controllerLiveBadge,
+                      accent: onDark.danger,
+                      accentInk: onDark.dangerInk,
+                      leadingDot: true,
+                      dense: true,
+                    )
+                  : DashPill(
+                      label: l10n.controllerPreviewBadge,
+                      accent: onDark.textSecondary,
+                      icon: Icons.image_outlined,
+                      dense: true,
+                    ),
+            ),
+          ),
+          Positioned(
+            right: DashSpace.md,
+            top: DashSpace.md,
+            // Opaque under its tint: the picture behind it is a camera frame.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: t.cardGradient,
+                borderRadius: BorderRadius.circular(DashSpace.xl),
+              ),
+              child: ControllerFaultChip(printerId: printerId),
+            ),
           ),
         ],
       ),
@@ -262,7 +362,11 @@ class _Lifecycle extends ConsumerWidget {
     if (ref.watch(controlRefusedProvider(ControlPermission.control))) {
       return Row(
         children: [
-          Icon(Icons.lock_outline, size: DashSpace.lg, color: t.textSecondary),
+          Icon(
+            Icons.lock_outline,
+            size: controllerIconSize(context, DashSpace.lg),
+            color: t.textSecondary,
+          ),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
@@ -377,6 +481,7 @@ class _JobCard extends StatelessWidget {
   static const _percentShare = 0.3;
   static const _percentMin = 28.0;
   static const _percentMax = 96.0;
+  static const _percentOnPage = 52.0;
 
   @override
   Widget build(BuildContext context) {
@@ -397,26 +502,29 @@ class _JobCard extends StatelessWidget {
         ),
         PrintMetaItem(
           icon: Icons.flag_outlined,
-          text: l10n.eta(
-            fmt.time(DateTime.now().add(Duration(minutes: remaining))),
-          ),
+          text: l10n.eta(etaClock(fmt, remaining)),
         ),
       ],
-      if (status.layerNum != null && status.totalLayers != null)
+      // The least used of the three: left out where there is room for two.
+      if (!controllerLargeText(context) &&
+          status.layerNum != null &&
+          status.totalLayers != null)
         PrintMetaItem(
           icon: Icons.layers_outlined,
           text: '${status.layerNum}/${status.totalLayers}',
         ),
     ];
     return Container(
-      padding: const EdgeInsets.all(DashSpace.md),
+      padding: EdgeInsets.all(
+        controllerLargeText(context) ? DashSpace.sm : DashSpace.md,
+      ),
       decoration: t.cardBox,
       child: LayoutBuilder(
         builder: (context, box) {
-          final percentSize = (box.maxHeight * _percentShare).clamp(
-            _percentMin,
-            _percentMax,
-          );
+          // On a page there is no height to take a share of.
+          final percentSize = box.hasBoundedHeight
+              ? (box.maxHeight * _percentShare).clamp(_percentMin, _percentMax)
+              : _percentOnPage;
           // At its size, whatever the share: the percentage is what gives, by
           // the card's height, and no text is scaled to fit.
           return Center(
@@ -437,8 +545,13 @@ class _JobCard extends StatelessWidget {
                   children: [
                     if (progress != null && !preparing)
                       Text(
-                        '${progress.toStringAsFixed(0)}%',
+                        '${status.progressPercent}%',
                         style: t.monoValue.copyWith(fontSize: percentSize),
+                        // Already the biggest figure on the screen: it keeps its
+                        // size at any text size so the lines under it stay in the card.
+                        textScaler: MediaQuery.textScalerOf(
+                          context,
+                        ).clamp(maxScaleFactor: 1),
                       ),
                     const SizedBox(width: DashSpace.md),
                     Expanded(

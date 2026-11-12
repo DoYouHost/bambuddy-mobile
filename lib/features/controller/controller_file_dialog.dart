@@ -76,24 +76,29 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
     );
     if (!ok || !mounted) return;
     setState(() => _deleting = true);
-    final nav = Navigator.of(context);
-    // The listing is the screen's, not the dialog's: it is refreshed through the
-    // container, which outlives this dialog if it is closed mid-request.
-    final container = ProviderScope.containerOf(context);
     try {
-      await container.read(libraryRepositoryProvider).deleteFile(_file.id);
-      container.invalidate(libraryStatsProvider);
-      await container.read(fileManagerProvider.notifier).refresh();
-      messenger.snack(l10n.fmDeleted);
-      if (mounted) nav.pop();
-    } on AppApiException catch (e) {
+      final nav = Navigator.of(context);
+      // The listing is the screen's, not the dialog's: it is refreshed through the
+      // container, which outlives this dialog if it is closed mid-request.
+      final container = ProviderScope.containerOf(context);
+      try {
+        await container.read(libraryRepositoryProvider).deleteFile(_file.id);
+        container.invalidate(libraryStatsProvider);
+        await container.read(fileManagerProvider.notifier).refresh();
+        messenger.snack(l10n.fmDeleted);
+        if (mounted) nav.pop();
+      } on AppApiException catch (e) {
+        if (mounted) setState(() => _deleting = false);
+        showApiFailure(
+          mounted ? messenger : null,
+          e,
+          l10n,
+          action: 'controller.files.dialog.delete',
+        );
+      }
+    } catch (_) {
       if (mounted) setState(() => _deleting = false);
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'controller.files.dialog.delete',
-      );
+      rethrow;
     }
   }
 
@@ -101,11 +106,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final printer = ref.watch(
-      controllerPrinterProvider(
-        widget.printerId,
-      ).select((p) => p.item?.printer),
-    );
+    final printer = ref.watch(controllerPrinterInfoProvider(widget.printerId));
     final block = controllerPrintBlock(
       printerKnown: printer != null,
       refused: ref.watch(permissionProvider(Permissions.queueCreate))
@@ -116,7 +117,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
       printerModel: printer?.model,
     );
     final folders = ref.watch(
-      fileManagerProvider.select((s) => s.valueOrNull?.allFolders),
+      fileManagerProvider.select((s) => s.value?.allFolders),
     );
     final folder = folders?.where((f) => f.id == _file.folderId).firstOrNull;
     final mayDelete = mayDeleteLibraryFile(_file, folder);

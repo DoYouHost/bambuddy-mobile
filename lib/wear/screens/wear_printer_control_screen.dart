@@ -78,7 +78,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
   ///
   /// One-way: `refresh` only ever replaces the state with a live fleet or keeps
   /// the one it has, so a screen that has gone live never goes back.
-  bool get _stale => ref.read(wearFleetProvider).valueOrNull?.stale ?? false;
+  bool get _stale => ref.read(wearFleetProvider).value?.stale ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -101,13 +101,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
       // The one thing on this screen that never reaches `WearScrollView`, so
       // the only one that has to ask for the round-safe rectangle itself.
       return WearFace(
-        child: Center(
-          child: Text(
-            l10n.wearPrinterUnavailable,
-            textAlign: TextAlign.center,
-            style: WearText.body,
-          ),
-        ),
+        child: Center(child: wearBodyLine(l10n.wearPrinterUnavailable)),
       );
     }
     final status = item.status;
@@ -136,11 +130,10 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
                 ),
               ],
               const SizedBox(height: DashSpace.md),
-              if (state == WearState.printing || state == WearState.paused)
-                _progress(l10n, status),
+              if (status?.isJobActive ?? false) _progress(l10n, status),
               const SizedBox(height: DashSpace.md),
               ..._faults(item),
-              ..._actions(item, state, fleet?.queuePending),
+              ..._actions(item, fleet?.queuePending),
               if (widget.showSettings) ...[
                 const SizedBox(height: DashSpace.xs),
                 const WearSettingsEntry(),
@@ -154,13 +147,16 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
   }
 
   Widget _progress(AppLocalizations l10n, PrinterStatus? s) {
-    final pct = (s?.progress ?? 0).clamp(0, 100).toDouble();
+    final pct = s?.progressPercent ?? 0;
+    // While the printer names a preparation stage, the stage takes the
+    // percentage's place and the bar runs indeterminate, as on the phone's card.
+    final stage = s?.preparingStage;
     final eta = formatEta(l10n, s?.remainingTime);
     final layers = (s?.layerNum != null && s?.totalLayers != null)
         ? 'L ${s!.layerNum}/${s.totalLayers}'
         : '';
     final line = [
-      '${pct.round()}%',
+      stage ?? '$pct%',
       if (eta.isNotEmpty) eta,
       if (layers.isNotEmpty) layers,
     ].join('  ·  ');
@@ -172,7 +168,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         ClipRRect(
           borderRadius: BorderRadius.circular(barHeight),
           child: LinearProgressIndicator(
-            value: pct / 100,
+            value: stage != null ? null : pct / 100,
             minHeight: barHeight,
             backgroundColor: wearSurfaceHigh,
           ),
@@ -283,13 +279,12 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     );
   }
 
-  List<Widget> _actions(
-    PrinterWithStatus item,
-    WearState state,
-    int? queuePending,
-  ) {
+  List<Widget> _actions(PrinterWithStatus item, int? queuePending) {
     final l10n = AppLocalizations.of(context);
     final status = item.status;
+    // The job decides the buttons, not the status bucket: a printing machine
+    // with an HMS fault is in the error bucket and still has a print to stop.
+    final jobActive = status?.isJobActive ?? false;
     final id = widget.printerId;
     final actions = ref.read(wearActionsProvider);
     // Read out at build time rather than inside the failure callback: the
@@ -302,9 +297,9 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     // the code the firmware needs — so the generic one steps aside.
     final offeredByFaults = _faultActions(item);
 
-    if (state == WearState.printing) {
+    if (jobActive && !(status?.isPaused ?? false)) {
       buttons.add(_btn(l10n.ctrlPause, Icons.pause, () => actions.pause(id)));
-    } else if (state == WearState.paused &&
+    } else if (jobActive &&
         offeredByFaults.intersection(hmsResumeActions).isEmpty) {
       buttons.add(
         _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)),
@@ -333,7 +328,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     // Start next from queue: offered when the printer isn't actively printing
     // AND something is actually waiting (null count = unknown → keep offering).
     // Items already printing don't count as pending.
-    if (state != WearState.printing && state != WearState.paused) {
+    if (!jobActive) {
       if (queuePending == null || queuePending > 0) {
         buttons.add(
           _btn(
@@ -350,8 +345,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
 
     // Stop: destructive → behind a confirm dialog. Skipped when a fault already
     // offers its own stop, for the same reason as resume above.
-    if ((state == WearState.printing || state == WearState.paused) &&
-        !offeredByFaults.contains(hmsStopAction)) {
+    if (jobActive && !offeredByFaults.contains(hmsStopAction)) {
       buttons.add(
         _btn(
           l10n.ctrlStop,
@@ -529,7 +523,7 @@ class _WearFaultState extends State<_WearFault> {
             children: [
               const Icon(
                 Icons.warning_amber_rounded,
-                size: 14,
+                size: DashIcon.sm,
                 color: wearFaultText,
               ),
               const SizedBox(width: DashSpace.xs),
@@ -538,7 +532,7 @@ class _WearFaultState extends State<_WearFault> {
                   widget.fault.displayCode,
                   style: WearText.body.copyWith(
                     color: wearFaultText,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: DashWeight.semibold,
                   ),
                 ),
               ),
@@ -554,7 +548,7 @@ class _WearFaultState extends State<_WearFault> {
                 overflow: _fullText ? null : TextOverflow.ellipsis,
                 // Looser lines: this runs to three of them and is the only
                 // paragraph on the watch anyone has to actually read.
-                style: WearText.body.copyWith(height: 1.25),
+                style: WearText.body.copyWith(height: DashLeading.snug),
               ),
             ),
           ],
@@ -570,7 +564,7 @@ class _WearFaultState extends State<_WearFault> {
                   // A step down from the theme's button text: these stack one
                   // per action inside an already-boxed fault.
                   textStyle: WearText.body.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: DashWeight.semibold,
                   ),
                   backgroundColor: action == hmsStopAction
                       ? wearDestructive

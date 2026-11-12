@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/label_printer.dart';
 import '../../core/network/label_printer_discovery.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../data/label_printer_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'label_printer_providers.dart';
 
@@ -91,9 +90,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
       _checking = true;
       _notAServer = false;
     });
-    final info = await LabelPrinterRepository(
-      createLabelPrinterDio(url),
-    ).info();
+    final info = await probeLabelPrinter(url);
     if (!mounted) return;
     if (info == null) {
       setState(() {
@@ -131,7 +128,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
         OutlinedButton.icon(
           onPressed: _scanning ? null : _search,
           icon: _scanning
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : const Icon(Icons.search),
           label: Text(
             _scanning ? l10n.labelPrinterSearching : l10n.labelPrinterSearch,
@@ -169,7 +166,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
         FilledButton(
           onPressed: _checking ? null : () => _use(_address.text),
           child: _checking
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : Text(l10n.labelPrinterSave),
         ).tagged('label_printer.save'),
       ],
@@ -193,7 +190,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
         _ => l10n.labelPrinterReady(i.model ?? '?', i.labelId ?? '?'),
       },
     );
-    final stock = info.valueOrNull;
+    final stock = info.value;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DashSpace.md,
@@ -211,7 +208,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
                 padding: const EdgeInsets.only(top: DashSpace.xs),
                 child: Icon(
                   Icons.print_outlined,
-                  size: 20,
+                  size: DashIcon.md,
                   color: t.accentGreenInk,
                 ),
               ),

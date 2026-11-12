@@ -60,6 +60,7 @@ void main() {
       ({Dio dio, CurrentUser me}) user,
     ) async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [currentUserOverride(user.me)],
       );
       addTearDown(container.dispose);
@@ -135,6 +136,7 @@ void main() {
       expect(listed.createdById, user.me.id);
 
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [currentUserOverride(user.me)],
       );
       addTearDown(container.dispose);

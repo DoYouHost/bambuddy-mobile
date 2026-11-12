@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/format/fixed_format.dart';
 import '../../core/models/archive.dart';
 import '../../data/archive_repository.dart';
 import '../../core/theme/dash_theme.dart';
@@ -52,9 +53,7 @@ enum FilamentGramsError { notANumber, outOfRange }
 /// because the alternative is a field that opens on 12.344999999999999.
 String filamentGramsText(double? grams) {
   if (grams == null) return '';
-  final fixed = grams.toStringAsFixed(2);
-  if (!fixed.contains('.')) return fixed;
-  return fixed.replaceFirst(RegExp(r'\.?0+$'), '');
+  return trimFixedZeros(grams.toStringAsFixed(2));
 }
 
 /// What the runs of this file say about its filament, as a line under the
@@ -111,7 +110,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     // The list is the screen's copy of this print, and the save writes the
     // stored row back into it — so the value here follows the edit without the
     // sheet being reopened.
-    final live = _live(ref.watch(archiveProvider).valueOrNull);
+    final live = _live(ref.watch(archiveProvider).value);
     final grams = live.filamentUsedGrams;
     final actual = filamentActualCaption(live, l10n);
 
@@ -144,18 +143,22 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
         child: logTag(
           'archive.filament_edit',
           InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             onTap: _saving ? null : _edit,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.md),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.scale_outlined, size: 18, color: t.textTertiary),
+                  Icon(
+                    Icons.scale_outlined,
+                    size: DashIcon.md,
+                    color: t.textTertiary,
+                  ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
@@ -181,15 +184,19 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                   ),
                   if (_saving)
                     SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: DashSize.d16,
+                      height: DashSize.d16,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
+                        strokeWidth: DashStroke.regular,
                         semanticsLabel: l10n.archiveFilamentSaving,
                       ),
                     )
                   else
-                    Icon(Icons.edit_outlined, size: 18, color: t.textSecondary),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: DashIcon.md,
+                      color: t.textSecondary,
+                    ),
                 ],
               ),
             ),
@@ -217,7 +224,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     final (:providers, :messenger) = detachFrom(context);
     final repository = providers.read(archiveRepositoryProvider);
     final archiveId = widget.archive.id;
-    final stored = _live(providers.read(archiveProvider).valueOrNull);
+    final stored = _live(providers.read(archiveProvider).value);
 
     final answer = await showDialog<({double? grams})>(
       context: context,

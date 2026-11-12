@@ -332,6 +332,18 @@ abstract class AppLocalizations {
   /// **'Access code'**
   String get addPrinterAccessCode;
 
+  /// No description provided for @addPrinterRevealAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Show access code'**
+  String get addPrinterRevealAccessCode;
+
+  /// No description provided for @addPrinterHideAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide access code'**
+  String get addPrinterHideAccessCode;
+
   /// No description provided for @addPrinterModel.
   ///
   /// In en, this message translates to:
@@ -1103,7 +1115,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlMoveZ.
   ///
   /// In en, this message translates to:
-  /// **'Z (bed gap)'**
+  /// **'Z'**
   String get ctrlMoveZ;
 
   /// No description provided for @ctrlMoveZUp.
@@ -1117,12 +1129,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Down'**
   String get ctrlMoveZDown;
-
-  /// No description provided for @ctrlMoveZToolhead.
-  ///
-  /// In en, this message translates to:
-  /// **'Z (toolhead)'**
-  String get ctrlMoveZToolhead;
 
   /// No description provided for @ctrlMoveZUnknownDirection.
   ///
@@ -1159,6 +1165,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{d} mm'**
   String ctrlMoveMm(int d);
+
+  /// No description provided for @ctrlMoveAxisPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {axis}, positive direction'**
+  String ctrlMoveAxisPlus(String axis);
+
+  /// No description provided for @ctrlMoveAxisMinus.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {axis}, negative direction'**
+  String ctrlMoveAxisMinus(String axis);
 
   /// No description provided for @ctrlPause.
   ///
@@ -1441,6 +1459,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AMS from slicer'**
   String get queueAmsFromSlicer;
+
+  /// One line on a queue or history row: a slot printed from a spool of another colour than the file asked for. Colours are names, or hex codes when two names would be alike.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} printed in {got}, the file asks for {wanted}'**
+  String queueColorSubstitution(int slot, String got, String wanted);
+
+  /// No description provided for @queueColorSubstitutionSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} slot} other{{count} slots}}'**
+  String queueColorSubstitutionSlots(int count);
+
+  /// No description provided for @queueColorSubstitutionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed in another colour'**
+  String get queueColorSubstitutionTitle;
+
+  /// No description provided for @queueColorSubstitutionWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'No spool in the file\'s colour was loaded, or the slot was picked by hand.'**
+  String get queueColorSubstitutionWhy;
+
+  /// No description provided for @queueColorSubstitutionSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot}'**
+  String queueColorSubstitutionSlot(int slot);
+
+  /// No description provided for @queueColorSubstitutionPrinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed in'**
+  String get queueColorSubstitutionPrinted;
+
+  /// No description provided for @queueColorSubstitutionWanted.
+  ///
+  /// In en, this message translates to:
+  /// **'File asks for'**
+  String get queueColorSubstitutionWanted;
 
   /// No description provided for @queueAnyOfModels.
   ///
@@ -2996,12 +3056,6 @@ abstract class AppLocalizations {
   /// **'Temperature history'**
   String get heaterHistoryTitle;
 
-  /// No description provided for @heaterHistoryOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Temperature history'**
-  String get heaterHistoryOpen;
-
   /// No description provided for @heaterHistoryReading.
   ///
   /// In en, this message translates to:
@@ -3091,12 +3145,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finished'**
   String get widgetStatusFinished;
-
-  /// No description provided for @widgetStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get widgetStatusFailed;
 
   /// No description provided for @widgetStatusIdle.
   ///
@@ -3403,6 +3451,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allow camera access to scan QR codes.'**
   String get cameraPermissionBody;
+
+  /// Name of the QR scanner's button that switches the phone's flashlight on and off
+  ///
+  /// In en, this message translates to:
+  /// **'Flashlight'**
+  String get scannerTorch;
 
   /// No description provided for @errMissingUrl.
   ///
@@ -3907,6 +3961,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bed cooled below {temp}°C'**
   String notifBedCooledThreshold(int temp);
+
+  /// What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.
+  ///
+  /// In en, this message translates to:
+  /// **'layer {layer}'**
+  String printPauseAtLayer(int layer);
+
+  /// Screen reader text of the next-pause item: minutes to the pause and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause in {duration}, at layer {layer}'**
+  String printPauseA11yIn(String duration, int layer);
+
+  /// Screen reader text of the next-pause item while the server gives no minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause at layer {layer}'**
+  String printPauseA11yLayer(int layer);
+
+  /// Subtitle of the Pause warning entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'How long before a pause to warn'**
+  String get serverSettingsPauseWarningSubtitle;
+
+  /// Title of the pause warning screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause warning'**
+  String get pauseWarningTitle;
+
+  /// Label of the slider that sets the server's pause warning lead time.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn {duration} before a pause'**
+  String pauseWarningLabel(String duration);
+
+  /// What the pause warning setting is: shared with the server, not a phone preference.
+  ///
+  /// In en, this message translates to:
+  /// **'A server setting: it also sets when the server itself warns, and applies to every device.'**
+  String get pauseWarningDesc;
+
+  /// Label of the pause coming up switch in the notification events list.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifEvtPauseUpcoming;
+
+  /// Description under the pause coming up switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Warns before a pause the slicer put into the print'**
+  String get notifEvtPauseUpcomingDesc;
+
+  /// Title of the notification posted before a slicer pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifPauseUpcomingTitle;
+
+  /// Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}'**
+  String notifPauseUpcomingBody(String name, int minutes, int layer);
 
   /// No description provided for @notifHumidityThreshold.
   ///
@@ -4580,11 +4700,113 @@ abstract class AppLocalizations {
   /// **'Not read — saving leaves them alone.'**
   String get inventoryPrinterPresetsLoadFailed;
 
-  /// No description provided for @inventoryPrinterPresetsSaveFailed.
+  /// Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.
   ///
   /// In en, this message translates to:
-  /// **'Spool saved, its per-model presets were not.'**
-  String get inventoryPrinterPresetsSaveFailed;
+  /// **'Filled from the default for {product}'**
+  String inventoryProfileDefaultPrefilled(String product);
+
+  /// Title of the switch in the spool form that saves the form's presets as the default for new spools of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as default'**
+  String get inventoryProfileDefaultUse;
+
+  /// Subtitle under the default switch naming the product the default is for.
+  ///
+  /// In en, this message translates to:
+  /// **'for {product}'**
+  String inventoryProfileDefaultFor(String product);
+
+  /// Subtitle of the disabled default switch while the material field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the material first'**
+  String get inventoryProfileDefaultNeedsMaterial;
+
+  /// Label of the select that says whether the default covers every color of the product or only the typed one.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to'**
+  String get inventoryProfileDefaultScope;
+
+  /// Option of the default's scope select: the default covers every color of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'All colors'**
+  String get inventoryProfileDefaultAllColors;
+
+  /// Option of the default's scope select: the default covers the color typed in the form only.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {color}'**
+  String inventoryProfileDefaultColorOnly(String color);
+
+  /// Snackbar after the spool was saved but writing the profile default failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool saved, its default was not.'**
+  String get inventoryProfileDefaultSaveFailed;
+
+  /// Subtitle of the Profile defaults entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'What new spools start with'**
+  String get serverSettingsProfileDefaultsSubtitle;
+
+  /// Title of the profile defaults screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile defaults'**
+  String get profileDefaultsTitle;
+
+  /// Explains where a profile default is saved and what applying one does; quotes the label of the spool form's default switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Save one with “Use as default” in a spool\'s form. Applying fills in only what spools lack.'**
+  String get profileDefaultsDescription;
+
+  /// Shown instead of the list when no profile default is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'No defaults saved yet'**
+  String get profileDefaultsEmpty;
+
+  /// Button on a profile default that fills in what existing spools of its product lack.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to spools'**
+  String get profileDefaultsApply;
+
+  /// Snackbar after applying a profile default: how many spools got something filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No spool needed it} one{{count} spool filled in} other{{count} spools filled in}}'**
+  String profileDefaultsApplied(int count);
+
+  /// Title of the confirmation before a profile default is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this default?'**
+  String get profileDefaultsDeleteTitle;
+
+  /// Body of the delete confirmation; spools that already got the profiles keep them.
+  ///
+  /// In en, this message translates to:
+  /// **'{product}: new spools stop starting with it. Spools that already got it keep it.'**
+  String profileDefaultsDeleteBody(String product);
+
+  /// Part of a profile default's summary line: how many per-printer-model presets it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} model preset} other{{count} model presets}}'**
+  String profileDefaultsModelPresets(int count);
+
+  /// Part of a profile default's summary line: how many K profiles it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} K profile} other{{count} K profiles}}'**
+  String profileDefaultsKProfiles(int count);
 
   /// No description provided for @inventoryFieldMaterial.
   ///
@@ -4867,18 +5089,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Counter reset'**
   String get inventoryUsageReset;
-
-  /// No description provided for @inventorySaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save spool'**
-  String get inventorySaveFailed;
-
-  /// No description provided for @inventoryActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get inventoryActionFailed;
 
   /// No description provided for @inventoryUnassign.
   ///
@@ -6698,6 +6908,12 @@ abstract class AppLocalizations {
   /// **'Upload file'**
   String get fmUpload;
 
+  /// No description provided for @fmAddFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Add files'**
+  String get fmAddFiles;
+
   /// No description provided for @fmUploading.
   ///
   /// In en, this message translates to:
@@ -7427,7 +7643,7 @@ abstract class AppLocalizations {
   /// No description provided for @mwViewInFiles.
   ///
   /// In en, this message translates to:
-  /// **'View in File Manager'**
+  /// **'Open Files'**
   String get mwViewInFiles;
 
   /// No description provided for @mwRecentImports.
@@ -7483,6 +7699,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password'**
   String get cloudPassword;
+
+  /// No description provided for @cloudShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get cloudShowPassword;
+
+  /// No description provided for @cloudHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get cloudHidePassword;
 
   /// No description provided for @cloudRegionGlobal.
   ///
@@ -15583,6 +15811,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No announcements right now.'**
   String get announcementsEmpty;
+
+  /// No description provided for @linkedAppsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked apps'**
+  String get linkedAppsTitle;
+
+  /// No description provided for @linkedAppsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No linked apps.'**
+  String get linkedAppsEmpty;
 
   /// No description provided for @announcementsEarlier.
   ///

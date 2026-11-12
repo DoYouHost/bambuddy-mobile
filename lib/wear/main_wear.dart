@@ -32,6 +32,7 @@ Future<void> main() async {
   await catalog;
   runApp(
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialSystemSchemesProvider.overrideWithValue(await face),

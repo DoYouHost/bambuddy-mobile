@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:app_util/app_util.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/filament_colour.dart';
@@ -12,6 +13,7 @@ import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/reload_in_place.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything
@@ -36,7 +38,7 @@ enum ArchiveReprintBlock {
 /// `/auth/me` unread) blocks nothing: the server stays the enforcer.
 final archiveReprintBlockProvider = Provider.family<ArchiveReprintBlock?, int?>(
   (ref, createdById) {
-    final me = ref.watch(currentUserProvider).valueOrNull;
+    final me = ref.watch(currentUserProvider).value;
     if (me == null) return null;
     if (!me.can(Permissions.queueCreate)) return ArchiveReprintBlock.noQueue;
     if (me.can(Permissions.archivesReprintAll)) return null;
@@ -208,7 +210,7 @@ List<Archive> applyArchiveFilters(
 }
 
 final archiveProvider =
-    AutoDisposeAsyncNotifierProvider<ArchiveNotifier, List<Archive>>(
+    AsyncNotifierProvider.autoDispose<ArchiveNotifier, List<Archive>>(
       ArchiveNotifier.new,
     );
 
@@ -220,7 +222,8 @@ final archiveDetailProvider = FutureProvider.autoDispose.family<Archive, int>(
 
 /// Full archive list, loaded once and filtered client-side (M5, filters M7).
 /// All filtering/sorting lives in [applyArchiveFilters] over this list.
-class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
+class ArchiveNotifier extends AsyncNotifier<List<Archive>>
+    with ReloadInPlace<List<Archive>> {
   @override
   Future<List<Archive>> build() async {
     ref.watch(serverProfileProvider);
@@ -230,14 +233,11 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   }
 
   /// Pull-to-refresh: reload the full list.
-  Future<void> refresh() async {
-    state = const AsyncValue<List<Archive>>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(
-      () => ref
-          .read(archiveRepositoryProvider)
-          .list(limit: _fullListLimit, offset: 0),
-    );
-  }
+  Future<void> refresh() => reloadInPlace(
+    () => ref
+        .read(archiveRepositoryProvider)
+        .list(limit: _fullListLimit, offset: 0),
+  );
 
   /// Archives whose favorite toggle is still waiting for the server.
   final _favoriteInFlight = <int>{};
@@ -251,7 +251,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   /// fail roll back in whichever order they land — the star could end up
   /// showing the opposite of what the server holds.
   Future<bool> toggleFavorite(int archiveId) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return false;
     if (!_favoriteInFlight.add(archiveId)) return true;
     final before = current.firstWhereOrNull((a) => a.id == archiveId);
@@ -281,7 +281,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   /// One row of the loaded list, rebuilt by [update]. Does nothing when the
   /// list has not loaded, or does not hold [archiveId].
   void _patchRow(int archiveId, Archive Function(Archive) update) {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     state = AsyncValue.data([
       for (final a in current) a.id == archiveId ? update(a) : a,
@@ -298,7 +298,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   /// Optimistic delete (swipe / sheet). [purgeStats] also removes the print
   /// from aggregate statistics. Error → restore the item, returns false.
   Future<bool> delete(int archiveId, {required bool purgeStats}) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return false;
     final index = current.indexWhere((a) => a.id == archiveId);
 
@@ -320,7 +320,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   /// the snapshot taken before the request brought back rows deleted in the
   /// meantime — swipe A, swipe B, A fails, and B is on screen again.
   void _putBack(Archive row, List<Archive> before) {
-    final list = state.valueOrNull;
+    final list = state.value;
     if (list == null) return;
     state = AsyncValue.data(
       withRowRestored(list, row, before, idOf: (a) => a.id),
@@ -328,7 +328,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   }
 
   void _removeRow(int archiveId) {
-    final list = state.valueOrNull;
+    final list = state.value;
     if (list == null) return;
     state = AsyncValue.data([
       for (final a in list)
@@ -343,7 +343,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     Set<int> ids, {
     required bool purgeStats,
   }) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return (ok: 0, failed: ids.length);
 
     final repo = ref.read(archiveRepositoryProvider);
@@ -394,6 +394,7 @@ class No3mfDismissedNotifier extends Notifier<bool> {
 
   Future<void> dismiss() async {
     await ref.read(settingsRepositoryProvider).saveNo3mfDismissed();
+    if (!ref.mounted) return;
     state = true;
   }
 }

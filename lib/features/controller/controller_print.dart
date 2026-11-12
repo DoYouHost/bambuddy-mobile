@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +23,7 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../archive/archive_providers.dart';
+import '../common/color_catalog.dart';
 import '../common/dash_async.dart';
 import '../queue/job_cost_providers.dart';
 import '../queue/queue_cost_center_state.dart';
@@ -195,28 +199,35 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                 const SizedBox(height: DashSpace.md),
                 Expanded(
                   child: ScaleToFit(
+                    reflows: true,
+                    // From a large text size the height is the scroll's to
+                    // handle, not the scale's: a bar that grew with the text
+                    // would otherwise shrink the body below 1.
+                    minSize: Size(
+                      controllerPrintBodySize.width,
+                      controllerLargeText(context)
+                          ? 1
+                          : controllerPrintBodySize.height,
+                    ),
                     // The state's own context is above the scale, so the dialogs
                     // this screen opens take it from here.
                     child: Builder(
                       builder: (scaled) {
                         _scale = ControllerScale.of(scaled);
+                        final bar = _bottomBar(l10n);
+                        final large = controllerLargeText(scaled);
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // Only the cards scroll: the way to print stays on
+                            // the screen.
                             Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(flex: 3, child: _jobCard(l10n)),
-                                  const SizedBox(width: DashSpace.md),
-                                  Expanded(flex: 4, child: _filamentCard(l10n)),
-                                  const SizedBox(width: DashSpace.md),
-                                  Expanded(flex: 3, child: _optionsCard(l10n)),
-                                ],
-                              ),
+                              child: large
+                                  ? _largeCards(l10n, bar.note)
+                                  : _cards(l10n),
                             ),
                             const SizedBox(height: DashSpace.md),
-                            _bottomBar(l10n),
+                            bar.bar,
                           ],
                         );
                       },
@@ -231,10 +242,53 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     );
   }
 
+  /// Job, mapping and options side by side.
+  Widget _cards(AppLocalizations l10n) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(flex: 3, child: _jobCard(l10n)),
+      const SizedBox(width: DashSpace.md),
+      Expanded(flex: 4, child: _filamentCard(l10n)),
+      const SizedBox(width: DashSpace.md),
+      Expanded(flex: 3, child: _optionsCard(l10n)),
+    ],
+  );
+
+  /// At a large text size three columns are too narrow for a filament row: the
+  /// job and its options stack on the left and the mapping gets the wider side.
+  /// The cards are as tall as their content and the page scrolls.
+  Widget _largeCards(AppLocalizations l10n, Widget? note) =>
+      SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (note != null) ...[note, const SizedBox(height: DashSpace.sm)],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _jobCard(l10n, shrink: true),
+                      const SizedBox(height: DashSpace.md),
+                      _optionsCard(l10n, shrink: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(flex: 5, child: _filamentCard(l10n, shrink: true)),
+              ],
+            ),
+          ],
+        ),
+      );
+
   // --- Job ---
 
   PlateList get _plates =>
-      ref.read(plateListProvider((_isArchive, _sourceId))).valueOrNull ??
+      ref.read(plateListProvider((_isArchive, _sourceId))).value ??
       PlateList.none;
 
   /// The plate the job prints. A file lists the plates it holds, and they need
@@ -268,10 +322,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     mapping: mappingKey(_manualMapping),
   );
 
-  Widget _jobCard(AppLocalizations l10n) {
+  Widget _jobCard(AppLocalizations l10n, {bool shrink = false}) {
     final t = DashTokens.of(context);
     final plates =
-        ref.watch(plateListProvider((_isArchive, _sourceId))).valueOrNull ??
+        ref.watch(plateListProvider((_isArchive, _sourceId))).value ??
         PlateList.none;
     final copiesOffered = ref.watch(batchListingProvider).orFalse;
     final position = plates.plates.indexWhere((p) => p.index == _plate);
@@ -279,70 +333,99 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       if (_source.printTimeSeconds case final s?) formatSeconds(l10n, s),
       if (_source.filamentUsedGrams case final g?) fmtGrams(g),
     ];
-    return ControllerCard.single(
-      title: l10n.controllerPrintJob,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final top = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(DashSpace.md),
+          child: QueueThumbnail(item: _source, size: _thumbSize),
+        ),
+        const SizedBox(width: DashSpace.md),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(DashSpace.md),
-                child: QueueThumbnail(item: _source, size: _thumbSize),
+              Text(
+                _source.displayName,
+                style: t.titleSm,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _source.displayName,
-                      style: t.titleSm,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (meta.isNotEmpty) ...[
-                      const SizedBox(height: DashSpace.xs),
-                      Text(
-                        meta.join(' · '),
-                        style: t.monoLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
+              if (meta.isNotEmpty) ...[
+                const SizedBox(height: DashSpace.xs),
+                Text(
+                  meta.join(' · '),
+                  style: t.monoLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+              ],
             ],
           ),
-          const Spacer(),
-          if (plates.isMultiPlate) ...[
-            PrintStepper(
-              id: 'controller.print.plate',
-              label: l10n.queueEditPlate,
-              value: plates.byIndex(_plate)?.name ?? '$_plate',
-              // Stepped through the list, not by arithmetic on the numbers.
-              onLess: position <= 0 ? null : () => _stepPlate(-1),
-              onMore: position >= plates.plates.length - 1
-                  ? null
-                  : () => _stepPlate(1),
-            ),
-            const SizedBox(height: DashSpace.sm),
+        ),
+      ],
+    );
+    final steppers = <Widget>[
+      if (plates.isMultiPlate) ...[
+        PrintStepper(
+          id: 'controller.print.plate',
+          label: l10n.queueEditPlate,
+          // The word the row already shows and a sign: no copy of its own.
+          lessTooltip: '${l10n.queueEditPlate} −1',
+          moreTooltip: '${l10n.queueEditPlate} +1',
+          value: plates.byIndex(_plate)?.name ?? '$_plate',
+          // Stepped through the list, not by arithmetic on the numbers.
+          onLess: position <= 0 ? null : () => _stepPlate(-1),
+          onMore: position >= plates.plates.length - 1
+              ? null
+              : () => _stepPlate(1),
+        ),
+        const SizedBox(height: DashSpace.sm),
+      ],
+      if (copiesOffered)
+        PrintStepper(
+          id: 'controller.print.copies',
+          label: l10n.queueEditCopies,
+          value: '$_copies',
+          lessTooltip: l10n.copiesLess,
+          moreTooltip: l10n.copiesMore,
+          onLess: _copies <= 1 ? null : () => setState(() => _copies--),
+          onMore: _copies >= _maxCopies
+              ? null
+              : () => setState(() => _copies++),
+        ),
+    ];
+    if (shrink) {
+      return ControllerCard.single(
+        title: l10n.controllerPrintJob,
+        shrink: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            top,
+            if (steppers.isNotEmpty) const SizedBox(height: DashSpace.md),
+            ...steppers,
           ],
-          if (copiesOffered)
-            PrintStepper(
-              id: 'controller.print.copies',
-              label: l10n.queueEditCopies,
-              value: '$_copies',
-              lessTooltip: l10n.copiesLess,
-              moreTooltip: l10n.copiesMore,
-              onLess: _copies <= 1 ? null : () => setState(() => _copies--),
-              onMore: _copies >= _maxCopies
-                  ? null
-                  : () => setState(() => _copies++),
+        ),
+      );
+    }
+    return ControllerCard.single(
+      title: l10n.controllerPrintJob,
+      // The steppers sit at the bottom when the card has room; a job with plates
+      // and copies in a short card scrolls instead of overflowing.
+      child: LayoutBuilder(
+        builder: (context, box) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: box.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [top, const Spacer(), ...steppers],
+              ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -365,20 +448,16 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   // --- Filament ---
 
-  Widget _filamentCard(AppLocalizations l10n) {
+  Widget _filamentCard(AppLocalizations l10n, {bool shrink = false}) {
     final t = DashTokens.of(context);
     final reqs = ref.watch(printRequirementsProvider(_plateSource));
     final status = ref.watch(mappingStatusProvider(_printer.id));
-    final remain = ref
-        .watch(mappingInventoryRemainProvider(_printer.id))
-        .valueOrNull;
-    final preferLowest = ref.watch(preferLowestFilamentProvider).valueOrNull;
-    final catalog =
-        ref.watch(mappingColorCatalogProvider).valueOrNull ??
-        ColorCatalog.empty;
+    final remain = ref.watch(mappingInventoryRemainProvider(_printer.id)).value;
+    final preferLowest = ref.watch(preferLowestFilamentProvider).value;
+    final catalog = ref.watchColorNames();
     final comparison = queueMappingComparison(
-      requirements: reqs.valueOrNull ?? const [],
-      status: status.valueOrNull,
+      requirements: reqs.value ?? const [],
+      status: status.value,
       startFrom: _manualMapping,
       remain: remain?.grams,
       preferLowestSetting: preferLowest,
@@ -386,31 +465,69 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final waiting =
         (!reqs.hasValue && reqs.isLoading) ||
         (!status.hasValue && status.isLoading);
+    Widget row(int i) => _FilamentRow(
+      comparison: comparison[i],
+      catalog: catalog,
+      dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
+      onTap: () => _editMapping(),
+    );
+    final caption = Text(
+      _manualMapping == null
+          ? l10n.controllerPrintAutoMatched(_printer.name)
+          : l10n.controllerPrintManualMapping,
+      style: t.labelSoft,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    final reset = _manualMapping == null
+        ? null
+        : logTag(
+            'controller.print.reset_mapping',
+            TextButton(
+              onPressed: () => setState(() {
+                _manualMapping = null;
+                _rack.clear();
+              }),
+              child: Text(l10n.controllerPrintResetMapping),
+            ),
+          );
+    if (shrink) {
+      // In a page that scrolls the rows are a plain column: a list of their own
+      // would take the drag from the page.
+      return ControllerCard.single(
+        title: l10n.queueFilamentMapping,
+        trailing: reset,
+        shrink: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            caption,
+            const SizedBox(height: DashSpace.sm),
+            if (waiting)
+              const Padding(
+                padding: EdgeInsets.all(DashSpace.lg),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (comparison.isEmpty)
+              Center(child: Text('—', style: t.bodySoft))
+            else
+              for (final i in List.generate(comparison.length, (i) => i)) ...[
+                if (i > 0) const SizedBox(height: DashSpace.sm),
+                row(i),
+              ],
+            ?_costFooter(l10n, t),
+          ],
+        ),
+      );
+    }
     return ControllerCard.single(
       title: l10n.queueFilamentMapping,
-      trailing: _manualMapping == null
-          ? null
-          : logTag(
-              'controller.print.reset_mapping',
-              TextButton(
-                onPressed: () => setState(() {
-                  _manualMapping = null;
-                  _rack.clear();
-                }),
-                child: Text(l10n.controllerPrintResetMapping),
-              ),
-            ),
+      trailing: reset,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            _manualMapping == null
-                ? l10n.controllerPrintAutoMatched(_printer.name)
-                : l10n.controllerPrintManualMapping,
-            style: t.labelSoft,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          caption,
           const SizedBox(height: DashSpace.sm),
           Expanded(
             child: waiting
@@ -421,13 +538,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                     itemCount: comparison.length,
                     separatorBuilder: (_, _) =>
                         const SizedBox(height: DashSpace.sm),
-                    itemBuilder: (context, i) => _FilamentRow(
-                      comparison: comparison[i],
-                      catalog: catalog,
-                      dualExternal:
-                          (status.valueOrNull?.vtTray?.length ?? 0) > 1,
-                      onTap: () => _editMapping(),
-                    ),
+                    itemBuilder: (context, i) => row(i),
                   ),
           ),
           ?_costFooter(l10n, t),
@@ -439,7 +550,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   /// The job's estimated cost and, while billing is on, the centre it is booked
   /// to. A tap on the centre opens the dialog where it is changed.
   Widget? _costFooter(AppLocalizations l10n, DashTokens t) {
-    final cost = ref.watch(jobCostProvider(_costKey)).valueOrNull;
+    final cost = ref.watch(jobCostProvider(_costKey)).value;
     final billing = costCenterStateOf(ref.watch);
     final selected = billing.step == CostCenterStep.pick
         ? selectedCostCenter(billing.centers, _extras.costCenterId)
@@ -457,8 +568,9 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           'controller.print.cost_center',
           InkWell(
             onTap: _openMore,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: printOptionHeight),
+              alignment: Alignment.centerLeft,
               child: Text(
                 l10n.controllerPrintCostCenter(
                   selected.isPrivate
@@ -494,6 +606,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             logTag(
               'controller.print.cost_center_retry',
               TextButton(
+                style: _tapTarget,
                 onPressed: () => ref.invalidate(printableCostCentersProvider),
                 child: Text(l10n.retry),
               ),
@@ -559,63 +672,67 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   bool get _triState => ref.watch(triStateCalibrationProvider).orFalse;
 
-  Widget _optionsCard(AppLocalizations l10n) {
+  Widget _optionsCard(AppLocalizations l10n, {bool shrink = false}) {
     final triState = _triState;
+    final rows = <Widget>[
+      PrintOptionRow(
+        id: 'controller.print.bed_levelling',
+        label: l10n.queueOptBedLevelling,
+        value: calibrationLabel(l10n, _options.bedLevelling, triState),
+        onTap: () => setState(
+          () => _options = _options.copyWith(
+            bedLevelling: nextCalibration(_options.bedLevelling, triState),
+          ),
+        ),
+      ),
+      const SizedBox(height: DashSpace.xs),
+      PrintOptionRow(
+        id: 'controller.print.flow_cali',
+        label: l10n.queueOptFlowCali,
+        value: calibrationLabel(l10n, _options.flowCali, triState),
+        onTap: () => setState(
+          () => _options = _options.copyWith(
+            flowCali: nextCalibration(_options.flowCali, triState),
+          ),
+        ),
+      ),
+      const SizedBox(height: DashSpace.xs),
+      PrintOptionRow(
+        id: 'controller.print.timelapse',
+        label: l10n.queueOptTimelapse,
+        value: _options.timelapse ? l10n.commonOn : l10n.commonOff,
+        on: _options.timelapse,
+        onTap: () => setState(
+          () => _options = _options.copyWith(timelapse: !_options.timelapse),
+        ),
+      ),
+      if (_when == QueueScheduleType.scheduled) ...[
+        const SizedBox(height: DashSpace.xs),
+        PrintOptionRow(
+          id: 'controller.print.pick_time',
+          label: l10n.queueEditPickTime,
+          value: _scheduledTime == null
+              ? '—'
+              : DateTimeFormats.of(context).dateTime(_scheduledTime!),
+          on: _scheduledTime != null,
+          onTap: _pickTime,
+        ),
+      ],
+    ];
+    final column = Column(
+      mainAxisSize: shrink ? MainAxisSize.min : MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
     return ControllerCard.single(
       title: l10n.controllerPrintOptions,
       trailing: logTag(
         'controller.print.more',
         TextButton(onPressed: _openMore, child: Text(l10n.controllerPrintMore)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PrintOptionRow(
-            id: 'controller.print.bed_levelling',
-            label: l10n.queueOptBedLevelling,
-            value: calibrationLabel(l10n, _options.bedLevelling, triState),
-            onTap: () => setState(
-              () => _options = _options.copyWith(
-                bedLevelling: nextCalibration(_options.bedLevelling, triState),
-              ),
-            ),
-          ),
-          const SizedBox(height: DashSpace.xs),
-          PrintOptionRow(
-            id: 'controller.print.flow_cali',
-            label: l10n.queueOptFlowCali,
-            value: calibrationLabel(l10n, _options.flowCali, triState),
-            onTap: () => setState(
-              () => _options = _options.copyWith(
-                flowCali: nextCalibration(_options.flowCali, triState),
-              ),
-            ),
-          ),
-          const SizedBox(height: DashSpace.xs),
-          PrintOptionRow(
-            id: 'controller.print.timelapse',
-            label: l10n.queueOptTimelapse,
-            value: _options.timelapse ? l10n.commonOn : l10n.commonOff,
-            on: _options.timelapse,
-            onTap: () => setState(
-              () =>
-                  _options = _options.copyWith(timelapse: !_options.timelapse),
-            ),
-          ),
-          if (_when == QueueScheduleType.scheduled) ...[
-            const SizedBox(height: DashSpace.xs),
-            PrintOptionRow(
-              id: 'controller.print.pick_time',
-              label: l10n.queueEditPickTime,
-              value: _scheduledTime == null
-                  ? '—'
-                  : DateTimeFormats.of(context).dateTime(_scheduledTime!),
-              on: _scheduledTime != null,
-              onTap: _pickTime,
-            ),
-          ],
-        ],
-      ),
+      shrink: shrink,
+      // Scrolls when the fourth row (the time) does not fit the card.
+      child: shrink ? column : SingleChildScrollView(child: column),
     );
   }
 
@@ -635,7 +752,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   // --- Bottom bar ---
 
-  Widget _bottomBar(AppLocalizations l10n) {
+  ({Widget? note, Widget bar}) _bottomBar(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final item = ref.watch(controllerPrinterProvider(_printer.id)).item;
     final status = item?.status;
@@ -644,10 +761,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       _source.slicedForModel,
       _printer.model,
     );
-    final reqs = ref.watch(printRequirementsProvider(_plateSource)).valueOrNull;
+    final reqs = ref.watch(printRequirementsProvider(_plateSource)).value;
     final comparison = queueMappingComparison(
       requirements: reqs ?? const [],
-      status: ref.watch(mappingStatusProvider(_printer.id)).valueOrNull,
+      status: ref.watch(mappingStatusProvider(_printer.id)).value,
       startFrom: _manualMapping,
     );
     final unmapped = comparison.where((c) => c.loaded == null).length;
@@ -693,50 +810,76 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         compatible &&
         reqs != null &&
         costCenterAllowsCreate(billing);
-    return SizedBox(
-      height: controllerButtonHeight,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              note,
-              style: t.bodySoft.copyWith(color: warn ? t.warningInk : null),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: DashSpace.md),
-          _WhenChoices(
-            labels: [
-              l10n.controllerPrintNow,
-              l10n.queueScheduleQueue,
-              l10n.queueScheduleSchedule,
-            ],
-            selected: _when.index,
-            onChanged: (i) => setState(() {
-              _when = QueueScheduleType.values[i];
-              // Staged for a manual start only in Queue, as the form has it.
-              if (_when != QueueScheduleType.queue) {
-                _extras = _extras.copyWith(requireManualStart: false);
-              }
-            }),
-          ),
-          const SizedBox(width: DashSpace.md),
-          logTag(
-            'controller.print.submit',
-            FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(_submitWidth, controllerButtonHeight),
-              ),
-              onPressed: !canPrint || _awaitingTime ? null : _submit,
-              child: Text(switch (_when) {
-                QueueScheduleType.asap => l10n.controllerPrintNowAction,
-                QueueScheduleType.queue => l10n.fmAddToQueue,
-                QueueScheduleType.scheduled => l10n.queueScheduleSchedule,
-              }),
-            ),
-          ),
-        ],
+    final noteText = Text(
+      note,
+      style: t.bodySoft.copyWith(color: warn ? t.warningInk : null),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+    final choiceLabels = [
+      l10n.controllerPrintNow,
+      l10n.queueScheduleQueue,
+      l10n.queueScheduleSchedule,
+    ];
+    Widget choices({required bool expand}) => _WhenChoices(
+      expand: expand,
+      labels: choiceLabels,
+      selected: _when.index,
+      onChanged: (i) => setState(() {
+        _when = QueueScheduleType.values[i];
+        // Staged for a manual start only in Queue, as the form has it.
+        if (_when != QueueScheduleType.queue) {
+          _extras = _extras.copyWith(requireManualStart: false);
+        }
+      }),
+    );
+    final submitLabel = switch (_when) {
+      QueueScheduleType.asap => l10n.controllerPrintNowAction,
+      QueueScheduleType.queue => l10n.fmAddToQueue,
+      QueueScheduleType.scheduled => l10n.queueScheduleSchedule,
+    };
+    final submit = logTag(
+      'controller.print.submit',
+      FilledButton(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(_submitWidth, controllerButtonHeight),
+          // The theme pads a button 14 dp above and below its label, which at a
+          // large text size is taller than the choices beside it. A fixed height
+          // cut the label instead (its box is clipped), so the padding goes and
+          // the height is the minimum, as the choices have.
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.xl),
+        ),
+        onPressed: !canPrint || _awaitingTime ? null : _submit,
+        child: Text(submitLabel),
+      ),
+    );
+    // At a large text size the note and the buttons no longer fit one line. The
+    // buttons stay pinned; the note goes to the top of the scrolling cards, so
+    // it does not take the room they scroll in.
+    if (controllerLargeText(context)) {
+      return (
+        note: note.isEmpty ? null : noteText,
+        bar: _BarButtons(
+          choices: choices,
+          choiceLabels: choiceLabels,
+          submit: submit,
+          submitLabel: submitLabel,
+        ),
+      );
+    }
+    return (
+      note: null,
+      bar: SizedBox(
+        height: controllerButtonHeight,
+        child: Row(
+          children: [
+            Expanded(child: noteText),
+            const SizedBox(width: DashSpace.md),
+            choices(expand: false),
+            const SizedBox(width: DashSpace.md),
+            submit,
+          ],
+        ),
       ),
     );
   }
@@ -754,6 +897,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       context,
       initial: _scheduledTime,
       firstDate: clock.now(),
+      // Flutter's calendar is 48 dp a row in portrait only; in landscape, where
+      // this screen lives, its rows are about 35 dp. The field is a full-size
+      // target, and the calendar stays one tap away on its toggle.
+      initialEntryMode:
+          MediaQuery.orientationOf(context) == Orientation.landscape
+          ? DatePickerEntryMode.input
+          : DatePickerEntryMode.calendar,
     );
     if (picked == null || !mounted) return;
     setState(() => _scheduledTime = picked);
@@ -768,56 +918,62 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final providers = ProviderScope.containerOf(context, listen: false);
     final held = ref.read(awaitingReviewProvider);
     setState(() => _saving = true);
-
-    final mapping = await _matchMapping();
-    final outcome = await ref
-        .read(queueProvider.notifier)
-        .runOnRepository(
-          (repo) => createQueueJobs(
-            repo: repo,
-            providers: providers,
-            archiveId: _source.archiveId,
-            libraryFileId: _isArchive ? null : _source.libraryFileId,
-            sourceName: _source.displayName,
-            printerId: _printer.id,
-            copies: _copies,
-            insertAtTop: _when == QueueScheduleType.asap,
-            plateId: _plateToSend,
-            confirmOutcomeChoice: _extras.confirmOutcome,
-            confirmOutcomeSticky: _confirmOutcomeSticky,
-            buildOptions: () => QueueCreateOptions(
-              amsMapping: mapping,
-              scheduledTime: _when == QueueScheduleType.scheduled
-                  ? _scheduledTime?.toUtc().toIso8601String()
-                  : null,
-              requirePreviousSuccess: _extras.requirePreviousSuccess,
-              autoOffAfter: _extras.autoOffAfter,
-              // A user held for review always waits, whatever they chose.
-              manualStart: held || _extras.requireManualStart,
-              bedLevelling: _options.bedLevelling,
-              flowCali: _options.flowCali,
-              vibrationCali: _options.vibrationCali,
-              layerInspect: _options.layerInspect,
-              timelapse: _options.timelapse,
-              nozzleOffsetCali: _dualNozzle ? _options.nozzleOffsetCali : null,
-              gcodeInjection: _injectionPayload,
-              preheatOverride: _extras.preheatOverride,
-              preheatChamberTargetOverride: _chamberPayload,
-              costCenterId: _costCenterPayload,
-              nozzleRackChoice: _rack,
+    try {
+      final mapping = await _matchMapping();
+      final outcome = await ref
+          .read(queueProvider.notifier)
+          .runOnRepository(
+            (repo) => createQueueJobs(
+              repo: repo,
+              providers: providers,
+              archiveId: _source.archiveId,
+              libraryFileId: _isArchive ? null : _source.libraryFileId,
+              sourceName: _source.displayName,
+              printerId: _printer.id,
+              copies: _copies,
+              insertAtTop: _when == QueueScheduleType.asap,
+              plateId: _plateToSend,
+              confirmOutcomeChoice: _extras.confirmOutcome,
+              confirmOutcomeSticky: _confirmOutcomeSticky,
+              buildOptions: () => QueueCreateOptions(
+                amsMapping: mapping,
+                scheduledTime: _when == QueueScheduleType.scheduled
+                    ? _scheduledTime?.toUtc().toIso8601String()
+                    : null,
+                requirePreviousSuccess: _extras.requirePreviousSuccess,
+                autoOffAfter: _extras.autoOffAfter,
+                // A user held for review always waits, whatever they chose.
+                manualStart: held || _extras.requireManualStart,
+                bedLevelling: _options.bedLevelling,
+                flowCali: _options.flowCali,
+                vibrationCali: _options.vibrationCali,
+                layerInspect: _options.layerInspect,
+                timelapse: _options.timelapse,
+                nozzleOffsetCali: _dualNozzle
+                    ? _options.nozzleOffsetCali
+                    : null,
+                gcodeInjection: _injectionPayload,
+                preheatOverride: _extras.preheatOverride,
+                preheatChamberTargetOverride: _chamberPayload,
+                costCenterId: _costCenterPayload,
+                nozzleRackChoice: _rack,
+              ),
             ),
-          ),
-          'controller_print.create',
-        );
+            'controller_print.create',
+          );
 
-    // Remembered only once a job was really created with them.
-    if (outcome.isOk) {
-      await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      // Remembered only once a job was really created with them.
+      if (outcome.isOk) {
+        await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      }
+      if (!mounted) return;
+      setState(() => _saving = false);
+      snackQueueOutcome(messenger, outcome, l10n, ok: l10n.queueCreateAdded);
+      if (outcome.isOk) navigator.pop(true);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    if (!mounted) return;
-    setState(() => _saving = false);
-    messenger.snack(queueWriteMessage(l10n, outcome) ?? l10n.queueCreateAdded);
-    if (outcome.isOk) navigator.pop(true);
   }
 
   /// Off sends no target; otherwise the stepper's, within what the server takes.
@@ -839,7 +995,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   /// Only while the server holds snippets: the flag does nothing without them.
   bool? get _injectionPayload =>
-      (ref.read(gcodeSnippetModelsProvider).valueOrNull ?? const {}).isEmpty
+      (ref.read(gcodeSnippetModelsProvider).value ?? const {}).isEmpty
       ? null
       : _options.gcodeInjection;
 
@@ -855,7 +1011,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         printers: ref.read(printersRepositoryProvider),
         printerId: _printer.id,
         startFrom: _manualMapping ?? const [],
-        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).value,
       );
     } on Object {
       // A lost session surfaces on the write itself; the mapping only rides
@@ -866,6 +1022,12 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 }
 
 const _thumbSize = 76.0;
+
+/// A text button at the touch-target minimum: the theme's own is 44 dp high, and
+/// the factor the body is drawn at is under 1.09.
+final _tapTarget = TextButton.styleFrom(
+  minimumSize: const Size(0, printOptionHeight),
+);
 const _submitWidth = 220.0;
 const _swatch = 24.0;
 
@@ -921,8 +1083,13 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: DashSpace.md),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-            height: _lockHeight,
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.md,
+              vertical: DashSpace.xs,
+            ),
+            // A minimum, centred: a larger font makes the name and the icon taller.
+            constraints: const BoxConstraints(minHeight: _lockHeight),
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: t.subCard,
               borderRadius: BorderRadius.circular(DashSpace.md),
@@ -933,7 +1100,10 @@ class _TopBar extends StatelessWidget {
               children: [
                 Icon(
                   Icons.lock_outline_rounded,
-                  size: DashSpace.lg,
+                  size: controllerIconSize(context, DashSpace.lg),
+                  // The size already follows the text: the icon theme would scale
+                  // it a second time.
+                  applyTextScaling: false,
                   color: t.textSecondary,
                 ),
                 const SizedBox(width: DashSpace.sm),
@@ -959,56 +1129,133 @@ class _WhenChoices extends StatelessWidget {
     required this.labels,
     required this.selected,
     required this.onChanged,
+    this.expand = false,
   });
 
   final List<String> labels;
   final int selected;
   final ValueChanged<int> onChanged;
 
+  /// Equal shares of the width given, for a row of its own: the default is each
+  /// at the width of its label.
+  final bool expand;
+
+  Widget _share(Widget child) => expand ? Expanded(child: child) : child;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final radius = BorderRadius.circular(DashSpace.md);
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       children: [
         for (final (i, label) in labels.indexed) ...[
           if (i > 0) const SizedBox(width: DashSpace.sm),
-          logTag(
-            'controller.print.when',
-            Material(
-              color: i == selected
-                  ? t.accent.withValues(alpha: 0.16)
-                  : t.subCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: radius,
-                side: BorderSide(
-                  color: i == selected
-                      ? t.accent.withValues(alpha: 0.4)
-                      : t.subCardBorder,
+          _share(
+            logTag(
+              'controller.print.when',
+              Material(
+                color: i == selected
+                    ? t.accent.withValues(alpha: DashAlpha.wash)
+                    : t.subCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: radius,
+                  side: BorderSide(
+                    color: i == selected
+                        ? t.accent.withValues(alpha: DashAlpha.outline)
+                        : t.subCardBorder,
+                  ),
                 ),
-              ),
-              child: InkWell(
-                borderRadius: radius,
-                onTap: () => onChanged(i),
-                child: Container(
-                  height: controllerButtonHeight,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: i == selected
-                        ? t.monoValue.copyWith(color: t.accentInk)
-                        : t.monoValue,
+                child: InkWell(
+                  borderRadius: radius,
+                  onTap: () => onChanged(i),
+                  child: Container(
+                    height: controllerButtonHeight,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DashSpace.md,
+                    ),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: i == selected
+                          ? t.monoValue.copyWith(color: t.accentInk)
+                          : t.monoValue,
+                    ),
                   ),
                 ),
               ),
+              selected: i == selected,
             ),
-            selected: i == selected,
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The three choices and the submit at a large text size: one line while they
+/// fit, right-aligned as at the normal size; otherwise the choices in equal
+/// shares of the whole width and the submit across it under them. Never a `Wrap`:
+/// the button that moved down would keep its content width and stand at one side.
+///
+/// What fits is measured from the labels and the styles the buttons resolve with.
+class _BarButtons extends StatelessWidget {
+  const _BarButtons({
+    required this.choices,
+    required this.choiceLabels,
+    required this.submit,
+    required this.submitLabel,
+  });
+
+  /// The choices, at their own widths for the line and in equal shares for
+  /// their own row.
+  final Widget Function({required bool expand}) choices;
+  final List<String> choiceLabels;
+  final Widget submit;
+  final String submitLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final buttonStyle = FilledButtonTheme.of(context).style;
+    final submitText =
+        (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).merge(
+          buttonStyle?.textStyle?.resolve(const {}),
+        );
+    final choicesWidth =
+        DashSpace.sm * (choiceLabels.length - 1) +
+        [
+          for (final l in choiceLabels)
+            2 * DashSpace.md + textWidth(context, l, t.monoValue),
+        ].fold(0.0, (a, b) => a + b);
+    final submitWidth = math.max(
+      _submitWidth,
+      2 * DashSpace.xl + textWidth(context, submitLabel, submitText),
+    );
+    final needed =
+        choicesWidth + DashSpace.md + submitWidth + controllerFitSlack;
+    return LayoutBuilder(
+      builder: (context, box) {
+        if (!box.hasBoundedWidth || needed <= box.maxWidth) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              choices(expand: false),
+              const SizedBox(width: DashSpace.md),
+              submit,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            choices(expand: true),
+            const SizedBox(height: DashSpace.sm),
+            submit,
+          ],
+        );
+      },
     );
   }
 }
@@ -1039,20 +1286,24 @@ class _FilamentRow extends StatelessWidget {
     return logTag(
       'controller.print.filament',
       Material(
-        color: unmatched ? t.warning.withValues(alpha: 0.10) : t.subCard,
+        color: unmatched
+            ? t.warning.withValues(alpha: DashAlpha.faint)
+            : t.subCard,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
           side: BorderSide(
             color: unmatched
-                ? t.warning.withValues(alpha: 0.5)
+                ? t.warning.withValues(alpha: DashAlpha.scrim)
                 : t.subCardBorder,
           ),
         ),
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: SizedBox(
-            height: controllerButtonHeight,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: controllerButtonHeight,
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
               child: Row(
@@ -1061,7 +1312,7 @@ class _FilamentRow extends StatelessWidget {
                     child: _Slot(
                       colour: req.color,
                       title: req.type ?? '',
-                      subtitle: mappingColorName(
+                      subtitle: colorDisplayName(
                         l10n,
                         catalog,
                         req.color ?? '',
@@ -1070,7 +1321,8 @@ class _FilamentRow extends StatelessWidget {
                   ),
                   Icon(
                     Icons.arrow_forward_rounded,
-                    size: DashSpace.lg,
+                    size: controllerIconSize(context, DashSpace.lg),
+                    applyTextScaling: false,
                     color: t.textTertiary,
                   ),
                   Expanded(
@@ -1135,12 +1387,15 @@ class _Slot extends StatelessWidget {
             color: hex == null
                 ? null
                 : Color(0xFF000000 | int.parse(hex, radix: 16)),
-            border: Border.all(color: t.textPrimary.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: t.textPrimary.withValues(alpha: DashAlpha.soft),
+            ),
           ),
           child: hex == null
               ? Icon(
                   Icons.help_outline_rounded,
-                  size: DashSpace.lg,
+                  size: controllerIconSize(context, DashSpace.lg),
+                  applyTextScaling: false,
                   color: t.textTertiary,
                 )
               : null,

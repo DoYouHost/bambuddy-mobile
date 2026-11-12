@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart' show setEquals;
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:material_ui/material_ui.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,7 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
+import '../../core/models/profile_default.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/models/spool_preset_override.dart';
@@ -36,6 +38,7 @@ import '../common/dash_async.dart';
 import '../common/device_files.dart' show DeviceFileOutcome;
 import '../common/file_export.dart';
 import '../common/spool_colour_wheel.dart';
+import '../common/trimmed_or_null.dart';
 import '../label_printer/label_printer_providers.dart';
 import '../dashboard/ams_slot_config_providers.dart';
 import '../dashboard/providers.dart';
@@ -56,6 +59,7 @@ part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
 part 'suppliers_sheet.dart';
 part 'spool_form_suppliers.dart';
+part 'spool_form_profile_default.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
@@ -105,7 +109,7 @@ Future<void> showSpoolDetail(
   final messenger = ScaffoldMessenger.of(context);
 
   Spool? findSpool() {
-    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
+    final spools = ref.read(inventoryProvider).value?.spools ?? const [];
     for (final s in spools) {
       if (s.id == id) return s;
     }
@@ -122,10 +126,7 @@ Future<void> showSpoolDetail(
     messenger.snack(l10n.inventoryScanNotFound(id));
     return;
   }
-  final assignment = ref
-      .read(inventoryProvider)
-      .valueOrNull
-      ?.assignmentFor(spool.id);
+  final assignment = ref.read(inventoryProvider).value?.assignmentFor(spool.id);
   dashSurfaceSheet<void>(
     context,
     builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
@@ -198,11 +199,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     });
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
-    final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climates = ref.watch(locationClimateProvider).value ?? const {};
     final climateAlerting = climates.values.any((c) => c.alerting);
     final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
     final visible = sortSpools(
-      _filter(async.valueOrNull?.spools ?? const [], query, filters),
+      _filter(async.value?.spools ?? const [], query, filters),
       filters.sort,
       descending: filters.descending,
     );
@@ -278,7 +279,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       foregroundColor: t.textPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
                         side: BorderSide(color: t.subCardBorder),
                       ),
                       onPressed: () => _scanSpool(context, ref),
@@ -295,7 +296,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       foregroundColor: t.onAccent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(DashRadius.xl),
                       ),
                       onPressed: () => openSpoolForm(context),
                       icon: const Icon(Icons.add),
@@ -303,7 +304,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         l10n.inventoryAddSpool,
                         style: const TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: DashWeight.bold,
                         ),
                       ),
                     ),
@@ -335,14 +336,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       ),
                     ),
                     if (spools.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateView(
-                          message: inv.spools.isEmpty
-                              ? l10n.inventoryEmpty
-                              : l10n.inventoryNoMatches,
-                          icon: Icons.inventory_2_outlined,
-                        ),
+                      SliverEmptyState(
+                        message: inv.spools.isEmpty
+                            ? l10n.inventoryEmpty
+                            : l10n.inventoryNoMatches,
+                        icon: Icons.inventory_2_outlined,
                       )
                     else
                       SliverPadding(

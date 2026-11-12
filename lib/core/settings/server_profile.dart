@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart' as util;
 
 import '../app_context.dart';
+import '../models/value_equality.dart';
 
 /// Server authentication mode. EVERY code path that touches auth
 /// (headers, token minting, re-login) MUST branch on this enum —
@@ -9,7 +10,7 @@ enum AuthMode { none, jwt, apiKey }
 
 /// Connection profile for a bambuddy server. Does not contain secrets —
 /// those live in [CredentialsStore] (secure storage).
-class ServerProfile {
+class ServerProfile with ValueEquality {
   const ServerProfile({
     required this.baseUrl,
     required this.authMode,
@@ -49,15 +50,7 @@ class ServerProfile {
   /// request is on the bridge. Riverpod itself is unaffected — its
   /// `updateShouldNotify` compares with `identical`, never with this.
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ServerProfile &&
-          other.baseUrl == baseUrl &&
-          other.authMode == authMode &&
-          other.label == label;
-
-  @override
-  int get hashCode => Object.hash(baseUrl, authMode, label);
+  List<Object?> get props => [baseUrl, authMode, label];
 
   Map<String, dynamic> toJson() => {
     'baseUrl': baseUrl,

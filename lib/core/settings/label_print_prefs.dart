@@ -1,3 +1,4 @@
+import '../models/json_utils.dart';
 import '../models/spool_label.dart';
 
 /// Where a rendered label file goes.
@@ -143,9 +144,7 @@ class LabelPrintPrefs {
 
     return LabelPrintPrefs(
       monochrome: json['monochrome'] == true,
-      destination: LabelDestination.values
-          .where((d) => d.name == json['destination'])
-          .firstOrNull,
+      destination: enumByName(LabelDestination.values, json['destination']),
       format: SpoolLabelFormat.fromName(json['format']),
       dpi: spoolLabelDpiChoices.contains(json['dpi'])
           ? json['dpi'] as int

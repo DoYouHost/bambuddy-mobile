@@ -29,6 +29,7 @@ void main() {
 
   bool billing({Map<String, dynamic>? flags, Map<String, dynamic>? settings}) {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         serverUiFlagsProvider.overrideWith((ref) async => flags ?? const {}),
         serverSettingsOverride(settings ?? const {}),
@@ -49,6 +50,7 @@ void main() {
         Map<String, dynamic>? settings,
       }) async {
         final container = ProviderContainer(
+          retry: neverRetry,
           overrides: [
             serverUiFlagsProvider.overrideWith(
               (ref) async => flags ?? const {},
@@ -80,6 +82,7 @@ void main() {
     // must not stand for the rest of the session.
     var reads = 0;
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         serverUiFlagsProvider.overrideWith((ref) async {
           reads++;
@@ -541,6 +544,7 @@ void main() {
       Map<String, dynamic> settings,
     ) {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           serverUiFlagsProvider.overrideWith((ref) async => flags),
           serverSettingsOverride(settings),

@@ -18,7 +18,7 @@ class AdminScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final user = ref.watch(currentUserProvider).valueOrNull;
+    final user = ref.watch(currentUserProvider).value;
 
     return DashBackground(
       child: Scaffold(
@@ -79,7 +79,7 @@ class _SignedInAs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.badge_outlined, size: 15, color: t.textTertiary),
+          Icon(Icons.badge_outlined, size: DashIcon.sm, color: t.textTertiary),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(l10n.adminSignedInAs(username), style: t.labelSoft),

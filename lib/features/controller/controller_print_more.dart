@@ -166,8 +166,13 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
       child: LayoutBuilder(
         builder: (context, box) => SizedBox(
           width: math.min(_width * widget.scale, box.maxWidth),
-          height: math.min(_height * widget.scale, box.maxHeight),
+          // From a large text size the rows are a list that scrolls, so the
+          // dialog takes the room there is instead of growing with the font.
+          height: controllerLargeText(context)
+              ? box.maxHeight
+              : math.min(_height * widget.scale, box.maxHeight),
           child: ScaleToFit(
+            reflows: true,
             minSize: const Size(_width, _height),
             child: Padding(
               padding: const EdgeInsets.all(DashSpace.md),
@@ -211,7 +216,7 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
   Widget _rows(AppLocalizations l10n, DashTokens t) {
     final triState = ref.watch(triStateCalibrationProvider).orFalse;
     final held = ref.watch(awaitingReviewProvider);
-    final snippets = ref.watch(gcodeSnippetModelsProvider).valueOrNull ?? {};
+    final snippets = ref.watch(gcodeSnippetModelsProvider).value ?? {};
     final model = widget.printer.model;
     final dualNozzle = queueDualNozzleModels.contains(model?.toUpperCase());
     final chamberMax = ref.watch(chamberMaxTargetProvider);
@@ -290,6 +295,9 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
         PrintStepper(
           id: 'controller.print.more.chamber',
           label: l10n.controllerPrintChamber,
+          // The step and a sign, as the heat tab names its steppers.
+          lessTooltip: '−$chamberStep°',
+          moreTooltip: '+$chamberStep°',
           value: target == null ? '—' : '$target°',
           // Back to the filament's own below the first step.
           onLess: target == null
@@ -343,8 +351,7 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
   Widget _confirmOutcomeRow(AppLocalizations l10n) {
     final server = ref.watch(defaultConfirmOutcomeProvider);
     final sticky = widget.confirmOutcomeSticky;
-    final value =
-        sticky || (_extras.confirmOutcome ?? server.valueOrNull ?? false);
+    final value = sticky || (_extras.confirmOutcome ?? server.value ?? false);
     final unanswered = _extras.confirmOutcome == null && server.isUnanswered;
     return PrintOptionRow(
       id: 'controller.print.more.confirm_outcome',
@@ -389,7 +396,7 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
         );
         final cost = widget.costKey == null
             ? null
-            : ref.watch(jobCostProvider(widget.costKey!)).valueOrNull;
+            : ref.watch(jobCostProvider(widget.costKey!)).value;
         return [
           Text(l10n.queueCostCenterTitle, style: t.labelSoft),
           for (final c in state.centers)

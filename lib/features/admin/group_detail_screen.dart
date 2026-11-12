@@ -37,7 +37,7 @@ class GroupDetailScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: async.valueOrNull?.name ?? l10n.groupsTitle,
+          title: async.value?.name ?? l10n.groupsTitle,
           actions: [
             if (canManage && async.hasValue) _GroupMenu(group: async.value!),
           ],
@@ -74,7 +74,7 @@ class GroupDetailScreen extends ConsumerWidget {
                 const SizedBox(height: DashSpace.xl),
                 Text(
                   l10n.groupsMembersHeader,
-                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
+                  style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
                 ),
                 const SizedBox(height: DashSpace.sm),
                 if (group.members.isEmpty)
@@ -220,9 +220,7 @@ class _GroupMenu extends ConsumerWidget {
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     await ref.read(currentUserProvider.notifier).refresh();
-    messenger.snack(
-      result.isOk ? l10n.groupsDeleted : userWriteMessage(l10n, result),
-    );
+    messenger.snack(userWriteText(l10n, result, l10n.groupsDeleted));
     if (result.isOk) navigator.pop();
   }
 }
@@ -300,14 +298,14 @@ class _MemberRow extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(color: t.subCardBorder),
         ),
         child: Row(
           children: [
             Icon(
               Icons.person_outline,
-              size: 18,
+              size: DashIcon.md,
               color: member.isActive ? t.textSecondary : t.textTertiary,
             ),
             const SizedBox(width: DashSpace.md),
@@ -333,7 +331,7 @@ class _MemberRow extends StatelessWidget {
               IconButton(
                 icon: Icon(
                   Icons.person_remove_outlined,
-                  size: 18,
+                  size: DashIcon.md,
                   color: t.dangerInk,
                 ),
                 tooltip: l10n.groupsRemoveMember,

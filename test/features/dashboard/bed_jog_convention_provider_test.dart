@@ -58,6 +58,7 @@ const _fixedDoc = {
   final v = _Version(version);
   final o = _OpenApi(openApi);
   final container = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       serverVersionServiceProvider.overrideWithValue(v),
       printerCommandsRepositoryProvider.overrideWithValue(o),

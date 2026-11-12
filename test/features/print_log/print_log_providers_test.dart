@@ -79,6 +79,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     repo = _FakeRepository();
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         printLogRepositoryProvider.overrideWithValue(repo),
         sharedPreferencesProvider.overrideWithValue(prefs),
@@ -116,7 +117,7 @@ void main() {
     stale.complete(_page([3, 4], total: 4));
     await Future<void>.delayed(Duration.zero);
 
-    final state = container.read(printLogProvider).valueOrNull!;
+    final state = container.read(printLogProvider).value!;
     expect(state.items.map((e) => e.id), [9]);
     expect(state.total, 1);
     expect(repo.calls.last, 'failed');
@@ -135,7 +136,7 @@ void main() {
       // …and while it is out, marks run 1 as failed. That edit lands.
       await notifier.reclassify(1, status: 'failed');
       expect(
-        container.read(printLogProvider).valueOrNull!.items.first.status,
+        container.read(printLogProvider).value!.items.first.status,
         'failed',
       );
 
@@ -148,7 +149,7 @@ void main() {
       );
       await pumpEventQueue();
 
-      final state = container.read(printLogProvider).valueOrNull!;
+      final state = container.read(printLogProvider).value!;
       expect(state.items.first.status, 'failed');
       expect(state.loadingMore, isFalse, reason: 'the list is askable again');
     },
@@ -169,7 +170,7 @@ void main() {
     repo.pending.last.completeError(TypeError());
     await pumpEventQueue();
 
-    expect(container.read(printLogProvider).valueOrNull!.loadingMore, isFalse);
+    expect(container.read(printLogProvider).value!.loadingMore, isFalse);
 
     // And the proof it is not merely a flag: the list takes a page again.
     final before = repo.pending.length;
@@ -206,7 +207,7 @@ void main() {
       container.read(printLogProvider.future),
       throwsA(anything),
     );
-    expect(container.read(printLogProvider).valueOrNull, isNull);
+    expect(container.read(printLogProvider).value, isNull);
 
     final error = await container
         .read(printLogProvider.notifier)

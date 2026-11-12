@@ -118,3 +118,4 @@ asset rows are n/a.
 | Data safety form | manual | `docs/privacy-policy.md`; the bug report sends a log only on the user's tap. |
 | Account deletion | n/a | the app creates no accounts; they live on the user's own server. |
 | Target API deadline | test | see above |
+| Local Network permission | **open** | Policy announcement of 2026-10-29: `ACCESS_LOCAL_NETWORK` is restricted to core functionality that a device picker cannot cover, and an app **targeting API 37+** must submit a Play Console declaration for it (effective 2027-08-25, via the general permission declaration form `goo.gle/play-permission-decl-form`; no Local Network-specific questions were published yet). Not due while the target is 36; it becomes due together with the permission itself ([foreground-service.md](foreground-service.md#trap-ahead-access_local_network-android-17)). The declaration has to say that the user's own server sits on a LAN address, so a picker cannot replace the permission. |

@@ -1,54 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
-import '../../core/models/printer_status.dart';
-import '../../core/notifications/hms_catalog.dart';
+import '../../core/printers/printer_bucket.dart';
 import 'dashboard_sort.dart';
 import 'dashboard_view_store.dart';
-
-/// Coarse status buckets a printer can fall into on the dashboard — mirrors the
-/// web app's `classifyPrinterStatus` so both clients group printers the same way.
-enum PrinterStatusBucket {
-  all,
-  printing,
-  idle,
-  paused,
-  finished,
-  error,
-  offline,
-}
-
-/// Classify a printer's live [status] into one bucket — the web's
-/// `classifyPrinterStatus`, state for state: offline (no connection) wins, then
-/// error (a displayable HMS error — nothing else is one), then the print state.
-/// A `FAILED` job without an HMS code is the printer's terminal state after any
-/// unsuccessful end, a cancellation included, so it counts as finished; a
-/// preparing printer and any other state fall back to idle.
-/// Never returns [PrinterStatusBucket.all] (that's the "no filter" sentinel).
-PrinterStatusBucket classifyPrinter(PrinterStatus? status) {
-  if (!(status?.connected ?? false)) return PrinterStatusBucket.offline;
-  // The same displayable HMS errors the card surfaces, through the shared
-  // filter, so the two cannot drift.
-  final hasError =
-      firstDisplayableHmsError(
-        status!,
-        describe: HmsCatalog.instance.describe,
-      ) !=
-      null;
-  if (hasError) return PrinterStatusBucket.error;
-  switch (status.state?.toUpperCase()) {
-    case 'RUNNING':
-      return PrinterStatusBucket.printing;
-    case 'PAUSE':
-    case 'PAUSED':
-      return PrinterStatusBucket.paused;
-    case 'FINISH':
-    case 'FINISHED':
-    case 'FAILED':
-      return PrinterStatusBucket.finished;
-    default:
-      return PrinterStatusBucket.idle;
-  }
-}
 
 /// Dashboard filter state — applied client-side over the already-fetched roster
 /// (no extra network calls). Defaults: show everything.

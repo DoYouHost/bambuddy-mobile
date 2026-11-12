@@ -185,7 +185,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
                   ? DashSpinner(color: t.onAccent)
-                  : const Icon(Icons.add_link, size: 18),
+                  : const Icon(Icons.add_link, size: DashIcon.md),
               label: Text(l10n.inventoryAssignConfirm),
             ).tagged('spool_assign.save'),
           ],
@@ -219,10 +219,10 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         l10n,
         action: 'spool_assign.save',
       );
-    } on Object {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.snack(l10n.inventoryActionFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 }
@@ -464,8 +464,6 @@ class _SpoolActions extends ConsumerWidget {
       messenger.snack(successMsg);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: logId);
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }
@@ -507,17 +505,17 @@ class _ActionPill extends StatelessWidget {
       _ActionPillVariant.destructive => (tokens.dangerInk, tokens.danger),
     };
     final fill = variant == _ActionPillVariant.primary
-        ? tokens.accentGreen.withValues(alpha: 0.16)
+        ? tokens.accentGreen.withValues(alpha: DashAlpha.wash)
         : Colors.transparent;
     final border = outline == null
         ? null
-        : Border.all(color: outline.withValues(alpha: 0.4));
+        : Border.all(color: outline.withValues(alpha: DashAlpha.outline));
 
     return Material(
       color: fill,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: onPressed,
         child: Container(
           padding: const EdgeInsets.symmetric(
@@ -525,19 +523,26 @@ class _ActionPill extends StatelessWidget {
             vertical: DashSpace.md,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: border,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: DashSpace.sm),
-              Text(
-                label,
-                style: DashTokens.of(context).label.copyWith(color: color),
-              ),
-            ],
+          // The padding plus the label is 43 dp; this brings the touch area to 48.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension - 2 * DashSpace.md,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(icon, size: DashIcon.sm, color: color),
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  label,
+                  style: DashTokens.of(context).label.copyWith(color: color),
+                ),
+              ],
+            ),
           ),
         ),
       ),

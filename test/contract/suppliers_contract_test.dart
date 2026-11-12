@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/supplier.dart';
-import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/suppliers_repository.dart';
@@ -24,7 +23,6 @@ void main() {
     late bool hasSuppliers;
     final supplierIds = <int>[];
     final spoolIds = <int>[];
-    final keyIds = <int>[];
     final stamp = DateTime.now().millisecondsSinceEpoch;
 
     setUpAll(() async {
@@ -48,9 +46,6 @@ void main() {
           Endpoints.inventorySupplier(id),
           options: quiet,
         );
-      }
-      for (final id in keyIds) {
-        await dio.delete<dynamic>(Endpoints.apiKeyById(id), options: quiet);
       }
     });
 
@@ -221,24 +216,9 @@ void main() {
         markTestSkipped('server predates suppliers');
         return;
       }
-      final keys = ApiKeysRepository(dio);
-      Future<Dio> clientWith(Set<ApiKeyScope> scopes) async {
-        final created = await keys.create(
-          ApiKeyCreateInput(name: 'contract: suppliers', scopes: scopes),
-        );
-        keyIds.add(created.apiKey.id);
-        await pollUntil(
-          'key ${created.apiKey.id} to be committed',
-          () async => (await keys.list()).any((k) => k.id == created.apiKey.id)
-              ? true
-              : null,
-          within: const Duration(seconds: 10),
-          every: const Duration(milliseconds: 100),
-        );
-        return commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
-          ..options.headers['X-API-Key'] = created.key
-          ..options.validateStatus = (_) => true;
-      }
+      Future<Dio> clientWith(Set<ApiKeyScope> scopes) async =>
+          (await contractApiKeyDio(dio, scopes, name: 'contract: suppliers'))
+            ..options.validateStatus = (_) => true;
 
       final reader = await clientWith({ApiKeyScope.readStatus});
       expect(
