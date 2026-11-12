@@ -605,14 +605,9 @@ class _DetailsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final ams = status.ams ?? const [];
-    // A rack printer's nine inputs, one per hotend: only a loaded one gets a
-    // row, Ext-1 first (`PrintersPage.tsx`, `shownExternals`).
     final rack = status.trayLayout.rack;
     final reported = status.externalSpools;
-    final spools = rack
-        ? (reported.where((t) => t.trayType?.isNotEmpty ?? false).toList()
-            ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)))
-        : reported;
+    final spools = status.shownExternalSpools;
     final active = status.activeTray;
     final dual = status.isDualNozzle(nozzleCount);
     final activeExtruder = status.activeExtruder;
@@ -842,7 +837,7 @@ Future<void> showExternalSlotSheet(
       l10n: AppLocalizations.of(context),
       status: status,
       dual: status.isDualNozzle(nozzleCount),
-      spool: status.externalSpools[spoolIndex],
+      spool: status.shownExternalSpools[spoolIndex],
       assigned: ref.read(assignedSpoolsProvider(status.id)),
     ),
   ),
@@ -2774,7 +2769,7 @@ Future<void> runSlotCommand(
           l10n: l10n,
           status: status,
           dual: dual,
-          spool: status.externalSpools[index],
+          spool: status.shownExternalSpools[index],
           assigned: assigned,
         )
       : _amsSlotRef(

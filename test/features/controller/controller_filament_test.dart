@@ -613,6 +613,104 @@ void main() {
     });
   });
 
+  group('an H3C', () {
+    final ams3h = AmsUnit(
+      id: 32,
+      amsType: 6,
+      humidity: 33,
+      dryerSlots: const [5, 7],
+      trays: [
+        for (var slot = 0; slot < 9; slot++)
+          _tray(slot, slot == 4 ? 'PETG' : 'PLA', 'DE4343FF'),
+      ],
+    );
+    Finder card(String number) =>
+        find.ancestor(of: find.text(number), matching: slots());
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('lays the AMS 3H out as the unit, two rows, at text scale '
+          '$scale', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pump(
+          tester,
+          _status(ams: [ams3h]),
+          size: scale > 1 ? const Size(891, 450) : _phone,
+          reflows: scale > 1,
+        );
+        expect(tester.takeException(), isNull);
+
+        expect(slots(), findsNWidgets(9));
+        final one = tester.getRect(card('1').first);
+        final two = tester.getRect(card('2').first);
+        final three = tester.getRect(card('3').first);
+        // 2 behind 1 and 3, half a slot in.
+        expect(two.bottom, lessThanOrEqualTo(one.top));
+        expect(two.left, greaterThan(one.left));
+        expect(two.left, lessThan(three.left));
+        expect(one.top, three.top);
+        // Wide enough to name the material.
+        expect(one.width, greaterThan(60));
+      });
+    }
+
+    testWidgets('tints the dryer slots', (tester) async {
+      await pump(tester, _status(ams: [ams3h]));
+      final t = DashTokens.of(tester.element(slots().first));
+      // The card's own Material is the nearest one around its slot tag.
+      Color? fill(String n) => tester
+          .widget<Material>(
+            find
+                .ancestor(of: card(n).first, matching: find.byType(Material))
+                .first,
+          )
+          .color;
+      expect(fill('6'), t.accentOrange.withValues(alpha: DashAlpha.faint));
+      expect(fill('8'), fill('6'));
+      expect(fill('5'), t.subCard);
+    });
+
+    testWidgets('lists only loaded inputs, as Ext-n, Ext-1 first', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          ams: [ams3h],
+          external: [
+            _tray(250, 'TPU', '2E6FD8FF'),
+            const AmsTray(id: 251),
+            _tray(255, 'PETG', 'FFFFFFFF'),
+          ],
+        ),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(find.text(pl.externalInputs), findsWidgets);
+      expect(slots(), findsNWidgets(2));
+      expect(
+        tester.getRect(find.text('Ext-1')).left,
+        lessThan(tester.getRect(find.text('Ext-6')).left),
+      );
+    });
+
+    testWidgets('says so when none of the inputs is loaded', (tester) async {
+      await pump(
+        tester,
+        _status(
+          ams: [ams3h],
+          external: [for (var id = 247; id <= 255; id++) AmsTray(id: id)],
+        ),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(slots(), findsNothing);
+      expect(find.text(pl.externalInputsEmpty(9)), findsOneWidget);
+    });
+  });
+
   group('the external spool', () {
     testWidgets('is a unit of its own in the rail', (tester) async {
       await pump(tester, _status(external: [_tray(254, 'TPU', '2E6FD8FF')]));

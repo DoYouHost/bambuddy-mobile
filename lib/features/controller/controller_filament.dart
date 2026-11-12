@@ -64,7 +64,7 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
     final entry = entries[_selected.clamp(0, entries.length - 1)];
     final dual = status.isDualNozzle(item.printer.nozzleCount);
     final trays = entry.unit == null
-        ? status.externalSpools
+        ? status.shownExternalSpools
         : (entry.unit!.trays ?? const <AmsTray>[]);
     final active = trays.indexWhere(
       (tray) => identical(tray, status.activeTray),
@@ -231,7 +231,9 @@ class _Rail extends StatelessWidget {
                           Expanded(
                             child: Text(
                               entry.unit == null
-                                  ? l10n.externalSpool
+                                  ? (status.trayLayout.rack
+                                        ? l10n.externalInputs
+                                        : l10n.externalSpool)
                                   : amsUnitName(
                                       entry.unit!.id ?? entry.unitIndex!,
                                     ),
@@ -348,8 +350,9 @@ class _Pane extends ConsumerWidget {
     BuildContext context,
     DashTokens t,
     bool page,
-    Widget child,
-  ) {
+    Widget child, {
+    int rows = 1,
+  }) {
     if (!page) return Expanded(child: child);
     double line(TextStyle style) {
       final painter = TextPainter(
@@ -364,12 +367,13 @@ class _Pane extends ConsumerWidget {
     }
 
     final lines = controllerLargeText(context) ? 2 : 1;
+    final card =
+        _spoolHeight +
+        DashSpace.sm +
+        lines * (line(t.titleMd) + line(t.monoValue)) +
+        2 * DashSpace.sm;
     return SizedBox(
-      height:
-          _spoolHeight +
-          DashSpace.sm +
-          lines * (line(t.titleMd) + line(t.monoValue)) +
-          2 * DashSpace.sm,
+      height: rows * card + (rows - 1) * DashSpace.sm,
       child: child,
     );
   }
@@ -394,12 +398,13 @@ class _Pane extends ConsumerWidget {
     // The card's lock: on while printing, off while paused, which is when a
     // runout needs a reload ([docs/single-printer-controller.md] §2).
     final locked = status.isPrinting && !status.isPaused;
+    final rack = status.trayLayout.rack;
     final chosen = slot;
     // A slot with no global tray number (AMS-HT) cannot be loaded by one, and
     // the web offers no load on a rack printer's inputs.
     final addressable =
         chosen != null &&
-        !(unit == null && status.trayLayout.rack) &&
+        !(unit == null && rack) &&
         amsLoadTrayId(
               amsId: amsId,
               trayId: unit == null
@@ -421,6 +426,84 @@ class _Pane extends ConsumerWidget {
       nozzleCount: nozzleCount,
       unitIndex: unitIndex,
       index: chosen!,
+    );
+
+    Widget slotCard(int i) {
+      final tray = trays[i];
+      return _SlotCard(
+        number: unit == null ? null : unit.slotAt(i) + 1,
+        caption: unit == null && rack
+            ? rackExternalLabel(tray.id ?? externalTrayIdBase)
+            : unit == null && dual
+            ? switch (status.extruderForExternal(tray.id)) {
+                1 => l10n.extruderLeft,
+                0 => l10n.extruderRight,
+                _ => null,
+              }
+            : null,
+        // The printer's own marks, like the unit names: short enough not to
+        // cover the spool. A rack input's name is its pill.
+        captionMark: unit == null && dual && !rack
+            ? switch (status.extruderForExternal(tray.id)) {
+                1 => l10n.extruderLeftShort,
+                0 => l10n.extruderRightShort,
+                _ => null,
+              }
+            : null,
+        tray: tray,
+        dryer: unit != null && unit.dryerSlots.contains(unit.slotAt(i)),
+        active: identical(tray, active),
+        selected: i == chosen,
+        fill: assigned.fillOf(
+          tray,
+          amsId: amsId,
+          trayId: unit == null
+              ? externalSlotIndex(tray.id ?? externalTrayIdBase)
+              : unit.slotAt(i),
+          serial: serial,
+        ),
+        onTap: () => onSlot(i),
+        onEdit: () => unit == null
+            ? showExternalSlotSheet(
+                context,
+                ref,
+                status: status,
+                nozzleCount: nozzleCount,
+                spoolIndex: i,
+              )
+            : showAmsSlotSheet(
+                context,
+                ref,
+                status: status,
+                nozzleCount: nozzleCount,
+                unitIndex: unitIndex!,
+                trayIndex: i,
+              ),
+      );
+    }
+
+    // An AMS 3H has nine slots: in one row a card is too narrow to name its
+    // material, so it gets two, 2-4-6-8 half a slot in behind 1-3-5-7-9, as on
+    // the unit (`amsHelpers.ts::ams3hSlotGridPlacement`).
+    final ams3h = unit != null && unit.isAms3h && trays.length > 4;
+    final back = [
+      for (var i = 0; i < trays.length; i++)
+        if (ams3h && unit.slotAt(i).isOdd) i,
+    ];
+    final front = [
+      for (var i = 0; i < trays.length; i++)
+        if (!back.contains(i)) i,
+    ];
+    Widget slotRow(List<int> positions, {bool inset = false}) => Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (inset) const Spacer(),
+        for (final (k, i) in positions.indexed) ...[
+          if (k > 0) const SizedBox(width: DashSpace.sm),
+          Expanded(flex: 2, child: slotCard(i)),
+        ],
+        if (inset) const Spacer(),
+      ],
     );
 
     final actions = <Widget>[
@@ -485,7 +568,9 @@ class _Pane extends ConsumerWidget {
                       Flexible(
                         child: Text(
                           unit == null
-                              ? l10n.externalSpool
+                              ? (rack
+                                    ? l10n.externalInputs
+                                    : l10n.externalSpool)
                               : amsUnitName(amsId),
                           style: t.titleLg,
                           maxLines: 1,
@@ -551,63 +636,26 @@ class _Pane extends ConsumerWidget {
           context,
           t,
           large,
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final (i, tray) in trays.indexed) ...[
-                if (i > 0) const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: _SlotCard(
-                    number: unit == null ? null : unit.slotAt(i) + 1,
-                    caption: unit == null && dual
-                        ? switch (status.extruderForExternal(tray.id)) {
-                            1 => l10n.extruderLeft,
-                            0 => l10n.extruderRight,
-                            _ => null,
-                          }
-                        : null,
-                    // The printer's own marks, like the unit names: short
-                    // enough not to cover the spool.
-                    captionMark: unit == null && dual
-                        ? switch (status.extruderForExternal(tray.id)) {
-                            1 => l10n.extruderLeftShort,
-                            0 => l10n.extruderRightShort,
-                            _ => null,
-                          }
-                        : null,
-                    tray: tray,
-                    active: identical(tray, active),
-                    selected: i == chosen,
-                    fill: assigned.fillOf(
-                      tray,
-                      amsId: amsId,
-                      trayId: unit == null
-                          ? externalSlotIndex(tray.id ?? externalTrayIdBase)
-                          : unit.slotAt(i),
-                      serial: serial,
-                    ),
-                    onTap: () => onSlot(i),
-                    onEdit: () => unit == null
-                        ? showExternalSlotSheet(
-                            context,
-                            ref,
-                            status: status,
-                            nozzleCount: nozzleCount,
-                            spoolIndex: i,
-                          )
-                        : showAmsSlotSheet(
-                            context,
-                            ref,
-                            status: status,
-                            nozzleCount: nozzleCount,
-                            unitIndex: unitIndex!,
-                            trayIndex: i,
-                          ),
+          rows: ams3h ? 2 : 1,
+          // A rack printer with none of its inputs loaded, as the card says it.
+          trays.isEmpty
+              ? Center(
+                  child: Text(
+                    l10n.externalInputsEmpty(status.externalSpools.length),
+                    style: t.bodySoft,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-              ],
-            ],
-          ),
+                )
+              : ams3h
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: slotRow(back, inset: true)),
+                    const SizedBox(height: DashSpace.sm),
+                    Expanded(child: slotRow(front)),
+                  ],
+                )
+              : slotRow([for (var i = 0; i < trays.length; i++) i]),
         ),
         if (actions.isNotEmpty) ...[
           const SizedBox(height: DashSpace.md),
@@ -741,9 +789,13 @@ class _SlotCard extends StatelessWidget {
     required this.onEdit,
     this.caption,
     this.captionMark,
+    this.dryer = false,
   });
 
   final int? number;
+
+  /// One of the AMS 3H dryer's two slots, tinted as the card tints them.
+  final bool dryer;
 
   /// What the side is called, said to a screen reader.
   final String? caption;
@@ -837,7 +889,11 @@ class _SlotCard extends StatelessWidget {
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final card = Material(
-      color: selected ? t.accent.withValues(alpha: DashAlpha.faint) : t.subCard,
+      color: selected
+          ? t.accent.withValues(alpha: DashAlpha.faint)
+          : dryer
+          ? t.accentOrange.withValues(alpha: DashAlpha.faint)
+          : t.subCard,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(

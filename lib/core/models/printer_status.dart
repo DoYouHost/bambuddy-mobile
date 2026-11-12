@@ -718,6 +718,14 @@ class PrinterStatus {
     return list;
   }
 
+  /// The external spools the card and the controller list: on a rack printer
+  /// only a loaded input, Ext-1 first (`PrintersPage.tsx`, `shownExternals`);
+  /// elsewhere every holder.
+  List<AmsTray> get shownExternalSpools => trayLayout.rack
+      ? (externalSpools.where((t) => t.trayType?.isNotEmpty ?? false).toList()
+          ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)))
+      : externalSpools;
+
   /// Two-nozzle machine, by the web's rule wherever it has the printer and its
   /// status (`PrintersPage.tsx`, `AssignToAmsModal.tsx`): the printer row's
   /// `nozzle_count` ([nozzleCount], from `GET /printers`) or a second nozzle
