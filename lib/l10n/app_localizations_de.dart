@@ -1697,6 +1697,21 @@ class AppLocalizationsDe extends AppLocalizations {
       'Aus diesem Slot wird keine Düse versorgt';
 
   @override
+  String amsUnloadAms3h(int slot) {
+    return 'Slot $slot wird entladen. Sobald der Drucker dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'In Slot $slot ist kein Filament. Schieb es in den Einlass, bis der AMS 3H es einzieht, und lade dann erneut.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'Der AMS 3H trocknet nur die Slots $a und $b';
+  }
+
+  @override
   String get amsActionsWhilePrinting =>
       'Nicht verfügbar, während der Drucker druckt';
 

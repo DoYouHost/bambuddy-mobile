@@ -1297,6 +1297,135 @@ void main() {
         expectSentAsRecorded('ams3h_drying_start', writesOf(log.requests));
       });
 
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('the drying sheet names the dryer slots and opens on their '
+            'filament at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            // Slot 1 holds PETG, but only slots 2 and 4 dry: slot 2 is empty,
+            // slot 4 holds the fixture's PLA.
+            realItem(
+              unit: {
+                ...dryer,
+                'dryer_slots': [1, 3],
+              },
+              trays: {
+                1: {'tray_type': ''},
+              },
+              top: {'state': 'IDLE'},
+            ),
+          );
+          await tester.tap(byLogId('printer.drying'));
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+          expect(find.text(pl.dryAms3hSlots(2, 4)), findsOneWidget);
+          final combo = find.descendant(
+            of: byLogId('drying.filament'),
+            matching: find.byType(EditableText),
+          );
+          expect(tester.widget<EditableText>(combo).controller.text, 'PLA');
+        });
+      }
+
+      testWidgets('a regular AMS opens drying on its first filament', (
+        tester,
+      ) async {
+        await pumpAt(tester, 1.0, realItem(top: {'state': 'IDLE'}));
+        await tester.tap(byLogId('printer.drying'));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        final combo = find.descendant(
+          of: byLogId('drying.filament'),
+          matching: find.byType(EditableText),
+        );
+        expect(tester.widget<EditableText>(combo).controller.text, 'PETG');
+        expect(find.textContaining('AMS 3H'), findsNothing);
+      });
+
+      for (final (status, expected) in [(200, 'unload'), (409, 'load409')]) {
+        testWidgets('the AMS 3H snackbar after $expected', (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final dio = testDio();
+          mockServer(dio)
+            ..onPost(
+              '/api/v1/printers/1/ams/load',
+              (server) => server.reply(status, {'detail': 'no filament'}),
+              queryParameters: {'tray_id': 31},
+            )
+            ..onPost(
+              '/api/v1/printers/1/ams/unload',
+              (server) => server.reply(status, {'success': true}),
+              queryParameters: {'tray_id': 31},
+            );
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: realItem(
+                      unit: dryer,
+                      top: {'tray_now': 255, 'state': 'IDLE'},
+                    ),
+                  ),
+                ),
+              ),
+              extra: [
+                printerCommandsRepositoryProvider.overrideWithValue(
+                  PrinterCommandsRepository(dio),
+                ),
+              ],
+            ),
+          );
+          Future<void> settle() async {
+            for (var i = 0; i < 5; i++) {
+              await tester.pump(const Duration(milliseconds: 200));
+            }
+          }
+
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          await settle();
+          final row = find
+              .byWidgetPredicate(
+                (w) =>
+                    w is Semantics &&
+                    (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+              )
+              .first;
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await settle();
+          await tester.tap(
+            byLogId(
+              expected == 'unload'
+                  ? 'assign_spool.ams_unload'
+                  : 'assign_spool.ams_load',
+            ),
+          );
+          await settle();
+
+          expect(
+            find.text(
+              expected == 'unload'
+                  ? pl.amsUnloadAms3h(4)
+                  : pl.amsLoadAms3hEmpty(4),
+            ),
+            findsOneWidget,
+          );
+          if (expected == 'unload') {
+            // Still there after the usual four seconds.
+            await tester.pump(const Duration(seconds: 5));
+            await tester.pump(const Duration(seconds: 1));
+            expect(find.text(pl.amsUnloadAms3h(4)), findsOneWidget);
+          }
+        });
+      }
+
       for (final (action, recording) in [
         ('assign_spool.ams_load', 'ams3h_load'),
         ('assign_spool.ams_unload', 'ams3h_unload'),

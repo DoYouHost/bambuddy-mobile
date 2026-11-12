@@ -160,4 +160,24 @@ void main() {
       expect(autoDryingFrom(const {}), noAutoDrying);
     });
   });
+
+  group('dryingPresetKey (resolveDryingPresetKey)', () {
+    test('a material the table has is its own key', () {
+      expect(dryingPresetKey('PETG', defaultDryingPresets), 'PETG');
+      expect(dryingPresetKey('petg basic', defaultDryingPresets), 'PETG');
+    });
+
+    test('a suffix and an alias fall back to the base material', () {
+      expect(dryingPresetKey('PLA-S', defaultDryingPresets), 'PLA');
+      expect(dryingPresetKey('PETG-CF', defaultDryingPresets), 'PETG');
+      expect(dryingPresetKey('PA6-CF', defaultDryingPresets), 'PA');
+      expect(dryingPresetKey('PAHT-CF', defaultDryingPresets), 'PA');
+    });
+
+    test('nothing, or something unknown, is PLA', () {
+      expect(dryingPresetKey(null, defaultDryingPresets), 'PLA');
+      expect(dryingPresetKey('', defaultDryingPresets), 'PLA');
+      expect(dryingPresetKey('UNOBTAINIUM', defaultDryingPresets), 'PLA');
+    });
+  });
 }

@@ -1691,6 +1691,21 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ninguna boquilla se alimenta desde esta ranura';
 
   @override
+  String amsUnloadAms3h(int slot) {
+    return 'Descargando la ranura $slot. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'La ranura $slot no tiene filamento. Empújalo en la entrada hasta que el AMS 3H lo recoja y vuelve a cargar.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'El AMS 3H seca solo las ranuras $a y $b';
+  }
+
+  @override
   String get amsActionsWhilePrinting =>
       'No disponible mientras la impresora está imprimiendo';
 

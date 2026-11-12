@@ -1733,6 +1733,21 @@ class AppLocalizationsPl extends AppLocalizations {
       'Z tego slotu nie jest zasilana żadna dysza';
 
   @override
+  String amsUnloadAms3h(int slot) {
+    return 'Wyładowywanie slotu $slot. Gdy drukarka o to poprosi, wyciągnij filament z AMS 3H ręcznie.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'W slocie $slot nie ma filamentu. Wsuń go we wlot, aż AMS 3H go wciągnie, i załaduj ponownie.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'AMS 3H suszy tylko sloty $a i $b';
+  }
+
+  @override
   String get amsActionsWhilePrinting => 'Niedostępne, gdy drukarka drukuje';
 
   @override

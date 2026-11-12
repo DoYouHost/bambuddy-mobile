@@ -2780,6 +2780,24 @@ abstract class AppLocalizations {
   /// **'No nozzle is fed from this slot'**
   String get amsUnloadSlotNotLoaded;
 
+  /// No description provided for @amsUnloadAms3h.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading slot {slot}. When the printer asks, pull the filament back out of the AMS 3H by hand.'**
+  String amsUnloadAms3h(int slot);
+
+  /// No description provided for @amsLoadAms3hEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.'**
+  String amsLoadAms3hEmpty(int slot);
+
+  /// No description provided for @dryAms3hSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS 3H dries slots {a} and {b} only'**
+  String dryAms3hSlots(int a, int b);
+
   /// No description provided for @amsActionsWhilePrinting.
   ///
   /// In en, this message translates to:

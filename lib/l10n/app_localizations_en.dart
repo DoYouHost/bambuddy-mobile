@@ -1675,6 +1675,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsUnloadSlotNotLoaded => 'No nozzle is fed from this slot';
 
   @override
+  String amsUnloadAms3h(int slot) {
+    return 'Unloading slot $slot. When the printer asks, pull the filament back out of the AMS 3H by hand.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'Slot $slot holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'The AMS 3H dries slots $a and $b only';
+  }
+
+  @override
   String get amsActionsWhilePrinting =>
       'Unavailable while the printer is printing';
 

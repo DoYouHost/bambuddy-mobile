@@ -1080,6 +1080,33 @@
   "amsFeedAlreadyLoaded": "already loaded",
   "amsSwitchNotReady": "The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.",
   "amsUnloadSlotNotLoaded": "No nozzle is fed from this slot",
+  "amsUnloadAms3h": "Unloading slot {slot}. When the printer asks, pull the filament back out of the AMS 3H by hand.",
+  "@amsUnloadAms3h": {
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  },
+  "amsLoadAms3hEmpty": "Slot {slot} holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.",
+  "@amsLoadAms3hEmpty": {
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  },
+  "dryAms3hSlots": "The AMS 3H dries slots {a} and {b} only",
+  "@dryAms3hSlots": {
+    "placeholders": {
+      "a": {
+        "type": "int"
+      },
+      "b": {
+        "type": "int"
+      }
+    }
+  },
   "amsActionsWhilePrinting": "Unavailable while the printer is printing",
   "amsSlotConfigure": "Configure slot",
   "amsSlotConfigTitle": "Slot configuration",

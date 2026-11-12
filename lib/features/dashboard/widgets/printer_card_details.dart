@@ -1832,9 +1832,25 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     _adopt(ref.read(dryingPresetsProvider));
   }
 
+  /// The material the sheet opens on, as the web's drying popover picks it:
+  /// the first loaded tray, and on an AMS 3H the first in its dryer's slots,
+  /// the only ones it dries (`openDryingPopover`).
+  String? get _seedType {
+    final unit = widget.unit;
+    final trays = unit.trays ?? const <AmsTray>[];
+    final dryer = unit.isAms3h ? unit.dryerSlots : const <int>[];
+    for (final (i, tray) in trays.indexed) {
+      if (dryer.isNotEmpty && !dryer.contains(unit.slotAt(i))) continue;
+      final type = tray.trayType;
+      if (type != null && type.isNotEmpty) return type;
+    }
+    return null;
+  }
+
   /// Takes [presets] as the table to seed from, and re-seeds the pickers.
   void _adopt(Map<String, DryPreset> presets) {
     _presets = presets;
+    _filament = dryingPresetKey(_seedType, presets);
     // A table the server configured need not contain PLA — open on the first
     // filament it does have, so the dropdown always has its own value in it.
     if (!_presets.containsKey(_filament)) {
@@ -2019,6 +2035,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   }
 
   List<Widget> _setupBody(DashTokens t, AppLocalizations l10n) => [
+    if (widget.unit.isAms3h && widget.unit.dryerSlots.length == 2) ...[
+      Text(
+        l10n.dryAms3hSlots(
+          widget.unit.dryerSlots[0] + 1,
+          widget.unit.dryerSlots[1] + 1,
+        ),
+        style: t.bodySoft,
+      ),
+      const SizedBox(height: DashSpace.md),
+    ],
     dashCombo<String>(
       context,
       id: 'drying.filament',
@@ -2565,6 +2591,7 @@ Future<void> _runSlotAction(
   String startedMessage, {
   VoidCallback? beforeSend,
   String? Function(ApiException error)? wordFailure,
+  Duration startedFor = const Duration(seconds: 4),
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   beforeSend?.call();
@@ -2573,8 +2600,10 @@ Future<void> _runSlotAction(
     ActionFailed(error: final ApiException e) => wordFailure?.call(e),
     _ => null,
   };
+  final message = failure ?? outcome.messageFor(l10n);
   messenger.snack(
-    failure ?? outcome.messageFor(l10n) ?? startedMessage,
+    message ?? startedMessage,
+    duration: message == null ? startedFor : const Duration(seconds: 4),
     clearQueue: true,
   );
 }
@@ -2595,7 +2624,14 @@ Future<void> _unloadSlot(
   context,
   l10n,
   () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
-  l10n.amsUnloadStarted,
+  // The AMS 3H cannot rewind: the printer then waits for a hand pull, which
+  // the web says in a warning toast (`printers.toast.unloadAms3h`).
+  slot.amsId == ams3hUnit
+      ? l10n.amsUnloadAms3h(slot.trayId + 1)
+      : l10n.amsUnloadStarted,
+  startedFor: slot.amsId == ams3hUnit
+      ? const Duration(seconds: 8)
+      : const Duration(seconds: 4),
   beforeSend: beforeSend,
   // The one status this route answers for a reason the user can act on, and
   // which "server returned error 409" would hide.
@@ -2634,6 +2670,11 @@ Future<void> _startSlotLoad(
       () => controls.amsLoad(slot.printerId, loadTrayId),
       l10n.amsLoadStarted,
       beforeSend: beforeSend,
+      // The server refuses an AMS 3H slot the unit has not pulled filament
+      // into yet (`printers.py` `ams_load`).
+      wordFailure: (e) => e.statusCode == 409 && slot.amsId == ams3hUnit
+          ? l10n.amsLoadAms3hEmpty(slot.trayId + 1)
+          : null,
     );
     return;
   }

@@ -1706,6 +1706,21 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune buse n\'est alimentée depuis cet emplacement';
 
   @override
+  String amsUnloadAms3h(int slot) {
+    return 'Déchargement de l\'emplacement $slot. Quand l\'imprimante le demande, retirez le filament de l\'AMS 3H à la main.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'L\'emplacement $slot n\'a pas de filament. Poussez-le dans l\'entrée jusqu\'à ce que l\'AMS 3H le saisisse, puis rechargez.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'L\'AMS 3H ne sèche que les emplacements $a et $b';
+  }
+
+  @override
   String get amsActionsWhilePrinting => 'Indisponible pendant l\'impression';
 
   @override

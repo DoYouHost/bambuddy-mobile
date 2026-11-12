@@ -5,9 +5,9 @@
     "body": null,
     "query": {
       "ams_id": 32,
-      "temp": 45,
+      "temp": 65,
       "duration": 12,
-      "filament": "PLA"
+      "filament": "PETG"
     }
   }
 ]
