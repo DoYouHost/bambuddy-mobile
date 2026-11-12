@@ -22,6 +22,11 @@ enum AppErrorCode {
   clientCertRefused,
   connectionError,
   malformedResponse,
+
+  /// The address answers, but not as bambuddy — usually the web page the SPA
+  /// catch-all serves for an address pasted with a path after
+  /// the port (`host:8000/printers`). Not [connectionError]: the host answered.
+  notBambuddy,
   invalidCredentials,
 
   /// A second factor is needed and the caller cannot ask for one — silent

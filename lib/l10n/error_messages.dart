@@ -14,6 +14,7 @@ extension AppApiExceptionL10n on AppApiException {
     AppErrorCode.clientCertRefused => l10n.errClientCertRefused,
     AppErrorCode.connectionError => l10n.errConnection,
     AppErrorCode.malformedResponse => l10n.errMalformedResponse,
+    AppErrorCode.notBambuddy => l10n.errNotBambuddy,
     AppErrorCode.invalidCredentials => l10n.errInvalidCredentials,
     AppErrorCode.twoFactorUnsupported => l10n.errTwoFactorUnsupported,
     AppErrorCode.twoFactorCodeRejected => l10n.errTwoFactorCodeRejected,

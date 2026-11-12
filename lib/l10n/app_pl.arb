@@ -871,6 +871,7 @@
   "errClientCertRefused": "Serwer wymaga ważnego certyfikatu klienta",
   "errConnection": "Błąd połączenia",
   "errMalformedResponse": "Nieprawidłowa odpowiedź serwera",
+  "errNotBambuddy": "Pod tym adresem nie ma serwera Bambuddy — sprawdź port i usuń ewentualną ścieżkę za nim.",
   "errInvalidCredentials": "Nieprawidłowy login lub hasło",
   "errTwoFactorUnsupported": "Konto wymaga 2FA — nieobsługiwane w tej wersji. Użyj klucza API (Ustawienia → API Keys na serwerze).",
   "errTwoFactorCodeRejected": "Zły kod — sprawdź go i spróbuj ponownie.",

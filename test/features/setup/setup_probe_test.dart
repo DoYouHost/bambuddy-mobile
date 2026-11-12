@@ -53,6 +53,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
     adapter = mockServer(dio);
+    adapter.onGet(
+      '$_baseUrl/api/v1/updates/version',
+      (s) => s.reply(200, {'version': '1.2.5', 'repo': 'maziggy/bambuddy'}),
+    );
     credentials = InMemoryCredentialsStore();
     overrides = [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -269,11 +273,18 @@ void main() {
 
       await controller().probe(_baseUrl);
 
-      expect(state().error, isA<NetworkException>());
+      expect(
+        state().error,
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.notBambuddy,
+        ),
+      );
       expect(await records('server_probe'), isEmpty);
       expect(
         (await records('action_failed')).single['code'],
-        AppErrorCode.connectionError.name,
+        AppErrorCode.notBambuddy.name,
       );
     });
 

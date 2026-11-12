@@ -2215,6 +2215,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errMalformedResponse => 'Malformed server response';
 
   @override
+  String get errNotBambuddy =>
+      'This address is not a Bambuddy server — check the port and remove any path after it.';
+
+  @override
   String get errInvalidCredentials => 'Invalid username or password';
 
   @override

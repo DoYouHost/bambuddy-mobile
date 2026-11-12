@@ -2274,6 +2274,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get errMalformedResponse => 'Nieprawidłowa odpowiedź serwera';
 
   @override
+  String get errNotBambuddy =>
+      'Pod tym adresem nie ma serwera Bambuddy — sprawdź port i usuń ewentualną ścieżkę za nim.';
+
+  @override
   String get errInvalidCredentials => 'Nieprawidłowy login lub hasło';
 
   @override

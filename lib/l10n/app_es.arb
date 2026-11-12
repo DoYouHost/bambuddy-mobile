@@ -1072,6 +1072,7 @@
   "errClientCertRefused": "El servidor exige un certificado de cliente válido",
   "errConnection": "Error de conexión",
   "errMalformedResponse": "Respuesta del servidor mal formada",
+  "errNotBambuddy": "Esta dirección no es un servidor Bambuddy — comprueba el puerto y quita la ruta que lo sigue, si la hay.",
   "errInvalidCredentials": "Usuario o contraseña no válidos",
   "errTwoFactorUnsupported": "La cuenta requiere 2FA — no es compatible en esta versión. Usa una clave API (Ajustes → Claves API en el servidor).",
   "errTwoFactorCodeRejected": "Código incorrecto — compruébalo e inténtalo de nuevo.",

@@ -3716,6 +3716,12 @@ abstract class AppLocalizations {
   /// **'Malformed server response'**
   String get errMalformedResponse;
 
+  /// No description provided for @errNotBambuddy.
+  ///
+  /// In en, this message translates to:
+  /// **'This address is not a Bambuddy server — check the port and remove any path after it.'**
+  String get errNotBambuddy;
+
   /// No description provided for @errInvalidCredentials.
   ///
   /// In en, this message translates to:

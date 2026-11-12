@@ -2243,6 +2243,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get errMalformedResponse => 'Ungültige Serverantwort';
 
   @override
+  String get errNotBambuddy =>
+      'Unter dieser Adresse läuft kein Bambuddy-Server — prüfe den Port und entferne einen eventuellen Pfad dahinter.';
+
+  @override
   String get errInvalidCredentials =>
       'Ungültiger Benutzername oder ungültiges Passwort';
 
