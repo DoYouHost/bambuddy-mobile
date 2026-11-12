@@ -10,9 +10,11 @@ import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
 import '../models/queue_item.dart'
     show kModelGateWaitReason, kPreviousFailureGate;
+import '../models/label_template.dart';
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_result.dart';
+import 'demo_label_templates.dart';
 import 'demo_labels.dart';
 import 'demo_finance.dart';
 import 'demo_manyfold.dart';
@@ -702,9 +704,15 @@ class DemoBackend {
 
       case 'finance':
         return _finance.route(m, s.skip(1).toList(), q, body);
+
+      case 'label-templates':
+        return _labelTemplates.route(m, s, body);
     }
     return null;
   }
+
+  /// Saved custom label sheets: two to start with, and state.
+  final _labelTemplates = DemoLabelTemplates();
 
   /// Billing: the cost centers, their members and the ledger.
   final _finance = DemoFinance();
@@ -6565,7 +6573,23 @@ class DemoBackend {
       return demoRefuse(422, 'unknown template ${body['template']}');
     }
 
-    final capacity = template.sheetCapacity;
+    // `LabelOptions.layout_only_for_custom`: a layout goes with the custom
+    // template and with no other, and one the renderer cannot fit is refused.
+    final rawLayout = body['layout'];
+    final layout = rawLayout is Map<String, dynamic>
+        ? SheetLayout.tryFromJson(rawLayout)
+        : null;
+    if ((template == SpoolLabelTemplate.custom) != (rawLayout != null)) {
+      return demoRefuse(
+        422,
+        'layout is required for template "custom" and not allowed otherwise',
+      );
+    }
+    if (rawLayout != null && (layout == null || layout.problem != null)) {
+      return demoRefuse(422, 'invalid sheet layout');
+    }
+
+    final capacity = layout?.capacity ?? template.sheetCapacity;
     final start = (body['starting_position'] as num?)?.toInt() ?? 1;
     if (start < 1 || start > (capacity ?? 1)) {
       return demoRefuse(
@@ -6610,6 +6634,7 @@ class DemoBackend {
           DemoLabelSpool.fromJson(_spools.firstWhere((x) => x['id'] == id)),
       ],
       template: template,
+      layout: layout,
       fields: fields,
       monochrome: body['monochrome'] == true,
       startingPosition: start,

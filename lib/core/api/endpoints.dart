@@ -1153,6 +1153,13 @@ abstract final class Endpoints {
   /// 500 ids and 404s if any id is unknown.
   static const inventoryLabels = '$apiPrefix/inventory/labels';
 
+  /// Saved custom label sheets (`LabelTemplateResponse[]`, server #3296) —
+  /// `POST` here, `PUT`/`DELETE` on [labelTemplate]. One list for both
+  /// inventory backends, and everyone on the install sees it.
+  static const labelTemplates = '$apiPrefix/label-templates';
+
+  static String labelTemplate(int id) => '$apiPrefix/label-templates/$id';
+
   // --- Home Assistant sensors bound to a storage location (server #2827) ---
 
   /// Every configured binding (`LocationHASensorResponse[]`), optionally one

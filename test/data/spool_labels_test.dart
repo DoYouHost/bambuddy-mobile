@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/label_template.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:dio/dio.dart';
@@ -415,6 +416,85 @@ void main() {
         SpoolLabelField.qr,
         SpoolLabelField.spoolId,
       });
+    });
+  });
+
+  group('a custom sheet', () {
+    late Dio dio;
+    late _FakeAdapter adapter;
+
+    setUp(() {
+      dio = testDio();
+      adapter = _FakeAdapter(status: 200, bytes: _pdfBytes);
+      dio.httpClientAdapter = adapter;
+    });
+
+    Map<String, dynamic> body() =>
+        adapter.captured!.data as Map<String, dynamic>;
+
+    final custom = SpoolLabelRequest(
+      spoolIds: const [1],
+      template: SpoolLabelTemplate.custom,
+      layout: SheetLayout.starting,
+      startingPosition: 7,
+    );
+
+    test('goes out as "custom" with the layout beside it', () async {
+      await NativeInventorySource(dio).renderLabels(custom);
+
+      expect(body()['template'], 'custom');
+      expect(body()['layout'], SheetLayout.starting.toJson());
+      expect(body()['starting_position'], 7);
+    });
+
+    test('reaches the Spoolman route too', () async {
+      await SpoolmanInventorySource(dio).renderLabels(custom);
+
+      expect(adapter.captured!.path, '/api/v1/spoolman/labels');
+      expect(body()['layout'], SheetLayout.starting.toJson());
+    });
+
+    test('a built-in template sends no layout', () async {
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.averyL7160,
+        ),
+      );
+
+      expect(body().containsKey('layout'), isFalse);
+    });
+
+    test('the layout goes with the custom template and with no other', () {
+      // The server's `layout_only_for_custom` refuses both halves with a 422.
+      expect(
+        () => SpoolLabelRequest(
+          spoolIds: const [1],
+          template: SpoolLabelTemplate.custom,
+        ),
+        throwsAssertionError,
+      );
+      expect(
+        () => SpoolLabelRequest(
+          spoolIds: const [1],
+          template: SpoolLabelTemplate.box62x29,
+          layout: SheetLayout.starting,
+        ),
+        throwsAssertionError,
+      );
+    });
+
+    test('the capacity to start within is the layout\'s grid', () {
+      expect(
+        LabelStock(
+          SpoolLabelTemplate.custom,
+          layout: SheetLayout.starting,
+        ).capacity,
+        21,
+      );
+      expect(const LabelStock(SpoolLabelTemplate.averyL7160).capacity, 21);
+      expect(const LabelStock(SpoolLabelTemplate.avery5160).capacity, 30);
+      expect(const LabelStock(SpoolLabelTemplate.box62x29).capacity, isNull);
     });
   });
 }
