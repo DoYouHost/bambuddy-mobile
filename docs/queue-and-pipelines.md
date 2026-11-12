@@ -65,6 +65,22 @@ whenever the lengths differ was rejected: a shortened list does not say where it
 shortened, so it would also blank rows that are right today. The real fix is server-side
 (the same filter on both joins); it has not been reported upstream.
 
+## The filament chips on a queue row
+
+`resolveQueueFilaments` (`lib/features/queue/queue_filaments.dart`) ports the web's
+function of the same name in `QueuePage.tsx`. The plate metadata decides which slots
+the job uses (`used_in_plate` and `used_grams > 0`), each slot's queue override
+replaces only that slot (#3132), and where `ams_mapping` names a tray the chip shows
+the tray's live filament and label (`A1 · PETG · Blue`). Before the plates arrive,
+or for a file without them, the overrides and then the item's own colour stand in.
+
+A mapped tray gets the warning chip (`A2 · Empty · White`) only when the printer
+**positively** reports it empty (`AmsTray.emptyKind` is `empty`): the scheduler
+dispatches a stored mapping as-is, so a spool unloaded after queueing sends the job to
+an empty slot. Offline, a unit gone, an external input (it sends no presence signal)
+and a spool nobody named (#2527) say nothing. Not ported: the backup-spool hand-over
+while printing, which needs the status's `tray_change_log`.
+
 ## Batch orders (`/orders`)
 
 The screen lists `/queue/batches`: orders with per-plate targets and progress, and

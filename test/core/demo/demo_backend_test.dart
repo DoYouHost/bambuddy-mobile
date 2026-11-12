@@ -65,6 +65,8 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/features/queue/queue_filaments.dart';
+import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Contract test: every repository the app uses must parse DemoBackend's
@@ -1281,6 +1283,24 @@ void main() {
     });
 
     final source = NativeInventorySource(dio);
+
+    test(
+      'a queued job mapped to an empty tray shows the warning chip',
+      () async {
+        final item = (await QueueRepository(
+          dio,
+        ).fetch()).firstWhere((i) => i.id == 101);
+        final status = (await PrintersRepository(dio).fetchStatus(1))!;
+        final chips = resolveQueueFilaments(
+          item,
+          const [],
+          buildLoadedFilaments(status),
+          status,
+        );
+        expect(chips.single.emptySlot, isTrue);
+        expect(chips.single.slotLabel, 'A4');
+      },
+    );
 
     test('the second X1C shows unconfigured slots, one with a spool', () async {
       final status = (await PrintersRepository(dio).fetchStatus(5))!;

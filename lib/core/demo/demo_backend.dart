@@ -2669,6 +2669,8 @@ class DemoBackend {
       batchId: 1,
       batchName: 'Gridfinity bins ×8',
       libraryFileId: 5,
+      // AMS-A slot 4 of the X1 Carbon, which is empty.
+      amsMapping: const [3],
     ),
     _queueItem(
       id: 102,
@@ -2857,6 +2859,9 @@ class DemoBackend {
     // A job queued from the library, as the server shapes one: the file's
     // name and thumbnail in place of the archive's.
     int? libraryFileId,
+    // The tray each 3MF slot was stored against; a tray the printer now
+    // reports empty is the warning chip on the queue row.
+    List<int> amsMapping = const [],
     int? costCenterId = 1,
     String? errorMessage,
     String? waitingReason,
@@ -2874,7 +2879,7 @@ class DemoBackend {
     'position': position,
     'status': status,
     'required_filament_types': [type],
-    'ams_mapping': const <Object>[],
+    'ams_mapping': amsMapping,
     'use_ams': true,
     'manual_start': manualStart,
     'auto_off_after': false,
