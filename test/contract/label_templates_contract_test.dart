@@ -253,60 +253,64 @@ void main() {
       },
     );
 
-    test('what the template editor's buttons send is accepted and stored', () async {
-      if (!hasTemplates) {
-        markTestSkipped('server predates #3296');
-        return;
-      }
-      final itemIn = RegExp(r'(?<=/label-templates/)\d+');
+    test(
+      'what the buttons of the template editor send is accepted and stored',
+      () async {
+        if (!hasTemplates) {
+          markTestSkipped('server predates #3296');
+          return;
+        }
+        final itemIn = RegExp(r'(?<=/label-templates/)\d+');
 
-      // "Save as template": the recorded POST, read back from the list.
-      final created = (await replayWrites(
-        dio,
-        recordedWrites('label_template_create'),
-      )).single;
-      expect(created.statusCode, 201, reason: '${created.data}');
-      final id = (created.data as Map)['id'] as int;
-      templateIds.add(id);
-      final sentName =
-          (recordedWrites('label_template_create').single.body as Map)['name'];
-      expect(
-        (await templates.list()).where((t) => t.id == id).single.name,
-        sentName,
-      );
+        // "Save as template": the recorded POST, read back from the list.
+        final created = (await replayWrites(
+          dio,
+          recordedWrites('label_template_create'),
+        )).single;
+        expect(created.statusCode, 201, reason: '${created.data}');
+        final id = (created.data as Map)['id'] as int;
+        templateIds.add(id);
+        final sentName =
+            (recordedWrites('label_template_create').single.body
+                as Map)['name'];
+        expect(
+          (await templates.list()).where((t) => t.id == id).single.name,
+          sentName,
+        );
 
-      // "Save as new" from an edit: the same POST, another name.
-      final copied = (await replayWrites(
-        dio,
-        recordedWrites('label_template_save_as_new'),
-      )).single;
-      expect(copied.statusCode, 201, reason: '${copied.data}');
-      templateIds.add((copied.data as Map)['id'] as int);
+        // "Save as new" from an edit: the same POST, another name.
+        final copied = (await replayWrites(
+          dio,
+          recordedWrites('label_template_save_as_new'),
+        )).single;
+        expect(copied.statusCode, 201, reason: '${copied.data}');
+        templateIds.add((copied.data as Map)['id'] as int);
 
-      // "Save changes": the recorded PUT, aimed at the template just made.
-      final updated = (await replayWrites(
-        dio,
-        recordedWrites('label_template_update'),
-        item: id,
-        itemIn: itemIn,
-      )).single;
-      expect(updated.statusCode, 200, reason: '${updated.data}');
-      final stored = (await templates.list()).where((t) => t.id == id).single;
-      final sentUpdate =
-          recordedWrites('label_template_update').single.body as Map;
-      expect(stored.name, sentUpdate['name']);
-      expect(stored.layout.columns, (sentUpdate['layout'] as Map)['cols']);
+        // "Save changes": the recorded PUT, aimed at the template just made.
+        final updated = (await replayWrites(
+          dio,
+          recordedWrites('label_template_update'),
+          item: id,
+          itemIn: itemIn,
+        )).single;
+        expect(updated.statusCode, 200, reason: '${updated.data}');
+        final stored = (await templates.list()).where((t) => t.id == id).single;
+        final sentUpdate =
+            recordedWrites('label_template_update').single.body as Map;
+        expect(stored.name, sentUpdate['name']);
+        expect(stored.layout.columns, (sentUpdate['layout'] as Map)['cols']);
 
-      // "Delete": the recorded DELETE.
-      final deleted = (await replayWrites(
-        dio,
-        recordedWrites('label_template_delete'),
-        item: id,
-        itemIn: itemIn,
-      )).single;
-      expect(deleted.statusCode, 204, reason: '${deleted.data}');
-      expect((await templates.list()).where((t) => t.id == id), isEmpty);
-    });
+        // "Delete": the recorded DELETE.
+        final deleted = (await replayWrites(
+          dio,
+          recordedWrites('label_template_delete'),
+          item: id,
+          itemIn: itemIn,
+        )).single;
+        expect(deleted.statusCode, 204, reason: '${deleted.data}');
+        expect((await templates.list()).where((t) => t.id == id), isEmpty);
+      },
+    );
 
     test('a custom sheet prints on its own page, in either format', () async {
       if (!hasTemplates) {
