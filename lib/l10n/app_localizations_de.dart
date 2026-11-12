@@ -3822,6 +3822,44 @@ class AppLocalizationsDe extends AppLocalizations {
   String get labelSheetUse => 'Diesen Bogen verwenden';
 
   @override
+  String get labelSheetName => 'Vorlagenname';
+
+  @override
+  String get labelSheetNameTaken =>
+      'Eine Vorlage mit diesem Namen gibt es schon.';
+
+  @override
+  String get labelSheetSaveAs => 'Als Vorlage speichern';
+
+  @override
+  String get labelSheetSaveChanges => 'Änderungen speichern';
+
+  @override
+  String get labelSheetDelete => 'Vorlage löschen';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Vorlage „$name“ gespeichert';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Vorlage „$name“ gelöscht';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return '„$name“ löschen?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Bereits gedruckte Etiketten bleiben unverändert.';
+
+  @override
+  String get labelSheetEdit => 'Vorlage bearbeiten';
+
+  @override
   String get maintenanceEmpty => 'Keine Wartungsdaten';
 
   @override

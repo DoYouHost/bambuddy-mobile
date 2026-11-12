@@ -12,6 +12,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// Custom label sheets (server #3296), against the real server: the saved list,
 /// printing on a sheet of the user's own measures, and that the app's own
@@ -251,6 +252,53 @@ void main() {
         }
       },
     );
+
+    test('what the three buttons send is accepted and stored', () async {
+      if (!hasTemplates) {
+        markTestSkipped('server predates #3296');
+        return;
+      }
+      final itemIn = RegExp(r'(?<=/label-templates/)\d+');
+
+      // "Save as template": the recorded POST, read back from the list.
+      final created = (await replayWrites(
+        dio,
+        recordedWrites('label_template_create'),
+      )).single;
+      expect(created.statusCode, 201, reason: '${created.data}');
+      final id = (created.data as Map)['id'] as int;
+      templateIds.add(id);
+      final sentName =
+          (recordedWrites('label_template_create').single.body as Map)['name'];
+      expect(
+        (await templates.list()).where((t) => t.id == id).single.name,
+        sentName,
+      );
+
+      // "Save changes": the recorded PUT, aimed at the template just made.
+      final updated = (await replayWrites(
+        dio,
+        recordedWrites('label_template_update'),
+        item: id,
+        itemIn: itemIn,
+      )).single;
+      expect(updated.statusCode, 200, reason: '${updated.data}');
+      final stored = (await templates.list()).where((t) => t.id == id).single;
+      final sentUpdate =
+          recordedWrites('label_template_update').single.body as Map;
+      expect(stored.name, sentUpdate['name']);
+      expect(stored.layout.columns, (sentUpdate['layout'] as Map)['cols']);
+
+      // "Delete": the recorded DELETE.
+      final deleted = (await replayWrites(
+        dio,
+        recordedWrites('label_template_delete'),
+        item: id,
+        itemIn: itemIn,
+      )).single;
+      expect(deleted.statusCode, 204, reason: '${deleted.data}');
+      expect((await templates.list()).where((t) => t.id == id), isEmpty);
+    });
 
     test('a custom sheet prints on its own page, in either format', () async {
       if (!hasTemplates) {

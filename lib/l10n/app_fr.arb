@@ -1981,6 +1981,37 @@
     }
   },
   "labelSheetUse": "Utiliser cette planche",
+  "labelSheetName": "Nom du modèle",
+  "labelSheetNameTaken": "Un modèle portant ce nom existe déjà.",
+  "labelSheetSaveAs": "Enregistrer comme modèle",
+  "labelSheetSaveChanges": "Enregistrer les modifications",
+  "labelSheetDelete": "Supprimer le modèle",
+  "labelSheetSaved": "Modèle « {name} » enregistré",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Modèle « {name} » supprimé",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Supprimer « {name} » ?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Les étiquettes déjà imprimées ne changent pas.",
+  "labelSheetEdit": "Modifier le modèle",
   "maintenanceEmpty": "Aucune donnée de maintenance",
   "maintenanceTotalHours": "{hours} h au total",
   "@maintenanceTotalHours": {

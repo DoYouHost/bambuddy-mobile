@@ -3850,6 +3850,43 @@ class AppLocalizationsPl extends AppLocalizations {
   String get labelSheetUse => 'Użyj tego arkusza';
 
   @override
+  String get labelSheetName => 'Nazwa szablonu';
+
+  @override
+  String get labelSheetNameTaken => 'Szablon o tej nazwie już istnieje.';
+
+  @override
+  String get labelSheetSaveAs => 'Zapisz jako szablon';
+
+  @override
+  String get labelSheetSaveChanges => 'Zapisz zmiany';
+
+  @override
+  String get labelSheetDelete => 'Usuń szablon';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Zapisano szablon „$name”';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Usunięto szablon „$name”';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Usunąć „$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Etykiety wydrukowane wcześniej zostają bez zmian.';
+
+  @override
+  String get labelSheetEdit => 'Edytuj szablon';
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

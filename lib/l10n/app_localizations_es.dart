@@ -3818,6 +3818,42 @@ class AppLocalizationsEs extends AppLocalizations {
   String get labelSheetUse => 'Usar esta hoja';
 
   @override
+  String get labelSheetName => 'Nombre de la plantilla';
+
+  @override
+  String get labelSheetNameTaken => 'Ya existe una plantilla con este nombre.';
+
+  @override
+  String get labelSheetSaveAs => 'Guardar como plantilla';
+
+  @override
+  String get labelSheetSaveChanges => 'Guardar cambios';
+
+  @override
+  String get labelSheetDelete => 'Eliminar plantilla';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Plantilla “$name” guardada';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Plantilla “$name” eliminada';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return '¿Eliminar “$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody => 'Las etiquetas ya impresas no cambian.';
+
+  @override
+  String get labelSheetEdit => 'Editar plantilla';
+
+  @override
   String get maintenanceEmpty => 'Sin datos de mantenimiento';
 
   @override

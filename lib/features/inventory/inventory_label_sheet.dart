@@ -55,18 +55,29 @@ String? _sheetProblemText(AppLocalizations l10n, SheetLayout? layout) {
 /// Step 2b of label printing: a sheet of the user's own measures. Closed with
 /// "Use this sheet" it hands back the [LabelStock] to print on; closed any other
 /// way it cancels, like every step before it.
-class _CustomSheetForm extends StatefulWidget {
-  const _CustomSheetForm({required this.initial});
+class _CustomSheetForm extends ConsumerStatefulWidget {
+  const _CustomSheetForm({required this.initial, this.existing});
 
   /// What the form opens with: the sheet last used, or the web form's own
-  /// starting point.
+  /// starting point — or the saved template's, when [existing] is edited.
   final SheetLayout initial;
 
+  /// A saved template being edited, or null for a one-off sheet. Saving a
+  /// one-off sheet makes the form edit the template it just created.
+  final SavedLabelTemplate? existing;
+
   @override
-  State<_CustomSheetForm> createState() => _CustomSheetFormState();
+  ConsumerState<_CustomSheetForm> createState() => _CustomSheetFormState();
 }
 
-class _CustomSheetFormState extends State<_CustomSheetForm> {
+class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
+  late SavedLabelTemplate? _saved = widget.existing;
+  late final _name = TextEditingController(text: widget.existing?.name ?? '');
+  bool _saving = false;
+
+  /// A 409 from the save, shown on the name field until the name is edited.
+  bool _nameTaken = false;
+
   late final _start = SheetLayoutDraft.fromLayout(widget.initial);
   late var _page = _start.page;
   late final _width = TextEditingController(text: _start.labelWidth);
@@ -81,6 +92,7 @@ class _CustomSheetFormState extends State<_CustomSheetForm> {
   @override
   void dispose() {
     for (final c in [
+      _name,
       _width,
       _height,
       _columns,
@@ -106,6 +118,91 @@ class _CustomSheetFormState extends State<_CustomSheetForm> {
     columnGap: _columnGap.text,
     rowGap: _rowGap.text,
   ).layout;
+
+  /// Saves the sheet on the server: a new template, or the one being edited
+  /// replaced as a whole. The form stays open, so the sheet can be used right
+  /// after, and a new template becomes the one the form edits.
+  Future<void> _save() async {
+    final layout = _layout;
+    final name = _name.text.trim();
+    if (layout == null || layout.problem != null || name.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final repo = ref.read(labelTemplatesRepositoryProvider);
+    final container = ProviderScope.containerOf(context);
+    final existing = _saved;
+    setState(() => _saving = true);
+    try {
+      final saved = existing == null
+          ? await repo.create(name, layout)
+          : await repo.update(existing.id, name, layout);
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        _saving = false;
+      });
+      messenger.snack(l10n.labelSheetSaved(saved.name));
+    } on AppApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _nameTaken = e.statusCode == 409;
+        });
+      }
+      if (e.statusCode != 409) {
+        showApiFailure(
+          mounted ? messenger : null,
+          e,
+          l10n,
+          action: 'label_sheet.save',
+        );
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
+    } finally {
+      // Also after a refusal: a 404 is a template someone else deleted, and
+      // the list behind this sheet should say so.
+      container.invalidate(labelTemplatesProvider);
+    }
+  }
+
+  Future<void> _delete() async {
+    final saved = _saved;
+    if (saved == null) return;
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await confirmDialog(
+      context,
+      id: 'label_sheet.delete_confirm',
+      title: l10n.labelSheetDeleteTitle(saved.name),
+      message: l10n.labelSheetDeleteBody,
+      confirmLabel: l10n.inventoryDelete,
+      destructive: true,
+    );
+    if (!ok || !mounted) return;
+    final repo = ref.read(labelTemplatesRepositoryProvider);
+    final container = ProviderScope.containerOf(context);
+    setState(() => _saving = true);
+    try {
+      await repo.delete(saved.id);
+      messenger.snack(l10n.labelSheetDeleted(saved.name));
+      if (mounted) Navigator.of(context).pop();
+    } on AppApiException catch (e) {
+      if (mounted) setState(() => _saving = false);
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'label_sheet.delete',
+      );
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
+    } finally {
+      container.invalidate(labelTemplatesProvider);
+    }
+  }
 
   Widget _field(
     TextEditingController controller,
@@ -149,6 +246,14 @@ class _CustomSheetFormState extends State<_CustomSheetForm> {
     final layout = _layout;
     final problem = _sheetProblemText(l10n, layout);
     const gap = SizedBox(height: DashSpace.md);
+    final canManage = ref.watch(
+      permissionProvider(Permissions.inventoryUpdate),
+    );
+    final canSave =
+        canManage &&
+        !_saving &&
+        problem == null &&
+        _name.text.trim().isNotEmpty;
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -167,6 +272,20 @@ class _CustomSheetFormState extends State<_CustomSheetForm> {
               children: [
                 Text(l10n.labelSheetCustom, style: t.titleLg),
                 const SizedBox(height: DashSpace.lg),
+                if (canManage) ...[
+                  TextField(
+                    controller: _name,
+                    style: t.body,
+                    maxLength: maxLabelTemplateName,
+                    decoration: dashDecoration(
+                      t,
+                      labelText: l10n.labelSheetName,
+                      errorText: _nameTaken ? l10n.labelSheetNameTaken : null,
+                    ).copyWith(counterText: ''),
+                    onChanged: (_) => setState(() => _nameTaken = false),
+                  ).tagged('label_sheet.name'),
+                  gap,
+                ],
                 _ChipRow<LabelPageSize>(
                   id: 'label_sheet.page',
                   label: l10n.labelSheetPage,
@@ -230,6 +349,24 @@ class _CustomSheetFormState extends State<_CustomSheetForm> {
                     ),
                   ),
                 ),
+                if (canManage) ...[
+                  const SizedBox(height: DashSpace.lg),
+                  OutlinedButton(
+                    onPressed: canSave ? _save : null,
+                    child: Text(
+                      _saved == null
+                          ? l10n.labelSheetSaveAs
+                          : l10n.labelSheetSaveChanges,
+                    ),
+                  ).tagged('label_sheet.save'),
+                  if (_saved != null) ...[
+                    gap,
+                    OutlinedButton(
+                      onPressed: _saving ? null : _delete,
+                      child: Text(l10n.labelSheetDelete),
+                    ).tagged('label_sheet.delete'),
+                  ],
+                ],
               ],
             ),
           ),

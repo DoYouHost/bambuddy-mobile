@@ -3846,6 +3846,43 @@ class AppLocalizationsFr extends AppLocalizations {
   String get labelSheetUse => 'Utiliser cette planche';
 
   @override
+  String get labelSheetName => 'Nom du modèle';
+
+  @override
+  String get labelSheetNameTaken => 'Un modèle portant ce nom existe déjà.';
+
+  @override
+  String get labelSheetSaveAs => 'Enregistrer comme modèle';
+
+  @override
+  String get labelSheetSaveChanges => 'Enregistrer les modifications';
+
+  @override
+  String get labelSheetDelete => 'Supprimer le modèle';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Modèle « $name » enregistré';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Modèle « $name » supprimé';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Supprimer « $name » ?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Les étiquettes déjà imprimées ne changent pas.';
+
+  @override
+  String get labelSheetEdit => 'Modifier le modèle';
+
+  @override
   String get maintenanceEmpty => 'Aucune donnée de maintenance';
 
   @override

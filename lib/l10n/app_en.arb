@@ -2523,6 +2523,37 @@
     }
   },
   "labelSheetUse": "Use this sheet",
+  "labelSheetName": "Template name",
+  "labelSheetNameTaken": "A template with this name already exists.",
+  "labelSheetSaveAs": "Save as template",
+  "labelSheetSaveChanges": "Save changes",
+  "labelSheetDelete": "Delete template",
+  "labelSheetSaved": "Template “{name}” saved",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Template “{name}” deleted",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Delete “{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Labels already printed with it are unaffected.",
+  "labelSheetEdit": "Edit template",
   "maintenanceEmpty": "No maintenance data",
   "maintenanceTotalHours": "{hours} h total",
   "@maintenanceTotalHours": {

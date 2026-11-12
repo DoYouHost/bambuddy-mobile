@@ -645,6 +645,9 @@ class _TemplateSheet extends ConsumerWidget {
     // saved ones out.
     final saved = ref.watch(labelTemplatesProvider).value ?? const [];
     final custom = ref.watch(labelTemplatesSupportedProvider).orFalse;
+    final canManage = ref.watch(
+      permissionProvider(Permissions.inventoryUpdate),
+    );
 
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
@@ -681,6 +684,17 @@ class _TemplateSheet extends ConsumerWidget {
                     layout: template.layout,
                   ),
                 ),
+                trailing: canManage
+                    ? IconButton(
+                        tooltip: l10n.labelSheetEdit,
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          size: DashIcon.md,
+                        ),
+                        onPressed: () =>
+                            _openCustomForm(context, ref, existing: template),
+                      ).tagged('labels.edit_template')
+                    : null,
               ),
           ],
           if (custom)
@@ -695,19 +709,28 @@ class _TemplateSheet extends ConsumerWidget {
     );
   }
 
-  /// The one-off form, opened over this sheet. A sheet used is remembered for
-  /// the next time, and handed up as the stock to print on.
-  Future<void> _openCustomForm(BuildContext context, WidgetRef ref) async {
+  /// The form, opened over this sheet: empty for a one-off sheet, on [existing]
+  /// to edit a saved one. A one-off sheet that is used is remembered for the
+  /// next time; either way the form hands up the stock to print on.
+  Future<void> _openCustomForm(
+    BuildContext context,
+    WidgetRef ref, {
+    SavedLabelTemplate? existing,
+  }) async {
     final prefs = ref.read(labelPrintPrefsProvider);
     final stock = await dashSurfaceSheet<LabelStock>(
       context,
-      builder: (_) =>
-          _CustomSheetForm(initial: prefs.customLayout ?? SheetLayout.starting),
+      builder: (_) => _CustomSheetForm(
+        initial: existing?.layout ?? prefs.customLayout ?? SheetLayout.starting,
+        existing: existing,
+      ),
     );
     if (stock == null || !context.mounted) return;
-    await ref
-        .read(labelPrintPrefsProvider.notifier)
-        .set(prefs.copyWith(customLayout: stock.layout));
+    if (existing == null) {
+      await ref
+          .read(labelPrintPrefsProvider.notifier)
+          .set(prefs.copyWith(customLayout: stock.layout));
+    }
     if (context.mounted) Navigator.of(context).pop(stock);
   }
 }
@@ -719,6 +742,7 @@ class _StockCard extends StatelessWidget {
     required this.title,
     required this.hint,
     required this.onTap,
+    this.trailing,
   });
 
   /// The diagnostic id: the three kinds of card must not report as one.
@@ -726,6 +750,9 @@ class _StockCard extends StatelessWidget {
   final String title;
   final String hint;
   final VoidCallback onTap;
+
+  /// Beside the name, for the one action that is not "print on this".
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -745,12 +772,19 @@ class _StockCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(DashRadius.lg),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(title, style: t.titleSm),
-                const SizedBox(height: DashSpace.xs),
-                Text(hint, style: t.labelSoft.legible),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: t.titleSm),
+                      const SizedBox(height: DashSpace.xs),
+                      Text(hint, style: t.labelSoft.legible),
+                    ],
+                  ),
+                ),
+                ?trailing,
               ],
             ),
           ),

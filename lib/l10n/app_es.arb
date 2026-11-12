@@ -1981,6 +1981,37 @@
     }
   },
   "labelSheetUse": "Usar esta hoja",
+  "labelSheetName": "Nombre de la plantilla",
+  "labelSheetNameTaken": "Ya existe una plantilla con este nombre.",
+  "labelSheetSaveAs": "Guardar como plantilla",
+  "labelSheetSaveChanges": "Guardar cambios",
+  "labelSheetDelete": "Eliminar plantilla",
+  "labelSheetSaved": "Plantilla “{name}” guardada",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Plantilla “{name}” eliminada",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "¿Eliminar “{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Las etiquetas ya impresas no cambian.",
+  "labelSheetEdit": "Editar plantilla",
   "maintenanceEmpty": "Sin datos de mantenimiento",
   "maintenanceTotalHours": "{hours} h en total",
   "@maintenanceTotalHours": {

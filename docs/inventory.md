@@ -248,3 +248,15 @@ The stock picker lists the built-in labels, the sheets saved on the server and a
   list rather than failing it.
 - **The form opens on the sheet last used** (`LabelPrintPrefs.customLayout`, an additive
   key), else the web form's starting point, a 3 × 7 A4 grid.
+- **Saving is part of the form, not a step after it.** With `inventory:update` the form has a
+  name field and "Save as template"; once saved, the form *is* the editor of that template
+  ("Save changes" replaces it as a whole, `PUT` has no merge; "Delete template" asks first).
+  It stays open so the sheet can be used right after. The edit button on a saved card opens
+  the same form. A 409 is said on the name field (names clash ignoring case and Unicode
+  composition); every other refusal goes through `showApiFailure`, and anything that is not
+  an `AppApiException` is rethrown with the busy flag lowered. The list behind the form is
+  refetched after every write, refusals included: a 404 is a template someone deleted.
+- **Not built, from the web form**: "Save as new" while editing a saved template. Saving a
+  one-off sheet under another name covers it, at the cost of retyping the layout.
+- What each button sends is recorded in `test/fixtures/sent/label_template_*.json` by the
+  widget test and replayed on a live server by `label_templates_contract_test.dart`.

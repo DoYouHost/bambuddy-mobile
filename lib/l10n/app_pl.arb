@@ -1454,6 +1454,37 @@
     }
   },
   "labelSheetUse": "Użyj tego arkusza",
+  "labelSheetName": "Nazwa szablonu",
+  "labelSheetNameTaken": "Szablon o tej nazwie już istnieje.",
+  "labelSheetSaveAs": "Zapisz jako szablon",
+  "labelSheetSaveChanges": "Zapisz zmiany",
+  "labelSheetDelete": "Usuń szablon",
+  "labelSheetSaved": "Zapisano szablon „{name}”",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Usunięto szablon „{name}”",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Usunąć „{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Etykiety wydrukowane wcześniej zostają bez zmian.",
+  "labelSheetEdit": "Edytuj szablon",
   "maintenanceEmpty": "Brak danych o konserwacji",
   "maintenanceTotalHours": "{hours} h łącznie",
   "maintenanceDueBadge": "{count} zaległe",

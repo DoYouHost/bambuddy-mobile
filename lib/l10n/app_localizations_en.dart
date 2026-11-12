@@ -3775,6 +3775,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelSheetUse => 'Use this sheet';
 
   @override
+  String get labelSheetName => 'Template name';
+
+  @override
+  String get labelSheetNameTaken => 'A template with this name already exists.';
+
+  @override
+  String get labelSheetSaveAs => 'Save as template';
+
+  @override
+  String get labelSheetSaveChanges => 'Save changes';
+
+  @override
+  String get labelSheetDelete => 'Delete template';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Template “$name” saved';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Template “$name” deleted';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Labels already printed with it are unaffected.';
+
+  @override
+  String get labelSheetEdit => 'Edit template';
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

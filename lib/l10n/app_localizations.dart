@@ -6177,6 +6177,66 @@ abstract class AppLocalizations {
   /// **'Use this sheet'**
   String get labelSheetUse;
 
+  /// No description provided for @labelSheetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get labelSheetName;
+
+  /// No description provided for @labelSheetNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A template with this name already exists.'**
+  String get labelSheetNameTaken;
+
+  /// No description provided for @labelSheetSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get labelSheetSaveAs;
+
+  /// No description provided for @labelSheetSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get labelSheetSaveChanges;
+
+  /// No description provided for @labelSheetDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get labelSheetDelete;
+
+  /// No description provided for @labelSheetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Template “{name}” saved'**
+  String labelSheetSaved(String name);
+
+  /// No description provided for @labelSheetDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Template “{name}” deleted'**
+  String labelSheetDeleted(String name);
+
+  /// No description provided for @labelSheetDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String labelSheetDeleteTitle(String name);
+
+  /// No description provided for @labelSheetDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels already printed with it are unaffected.'**
+  String get labelSheetDeleteBody;
+
+  /// No description provided for @labelSheetEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get labelSheetEdit;
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

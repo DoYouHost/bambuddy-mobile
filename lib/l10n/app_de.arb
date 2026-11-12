@@ -1981,6 +1981,37 @@
     }
   },
   "labelSheetUse": "Diesen Bogen verwenden",
+  "labelSheetName": "Vorlagenname",
+  "labelSheetNameTaken": "Eine Vorlage mit diesem Namen gibt es schon.",
+  "labelSheetSaveAs": "Als Vorlage speichern",
+  "labelSheetSaveChanges": "Änderungen speichern",
+  "labelSheetDelete": "Vorlage löschen",
+  "labelSheetSaved": "Vorlage „{name}“ gespeichert",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Vorlage „{name}“ gelöscht",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "„{name}“ löschen?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Bereits gedruckte Etiketten bleiben unverändert.",
+  "labelSheetEdit": "Vorlage bearbeiten",
   "maintenanceEmpty": "Keine Wartungsdaten",
   "maintenanceTotalHours": "{hours} h gesamt",
   "@maintenanceTotalHours": {

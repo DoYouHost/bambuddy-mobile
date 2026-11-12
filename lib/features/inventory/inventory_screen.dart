@@ -20,6 +20,7 @@ import '../../core/format/datetime_format.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/models/inventory_bulk.dart';
+import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/label_template.dart';
 import '../../core/models/location_sensor.dart';
