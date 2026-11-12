@@ -735,3 +735,24 @@ Two things the 1.3.0 release and the dailies agree on, measured on both images
 rename), and saving a template again under its own name is not a clash. The client's
 `SheetLayout.problem` is a mirror of the server's `SheetLayout.problem()`, one case per
 condition; the contract test posts each case and fails when the two disagree.
+
+### wled — 1.3.2 (server #1528, PR #3124, commit 0bf86c2)
+
+`wled_config` on a printer row and on `PATCH /printers/{id}`, and the three
+`POST /printers/{id}/wled/{presets|test-connection|test-preset}` routes: the server
+switches a WLED controller to the preset mapped to the printer's state. Only in 1.3.2b1
+dailies from 2026-11-08.
+
+The write is a silent drop: `PrinterUpdate` forbids no extra fields, so an older server
+answers 200 and stores nothing. What settles `PrintersRepository.wledCapability` is the
+**key on the printer row**: `PrinterResponse` sends `wled_config`, null or not, from the
+commit on, and the dashboard lists printers anyway, so no probe is needed. An empty fleet
+settles nothing, and the version decides; the screen has nothing to offer then either.
+`saveWledConfig` reads the same key off the `PATCH` reply and throws when it is missing,
+so even a server downgraded mid-session cannot report a save that did not happen.
+
+The three routes settle nothing: a 404 there is a printer gone, a 403 a missing
+`printers:update` on that printer, and a 502 a WLED that did not answer. All four need
+`printers:update`, which no API key can hold, so the hub entry also reads
+`canUpdatePrintersProvider`. Being early costs a 1.3.2b1 daily older than the commit
+the hub entry until the first printer listing comes back without the key.

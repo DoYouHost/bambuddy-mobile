@@ -4,11 +4,14 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
+import '../core/api/server_version_service.dart';
 import '../core/models/available_filament.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_create.dart';
 import '../core/models/printer_diagnostic.dart';
 import '../core/models/printer_status.dart';
+import '../core/models/wled_config.dart';
 
 /// Why creating a printer failed — mapped to a localized message in the UI.
 /// Kept separate from [AppErrorCode] because the create flow needs the server's
@@ -49,9 +52,20 @@ typedef SlotSpool = ({String? name, String? colorName});
 typedef SlotInventory = ({Map<int, double> grams, Map<int, SlotSpool> spools});
 
 class PrintersRepository {
-  PrintersRepository(this._dio);
+  PrintersRepository(this._dio, [this._serverVersion]);
 
   final Dio _dio;
+
+  /// Answers [wledCapability] until a printer row has.
+  final ServerVersionService? _serverVersion;
+
+  /// Whether the server keeps a WLED mapping per printer (#1528). Every row
+  /// carries `wled_config` from then on, null or not, so the listing the
+  /// dashboard makes anyway settles it.
+  late final wledCapability = ObservedCapability(
+    ServerFeature.wled,
+    _serverVersion,
+  );
 
   /// Whether the server holds the jobs of a user without
   /// `queue:start_unreviewed` for review (#1620). Every daily of the cycle
@@ -75,6 +89,7 @@ class PrintersRepository {
       return res.data ?? const [];
     });
     reviewGateCapability.observeKey(body.firstOrNull, 'wear_cost_per_hour');
+    wledCapability.observeKey(body.firstOrNull, 'wled_config');
     return parseJsonList(body, Printer.fromJson);
   }
 
@@ -188,6 +203,72 @@ class PrintersRepository {
     );
     return Printer.fromJson(res.data!);
   });
+
+  /// Replaces [printerId]'s WLED mapping, sending nothing else, as the web
+  /// does. A 422 is a URL the server refuses (credentials, a scheme other than
+  /// http(s), a cloud metadata address) or an enabled mapping without one.
+  ///
+  /// An older server answers 200 and drops the field; a reply without
+  /// `wled_config` says so, closes [wledCapability] and throws rather than
+  /// report a save that did not happen.
+  Future<Printer> saveWledConfig(int printerId, WledConfig config) async {
+    final body = await guard(() async {
+      final res = await _dio.patch<Map<String, dynamic>>(
+        Endpoints.printer(printerId),
+        data: {'wled_config': config.toJson()},
+      );
+      return res.data ?? const <String, dynamic>{};
+    });
+    if (wledCapability.observeKey(body, 'wled_config') != true) {
+      throw const ApiException(
+        AppErrorCode.malformedResponse,
+        detail: 'wled_config was not stored',
+      );
+    }
+    return Printer.fromJson(body);
+  }
+
+  /// WLED's own presets at [baseUrl], which need not be saved yet. A 502 is a
+  /// WLED that did not answer, or answered with something else.
+  Future<List<WledPreset>> fetchWledPresets(int printerId, String baseUrl) =>
+      guard(() async {
+        final res = await _dio.post<List<dynamic>>(
+          Endpoints.printerWledPresets(printerId),
+          data: {'base_url': baseUrl},
+        );
+        return [
+          for (final row in res.data ?? const [])
+            if (row is Map<String, dynamic>)
+              if (toIntOrNull(row['id']) case final id?)
+                (id: id, name: toStringOrNull(row['name']) ?? '$id'),
+        ];
+      });
+
+  /// The controller's name and firmware version; a 502 if it does not answer.
+  Future<WledConnectionInfo> testWledConnection(
+    int printerId,
+    String baseUrl,
+  ) => guard(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.printerWledTestConnection(printerId),
+      data: {'base_url': baseUrl},
+    );
+    final body = res.data ?? const <String, dynamic>{};
+    return (
+      name: toStringOrNull(body['name']),
+      version: toStringOrNull(body['version']),
+    );
+  });
+
+  /// Switches WLED to [presetId] now. The server's next status change takes it
+  /// back to the mapped preset, so a test leaves nothing behind.
+  Future<void> testWledPreset(int printerId, String baseUrl, int presetId) =>
+      guard(
+        () => _dio.post<dynamic>(
+          Endpoints.printerWledTestPreset(printerId),
+          data: {'base_url': baseUrl, 'preset_id': presetId},
+        ),
+      );
 
   Future<PrinterDiagnosticResult> diagnose({
     required String ipAddress,

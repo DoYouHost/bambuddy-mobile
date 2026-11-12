@@ -225,6 +225,14 @@ void main() {
     });
   }
 
+  // A 1.3.2b1 daily from before the WLED commit is told yes and corrected by
+  // the first printer row it sends without `wled_config`.
+  test('WLED from 1.3.2, its 1.3.2b1 dailies included', () {
+    expect(parse('1.3.1').supports(ServerFeature.wled), isFalse);
+    expect(parse('1.3.2b1').supports(ServerFeature.wled), isTrue);
+    expect(parse('1.3.2').supports(ServerFeature.wled), isTrue);
+  });
+
   test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
     expect(
       parse('1.2.5.6').supports(ServerFeature.spoolMaterialNumber),

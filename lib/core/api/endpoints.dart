@@ -80,6 +80,17 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// WLED behind a printer (server #1528), all `POST` with the URL in the body
+  /// so a URL not yet saved can be tried: `presets` lists WLED's own presets,
+  /// `test-connection` reads its name and version, `test-preset` switches one
+  /// on. None changes what is stored; a WLED that does not answer is a 502.
+  static String printerWledPresets(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/presets';
+  static String printerWledTestConnection(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-connection';
+  static String printerWledTestPreset(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-preset';
+
   /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
   /// [...]}`: grams left on the spool bound to each loaded slot, which the
   /// web's mapping sorts by when "prefer lowest remaining" is on
