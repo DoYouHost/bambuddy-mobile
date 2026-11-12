@@ -59,7 +59,9 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     // A rack printer (H3C) has nine external inputs, one per hotend, stored as
     // tray 0-8 of unit 255, and an AMS 3H; known by its model before any
     // status arrives (`TrayLayout.from_state`).
-    final rack = status?.trayLayout.rack ?? isRackPrinterModel(printer?.model);
+    final rack =
+        (status?.trayLayout.rack ?? false) ||
+        isRackPrinterModel(printer?.model);
     // AMS units detected live (their ids) — if none, provide 0..3, or the AMS
     // 3H on a rack printer.
     final unitIds =
@@ -122,7 +124,12 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               context,
               id: 'spool_assign.printer',
               initialSelection: _printerId,
-              onSelected: (v) => setState(() => _printerId = v),
+              // Another printer's inputs: a pick made on the last one does
+              // not carry over, so it starts on Ext-1 again.
+              onSelected: (v) => setState(() {
+                _printerId = v;
+                _inputPicked = false;
+              }),
               entries: [
                 for (final p in roster)
                   DropdownMenuEntry(

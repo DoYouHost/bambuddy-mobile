@@ -32,6 +32,8 @@ class _Shelf extends FixedInventory {
 class _Statuses extends PrinterStatusesNotifier {
   @override
   Map<int, PrinterStatus> build() => {
+    // An H3C whose first frame lists no unit and names no model.
+    4: const PrinterStatus(id: 4, connected: true),
     for (final (id, unit) in [(1, 32), (2, 0)])
       id: PrinterStatus(
         id: id,
@@ -81,6 +83,9 @@ void main() {
               // Not in the live statuses: an H3C known only by its model.
               PrinterWithStatus(
                 printer: Printer(id: 3, name: 'Asleep', model: 'H3C'),
+              ),
+              PrinterWithStatus(
+                printer: Printer(id: 4, name: 'Waking', model: 'H3C'),
               ),
             ],
           ),
@@ -232,5 +237,32 @@ void main() {
     await settle(tester);
     final draft = shelf.drafts.single;
     expect((draft.printerId, draft.amsId, draft.trayId), (3, 32, 8));
+  });
+
+  testWidgets('back on the H3C after another printer the input is Ext-1', (
+    tester,
+  ) async {
+    await openAssign(tester);
+    await tester.tap(find.text(pl.externalSpool));
+    await settle(tester);
+    await pick(tester, 'spool_assign.input', 'spool_assign.input.6');
+    await choosePrinter(tester, 'Carbon');
+    await choosePrinter(tester, 'Rack');
+
+    await tester.tap(byLogId('spool_assign.save'));
+    await settle(tester);
+    final draft = shelf.drafts.single;
+    expect((draft.printerId, draft.amsId, draft.trayId), (1, 255, 1));
+  });
+
+  testWidgets("an H3C's model counts when its status says nothing yet", (
+    tester,
+  ) async {
+    await openAssign(tester);
+    await choosePrinter(tester, 'Waking');
+    expect(find.text('AMS 3H'), findsWidgets);
+    await tester.tap(find.text(pl.externalSpool));
+    await settle(tester);
+    expect(byLogId('spool_assign.input'), findsOneWidget);
   });
 }
