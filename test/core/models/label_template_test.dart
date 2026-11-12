@@ -117,6 +117,30 @@ void main() {
     });
   });
 
+  group('SheetLayout.gridIsDrawable', () {
+    test('a grid within the limits is drawn', () {
+      expect(SheetLayout.starting.gridIsDrawable, isTrue);
+      // Too wide for the page is still a picture: the cells that run off are red.
+      expect(layout(columns: 4).gridIsDrawable, isTrue);
+      expect(layout(columns: 20, rows: 40).gridIsDrawable, isTrue);
+    });
+
+    test('counts past the limits, or none, are not drawn', () {
+      for (final l in [
+        layout(columns: 21),
+        layout(columns: 4000, rows: 4000),
+        layout(rows: 41),
+        layout(columns: 0),
+        layout(rows: -1),
+        layout(width: 300.1, columns: 1),
+        // A too-small label is named first by `problem`, the length is still too long.
+        layout(width: 10, top: 50000),
+      ]) {
+        expect(l.gridIsDrawable, isFalse);
+      }
+    });
+  });
+
   group('SheetLayout wire form', () {
     test("toJson uses the server's key names", () {
       expect(SheetLayout.starting.toJson(), {

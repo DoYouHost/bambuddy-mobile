@@ -195,6 +195,22 @@ class _BrokenTemplates extends LabelTemplatesRepository {
       throw StateError('unreadable answer');
 }
 
+/// Refuses the first save for a name taken, then lets the same one through, as
+/// when the other template was deleted in between.
+class _FlakyTemplates extends LabelTemplatesRepository {
+  _FlakyTemplates(super.dio);
+
+  var _calls = 0;
+
+  @override
+  Future<SavedLabelTemplate> create(String name, SheetLayout layout) async {
+    if (_calls++ == 0) {
+      throw const ApiException(AppErrorCode.badResponse, statusCode: 409);
+    }
+    return SavedLabelTemplate(id: 9, name: name, layout: layout);
+  }
+}
+
 class _NullProfile extends ServerProfileNotifier {
   @override
   ServerProfile? build() => null;
@@ -900,6 +916,102 @@ void main() {
       await tester.enterText(nameField(), 'Address labels 2');
       await settle(tester);
       expect(find.text(pl.labelSheetNameTaken), findsNothing);
+    });
+
+    testWidgets('a name taken stops showing once the save goes through', (
+      tester,
+    ) async {
+      await open(tester, repo: _FlakyTemplates(dio));
+      await openOneOff(tester);
+      await tester.enterText(nameField(), 'Avery');
+      await settle(tester);
+
+      await tester.tap(saveButton(pl.labelSheetSaveAs));
+      await settle(tester);
+      expect(find.text(pl.labelSheetNameTaken), findsOneWidget);
+
+      await tester.tap(saveButton(pl.labelSheetSaveAs));
+      await settle(tester);
+      expect(find.text(pl.labelSheetNameTaken), findsNothing);
+      expect(saveButton(pl.labelSheetSaveChanges), findsOneWidget);
+    });
+
+    testWidgets('saving over a template someone else deleted turns into '
+        'saving a new one', (tester) async {
+      adapter.onPut(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(404, {'detail': 'Label template not found'}),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.tap(saveButton(pl.labelSheetSaveChanges));
+      await settle(tester);
+
+      // The edit is kept, and the next save is a POST rather than the same
+      // doomed PUT; there is nothing left to delete.
+      expect(saveButton(pl.labelSheetSaveAs), findsOneWidget);
+      expect(find.text(pl.labelSheetDelete), findsNothing);
+      expect(
+        tester.widget<TextField>(nameField()).controller!.text,
+        'Address labels',
+      );
+    });
+
+    testWidgets('deleting a template that is already gone closes the form', (
+      tester,
+    ) async {
+      adapter.onDelete(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(404, {'detail': 'Label template not found'}),
+      );
+      await open(tester);
+      await openSaved(tester);
+      await tester.tap(find.text(pl.labelSheetDelete));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.inventoryDelete),
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text(pl.labelSheetUse), findsNothing, reason: 'form closed');
+      expect(find.text(pl.labelSheetDeleted('Address labels')), findsOneWidget);
+    });
+
+    testWidgets('the sheet cannot be used while a delete is in flight', (
+      tester,
+    ) async {
+      adapter.onDelete(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(204, null, delay: const Duration(seconds: 1)),
+      );
+      await open(tester);
+      await openSaved(tester);
+      await tester.tap(find.text(pl.labelSheetDelete));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.inventoryDelete),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, pl.labelSheetUse),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await settle(tester);
     });
 
     testWidgets('a layout that does not fit cannot be saved', (tester) async {

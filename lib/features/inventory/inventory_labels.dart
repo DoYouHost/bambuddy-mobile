@@ -727,9 +727,15 @@ class _TemplateSheet extends ConsumerWidget {
     );
     if (stock == null || !context.mounted) return;
     if (existing == null) {
+      // Read again: the form was open for a while, and a stale copy would
+      // write back what it had changed meanwhile.
       await ref
           .read(labelPrintPrefsProvider.notifier)
-          .set(prefs.copyWith(customLayout: stock.layout));
+          .set(
+            ref
+                .read(labelPrintPrefsProvider)
+                .copyWith(customLayout: stock.layout),
+          );
     }
     if (context.mounted) Navigator.of(context).pop(stock);
   }

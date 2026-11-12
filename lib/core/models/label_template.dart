@@ -132,6 +132,27 @@ class SheetLayout {
     topMm + rows * labelHeightMm + (rows - 1) * rowGapMm,
   );
 
+  /// Whether the grid is small enough to draw cell by cell: counts within the
+  /// server's limits and no length over its maximum. A form being typed into
+  /// passes through "4000 rows", and a preview that painted every cell of that
+  /// would freeze it.
+  bool get gridIsDrawable =>
+      columns >= 1 &&
+      columns <= maxSheetColumns &&
+      rows >= 1 &&
+      rows <= maxSheetRows &&
+      // Not `problem`: it names a too-small label first and never gets to the
+      // lengths, which would still be drawn at their offsets.
+      [
+            labelWidthMm,
+            labelHeightMm,
+            topMm,
+            leftMm,
+            columnGapMm,
+            rowGapMm,
+          ].reduce(math.max) <=
+          maxSheetLengthMm;
+
   /// The first reason this cannot print, or null. Same rules, in the same
   /// order, as `SheetLayout.problem()` on the server — which refuses a layout
   /// with a 422 — so a form built on it never sends one the server will refuse.

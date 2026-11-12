@@ -140,6 +140,7 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
       setState(() {
         _saved = saved;
         _saving = false;
+        _nameTaken = false;
       });
       messenger.snack(l10n.labelSheetSaved(saved.name));
     } on AppApiException catch (e) {
@@ -147,6 +148,10 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
         setState(() {
           _saving = false;
           _nameTaken = e.statusCode == 409;
+          // The template being edited is gone (someone else deleted it): what
+          // is typed is now a new template, and saving it again must not
+          // replace a row that no longer exists.
+          if (existing != null && e.statusCode == 404) _saved = null;
         });
       }
       if (e.statusCode != 409) {
@@ -190,6 +195,12 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
       if (mounted) Navigator.of(context).pop();
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
+      if (e.statusCode == 404) {
+        // Someone else deleted it first: what was asked for has happened.
+        messenger.snack(l10n.labelSheetDeleted(saved.name));
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
       showApiFailure(
         mounted ? messenger : null,
         e,
@@ -383,7 +394,7 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: problem != null
+                onPressed: problem != null || _saving
                     ? null
                     : () => Navigator.of(context).pop(
                         LabelStock(SpoolLabelTemplate.custom, layout: layout),
@@ -466,11 +477,10 @@ class _SheetPainter extends CustomPainter {
           ..style = PaintingStyle.stroke,
       );
     final l = layout;
-    // A grid the server would refuse outright (a 300 mm label, 40 columns)
-    // would paint thousands of rectangles off the page: the numbers are what
-    // the message below names, not the picture.
-    if (l == null || l.problem?.problem == SheetProblem.tooLong) return;
-    if (l.columns < 1 || l.rows < 1) return;
+    // A grid the server would refuse outright (a 300 mm label, 4000 rows) would
+    // paint thousands of rectangles off the page: the numbers are what the
+    // message below names, not the picture.
+    if (l == null || !l.gridIsDrawable) return;
     final cell = Paint()..style = PaintingStyle.stroke;
     for (var row = 0; row < l.rows; row++) {
       for (var col = 0; col < l.columns; col++) {

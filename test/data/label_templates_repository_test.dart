@@ -65,7 +65,7 @@ void main() {
       expect(await repo.capability.supported, isTrue);
     });
 
-    test('a 403 on the listing is a refusal, not an empty list', () async {
+    test('a 403 on the listing hides the feature and lists nothing', () async {
       adapter.onGet(
         '/api/v1/label-templates',
         (s) => s.reply(403, {'detail': 'Missing required permissions'}),
