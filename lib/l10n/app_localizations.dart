@@ -6026,6 +6026,157 @@ abstract class AppLocalizations {
   /// **'Position {position}'**
   String inventoryLabelsStartSlot(int position);
 
+  /// No description provided for @labelSheetCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sheet'**
+  String get labelSheetCustom;
+
+  /// No description provided for @labelSheetCustomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own page, label size and grid'**
+  String get labelSheetCustomHint;
+
+  /// No description provided for @labelSheetSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved templates'**
+  String get labelSheetSavedTitle;
+
+  /// No description provided for @labelSheetSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{page} · {width} × {height} mm · {count, plural, one{{count} label} other{{count} labels}} ({columns} × {rows})'**
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  );
+
+  /// No description provided for @labelSheetPageA4.
+  ///
+  /// In en, this message translates to:
+  /// **'A4'**
+  String get labelSheetPageA4;
+
+  /// No description provided for @labelSheetPageLetter.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter'**
+  String get labelSheetPageLetter;
+
+  /// No description provided for @labelSheetPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get labelSheetPage;
+
+  /// No description provided for @labelSheetLabelWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Label width, mm'**
+  String get labelSheetLabelWidth;
+
+  /// No description provided for @labelSheetLabelHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Label height, mm'**
+  String get labelSheetLabelHeight;
+
+  /// No description provided for @labelSheetColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get labelSheetColumns;
+
+  /// No description provided for @labelSheetRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get labelSheetRows;
+
+  /// No description provided for @labelSheetTopMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Top margin, mm'**
+  String get labelSheetTopMargin;
+
+  /// No description provided for @labelSheetLeftMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Left margin, mm'**
+  String get labelSheetLeftMargin;
+
+  /// No description provided for @labelSheetColumnGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Column gap, mm'**
+  String get labelSheetColumnGap;
+
+  /// No description provided for @labelSheetRowGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Row gap, mm'**
+  String get labelSheetRowGap;
+
+  /// No description provided for @labelSheetIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in every field with a number.'**
+  String get labelSheetIncomplete;
+
+  /// No description provided for @labelSheetTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels must be at least {minWidth} mm wide and {minHeight} mm tall.'**
+  String labelSheetTooSmall(int minWidth, int minHeight);
+
+  /// No description provided for @labelSheetTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Sizes, margins and gaps can be at most {max} mm.'**
+  String labelSheetTooLong(int max);
+
+  /// No description provided for @labelSheetColumnsRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns must be a whole number from 1 to {max}.'**
+  String labelSheetColumnsRange(int max);
+
+  /// No description provided for @labelSheetRowsRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows must be a whole number from 1 to {max}.'**
+  String labelSheetRowsRange(int max);
+
+  /// No description provided for @labelSheetNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'Margins and gaps must not be negative.'**
+  String get labelSheetNegative;
+
+  /// No description provided for @labelSheetTooWide.
+  ///
+  /// In en, this message translates to:
+  /// **'The labels are {size} mm wide with the left margin, but the page is {page} mm.'**
+  String labelSheetTooWide(String size, String page);
+
+  /// No description provided for @labelSheetTooTall.
+  ///
+  /// In en, this message translates to:
+  /// **'The labels are {size} mm tall with the top margin, but the page is {page} mm.'**
+  String labelSheetTooTall(String size, String page);
+
+  /// No description provided for @labelSheetUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this sheet'**
+  String get labelSheetUse;
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/models/label_template.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
@@ -5,6 +6,53 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('the last custom sheet', () {
+    test('survives a round trip, and the lines kept for it with it', () {
+      final prefs = LabelPrintPrefs(
+        customLayout: SheetLayout.starting,
+        fields: {
+          SpoolLabelTemplate.custom: {SpoolLabelField.qr},
+        },
+      );
+
+      final back = LabelPrintPrefs.fromJson(prefs.toJson());
+
+      expect(back.customLayout, SheetLayout.starting);
+      expect(back.fieldsFor(SpoolLabelTemplate.custom), {SpoolLabelField.qr});
+    });
+
+    test('is absent from what an earlier version stored', () {
+      // No `custom_layout` key: an install from before the feature.
+      final back = LabelPrintPrefs.fromJson(const {'monochrome': true});
+
+      expect(back.customLayout, isNull);
+      expect(back.monochrome, isTrue);
+    });
+
+    test('is dropped when it cannot be read, not the whole blob', () {
+      for (final junk in <Object?>[
+        'a4',
+        42,
+        {'page': 'a5'},
+        <String, dynamic>{},
+      ]) {
+        final back = LabelPrintPrefs.fromJson({
+          'monochrome': true,
+          'custom_layout': junk,
+        });
+        expect(back.customLayout, isNull, reason: '$junk');
+        expect(back.monochrome, isTrue);
+      }
+    });
+
+    test('is not on the wire until one has been used', () {
+      expect(
+        const LabelPrintPrefs().toJson().containsKey('custom_layout'),
+        isFalse,
+      );
+    });
+  });
+
   test('everything survives a round trip', () {
     final prefs = LabelPrintPrefs(
       monochrome: true,

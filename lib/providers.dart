@@ -41,6 +41,7 @@ import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
+import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
 import 'data/ams_history_repository.dart';
@@ -676,6 +677,14 @@ final labelTemplatesRepositoryProvider = Provider<LabelTemplatesRepository>(
     ref.watch(serverVersionServiceProvider),
   ),
 );
+
+/// The saved custom sheets, asked again each time the picker opens: someone
+/// else may have saved or deleted one since. The request is also what settles
+/// [labelTemplatesSupportedProvider], so a failure is the picker's to ignore.
+final labelTemplatesProvider =
+    FutureProvider.autoDispose<List<SavedLabelTemplate>>(
+      (ref) => ref.watch(labelTemplatesRepositoryProvider).list(),
+    );
 
 /// Whether this server takes a custom label sheet, saved or one-off. The label
 /// picker's own listing settles it, so nothing probes.

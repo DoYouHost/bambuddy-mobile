@@ -281,16 +281,17 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       return;
     }
 
-    final template = await dashSurfaceSheet<SpoolLabelTemplate>(
+    final stock = await dashSurfaceSheet<LabelStock>(
       context,
       builder: (_) => const _TemplateSheet(),
     );
-    if (template == null || !mounted) return;
+    if (stock == null || !mounted) return;
+    final template = stock.template;
 
     // Step 3, sheet stock only: which slot of a part-used sheet to start at.
     // Asked after the stock is picked rather than before it, so a roll template
     // — where the server refuses anything but 1 — never sees the question.
-    final startingPosition = await _pickStartingPosition(template);
+    final startingPosition = await _pickStartingPosition(stock);
     if (startingPosition == null || !mounted) return;
 
     // Settled before the options sheet opens, not after it closes: the sheet
@@ -335,6 +336,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
             SpoolLabelRequest(
               spoolIds: ids,
               template: template,
+              layout: stock.layout,
               monochrome: prefs.monochrome,
               startingPosition: startingPosition,
               // Only what differs from the server's own default goes out.
@@ -469,8 +471,8 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   /// take the field and print from 1 anyway: an older `LabelRequest` ignores
   /// unknown keys, and a picker that quietly wastes a sheet of Avery stock is
   /// worse than one that never appears.
-  Future<int?> _pickStartingPosition(SpoolLabelTemplate template) async {
-    if (template.sheetCapacity == null) return 1;
+  Future<int?> _pickStartingPosition(LabelStock stock) async {
+    if (stock.capacity == null) return 1;
     if (!mounted) return null;
     final providers = ProviderScope.containerOf(context, listen: false);
     final supported = await settledGate(
@@ -481,7 +483,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     if (!mounted) return null;
     return dashSurfaceSheet<int>(
       context,
-      builder: (_) => _StartingPositionSheet(template: template),
+      builder: (_) => _StartingPositionSheet(stock: stock),
     );
   }
 }
@@ -597,12 +599,13 @@ class _LabelFooter extends StatelessWidget {
   }
 }
 
-/// Step 2 of label printing: the six label stocks the server can render.
-class _TemplateSheet extends StatelessWidget {
+/// Step 2 of label printing: the six label stocks the server can render, the
+/// sheets saved on it, and a sheet of the user's own measures.
+class _TemplateSheet extends ConsumerWidget {
   const _TemplateSheet();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final options = <(SpoolLabelTemplate, String, String)>[
@@ -637,6 +640,11 @@ class _TemplateSheet extends StatelessWidget {
         l10n.inventoryLabelsAvery5160Hint,
       ),
     ];
+    // The listing is what settles whether the server has custom sheets at all,
+    // so it is asked for whatever the gate says; a failure only leaves the
+    // saved ones out.
+    final saved = ref.watch(labelTemplatesProvider).value ?? const [];
+    final custom = ref.watch(labelTemplatesSupportedProvider).orFalse;
 
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
@@ -651,33 +659,102 @@ class _TemplateSheet extends StatelessWidget {
           Text(l10n.inventoryLabelsPickTemplate, style: t.titleLg),
           const SizedBox(height: DashSpace.md),
           for (final (template, label, hint) in options)
+            _StockCard(
+              id: 'labels.template',
+              title: label,
+              hint: hint,
+              onTap: () => Navigator.of(context).pop(LabelStock(template)),
+            ),
+          if (custom && saved.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: DashSpace.md),
-              child: Material(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.lg),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(DashRadius.lg),
-                  onTap: () => Navigator.of(context).pop(template),
-                  child: Container(
-                    padding: const EdgeInsets.all(DashSpace.lg),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(DashRadius.lg),
-                      border: Border.all(color: t.subCardBorder),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(label, style: t.titleSm),
-                        const SizedBox(height: DashSpace.xs),
-                        Text(hint, style: t.labelSoft.legible),
-                      ],
-                    ),
+              child: Text(l10n.labelSheetSavedTitle, style: t.bodyBold),
+            ),
+            for (final template in saved)
+              _StockCard(
+                id: 'labels.saved_template',
+                title: template.name,
+                hint: _sheetSummary(l10n, template.layout),
+                onTap: () => Navigator.of(context).pop(
+                  LabelStock(
+                    SpoolLabelTemplate.custom,
+                    layout: template.layout,
                   ),
-                ).tagged('labels.template'),
+                ),
               ),
+          ],
+          if (custom)
+            _StockCard(
+              id: 'labels.custom_sheet',
+              title: l10n.labelSheetCustom,
+              hint: l10n.labelSheetCustomHint,
+              onTap: () => _openCustomForm(context, ref),
             ),
         ],
+      ),
+    );
+  }
+
+  /// The one-off form, opened over this sheet. A sheet used is remembered for
+  /// the next time, and handed up as the stock to print on.
+  Future<void> _openCustomForm(BuildContext context, WidgetRef ref) async {
+    final prefs = ref.read(labelPrintPrefsProvider);
+    final stock = await dashSurfaceSheet<LabelStock>(
+      context,
+      builder: (_) =>
+          _CustomSheetForm(initial: prefs.customLayout ?? SheetLayout.starting),
+    );
+    if (stock == null || !context.mounted) return;
+    await ref
+        .read(labelPrintPrefsProvider.notifier)
+        .set(prefs.copyWith(customLayout: stock.layout));
+    if (context.mounted) Navigator.of(context).pop(stock);
+  }
+}
+
+/// One tappable stock card: a name and one line under it.
+class _StockCard extends StatelessWidget {
+  const _StockCard({
+    required this.id,
+    required this.title,
+    required this.hint,
+    required this.onTap,
+  });
+
+  /// The diagnostic id: the three kinds of card must not report as one.
+  final String id;
+  final String title;
+  final String hint;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: DashSpace.md),
+      child: Material(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(DashRadius.lg),
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(DashSpace.lg),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DashRadius.lg),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: t.titleSm),
+                const SizedBox(height: DashSpace.xs),
+                Text(hint, style: t.labelSoft.legible),
+              ],
+            ),
+          ),
+        ).tagged(id),
       ),
     );
   }
@@ -693,15 +770,15 @@ class _TemplateSheet extends StatelessWidget {
 /// is what tells the two Avery sheets apart at a glance. Tapping one prints,
 /// the same way tapping a stock card in [_TemplateSheet] does.
 class _StartingPositionSheet extends StatelessWidget {
-  const _StartingPositionSheet({required this.template});
+  const _StartingPositionSheet({required this.stock});
 
-  final SpoolLabelTemplate template;
+  final LabelStock stock;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final layout = template.sheet!;
+    final layout = stock.sheet!;
 
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
@@ -764,7 +841,12 @@ class _StartingPositionSlot extends StatelessWidget {
               borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: Text('$position', style: t.monoLabel.legible),
+            // A custom grid may be twenty columns wide, which leaves a slot
+            // narrower than its number.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('$position', style: t.monoLabel.legible),
+            ),
           ),
         ).tagged('labels.start_position'),
       ),

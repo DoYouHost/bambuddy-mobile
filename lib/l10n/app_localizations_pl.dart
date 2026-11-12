@@ -3749,6 +3749,107 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get labelSheetCustom => 'Własny arkusz';
+
+  @override
+  String get labelSheetCustomHint => 'Własna strona, rozmiar etykiety i siatka';
+
+  @override
+  String get labelSheetSavedTitle => 'Zapisane szablony';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count etykiety',
+      many: '$count etykiet',
+      few: '$count etykiety',
+      one: '$count etykieta',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Strona';
+
+  @override
+  String get labelSheetLabelWidth => 'Szerokość etykiety, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Wysokość etykiety, mm';
+
+  @override
+  String get labelSheetColumns => 'Kolumny';
+
+  @override
+  String get labelSheetRows => 'Wiersze';
+
+  @override
+  String get labelSheetTopMargin => 'Margines górny, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Margines lewy, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Odstęp między kolumnami, mm';
+
+  @override
+  String get labelSheetRowGap => 'Odstęp między wierszami, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Wpisz liczbę w każde pole.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Etykieta musi mieć co najmniej $minWidth mm szerokości i $minHeight mm wysokości.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Rozmiary, marginesy i odstępy mogą mieć najwyżej $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Liczba kolumn musi być całkowita, od 1 do $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Liczba wierszy musi być całkowita, od 1 do $max.';
+  }
+
+  @override
+  String get labelSheetNegative => 'Marginesy i odstępy nie mogą być ujemne.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'Etykiety razem z lewym marginesem mają $size mm szerokości, a strona tylko $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'Etykiety razem z górnym marginesem mają $size mm wysokości, a strona tylko $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Użyj tego arkusza';
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

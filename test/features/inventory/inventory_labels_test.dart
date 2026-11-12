@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/label_printer.dart';
+import 'package:bambuddy_mobile/core/models/label_template.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
 import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
@@ -23,6 +24,7 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:go_router/go_router.dart';
@@ -117,6 +119,19 @@ class _MemoryPrefs extends LabelPrintPrefsNotifier {
   Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
 }
 
+/// Preferences an earlier print left behind, kept in memory.
+class _SeededPrefs extends LabelPrintPrefsNotifier {
+  _SeededPrefs(this._seed);
+
+  final LabelPrintPrefs _seed;
+
+  @override
+  LabelPrintPrefs build() => _seed;
+
+  @override
+  Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
+}
+
 /// Preferences left on PNG by an earlier print.
 class _PngPrefs extends LabelPrintPrefsNotifier {
   @override
@@ -177,6 +192,8 @@ void main() {
     WidgetTester tester, {
     required bool startingPositionSupported,
     AsyncValue<bool>? gate,
+    List<Override> extra = const [],
+    LabelPrintPrefs Function()? prefs,
   }) async {
     final repo = _CapturingRepository();
     await pumpPhone(
@@ -186,12 +203,15 @@ void main() {
         inventoryProvider.overrideWith(_CapturingInventory.new),
         serverProfileProvider.overrideWith(_NullProfile.new),
         labelPrinterUrlProvider.overrideWith(_NoUrl.new),
-        labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
+        labelPrintPrefsProvider.overrideWith(
+          prefs == null ? _MemoryPrefs.new : () => _SeededPrefs(prefs()),
+        ),
         labelFieldsProvider.overrideWithValue(const AsyncData(false)),
         inventoryRepositoryProvider.overrideWithValue(repo),
         labelStartingPositionProvider.overrideWithValue(
           gate ?? AsyncData(startingPositionSupported),
         ),
+        ...extra,
       ],
     );
     await settle(tester);
@@ -344,6 +364,319 @@ void main() {
       expect(repo.request!.startingPosition, 1);
     },
   );
+
+  group('custom sheets', () {
+    const letter = SheetLayout(
+      page: LabelPageSize.letter,
+      labelWidthMm: 101.6,
+      labelHeightMm: 50.8,
+      columns: 2,
+      rows: 5,
+      topMm: 12.7,
+      leftMm: 4.7,
+      columnGapMm: 3.2,
+    );
+
+    /// A server that has custom sheets and the two saved on it.
+    List<Override> served({bool supported = true, bool saved = true}) => [
+      labelTemplatesSupportedProvider.overrideWithValue(AsyncData(supported)),
+      labelTemplatesProvider.overrideWith(
+        (ref) async => supported && saved
+            ? [
+                const SavedLabelTemplate(
+                  id: 1,
+                  name: 'Address labels',
+                  layout: SheetLayout.starting,
+                ),
+                const SavedLabelTemplate(
+                  id: 2,
+                  name: 'Shipping labels',
+                  layout: letter,
+                ),
+              ]
+            : const [],
+      ),
+    ];
+
+    /// A tall screen, so the whole form is built: its list is lazy, and the
+    /// message under the preview sits below a phone's fold.
+    void tall(WidgetTester tester) {
+      tester.view.physicalSize = const Size(411, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    Future<void> openForm(WidgetTester tester) async {
+      await pickTemplate(tester, pl.labelSheetCustom);
+      expect(find.text(pl.labelSheetUse), findsOneWidget);
+    }
+
+    Finder field(String label) => find.widgetWithText(TextField, label);
+
+    testWidgets('a saved sheet prints as "custom" with its own layout and '
+        'capacity', (tester) async {
+      final repo = await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await pickTemplate(tester, 'Shipping labels');
+
+      // 2 x 5: ten slots, and not an eleventh.
+      expect(find.text(pl.inventoryLabelsStartTitle), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(find.text('11'), findsNothing);
+      await tester.ensureVisible(find.text('4'));
+      await settle(tester);
+      await tester.tap(find.text('4'));
+      await settle(tester);
+      await pressPrint(tester);
+
+      expect(repo.request!.template, SpoolLabelTemplate.custom);
+      expect(repo.request!.layout, letter);
+      expect(repo.request!.startingPosition, 4);
+    });
+
+    testWidgets('a saved sheet says what it is under its name', (tester) async {
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await tester.scrollUntilVisible(
+        find.text(pl.labelSheetSavedTitle).hitTestable(),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      expect(
+        find.text(pl.labelSheetSummary('A4', '63,5', '38,1', 21, 3, 7)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a server without custom sheets offers neither the list nor '
+        'the form', (tester) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(supported: false),
+      );
+      await tester.scrollUntilVisible(
+        find.text(pl.inventoryLabelsAvery5160).hitTestable(),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      expect(find.text(pl.labelSheetCustom), findsNothing);
+      expect(find.text(pl.labelSheetSavedTitle), findsNothing);
+    });
+
+    testWidgets('a template saved by someone else on a server that then says '
+        'no is not offered', (tester) async {
+      tall(tester);
+      // The listing still held rows, but the gate has settled on "absent".
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: [
+          labelTemplatesSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          labelTemplatesProvider.overrideWith(
+            (ref) async => const [
+              SavedLabelTemplate(
+                id: 1,
+                name: 'Address labels',
+                layout: SheetLayout.starting,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(find.text('Address labels'), findsNothing);
+    });
+
+    testWidgets('the form opens on the starting sheet and prints it', (
+      tester,
+    ) async {
+      tall(tester);
+      final repo = await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(saved: false),
+      );
+      await openForm(tester);
+
+      expect(find.text(pl.labelSheetIncomplete), findsNothing);
+      expect(
+        find.text(pl.labelSheetSummary('A4', '63,5', '38,1', 21, 3, 7)),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(pl.labelSheetUse));
+      await settle(tester);
+      await tester.ensureVisible(find.text('1').first);
+      await tester.tap(find.text('1').first);
+      await settle(tester);
+      await pressPrint(tester);
+
+      expect(repo.request!.template, SpoolLabelTemplate.custom);
+      expect(repo.request!.layout, SheetLayout.starting);
+    });
+
+    testWidgets('a layout that runs off the page says so and cannot be used', (
+      tester,
+    ) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await openForm(tester);
+
+      await tester.enterText(field(pl.labelSheetColumns), '4');
+      await settle(tester);
+
+      // 7 + 4 x 63.5 + 3 x 2.5 = 268.5 mm on a 210 mm page.
+      expect(find.text(pl.labelSheetTooWide('268,5', '210')), findsOneWidget);
+      final use = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, pl.labelSheetUse),
+      );
+      expect(use.onPressed, isNull);
+
+      await tester.enterText(field(pl.labelSheetColumns), '3');
+      await settle(tester);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, pl.labelSheetUse),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets(
+      'an empty field asks for a number, a comma is a decimal point',
+      (tester) async {
+        tall(tester);
+        await openTemplatePicker(
+          tester,
+          startingPositionSupported: true,
+          extra: served(),
+        );
+        await openForm(tester);
+
+        await tester.enterText(field(pl.labelSheetLabelWidth), '');
+        await settle(tester);
+        expect(find.text(pl.labelSheetIncomplete), findsOneWidget);
+
+        await tester.enterText(field(pl.labelSheetLabelWidth), '63,5');
+        await settle(tester);
+        expect(find.text(pl.labelSheetIncomplete), findsNothing);
+      },
+    );
+
+    testWidgets('the page decides what fits: the same grid is too tall for '
+        'Letter', (tester) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await openForm(tester);
+
+      await tester.tap(find.text(pl.labelSheetPageA4));
+      await settle(tester);
+      await tester.tap(find.text(pl.labelSheetPageLetter).last);
+      await settle(tester);
+
+      // 15.15 + 7 x 38.1 = 281.85 mm on a 279.4 mm page.
+      expect(
+        find.text(pl.labelSheetTooTall('281,85', '279,4')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the sheet last used is what the form opens with, and the one '
+        'just used is kept', (tester) async {
+      tall(tester);
+      late ProviderContainer container;
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(saved: false),
+        prefs: () => const LabelPrintPrefs(customLayout: letter),
+      );
+      container = ProviderScope.containerOf(
+        tester.element(find.byType(InventoryScreen)),
+      );
+      await openForm(tester);
+
+      expect(
+        find.text(pl.labelSheetSummary('Letter', '101,6', '50,8', 10, 2, 5)),
+        findsOneWidget,
+      );
+
+      await tester.enterText(field(pl.labelSheetColumns), '1');
+      await settle(tester);
+      await tester.tap(find.text(pl.labelSheetUse));
+      await settle(tester);
+
+      expect(container.read(labelPrintPrefsProvider).customLayout?.columns, 1);
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the form keeps its fields and Use button on screen at '
+          'text $scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await pumpPhone(
+          tester,
+          const InventoryScreen(),
+          overrides: [
+            inventoryProvider.overrideWith(_CapturingInventory.new),
+            serverProfileProvider.overrideWith(_NullProfile.new),
+            labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+            labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
+            labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+            inventoryRepositoryProvider.overrideWithValue(
+              _CapturingRepository(),
+            ),
+            labelStartingPositionProvider.overrideWithValue(
+              const AsyncData(false),
+            ),
+            ...served(),
+          ],
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+        );
+        await settle(tester);
+        await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
+        await settle(tester);
+        await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
+        await settle(tester);
+        await openForm(tester);
+
+        expect(tester.takeException(), isNull);
+        expect(
+          tester.getRect(find.text(pl.labelSheetUse)).bottom,
+          lessThanOrEqualTo(800),
+          reason: 'the footer stays on screen',
+        );
+      });
+    }
+  });
 
   group('print options', () {
     late _RenderingRepository rendering;
