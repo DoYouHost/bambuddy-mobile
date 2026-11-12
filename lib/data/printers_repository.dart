@@ -212,7 +212,7 @@ class PrintersRepository {
   /// `wled_config` says so, closes [wledCapability] and throws rather than
   /// report a save that did not happen.
   Future<Printer> saveWledConfig(int printerId, WledConfig config) async {
-    final body = await guard(() async {
+    final body = await guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.printer(printerId),
         data: {'wled_config': config.toJson()},
@@ -231,7 +231,7 @@ class PrintersRepository {
   /// WLED's own presets at [baseUrl], which need not be saved yet. A 502 is a
   /// WLED that did not answer, or answered with something else.
   Future<List<WledPreset>> fetchWledPresets(int printerId, String baseUrl) =>
-      guard(() async {
+      guardKeepingDetail(() async {
         final res = await _dio.post<List<dynamic>>(
           Endpoints.printerWledPresets(printerId),
           data: {'base_url': baseUrl},
@@ -248,7 +248,7 @@ class PrintersRepository {
   Future<WledConnectionInfo> testWledConnection(
     int printerId,
     String baseUrl,
-  ) => guard(() async {
+  ) => guardKeepingDetail(() async {
     final res = await _dio.post<Map<String, dynamic>>(
       Endpoints.printerWledTestConnection(printerId),
       data: {'base_url': baseUrl},
@@ -263,7 +263,7 @@ class PrintersRepository {
   /// Switches WLED to [presetId] now. The server's next status change takes it
   /// back to the mapped preset, so a test leaves nothing behind.
   Future<void> testWledPreset(int printerId, String baseUrl, int presetId) =>
-      guard(
+      guardKeepingDetail(
         () => _dio.post<dynamic>(
           Endpoints.printerWledTestPreset(printerId),
           data: {'base_url': baseUrl, 'preset_id': presetId},

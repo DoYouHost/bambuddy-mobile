@@ -10281,4 +10281,150 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$date: $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle => 'Light presets for printer states';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Colours and effects are set in WLED. The server only switches to the preset mapped to the printer\'s state.';
+
+  @override
+  String get wledPrinter => 'Printer';
+
+  @override
+  String get wledEnabled => 'WLED integration';
+
+  @override
+  String get wledEnabledDesc =>
+      'Switch presets as this printer\'s state changes';
+
+  @override
+  String get wledUrl => 'WLED address';
+
+  @override
+  String get wledUrlRequired => 'Needed while the integration is on';
+
+  @override
+  String get wledLoadPresets => 'Load presets';
+
+  @override
+  String get wledTestConnection => 'Test connection';
+
+  @override
+  String wledConnected(String name) {
+    return 'Connected to $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Connected to $name, version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED did not answer';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presets loaded',
+      one: '1 preset loaded',
+      zero: 'WLED has no presets',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED is unreachable. Saved presets are kept.';
+
+  @override
+  String get wledMappingHeader => 'Preset per state';
+
+  @override
+  String get wledSegmentHint =>
+      'When you create a preset in WLED, select its segment and turn on “Checked segments only”.';
+
+  @override
+  String get wledNoPreset => 'No preset';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Saved preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Test preset for $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset switched on';
+
+  @override
+  String get wledPresetTestFailed => 'WLED did not switch the preset';
+
+  @override
+  String get wledFinishedTimeout => 'Back to Idle after (seconds)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Seconds after a print finishes before the Idle preset takes over. 0 turns this off.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'A whole number from 0 to 86400';
+
+  @override
+  String get wledSave => 'Save';
+
+  @override
+  String get wledSaved => 'WLED settings saved';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Not accepted: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'No printers to set up';
+
+  @override
+  String get wledStateIdle => 'Idle';
+
+  @override
+  String get wledStatePrepare => 'Preparing';
+
+  @override
+  String get wledStatePrinting => 'Printing';
+
+  @override
+  String get wledStatePaused => 'Paused';
+
+  @override
+  String get wledStateFinished => 'Finished';
+
+  @override
+  String get wledStateError => 'Failed';
+
+  @override
+  String get wledStateQueueWaiting => 'Waiting for the plate to be cleared';
+
+  @override
+  String get wledStateFilamentProblem => 'Filament problem';
+
+  @override
+  String get wledStateHmsError => 'HMS error';
+
+  @override
+  String get wledStateOffline => 'Offline';
 }

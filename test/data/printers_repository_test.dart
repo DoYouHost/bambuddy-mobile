@@ -230,7 +230,15 @@ void main() {
 
       await expectLater(
         repo.saveWledConfig(4, config),
-        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 422)),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'status', 422)
+              .having(
+                (e) => e.detail,
+                'detail',
+                'WLED URL must not include credentials',
+              ),
+        ),
       );
     });
 

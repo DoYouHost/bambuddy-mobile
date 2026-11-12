@@ -10468,4 +10468,153 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return '$date: $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle =>
+      'Presety oświetlenia dla stanów drukarki';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Kolory i efekty ustawiasz w WLED. Serwer tylko przełącza na preset przypisany do stanu drukarki.';
+
+  @override
+  String get wledPrinter => 'Drukarka';
+
+  @override
+  String get wledEnabled => 'Integracja z WLED';
+
+  @override
+  String get wledEnabledDesc =>
+      'Przełączaj presety wraz ze zmianą stanu drukarki';
+
+  @override
+  String get wledUrl => 'Adres WLED';
+
+  @override
+  String get wledUrlRequired => 'Wymagany, gdy integracja jest włączona';
+
+  @override
+  String get wledLoadPresets => 'Wczytaj presety';
+
+  @override
+  String get wledTestConnection => 'Testuj połączenie';
+
+  @override
+  String wledConnected(String name) {
+    return 'Połączono z $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Połączono z $name, wersja $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED nie odpowiada';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Wczytano $count presetu',
+      many: 'Wczytano $count presetów',
+      few: 'Wczytano $count presety',
+      one: 'Wczytano 1 preset',
+      zero: 'WLED nie ma presetów',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED jest nieosiągalny. Zapisane presety zostają.';
+
+  @override
+  String get wledMappingHeader => 'Preset dla stanu';
+
+  @override
+  String get wledSegmentHint =>
+      'Tworząc preset w WLED, zaznacz jego segment i włącz „Checked segments only”.';
+
+  @override
+  String get wledNoPreset => 'Bez presetu';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Zapisany preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Testuj preset dla stanu $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset włączony';
+
+  @override
+  String get wledPresetTestFailed => 'WLED nie przełączył presetu';
+
+  @override
+  String get wledFinishedTimeout => 'Powrót do „Bezczynna” po (sekundach)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Tyle sekund po końcu wydruku włącza się preset stanu „Bezczynna”. 0 wyłącza powrót.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'Liczba całkowita od 0 do 86400';
+
+  @override
+  String get wledSave => 'Zapisz';
+
+  @override
+  String get wledSaved => 'Zapisano ustawienia WLED';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Nie przyjęto: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'Brak drukarek do skonfigurowania';
+
+  @override
+  String get wledStateIdle => 'Bezczynna';
+
+  @override
+  String get wledStatePrepare => 'Przygotowanie';
+
+  @override
+  String get wledStatePrinting => 'Drukuje';
+
+  @override
+  String get wledStatePaused => 'Wstrzymana';
+
+  @override
+  String get wledStateFinished => 'Zakończone';
+
+  @override
+  String get wledStateError => 'Błąd';
+
+  @override
+  String get wledStateQueueWaiting => 'Czeka na zdjęcie wydruku';
+
+  @override
+  String get wledStateFilamentProblem => 'Problem z filamentem';
+
+  @override
+  String get wledStateHmsError => 'Błąd HMS';
+
+  @override
+  String get wledStateOffline => 'Offline';
 }
