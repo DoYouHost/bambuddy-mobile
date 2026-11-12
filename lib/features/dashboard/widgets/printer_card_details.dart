@@ -648,6 +648,7 @@ class _DetailsPanel extends ConsumerWidget {
             unitIndex: i,
             trayIndex: trayIndex,
             assigned: assigned,
+            amsHtLoad: ref.watch(amsHtLoadProvider).orFalse,
           ),
         ),
       if (rack && spools.isEmpty && reported.isNotEmpty)
@@ -726,6 +727,7 @@ _SlotRef _amsSlotRef({
   required int unitIndex,
   required int trayIndex,
   required AssignedSpools assigned,
+  required bool amsHtLoad,
 }) {
   final amsId = unit.id ?? unitIndex;
   final tray = (unit.trays ?? const <AmsTray>[])[trayIndex];
@@ -737,7 +739,7 @@ _SlotRef _amsSlotRef({
     trayId: slot,
     label: amsSlotName(amsId, slot),
     printing: status.isPrinting && !status.isPaused,
-    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: slot),
+    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: slot, amsHt: amsHtLoad),
     canRereadRfid: true,
     tagUid: tray.tagUid,
     trayUuid: tray.trayUuid,
@@ -827,6 +829,7 @@ Future<void> showAmsSlotSheet(
       unitIndex: unitIndex,
       trayIndex: trayIndex,
       assigned: ref.read(assignedSpoolsProvider(status.id)),
+      amsHtLoad: ref.read(amsHtLoadProvider).orFalse,
     ),
   ),
 );
@@ -2348,8 +2351,9 @@ class _SlotRef {
   /// frame.
   final bool printing;
 
-  /// Global tray number for the load command, or null where the slot cannot be
-  /// addressed by it (AMS-HT) — see [amsLoadTrayId].
+  /// Global tray number for the load command, or null where this server cannot
+  /// address the slot by it (an AMS-HT before 1.3.0, a rack input) — see
+  /// [amsLoadTrayId].
   final int? loadTrayId;
 
   /// Whether the slot has a tag to re-read. False for external spools: they
@@ -2465,8 +2469,9 @@ class _SlotActions extends ConsumerWidget {
     final loadTrayId = slot.loadTrayId;
     final canLoad = canDrive && loadTrayId != null;
     // Configuring needs nothing but `printers:control`, so it survives where
-    // loading does not: an AMS-HT slot has no global tray number to load by,
-    // and the configure route addresses it by unit and slot like any other.
+    // loading does not: an AMS-HT slot on a server before 1.3.0 has no global
+    // tray number to load by, and the configure route addresses it by unit and
+    // slot like any other.
     if (!canDrive && !canReread) return const SizedBox.shrink();
 
     final busy = ref.watch(
@@ -2666,8 +2671,6 @@ Future<void> _startSlotLoad(
   // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
   // alongside one anyway: it would occupy an extruder channel permanently,
   // which is why Bambu's own guidance is to take the switch off first.
-  // An AMS-HT never reaches here at all: it has no global tray number, so the
-  // button is hidden rather than disabled.
   final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
   if (!asks) {
     await _runSlotAction(
@@ -2761,8 +2764,8 @@ Future<int?> _askFeedDirection(
 /// Loads or unloads one slot from outside its sheet — the single-printer
 /// controller's Filament tab — with the sheet's wording, its Filament Track
 /// Switch question and its addressing. [unitIndex] null means external spool
-/// [index]; otherwise [index] is the slot of that AMS unit. A slot with no
-/// global tray number (AMS-HT) is not addressable here and does nothing.
+/// [index]; otherwise [index] is the slot of that AMS unit. A slot this server
+/// cannot address by a global tray number does nothing.
 Future<void> runSlotCommand(
   BuildContext context,
   WidgetRef ref, {
@@ -2790,6 +2793,7 @@ Future<void> runSlotCommand(
           unitIndex: unitIndex,
           trayIndex: index,
           assigned: assigned,
+          amsHtLoad: ref.read(amsHtLoadProvider).orFalse,
         );
   final loadTrayId = slot.loadTrayId;
   if (loadTrayId == null) return;

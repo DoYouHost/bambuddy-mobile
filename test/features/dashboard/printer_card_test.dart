@@ -1138,6 +1138,78 @@ void main() {
       });
     }
 
+    group('AMS-HT load (server 1.3.0)', () {
+      for (final supported in [true, false]) {
+        testWidgets(
+          'Load and Unload on an AMS-HT slot: '
+          '${supported ? 'sent by its unit id' : 'hidden on an older server'}',
+          (tester) async {
+            tester.view.physicalSize = const Size(360, 3000);
+            tester.view.devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            final dio = testDio();
+            mockServer(dio).onPost(
+              '/api/v1/printers/1/ams/load',
+              (server) => server.reply(200, {'success': true}),
+              queryParameters: {'tray_id': 128},
+            );
+            final log = captureRequests(dio);
+            await tester.pumpWidget(
+              _scope(
+                Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(
+                      item: realItem(
+                        unit: {'id': 128, 'module_type': 'n3s'},
+                        trayOrder: [3],
+                        top: {'tray_now': 255, 'state': 'IDLE'},
+                      ),
+                    ),
+                  ),
+                ),
+                extra: [
+                  printerCommandsRepositoryProvider.overrideWithValue(
+                    PrinterCommandsRepository(dio),
+                  ),
+                  amsHtLoadProvider.overrideWithValue(AsyncData(supported)),
+                ],
+              ),
+            );
+            Future<void> settle() async {
+              for (var i = 0; i < 5; i++) {
+                await tester.pump(const Duration(milliseconds: 200));
+              }
+            }
+
+            await tester.pump();
+            await tester.tap(find.text(pl.detailsShow));
+            await settle();
+            final row = find
+                .byWidgetPredicate(
+                  (w) =>
+                      w is Semantics &&
+                      (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+                )
+                .first;
+            await tester.ensureVisible(row);
+            await tester.tap(row);
+            await settle();
+
+            if (!supported) {
+              expect(byLogId('assign_spool.ams_load'), findsNothing);
+              expect(byLogId('assign_spool.ams_unload'), findsNothing);
+              return;
+            }
+            expect(byLogId('assign_spool.ams_unload'), findsOneWidget);
+            await tester.tap(byLogId('assign_spool.ams_load'));
+            await settle();
+            // Replayed by `ams_ht_load_contract_test.dart`.
+            expectSentAsRecorded('ams_ht_load', writesOf(log.requests));
+          },
+        );
+      }
+    });
+
     group('H3C', () {
       // The AMS 3H as the server reports it, over AMS 1 of the fixture.
       const dryer = {

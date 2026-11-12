@@ -606,6 +606,17 @@ The 1.3.0 release (2026-11-07) carries `move` as well, and the row still stays a
 would take `move` and keep the spool in its old slot too. On the release that costs
 one extra request per move.
 
+### amsHtLoad — 1.3.0 (measured on the images)
+
+`POST /printers/{id}/ams/load` and `/ams/unload` with an AMS-HT's unit id,
+128..135, as `tray_id`. Measured, not read off a commit (the reference clone is
+shallow): 1.2.5 and 1.2.5.7 answer **400** ("tray_id must be 0..15 …"), 1.3.0 and
+1.3.1 load it. A refusal, not a silent drop, but the app sends no AMS-HT id until
+the row says yes, so nothing is ever observed and the row decides. Being early
+costs one 400 shown after a tap; being late hides Load and Unload on an AMS-HT
+slot, as every app version before this one did. A 1.3.0b1 daily older than the
+change is told yes and gets that 400.
+
 ### archiveRuns — 1.3.0 (archive redesign, commits 809eaf4 and d43bf57)
 
 Each print of an archive keeps its own note, finish photos, video and verdict.

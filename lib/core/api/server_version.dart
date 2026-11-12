@@ -58,6 +58,10 @@ enum ServerFeature {
   /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin.
   spoolModelPresets,
 
+  /// `POST /ams/load` and `/ams/unload` take an AMS-HT's unit id, 128..135;
+  /// a 400 below it.
+  amsHtLoad,
+
   /// `printer_id` / `target_model` on `POST /library/files/add-to-queue`,
   /// taken and ignored below it.
   libraryQueueTarget,
@@ -214,6 +218,9 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
     ServerFeature.printerLocations: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
+    // Measured against the images: 1.2.5.7 answers 400 to tray_id 128, 1.3.0
+    // loads it.
+    ServerFeature.amsHtLoad: (1, 3, 0, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
     ServerFeature.libraryFileExtras: (1, 2, 6, 0),
     // Old numbering, as for the heater history: every 1.x outranks it.

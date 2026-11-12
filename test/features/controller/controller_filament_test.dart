@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -109,6 +110,7 @@ void main() {
     String? serial,
     InventoryState? inventory,
     bool reflows = false,
+    bool amsHtLoad = false,
   }) async {
     useLogicalWindow(tester, size);
     commands = RecordingCommands();
@@ -149,6 +151,7 @@ void main() {
           ),
         ),
         printerStatusesProvider.overrideWith(() => statuses),
+        amsHtLoadProvider.overrideWithValue(AsyncData(amsHtLoad)),
         if (inventory != null) ...[
           inventoryProvider.overrideWith(() => FixedInventory(inventory)),
           inventoryBackendOverride(InventoryBackend.spoolman),
@@ -547,6 +550,17 @@ void main() {
       await settle(tester);
 
       expect(commands.calls, ['amsLoad:1:0:-']);
+    });
+
+    testWidgets('load an AMS-HT by its unit id where the server takes it', (
+      tester,
+    ) async {
+      await pump(tester, _status(ams: [_unit(128)]), amsHtLoad: true);
+
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:128:-']);
     });
 
     testWidgets('are not offered on a slot with no global number (AMS-HT)', (

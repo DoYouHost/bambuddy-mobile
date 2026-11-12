@@ -10,6 +10,8 @@ import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/widgets/printer_card.dart';
 import '../inventory/inventory_providers.dart';
@@ -400,8 +402,9 @@ class _Pane extends ConsumerWidget {
     final locked = status.isPrinting && !status.isPaused;
     final rack = status.trayLayout.rack;
     final chosen = slot;
-    // A slot with no global tray number (AMS-HT) cannot be loaded by one, and
-    // the web offers no load on a rack printer's inputs.
+    // A slot this server cannot address by a global tray number (an AMS-HT
+    // before 1.3.0) cannot be loaded by one, and the web offers no load on a
+    // rack printer's inputs.
     final addressable =
         chosen != null &&
         !(unit == null && rack) &&
@@ -410,6 +413,7 @@ class _Pane extends ConsumerWidget {
               trayId: unit == null
                   ? externalSlotIndex(trays[chosen].id ?? externalTrayIdBase)
                   : unit.slotAt(chosen),
+              amsHt: ref.watch(amsHtLoadProvider).orFalse,
             ) !=
             null;
     final canDry =

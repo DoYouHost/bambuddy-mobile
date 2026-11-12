@@ -32,7 +32,8 @@ someone who has not met the history. Do not "restore" them:
 
 - `amsLoadTrayId` takes **local** ids like every other slot route (`amsId: 255,
   trayId: 0` becomes 254). It answers null where the server's `ams_load` has no
-  encoding (AMS-HT), and the caller hides the action.
+  encoding (an AMS-HT before 1.3.0, `ServerFeature.amsHtLoad`), and the caller
+  hides the action.
 - `PrinterStatus.activeTray` skips a tray that reports no id. Reading it as `-1`
   collided with the neighbouring unit's slot 3.
 

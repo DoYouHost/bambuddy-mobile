@@ -334,10 +334,9 @@ abstract final class Endpoints {
   /// number — `ams_id * 4 + slot` for a regular AMS (0..15, and 24..27 once the
   /// A2L AMS-Lite is normalised to unit 6), 28..36 for an H3C's AMS 3H, 254
   /// external / Ext-L, 255 Ext-R.
-  /// The server rejects everything else with 400. The current one also takes an
-  /// AMS-HT's unit id, 128..135 (`printers.py` `_is_valid_load_tray_id`); the
-  /// app has never offered an AMS-HT load, so `amsLoadTrayId` answers null for
-  /// it.
+  /// 128..135, an AMS-HT's unit id, only from 1.3.0 (`ServerFeature.amsHtLoad`).
+  /// The server rejects everything else with 400; build the number with
+  /// `amsLoadTrayId`, which answers null where this server has no encoding.
   ///
   /// Optional `extruder_id` (0 = right/main, 1 = left/deputy) names the hotend
   /// to feed. Only a printer with a Filament Track Switch needs it — see
