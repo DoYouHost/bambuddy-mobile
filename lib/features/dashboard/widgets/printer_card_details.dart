@@ -1164,11 +1164,26 @@ class _NozzleRackSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: DashSpace.md),
-        Wrap(
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [for (final p in positions) _RackChip(position: p)],
-        ),
+        // Two rows, the longer on top and both centred, so nine sit 5 over 4
+        // between each other and six 3 over 3; a flowing wrap left 7 + 2.
+        for (final (i, row) in [
+          positions.sublist(0, (positions.length + 1) ~/ 2),
+          positions.sublist((positions.length + 1) ~/ 2),
+        ].indexed)
+          if (row.isNotEmpty) ...[
+            if (i > 0) const SizedBox(height: DashSpace.sm),
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (j, p) in row.indexed) ...[
+                    if (j > 0) const SizedBox(width: DashSpace.sm),
+                    _RackChip(position: p),
+                  ],
+                ],
+              ),
+            ),
+          ],
       ],
     );
   }
@@ -1205,8 +1220,8 @@ class _RackChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: DashSize.d32,
-            height: DashSize.d32,
+            width: DashSize.d40,
+            height: DashSize.d40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: fill ?? t.subCard,
