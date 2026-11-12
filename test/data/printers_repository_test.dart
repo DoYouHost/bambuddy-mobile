@@ -145,18 +145,18 @@ void main() {
     );
 
     test('the version decides before a printer row has answered', () async {
-      replyVersion('1.3.1');
+      replyVersion('1.3.0');
       expect(await repo.wledCapability.supported, isFalse);
     });
 
-    test('a 1.3.2b1 daily is offered it before a row has answered', () async {
-      replyVersion('1.3.2b1');
+    test('a 1.3.1b1 daily is offered it before a row has answered', () async {
+      replyVersion('1.3.1b1');
       expect(await repo.wledCapability.supported, isTrue);
     });
 
     test('a row without wled_config closes it on a server whose version '
         'would offer it', () async {
-      replyVersion('1.3.2b1');
+      replyVersion('1.3.1b1');
       replyPrinters([
         {'id': 1, 'name': 'X1C'},
       ]);
@@ -168,7 +168,7 @@ void main() {
 
     test('a row with wled_config null opens it on a server whose version '
         'would not', () async {
-      replyVersion('1.3.1');
+      replyVersion('1.3.0');
       replyPrinters([
         {'id': 1, 'name': 'X1C', 'wled_config': null},
       ]);

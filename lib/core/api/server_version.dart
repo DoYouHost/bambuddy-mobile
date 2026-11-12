@@ -248,7 +248,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.archiveMerge: (1, 3, 0, 0),
     ServerFeature.archiveCalendar: (1, 3, 0, 0),
     ServerFeature.labelTemplates: (1, 3, 0, 0),
-    ServerFeature.wled: (1, 3, 2, 0),
+    ServerFeature.wled: (1, 3, 1, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

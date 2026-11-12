@@ -86,6 +86,24 @@ queue screen's two read-only sentences.
   (`on_print_pause_upcoming`, `NOTIFICATIONS_UPDATE`, not writable with a key), which the
   app neither reads nor assumes.
 
+### WLED
+
+`/settings/wled` (`WledSettingsScreen`, server #1528) edits the preset each printer state
+switches a WLED controller to. It is a printer field (`wled_config` on
+`PATCH /printers/{id}`), not an `AppSettings` key, so the lock is `printers:update`
+(`canUpdatePrintersProvider`): an API key never sees the hub entry. The gate is the key on
+the printer row ([server-gates.md](server-gates.md#wled--131-server-1528-pr-3124-commit-0bf86c2)).
+
+- **The route replaces the whole config.** The screen sends every state, `null` for the
+  unmapped ones, as the web does; a merge would keep a preset the user cleared.
+- **Every WLED request goes through the server**, which is the one that must reach
+  WLED, with the URL in the body so an unsaved one can be tried. A 502 is WLED not
+  answering; the saved preset ids stay and show as "saved preset N".
+- **A 422 is the server refusing the URL** (a login in it, a scheme other than http(s),
+  a cloud metadata address); its own sentence is shown under the field. The client does
+  not mirror that check: `assert_safe_lan_service_url` changes with the server.
+- An answer is dropped when the printer or the URL changed while it was out.
+
 ## Pipelines
 
 Since server 1.2.5.3 (commit `a4795c5c`) an API key can read and run slicer pipelines,

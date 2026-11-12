@@ -73,6 +73,12 @@ String? get brokerSkipReason =>
 String? get contractSpoolmanUrl =>
     Platform.environment['BAMBUDDY_CONTRACT_SPOOLMAN_URL'];
 
+/// `tool/ci/fake_wled.py` as the server and this process both reach it,
+/// `http://<container ip>`: a process on the host is not reachable from the
+/// server's container wherever the host firewall drops that traffic.
+String? get contractWledUrl =>
+    Platform.environment['BAMBUDDY_CONTRACT_WLED_URL'];
+
 String? get spoolmanSkipReason =>
     contractSkipReason ??
     ((contractSpoolmanUrl ?? '').isEmpty

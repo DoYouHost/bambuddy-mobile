@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/features/settings/cloud_account_screen.dart';
 import 'package:bambuddy_mobile/features/settings/pause_warning_screen.dart';
 import 'package:bambuddy_mobile/features/settings/queue_settings_screen.dart';
 import 'package:bambuddy_mobile/features/settings/server_settings_screen.dart';
+import 'package:bambuddy_mobile/features/settings/wled_settings_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -16,7 +17,8 @@ import 'a11y_harness.dart';
 /// Rendered contrast and touch targets for the settings screens that
 /// `rendered_guidelines_test.dart` does not reach: the server settings hub, the
 /// queue settings (with the notes and the read-only banner they switch on), the
-/// Bambu Cloud account (login, code step, signed in) and, on the app settings,
+/// WLED mapping over the demo (presets loaded, one saved id WLED lacks, and the
+/// connection line), the Bambu Cloud account (login, code step, signed in) and, on the app settings,
 /// the two open appearance selects, the demo-only section and the watch's
 /// preset select. The app settings' own three sections are covered there.
 /// Not covered: the maintenance settings (its own feature directory), the
@@ -26,6 +28,7 @@ void main() {
   _serverSettings();
   _queueSettings();
   _pauseWarning();
+  _wled();
   _cloudAccount();
   _appSettings();
 }
@@ -116,6 +119,17 @@ void _pauseWarning() {
     ],
     home: () => const PauseWarningScreen(),
     shows: find.text(pl.queueSettingsReadOnlyApiKey),
+  );
+}
+
+void _wled() {
+  a11ySurface(
+    'WLED',
+    home: () => const WledSettingsScreen(),
+    arrange: (tester) async {
+      await tester.tap(byLogId('wled.test_connection'));
+    },
+    shows: find.text(pl.wledPresetSaved(4)),
   );
 }
 

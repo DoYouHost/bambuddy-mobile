@@ -736,12 +736,13 @@ rename), and saving a template again under its own name is not a clash. The clie
 `SheetLayout.problem` is a mirror of the server's `SheetLayout.problem()`, one case per
 condition; the contract test posts each case and fails when the two disagree.
 
-### wled — 1.3.2 (server #1528, PR #3124, commit 0bf86c2)
+### wled — 1.3.1 (server #1528, PR #3124, commit 0bf86c2)
 
 `wled_config` on a printer row and on `PATCH /printers/{id}`, and the three
 `POST /printers/{id}/wled/{presets|test-connection|test-preset}` routes: the server
-switches a WLED controller to the preset mapped to the printer's state. Only in 1.3.2b1
-dailies from 2026-11-08.
+switches a WLED controller to the preset mapped to the printer's state. Measured on the
+images: 1.3.0 has none of the routes, the 1.3.1 release has them (the commit landed on
+1.3.2b1 dailies on 2026-11-08 and went into the release too).
 
 The write is a silent drop: `PrinterUpdate` forbids no extra fields, so an older server
 answers 200 and stores nothing. What settles `PrintersRepository.wledCapability` is the
@@ -754,5 +755,7 @@ so even a server downgraded mid-session cannot report a save that did not happen
 The three routes settle nothing: a 404 there is a printer gone, a 403 a missing
 `printers:update` on that printer, and a 502 a WLED that did not answer. All four need
 `printers:update`, which no API key can hold, so the hub entry also reads
-`canUpdatePrintersProvider`. Being early costs a 1.3.2b1 daily older than the commit
-the hub entry until the first printer listing comes back without the key.
+`canUpdatePrintersProvider`. Being early costs a 1.3.1b1 daily older than the commit
+the hub entry until the first printer listing comes back without the key. On 1.2.5 the
+three routes answer 405, not 404 (a `GET` route takes the path); the app never calls
+them there, so nothing reads that status.
