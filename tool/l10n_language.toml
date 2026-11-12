@@ -72,7 +72,7 @@ known_words = [
   "AMS", "HMS", "FTP", "FTPS", "API", "QR", "JWT", "LDAP", "MQTT", "OIDC",
   "REST", "CIDR", "PDF", "BOM", "°C", "Wi-Fi", "G-code", "Orca", "Avery",
   # Units and file extensions as they appear mid-sentence: "6 h", ".gcode.3mf".
-  "h", "gcode",
+  "h", "gcode", "dpi",
   # Brands and licences the copy names outright, and the US paper size.
   "Dymo", "Affero", "Keystore", "Letter", "Handy",
   # Additional brands, products, technical terms and UI acronyms.

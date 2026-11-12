@@ -223,3 +223,46 @@ screen.
   (`q5.c`, `a6.n`) and an `r8-map-id`. **Any new dependency that loads classes
   reflectively needs its own rule**, and per [AGENTS.md](../AGENTS.md) broadening
   keep rules is a security-stop decision for the maintainer.
+
+## Label sheets of the user's own measures (server #3296)
+
+The stock picker lists the built-in labels, the sheets saved on the server and a
+"Custom sheet" entry. Gate: [labelTemplates](server-gates.md#labeltemplates--130-server-3296-pr-3385-commit-9a92f7d).
+
+- **A saved sheet and a one-off one print the same way**: `template: "custom"` with the
+  `layout` in the request. The saved list is never read to print, which is why anyone who
+  may print may use it, and why a template deleted a second ago still prints from a
+  picker that has not refetched.
+- **`SpoolLabelTemplate.custom` has no grid of its own**, so nothing asks the enum how many
+  labels a sheet holds. The picker hands on a `LabelStock` (template plus layout), whose
+  `capacity` is the layout's; the starting-position sheet and the request read it there.
+  The lines a label carries are kept once for `custom`, not per template.
+- **`SheetLayout.problem` mirrors the server's `SheetLayout.problem()`**, condition by
+  condition and in its order, with the same 0.01 mm tolerance on the page fit. The form
+  names a problem while it is typed instead of after a 422;
+  `label_templates_contract_test.dart` posts one layout per condition and fails when the
+  two disagree.
+- **The saved list is fetched every time the picker opens** (`autoDispose`): someone else
+  may have saved or deleted one. It is also the request that settles the gate, so it is
+  made whatever the gate says. A row with a page this app does not know is left out of the
+  list rather than failing it.
+- **The form opens on the sheet last used** (`LabelPrintPrefs.customLayout`, an additive
+  key), else the web form's starting point, a 3 × 7 A4 grid.
+- **Saving is part of the form, not a step after it.** With `inventory:update` the form has a
+  name field and "Save as template"; once saved, the form *is* the editor of that template
+  ("Save changes" replaces it as a whole, `PUT` has no merge; "Delete template" asks first).
+  It stays open so the sheet can be used right after. The edit button on a saved card opens
+  the same form. A 409 is said on the name field (names clash ignoring case and Unicode
+  composition); every other refusal goes through `showApiFailure`, and anything that is not
+  an `AppApiException` is rethrown with the busy flag lowered. The list behind the form is
+  refetched after every write, refusals included: a 404 is a template someone deleted.
+- **"Save as new"** sits below "Save changes" in the editor: the same `POST` as a first
+  save, from the name and layout on screen, so a template becomes a copy without retyping
+  it. Under the same name it is a 409, said on the name field.
+- **The PNG cap is said before "Print"** (`pngSheetOverCap`, `spool_label.dart`): the server
+  refuses a PNG of sheets with pages × dpi over 15 000 (`MAX_PNG_SHEET_PAGES_X_DPI`,
+  `labels.py`), and the web modal does the arithmetic first too. The built-in sheets always
+  fit; a custom one-label-per-page sheet does not at 26 spools and 600 dpi. Pages count the
+  blank slots before the first label. A roll has no cap, and a PDF none either.
+- What each button sends is recorded in `test/fixtures/sent/label_template_*.json` by the
+  widget test and replayed on a live server by `label_templates_contract_test.dart`.

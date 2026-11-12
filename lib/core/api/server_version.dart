@@ -122,6 +122,11 @@ enum ServerFeature {
   /// `/archives/prints`: every print that ended in a date range, the archive
   /// calendar's source. An older server answers 422 (path capture as above).
   archiveCalendar,
+
+  /// `/label-templates` and `template: "custom"` with a `layout` on the two
+  /// label routes: a sheet of the user's own measures, saved under a name. An
+  /// older server answers 404 to the first and 422 to the second.
+  labelTemplates,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -237,6 +242,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.archiveRuns: (1, 3, 0, 0),
     ServerFeature.archiveMerge: (1, 3, 0, 0),
     ServerFeature.archiveCalendar: (1, 3, 0, 0),
+    ServerFeature.labelTemplates: (1, 3, 0, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

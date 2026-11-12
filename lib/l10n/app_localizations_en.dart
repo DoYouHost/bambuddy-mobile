@@ -3676,6 +3676,150 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get labelSheetCustom => 'Custom sheet';
+
+  @override
+  String get labelSheetCustomHint => 'Your own page, label size and grid';
+
+  @override
+  String get labelSheetSavedTitle => 'Saved templates';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count labels',
+      one: '$count label',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Page';
+
+  @override
+  String get labelSheetLabelWidth => 'Label width, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Label height, mm';
+
+  @override
+  String get labelSheetColumns => 'Columns';
+
+  @override
+  String get labelSheetRows => 'Rows';
+
+  @override
+  String get labelSheetTopMargin => 'Top margin, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Left margin, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Column gap, mm';
+
+  @override
+  String get labelSheetRowGap => 'Row gap, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Fill in every field with a number.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Labels must be at least $minWidth mm wide and $minHeight mm tall.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Sizes, margins and gaps can be at most $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Columns must be a whole number from 1 to $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Rows must be a whole number from 1 to $max.';
+  }
+
+  @override
+  String get labelSheetNegative => 'Margins and gaps must not be negative.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'The labels are $size mm wide with the left margin, but the page is $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'The labels are $size mm tall with the top margin, but the page is $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Use this sheet';
+
+  @override
+  String get labelSheetName => 'Template name';
+
+  @override
+  String get labelSheetNameTaken => 'A template with this name already exists.';
+
+  @override
+  String get labelSheetSaveAs => 'Save as template';
+
+  @override
+  String get labelSheetSaveChanges => 'Save changes';
+
+  @override
+  String get labelSheetDelete => 'Delete template';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Template “$name” saved';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Template “$name” deleted';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Labels already printed with it are unaffected.';
+
+  @override
+  String get labelSheetEdit => 'Edit template';
+
+  @override
+  String get labelSheetSaveAsNew => 'Save as new';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG is limited to $maxPages sheet pages at $dpi dpi, and this needs $pages. Use PDF, a lower resolution or fewer spools.';
+  }
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

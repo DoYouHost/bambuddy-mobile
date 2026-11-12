@@ -214,6 +214,7 @@ void main() {
     (ServerFeature.archiveCalendar, 'the archive calendar reads prints'),
     (ServerFeature.archiveMerge, 'duplicate archives merge'),
     (ServerFeature.archiveRuns, 'each print keeps its own note and verdict'),
+    (ServerFeature.labelTemplates, 'a label sheet is saved under a name'),
   ]) {
     test('$what from the 1.3.0 release', () {
       expect(parse('1.2.5.7').supports(feature), isFalse);

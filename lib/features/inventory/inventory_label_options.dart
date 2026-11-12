@@ -1,6 +1,6 @@
 part of 'inventory_screen.dart';
 
-/// Step 3 of label printing: what goes on the label and where the file goes.
+/// Step 4 of label printing: what goes on the label and where the file goes.
 ///
 /// Every control writes straight to [labelPrintPrefsProvider], so the sheet
 /// opens next time as it was left; "Print" closes it with the destination it
@@ -8,9 +8,20 @@ part of 'inventory_screen.dart';
 /// kept per [template] — a small label has room for less than
 /// a large one.
 class _LabelOptionsSheet extends ConsumerWidget {
-  const _LabelOptionsSheet({required this.template});
+  const _LabelOptionsSheet({
+    required this.stock,
+    required this.labelCount,
+    required this.startingPosition,
+  });
 
-  final SpoolLabelTemplate template;
+  final LabelStock stock;
+
+  /// How many labels will print, and from which slot: what decides whether a
+  /// PNG of the sheets is within the server's cap.
+  final int labelCount;
+  final int startingPosition;
+
+  SpoolLabelTemplate get template => stock.template;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,6 +37,14 @@ class _LabelOptionsSheet extends ConsumerWidget {
     // print dialog until the printer has said which stock it holds.
     final printerFits =
         ref.watch(labelPrinterInfoProvider).value?.takes(template) ?? false;
+    final overCap = png
+        ? pngSheetOverCap(
+            stock,
+            labels: labelCount,
+            startingPosition: startingPosition,
+            dpi: prefs.dpi,
+          )
+        : null;
     final destination = prefs.resolveDestination(
       printerSet: printerSet,
       printerFits: printerFits,
@@ -143,6 +162,23 @@ class _LabelOptionsSheet extends ConsumerWidget {
                         style: t.microSoft.legible,
                       ),
                     ),
+                    if (overCap != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: DashSpace.xs),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            l10n.labelPngTooLarge(
+                              overCap.maxPages,
+                              prefs.dpi,
+                              overCap.pages,
+                            ),
+                            style: t.microSoft.legible.copyWith(
+                              color: t.dangerInk,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                   const SizedBox(height: DashSpace.md),
                 ],
@@ -178,7 +214,9 @@ class _LabelOptionsSheet extends ConsumerWidget {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(destination),
+                onPressed: overCap != null
+                    ? null
+                    : () => Navigator.of(context).pop(destination),
                 icon: Icon(switch (destination) {
                   LabelDestination.system ||
                   LabelDestination.labelPrinter => Icons.print_outlined,

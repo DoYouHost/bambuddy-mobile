@@ -3,6 +3,7 @@ import 'dart:io' show ZLibEncoder;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../models/label_template.dart';
 import '../models/spool_label.dart';
 
 /// Labels for the demo backend: what `POST /inventory/labels` would answer, drawn
@@ -77,17 +78,19 @@ typedef DemoLabelFile = ({Uint8List bytes, String contentType});
 /// `labels.py` would send it: a PDF, or one PNG, or a ZIP of PNGs.
 ///
 /// [fields] are the server's `LabelField` names. [startingPosition] counts
-/// slots of a sheet from 1 and leaves the ones before it blank.
+/// slots of a sheet from 1 and leaves the ones before it blank. [layout] is the
+/// sheet of the `custom` template, which has no geometry of its own.
 DemoLabelFile renderDemoLabels({
   required List<DemoLabelSpool> spools,
   required SpoolLabelTemplate template,
   required Set<String> fields,
+  SheetLayout? layout,
   bool monochrome = false,
   int startingPosition = 1,
   bool png = false,
   int dpi = 300,
 }) {
-  final g = _Geometry.of(template);
+  final g = layout == null ? _Geometry.of(template) : _Geometry.custom(layout);
   final pages = <List<({int slot, DemoLabelSpool spool})>>[];
   final offset = g.sheet == null ? 0 : startingPosition - 1;
   final perPage = g.sheet == null ? 1 : g.columns * g.rows;
@@ -150,8 +153,28 @@ class _Geometry {
     this.columns = 1,
     this.rows = 1,
     this.sheet,
-  }) : gapX = columns > 1 ? 2.5 : 0,
-       gapY = 0;
+    double? gapX,
+    double? gapY,
+    this.left,
+    this.top,
+  }) : gapX = gapX ?? (columns > 1 ? 2.5 : 0),
+       gapY = gapY ?? 0;
+
+  /// A sheet as typed: the margins and gaps are the layout's own, where the
+  /// built-in sheets are centred.
+  factory _Geometry.custom(SheetLayout l) => _Geometry(
+    pageW: l.page.widthMm,
+    pageH: l.page.heightMm,
+    labelW: l.labelWidthMm,
+    labelH: l.labelHeightMm,
+    columns: l.columns,
+    rows: l.rows,
+    sheet: l.sheet,
+    gapX: l.columnGapMm,
+    gapY: l.rowGapMm,
+    left: l.leftMm,
+    top: l.topMm,
+  );
 
   factory _Geometry.of(SpoolLabelTemplate t) {
     final sheet = t.sheet;
@@ -188,8 +211,13 @@ class _Geometry {
   final double gapY;
   final ({int columns, int rows, double widthMm, double heightMm})? sheet;
 
-  double get originX => (pageW - columns * labelW - (columns - 1) * gapX) / 2;
-  double get originY => (pageH - rows * labelH - (rows - 1) * gapY) / 2;
+  /// Margins of a custom sheet; null centres the grid on the page.
+  final double? left;
+  final double? top;
+
+  double get originX =>
+      left ?? (pageW - columns * labelW - (columns - 1) * gapX) / 2;
+  double get originY => top ?? (pageH - rows * labelH - (rows - 1) * gapY) / 2;
 }
 
 /// The lines a label can carry, in the order they read down the label.

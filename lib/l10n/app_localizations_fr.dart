@@ -3745,6 +3745,152 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get labelSheetCustom => 'Planche personnalisée';
+
+  @override
+  String get labelSheetCustomHint =>
+      'Votre propre page, la taille des étiquettes et la grille';
+
+  @override
+  String get labelSheetSavedTitle => 'Modèles enregistrés';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count étiquettes',
+      one: '$count étiquette',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Page';
+
+  @override
+  String get labelSheetLabelWidth => 'Largeur de l’étiquette, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Hauteur de l’étiquette, mm';
+
+  @override
+  String get labelSheetColumns => 'Colonnes';
+
+  @override
+  String get labelSheetRows => 'Lignes';
+
+  @override
+  String get labelSheetTopMargin => 'Marge supérieure, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Marge gauche, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Espace entre colonnes, mm';
+
+  @override
+  String get labelSheetRowGap => 'Espace entre lignes, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Saisissez un nombre dans chaque champ.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Les étiquettes doivent mesurer au moins $minWidth mm de large et $minHeight mm de haut.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Les tailles, marges et espaces ne peuvent pas dépasser $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Le nombre de colonnes doit être un entier de 1 à $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Le nombre de lignes doit être un entier de 1 à $max.';
+  }
+
+  @override
+  String get labelSheetNegative =>
+      'Les marges et les espaces ne peuvent pas être négatifs.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'Avec la marge gauche, les étiquettes font $size mm de large, mais la page ne fait que $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'Avec la marge supérieure, les étiquettes font $size mm de haut, mais la page ne fait que $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Utiliser cette planche';
+
+  @override
+  String get labelSheetName => 'Nom du modèle';
+
+  @override
+  String get labelSheetNameTaken => 'Un modèle portant ce nom existe déjà.';
+
+  @override
+  String get labelSheetSaveAs => 'Enregistrer comme modèle';
+
+  @override
+  String get labelSheetSaveChanges => 'Enregistrer les modifications';
+
+  @override
+  String get labelSheetDelete => 'Supprimer le modèle';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Modèle « $name » enregistré';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Modèle « $name » supprimé';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Supprimer « $name » ?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Les étiquettes déjà imprimées ne changent pas.';
+
+  @override
+  String get labelSheetEdit => 'Modifier le modèle';
+
+  @override
+  String get labelSheetSaveAsNew => 'Enregistrer comme nouveau';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'Le PNG est limité à $maxPages pages de planche à $dpi dpi, et cette impression en demande $pages. Utilisez le PDF, une résolution plus basse ou moins de bobines.';
+  }
+
+  @override
   String get maintenanceEmpty => 'Aucune donnée de maintenance';
 
   @override

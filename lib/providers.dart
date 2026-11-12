@@ -41,6 +41,7 @@ import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
+import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
 import 'data/ams_history_repository.dart';
@@ -56,6 +57,7 @@ import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
 import 'data/profile_defaults_repository.dart';
+import 'data/label_templates_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/announcements_repository.dart';
@@ -666,6 +668,28 @@ final suppliersRepositoryProvider = Provider<SuppliersRepository>(
 /// the statistics screen's supplier card.
 final suppliersSupportedProvider = capabilityGate(
   (ref) => ref.watch(suppliersRepositoryProvider).capability,
+);
+
+/// Saved custom label sheets — one list for both inventory backends.
+final labelTemplatesRepositoryProvider = Provider<LabelTemplatesRepository>(
+  (ref) => LabelTemplatesRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// The saved custom sheets, asked again each time the picker opens: someone
+/// else may have saved or deleted one since. The request is also what settles
+/// [labelTemplatesSupportedProvider], so a failure is the picker's to ignore.
+final labelTemplatesProvider =
+    FutureProvider.autoDispose<List<SavedLabelTemplate>>(
+      (ref) => ref.watch(labelTemplatesRepositoryProvider).list(),
+    );
+
+/// Whether this server takes a custom label sheet, saved or one-off. The label
+/// picker's own listing settles it, so nothing probes.
+final labelTemplatesSupportedProvider = capabilityGate(
+  (ref) => ref.watch(labelTemplatesRepositoryProvider).capability,
 );
 
 /// Whether this server stores a material number on a spool. Whether the

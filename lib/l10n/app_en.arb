@@ -2426,6 +2426,149 @@
       }
     }
   },
+  "labelSheetCustom": "Custom sheet",
+  "labelSheetCustomHint": "Your own page, label size and grid",
+  "labelSheetSavedTitle": "Saved templates",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} label} other{{count} labels}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Page",
+  "labelSheetLabelWidth": "Label width, mm",
+  "labelSheetLabelHeight": "Label height, mm",
+  "labelSheetColumns": "Columns",
+  "labelSheetRows": "Rows",
+  "labelSheetTopMargin": "Top margin, mm",
+  "labelSheetLeftMargin": "Left margin, mm",
+  "labelSheetColumnGap": "Column gap, mm",
+  "labelSheetRowGap": "Row gap, mm",
+  "labelSheetIncomplete": "Fill in every field with a number.",
+  "labelSheetTooSmall": "Labels must be at least {minWidth} mm wide and {minHeight} mm tall.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Sizes, margins and gaps can be at most {max} mm.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Columns must be a whole number from 1 to {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Rows must be a whole number from 1 to {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Margins and gaps must not be negative.",
+  "labelSheetTooWide": "The labels are {size} mm wide with the left margin, but the page is {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "The labels are {size} mm tall with the top margin, but the page is {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Use this sheet",
+  "labelSheetName": "Template name",
+  "labelSheetNameTaken": "A template with this name already exists.",
+  "labelSheetSaveAs": "Save as template",
+  "labelSheetSaveChanges": "Save changes",
+  "labelSheetDelete": "Delete template",
+  "labelSheetSaved": "Template “{name}” saved",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Template “{name}” deleted",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Delete “{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Labels already printed with it are unaffected.",
+  "labelSheetEdit": "Edit template",
+  "labelSheetSaveAsNew": "Save as new",
+  "labelPngTooLarge": "PNG is limited to {maxPages} sheet pages at {dpi} dpi, and this needs {pages}. Use PDF, a lower resolution or fewer spools.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "No maintenance data",
   "maintenanceTotalHours": "{hours} h total",
   "@maintenanceTotalHours": {

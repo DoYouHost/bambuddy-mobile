@@ -3722,6 +3722,152 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get labelSheetCustom => 'Eigener Bogen';
+
+  @override
+  String get labelSheetCustomHint => 'Eigene Seite, Etikettengröße und Raster';
+
+  @override
+  String get labelSheetSavedTitle => 'Gespeicherte Vorlagen';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Etiketten',
+      one: '$count Etikett',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Seite';
+
+  @override
+  String get labelSheetLabelWidth => 'Etikettenbreite, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Etikettenhöhe, mm';
+
+  @override
+  String get labelSheetColumns => 'Spalten';
+
+  @override
+  String get labelSheetRows => 'Zeilen';
+
+  @override
+  String get labelSheetTopMargin => 'Oberer Rand, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Linker Rand, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Spaltenabstand, mm';
+
+  @override
+  String get labelSheetRowGap => 'Zeilenabstand, mm';
+
+  @override
+  String get labelSheetIncomplete => 'In jedes Feld eine Zahl eintragen.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Etiketten müssen mindestens $minWidth mm breit und $minHeight mm hoch sein.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Größen, Ränder und Abstände dürfen höchstens $max mm betragen.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Die Spaltenzahl muss eine ganze Zahl von 1 bis $max sein.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Die Zeilenzahl muss eine ganze Zahl von 1 bis $max sein.';
+  }
+
+  @override
+  String get labelSheetNegative =>
+      'Ränder und Abstände dürfen nicht negativ sein.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'Die Etiketten sind mit dem linken Rand $size mm breit, die Seite aber nur $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'Die Etiketten sind mit dem oberen Rand $size mm hoch, die Seite aber nur $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Diesen Bogen verwenden';
+
+  @override
+  String get labelSheetName => 'Vorlagenname';
+
+  @override
+  String get labelSheetNameTaken =>
+      'Eine Vorlage mit diesem Namen gibt es schon.';
+
+  @override
+  String get labelSheetSaveAs => 'Als Vorlage speichern';
+
+  @override
+  String get labelSheetSaveChanges => 'Änderungen speichern';
+
+  @override
+  String get labelSheetDelete => 'Vorlage löschen';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Vorlage „$name“ gespeichert';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Vorlage „$name“ gelöscht';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return '„$name“ löschen?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Bereits gedruckte Etiketten bleiben unverändert.';
+
+  @override
+  String get labelSheetEdit => 'Vorlage bearbeiten';
+
+  @override
+  String get labelSheetSaveAsNew => 'Als neu speichern';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG ist bei $dpi dpi auf $maxPages Bogenseiten begrenzt, dieser Druck braucht $pages. PDF, eine niedrigere Auflösung oder weniger Spulen wählen.';
+  }
+
+  @override
   String get maintenanceEmpty => 'Keine Wartungsdaten';
 
   @override

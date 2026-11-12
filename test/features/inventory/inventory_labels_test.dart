@@ -2,7 +2,10 @@ import 'dart:typed_data';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/label_printer.dart';
+import 'package:bambuddy_mobile/core/models/label_template.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
 import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
@@ -10,6 +13,7 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/label_printer_repository.dart';
+import 'package:bambuddy_mobile/data/label_templates_repository.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:dio/dio.dart';
@@ -23,10 +27,13 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 
 /// Where on an Avery sheet the print starts.
@@ -39,6 +46,21 @@ class _CapturingInventory extends InventoryNotifier {
   @override
   Future<InventoryState> build() async => InventoryState(
     spools: const [Spool(id: 1, material: 'PLA', brand: 'Bambu')],
+  );
+}
+
+/// [count] spools, for a print big enough to meet the server's PNG cap.
+class _ManySpools extends InventoryNotifier {
+  _ManySpools(this.count);
+
+  final int count;
+
+  @override
+  Future<InventoryState> build() async => InventoryState(
+    spools: [
+      for (var i = 1; i <= count; i++)
+        Spool(id: i, material: 'PLA', brand: 'Bambu'),
+    ],
   );
 }
 
@@ -117,6 +139,19 @@ class _MemoryPrefs extends LabelPrintPrefsNotifier {
   Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
 }
 
+/// Preferences an earlier print left behind, kept in memory.
+class _SeededPrefs extends LabelPrintPrefsNotifier {
+  _SeededPrefs(this._seed);
+
+  final LabelPrintPrefs _seed;
+
+  @override
+  LabelPrintPrefs build() => _seed;
+
+  @override
+  Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
+}
+
 /// Preferences left on PNG by an earlier print.
 class _PngPrefs extends LabelPrintPrefsNotifier {
   @override
@@ -165,6 +200,32 @@ class _ChosenUrl extends LabelPrinterUrlNotifier {
   }) async {}
 }
 
+/// A template repository whose save fails with something the app did not
+/// expect, as a bug would.
+class _BrokenTemplates extends LabelTemplatesRepository {
+  _BrokenTemplates(super.dio);
+
+  @override
+  Future<SavedLabelTemplate> create(String name, SheetLayout layout) async =>
+      throw StateError('unreadable answer');
+}
+
+/// Refuses the first save for a name taken, then lets the same one through, as
+/// when the other template was deleted in between.
+class _FlakyTemplates extends LabelTemplatesRepository {
+  _FlakyTemplates(super.dio);
+
+  var _calls = 0;
+
+  @override
+  Future<SavedLabelTemplate> create(String name, SheetLayout layout) async {
+    if (_calls++ == 0) {
+      throw const ApiException(AppErrorCode.badResponse, statusCode: 409);
+    }
+    return SavedLabelTemplate(id: 9, name: name, layout: layout);
+  }
+}
+
 class _NullProfile extends ServerProfileNotifier {
   @override
   ServerProfile? build() => null;
@@ -177,28 +238,37 @@ void main() {
     WidgetTester tester, {
     required bool startingPositionSupported,
     AsyncValue<bool>? gate,
+    List<Override> extra = const [],
+    LabelPrintPrefs Function()? prefs,
+    int spools = 1,
+    bool fieldsGate = false,
   }) async {
     final repo = _CapturingRepository();
     await pumpPhone(
       tester,
       const InventoryScreen(),
       overrides: [
-        inventoryProvider.overrideWith(_CapturingInventory.new),
+        inventoryProvider.overrideWith(
+          spools == 1 ? _CapturingInventory.new : () => _ManySpools(spools),
+        ),
         serverProfileProvider.overrideWith(_NullProfile.new),
         labelPrinterUrlProvider.overrideWith(_NoUrl.new),
-        labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
-        labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+        labelPrintPrefsProvider.overrideWith(
+          prefs == null ? _MemoryPrefs.new : () => _SeededPrefs(prefs()),
+        ),
+        labelFieldsProvider.overrideWithValue(AsyncData(fieldsGate)),
         inventoryRepositoryProvider.overrideWithValue(repo),
         labelStartingPositionProvider.overrideWithValue(
           gate ?? AsyncData(startingPositionSupported),
         ),
+        ...extra,
       ],
     );
     await settle(tester);
 
     await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
     await settle(tester);
-    await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
+    await tester.tap(find.text('${pl.inventoryLabelsPrint} ($spools)'));
     await settle(tester);
     return repo;
   }
@@ -344,6 +414,822 @@ void main() {
       expect(repo.request!.startingPosition, 1);
     },
   );
+
+  group('custom sheets', () {
+    const letter = SheetLayout(
+      page: LabelPageSize.letter,
+      labelWidthMm: 101.6,
+      labelHeightMm: 50.8,
+      columns: 2,
+      rows: 5,
+      topMm: 12.7,
+      leftMm: 4.7,
+      columnGapMm: 3.2,
+    );
+
+    /// A server that has custom sheets and the two saved on it.
+    List<Override> served({bool supported = true, bool saved = true}) => [
+      labelTemplatesSupportedProvider.overrideWithValue(AsyncData(supported)),
+      labelTemplatesProvider.overrideWith(
+        (ref) async => supported && saved
+            ? [
+                const SavedLabelTemplate(
+                  id: 1,
+                  name: 'Address labels',
+                  layout: SheetLayout.starting,
+                ),
+                const SavedLabelTemplate(
+                  id: 2,
+                  name: 'Shipping labels',
+                  layout: letter,
+                ),
+              ]
+            : const [],
+      ),
+    ];
+
+    /// A tall screen, so the whole form is built: its list is lazy, and the
+    /// message under the preview sits below a phone's fold.
+    void tall(WidgetTester tester) {
+      tester.view.physicalSize = const Size(411, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    Future<void> openForm(WidgetTester tester) async {
+      await pickTemplate(tester, pl.labelSheetCustom);
+      expect(find.text(pl.labelSheetUse), findsOneWidget);
+    }
+
+    Finder field(String label) => find.widgetWithText(TextField, label);
+
+    testWidgets('a saved sheet prints as "custom" with its own layout and '
+        'capacity', (tester) async {
+      final repo = await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await pickTemplate(tester, 'Shipping labels');
+
+      // 2 x 5: ten slots, and not an eleventh.
+      expect(find.text(pl.inventoryLabelsStartTitle), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(find.text('11'), findsNothing);
+      await tester.ensureVisible(find.text('4'));
+      await settle(tester);
+      await tester.tap(find.text('4'));
+      await settle(tester);
+      await pressPrint(tester);
+
+      expect(repo.request!.template, SpoolLabelTemplate.custom);
+      expect(repo.request!.layout, letter);
+      expect(repo.request!.startingPosition, 4);
+    });
+
+    testWidgets('a saved sheet says what it is under its name', (tester) async {
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await tester.scrollUntilVisible(
+        find.text(pl.labelSheetSavedTitle).hitTestable(),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      expect(
+        find.text(pl.labelSheetSummary('A4', '63,5', '38,1', 21, 3, 7)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a server without custom sheets offers neither the list nor '
+        'the form', (tester) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(supported: false),
+      );
+      await tester.scrollUntilVisible(
+        find.text(pl.inventoryLabelsAvery5160).hitTestable(),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      expect(find.text(pl.labelSheetCustom), findsNothing);
+      expect(find.text(pl.labelSheetSavedTitle), findsNothing);
+    });
+
+    testWidgets('a template saved by someone else on a server that then says '
+        'no is not offered', (tester) async {
+      tall(tester);
+      // The listing still held rows, but the gate has settled on "absent".
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: [
+          labelTemplatesSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          labelTemplatesProvider.overrideWith(
+            (ref) async => const [
+              SavedLabelTemplate(
+                id: 1,
+                name: 'Address labels',
+                layout: SheetLayout.starting,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(find.text('Address labels'), findsNothing);
+    });
+
+    testWidgets('the form opens on the starting sheet and prints it', (
+      tester,
+    ) async {
+      tall(tester);
+      final repo = await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(saved: false),
+      );
+      await openForm(tester);
+
+      expect(find.text(pl.labelSheetIncomplete), findsNothing);
+      expect(
+        find.text(pl.labelSheetSummary('A4', '63,5', '38,1', 21, 3, 7)),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(pl.labelSheetUse));
+      await settle(tester);
+      await tester.ensureVisible(find.text('1').first);
+      await tester.tap(find.text('1').first);
+      await settle(tester);
+      await pressPrint(tester);
+
+      expect(repo.request!.template, SpoolLabelTemplate.custom);
+      expect(repo.request!.layout, SheetLayout.starting);
+    });
+
+    testWidgets('a layout that runs off the page says so and cannot be used', (
+      tester,
+    ) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await openForm(tester);
+
+      await tester.enterText(field(pl.labelSheetColumns), '4');
+      await settle(tester);
+
+      // 7 + 4 x 63.5 + 3 x 2.5 = 268.5 mm on a 210 mm page.
+      expect(find.text(pl.labelSheetTooWide('268,5', '210')), findsOneWidget);
+      final use = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, pl.labelSheetUse),
+      );
+      expect(use.onPressed, isNull);
+
+      await tester.enterText(field(pl.labelSheetColumns), '3');
+      await settle(tester);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, pl.labelSheetUse),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets(
+      'an empty field asks for a number, a comma is a decimal point',
+      (tester) async {
+        tall(tester);
+        await openTemplatePicker(
+          tester,
+          startingPositionSupported: true,
+          extra: served(),
+        );
+        await openForm(tester);
+
+        await tester.enterText(field(pl.labelSheetLabelWidth), '');
+        await settle(tester);
+        expect(find.text(pl.labelSheetIncomplete), findsOneWidget);
+
+        await tester.enterText(field(pl.labelSheetLabelWidth), '63,5');
+        await settle(tester);
+        expect(find.text(pl.labelSheetIncomplete), findsNothing);
+      },
+    );
+
+    testWidgets('the page decides what fits: the same grid is too tall for '
+        'Letter', (tester) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(),
+      );
+      await openForm(tester);
+
+      await tester.tap(find.text(pl.labelSheetPageA4));
+      await settle(tester);
+      await tester.tap(find.text(pl.labelSheetPageLetter).last);
+      await settle(tester);
+
+      // 15.15 + 7 x 38.1 = 281.85 mm on a 279.4 mm page.
+      expect(
+        find.text(pl.labelSheetTooTall('281,85', '279,4')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the sheet last used is what the form opens with, and the one '
+        'just used is kept', (tester) async {
+      tall(tester);
+      late ProviderContainer container;
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: served(saved: false),
+        prefs: () => const LabelPrintPrefs(customLayout: letter),
+      );
+      container = ProviderScope.containerOf(
+        tester.element(find.byType(InventoryScreen)),
+      );
+      await openForm(tester);
+
+      expect(
+        find.text(pl.labelSheetSummary('Letter', '101,6', '50,8', 10, 2, 5)),
+        findsOneWidget,
+      );
+
+      await tester.enterText(field(pl.labelSheetColumns), '1');
+      await settle(tester);
+      await tester.tap(find.text(pl.labelSheetUse));
+      await settle(tester);
+
+      expect(container.read(labelPrintPrefsProvider).customLayout?.columns, 1);
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the form keeps its fields and Use button on screen at '
+          'text $scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await pumpPhone(
+          tester,
+          const InventoryScreen(),
+          overrides: [
+            inventoryProvider.overrideWith(_CapturingInventory.new),
+            serverProfileProvider.overrideWith(_NullProfile.new),
+            labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+            labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
+            labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+            inventoryRepositoryProvider.overrideWithValue(
+              _CapturingRepository(),
+            ),
+            labelStartingPositionProvider.overrideWithValue(
+              const AsyncData(false),
+            ),
+            ...served(),
+          ],
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+        );
+        await settle(tester);
+        await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
+        await settle(tester);
+        await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
+        await settle(tester);
+        await openForm(tester);
+
+        expect(tester.takeException(), isNull);
+        expect(
+          tester.getRect(find.text(pl.labelSheetUse)).bottom,
+          lessThanOrEqualTo(800),
+          reason: 'the footer stays on screen',
+        );
+      });
+    }
+  });
+
+  /// The writes behind "Save as template", "Save changes" and "Delete", sent
+  /// through the real repository and recorded for the contract test that
+  /// replays them on a live server.
+  group('saving and deleting templates', () {
+    late Dio dio;
+    late DioAdapter adapter;
+    late RequestLog sent;
+
+    const address = {
+      'id': 1,
+      'name': 'Address labels',
+      'layout': {
+        'page': 'a4',
+        'label_w_mm': 63.5,
+        'label_h_mm': 38.1,
+        'cols': 3,
+        'rows': 7,
+        'top_mm': 15.15,
+        'left_mm': 7.0,
+        'col_gap_mm': 2.5,
+        'row_gap_mm': 0.0,
+      },
+      'created_at': '2026-11-01T10:00:00',
+      'updated_at': '2026-11-01T10:00:00',
+    };
+
+    setUp(() {
+      dio = testDio();
+      adapter = mockServer(dio)
+        ..onGet('/api/v1/label-templates', (s) => s.reply(200, [address]));
+      sent = captureRequests(dio);
+    });
+
+    void tall(WidgetTester tester) {
+      tester.view.physicalSize = const Size(411, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    Future<void> open(
+      WidgetTester tester, {
+      bool mayWrite = true,
+      LabelTemplatesRepository? repo,
+    }) async {
+      tall(tester);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        extra: [
+          labelTemplatesRepositoryProvider.overrideWithValue(
+            repo ?? LabelTemplatesRepository(dio, ServerVersionService(dio)),
+          ),
+          labelTemplatesSupportedProvider.overrideWithValue(
+            const AsyncData(true),
+          ),
+          permissionProvider(
+            Permissions.inventoryUpdate,
+          ).overrideWithValue(mayWrite),
+        ],
+      );
+    }
+
+    Finder nameField() => find.widgetWithText(TextField, pl.labelSheetName);
+    Finder saveButton(String label) =>
+        find.widgetWithText(OutlinedButton, label);
+
+    Future<void> openOneOff(WidgetTester tester) async {
+      await tester.tap(find.text(pl.labelSheetCustom));
+      await settle(tester);
+    }
+
+    Future<void> openSaved(WidgetTester tester) async {
+      await tester.tap(find.byTooltip(pl.labelSheetEdit));
+      await settle(tester);
+    }
+
+    int listings() => sent.requests
+        .where((r) => r.method == 'GET' && r.path.endsWith('/label-templates'))
+        .length;
+
+    testWidgets('a one-off sheet is saved under the name typed', (
+      tester,
+    ) async {
+      adapter.onPost(
+        '/api/v1/label-templates',
+        (s) => s.reply(201, {...address, 'id': 9, 'name': 'Avery'}),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openOneOff(tester);
+      expect(
+        tester
+            .widget<OutlinedButton>(saveButton(pl.labelSheetSaveAs))
+            .onPressed,
+        isNull,
+        reason: 'no name yet',
+      );
+
+      await tester.enterText(nameField(), '  Avery  ');
+      await settle(tester);
+      await tester.tap(saveButton(pl.labelSheetSaveAs));
+      await settle(tester);
+
+      expectSentAsRecorded('label_template_create', writesOf(sent.requests));
+      expect(find.text(pl.labelSheetSaved('Avery')), findsOneWidget);
+      // The form now edits what it saved, and the list behind it was asked again.
+      expect(saveButton(pl.labelSheetSaveChanges), findsOneWidget);
+      expect(find.text(pl.labelSheetDelete), findsOneWidget);
+      expect(listings(), greaterThan(1));
+    });
+
+    testWidgets('a saved sheet is replaced as a whole', (tester) async {
+      adapter.onPut(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(200, {...address, 'name': 'Address, 2 columns'}),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+      expect(
+        tester.widget<TextField>(nameField()).controller!.text,
+        'Address labels',
+      );
+
+      await tester.enterText(nameField(), 'Address, 2 columns');
+      await tester.enterText(
+        find.widgetWithText(TextField, pl.labelSheetColumns),
+        '2',
+      );
+      await settle(tester);
+      await tester.tap(saveButton(pl.labelSheetSaveChanges));
+      await settle(tester);
+
+      expectSentAsRecorded('label_template_update', writesOf(sent.requests));
+      expect(
+        find.text(pl.labelSheetSaved('Address, 2 columns')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a saved sheet can be saved again under another name', (
+      tester,
+    ) async {
+      adapter.onPost(
+        '/api/v1/label-templates',
+        (s) => s.reply(201, {...address, 'id': 9, 'name': 'Address copy'}),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.enterText(nameField(), 'Address copy');
+      await tester.enterText(
+        find.widgetWithText(TextField, pl.labelSheetColumns),
+        '2',
+      );
+      await settle(tester);
+      await tester.tap(saveButton(pl.labelSheetSaveAsNew));
+      await settle(tester);
+
+      // A POST, not a PUT: template 1 is left as it was.
+      expectSentAsRecorded(
+        'label_template_save_as_new',
+        writesOf(sent.requests),
+      );
+      expect(find.text(pl.labelSheetSaved('Address copy')), findsOneWidget);
+    });
+
+    testWidgets('saving as new under the same name is a name taken', (
+      tester,
+    ) async {
+      adapter.onPost(
+        '/api/v1/label-templates',
+        (s) => s.reply(409, {
+          'detail': 'A label template with this name already exists',
+        }),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.tap(saveButton(pl.labelSheetSaveAsNew));
+      await settle(tester);
+
+      expect(find.text(pl.labelSheetNameTaken), findsOneWidget);
+      expect(saveButton(pl.labelSheetSaveChanges), findsOneWidget);
+    });
+
+    testWidgets('a delete asks first, then removes the template', (
+      tester,
+    ) async {
+      adapter.onDelete('/api/v1/label-templates/1', (s) => s.reply(204, null));
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.tap(find.text(pl.labelSheetDelete));
+      await settle(tester);
+      expect(writesOf(sent.requests), isEmpty, reason: 'asked first');
+      expect(find.text(pl.labelSheetDeleteBody), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.inventoryDelete),
+        ),
+      );
+      await settle(tester);
+
+      expectSentAsRecorded('label_template_delete', writesOf(sent.requests));
+      expect(find.text(pl.labelSheetDeleted('Address labels')), findsOneWidget);
+      expect(find.text(pl.labelSheetUse), findsNothing, reason: 'form closed');
+      expect(listings(), greaterThan(1));
+    });
+
+    testWidgets('a cancelled delete sends nothing', (tester) async {
+      await open(tester);
+      await openSaved(tester);
+      await tester.tap(find.text(pl.labelSheetDelete));
+      await settle(tester);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.cancel),
+        ),
+      );
+      await settle(tester);
+
+      expect(writesOf(sent.requests), isEmpty);
+      expect(find.text(pl.labelSheetUse), findsOneWidget);
+    });
+
+    testWidgets('a name taken is said on the field, and clears once the name '
+        'changes', (tester) async {
+      adapter.onPost(
+        '/api/v1/label-templates',
+        (s) => s.reply(409, {
+          'detail': 'A label template with this name already exists',
+        }),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openOneOff(tester);
+
+      await tester.enterText(nameField(), 'Address labels');
+      await settle(tester);
+      await tester.tap(saveButton(pl.labelSheetSaveAs));
+      await settle(tester);
+
+      expect(find.text(pl.labelSheetNameTaken), findsOneWidget);
+      expect(saveButton(pl.labelSheetSaveAs), findsOneWidget);
+
+      await tester.enterText(nameField(), 'Address labels 2');
+      await settle(tester);
+      expect(find.text(pl.labelSheetNameTaken), findsNothing);
+    });
+
+    testWidgets('a name taken stops showing once the save goes through', (
+      tester,
+    ) async {
+      await open(tester, repo: _FlakyTemplates(dio));
+      await openOneOff(tester);
+      await tester.enterText(nameField(), 'Avery');
+      await settle(tester);
+
+      await tester.tap(saveButton(pl.labelSheetSaveAs));
+      await settle(tester);
+      expect(find.text(pl.labelSheetNameTaken), findsOneWidget);
+
+      await tester.tap(saveButton(pl.labelSheetSaveAs));
+      await settle(tester);
+      expect(find.text(pl.labelSheetNameTaken), findsNothing);
+      expect(saveButton(pl.labelSheetSaveChanges), findsOneWidget);
+    });
+
+    testWidgets('saving over a template someone else deleted turns into '
+        'saving a new one', (tester) async {
+      adapter.onPut(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(404, {'detail': 'Label template not found'}),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.tap(saveButton(pl.labelSheetSaveChanges));
+      await settle(tester);
+
+      // The edit is kept, and the next save is a POST rather than the same
+      // doomed PUT; there is nothing left to delete.
+      expect(saveButton(pl.labelSheetSaveAs), findsOneWidget);
+      expect(find.text(pl.labelSheetDelete), findsNothing);
+      expect(
+        tester.widget<TextField>(nameField()).controller!.text,
+        'Address labels',
+      );
+    });
+
+    testWidgets('deleting a template that is already gone closes the form', (
+      tester,
+    ) async {
+      adapter.onDelete(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(404, {'detail': 'Label template not found'}),
+      );
+      await open(tester);
+      await openSaved(tester);
+      await tester.tap(find.text(pl.labelSheetDelete));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.inventoryDelete),
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text(pl.labelSheetUse), findsNothing, reason: 'form closed');
+      expect(find.text(pl.labelSheetDeleted('Address labels')), findsOneWidget);
+    });
+
+    testWidgets('the sheet cannot be used while a delete is in flight', (
+      tester,
+    ) async {
+      adapter.onDelete(
+        '/api/v1/label-templates/1',
+        (s) => s.reply(204, null, delay: const Duration(seconds: 1)),
+      );
+      await open(tester);
+      await openSaved(tester);
+      await tester.tap(find.text(pl.labelSheetDelete));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.inventoryDelete),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, pl.labelSheetUse),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await settle(tester);
+    });
+
+    testWidgets('a layout that does not fit cannot be saved', (tester) async {
+      await open(tester);
+      await openOneOff(tester);
+      await tester.enterText(nameField(), 'Avery');
+      await tester.enterText(
+        find.widgetWithText(TextField, pl.labelSheetColumns),
+        '9',
+      );
+      await settle(tester);
+
+      expect(
+        tester
+            .widget<OutlinedButton>(saveButton(pl.labelSheetSaveAs))
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('a session without inventory:update only uses them', (
+      tester,
+    ) async {
+      await open(tester, mayWrite: false);
+
+      expect(find.byTooltip(pl.labelSheetEdit), findsNothing);
+      await openOneOff(tester);
+      expect(nameField(), findsNothing);
+      expect(find.text(pl.labelSheetSaveAs), findsNothing);
+      expect(find.text(pl.labelSheetUse), findsOneWidget);
+    });
+
+    testWidgets('an unexpected error is reported and the form is usable '
+        'again', (tester) async {
+      await open(tester, repo: _BrokenTemplates(dio));
+      await openOneOff(tester);
+      await tester.enterText(nameField(), 'Avery');
+      await settle(tester);
+
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(saveButton(pl.labelSheetSaveAs));
+        await settle(tester);
+      }, (e, _) => errors.add(e));
+
+      expect(errors.single, isA<StateError>());
+      expect(
+        tester
+            .widget<OutlinedButton>(saveButton(pl.labelSheetSaveAs))
+            .onPressed,
+        isNotNull,
+        reason: 'the form must not stay locked behind the error',
+      );
+    });
+  });
+
+  /// The server refuses a PNG of sheets past pages × dpi = 15 000 with a 422
+  /// — which the options sheet says before "Print" instead of after it.
+  group('the PNG sheet cap', () {
+    const single = SheetLayout(
+      page: LabelPageSize.a4,
+      labelWidthMm: 100,
+      labelHeightMm: 100,
+      columns: 1,
+      rows: 1,
+      topMm: 0,
+      leftMm: 0,
+    );
+
+    /// One label per page, [spools] of them, as a PNG at [dpi]; stops on the
+    /// options sheet.
+    Future<void> openOptions(
+      WidgetTester tester, {
+      required int spools,
+      required int dpi,
+      SpoolLabelFormat format = SpoolLabelFormat.png,
+    }) async {
+      tester.view.physicalSize = const Size(411, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        spools: spools,
+        fieldsGate: true,
+        prefs: () => LabelPrintPrefs(format: format, dpi: dpi),
+        extra: [
+          labelTemplatesSupportedProvider.overrideWithValue(
+            const AsyncData(true),
+          ),
+          labelTemplatesProvider.overrideWith(
+            (ref) async => const [
+              SavedLabelTemplate(id: 1, name: 'One a page', layout: single),
+            ],
+          ),
+        ],
+      );
+      await pickTemplate(tester, 'One a page');
+      await tester.ensureVisible(find.text('1').first);
+      await tester.tap(find.text('1').first);
+      await settle(tester);
+    }
+
+    bool printEnabled(WidgetTester tester) =>
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, pl.inventoryLabelsPrint),
+            )
+            .onPressed !=
+        null;
+
+    testWidgets('a run past the cap is said, and cannot be printed', (
+      tester,
+    ) async {
+      // 30 pages at 600 dpi is 18 000.
+      await openOptions(tester, spools: 30, dpi: 600);
+
+      expect(find.text(pl.labelPngTooLarge(25, 600, 30)), findsOneWidget);
+      expect(printEnabled(tester), isFalse);
+    });
+
+    testWidgets('the same run at a lower resolution is fine', (tester) async {
+      await openOptions(tester, spools: 30, dpi: 300);
+
+      expect(
+        find.textContaining(pl.labelPngTooLarge(50, 300, 30)),
+        findsNothing,
+      );
+      expect(printEnabled(tester), isTrue);
+    });
+
+    testWidgets('exactly the cap is allowed', (tester) async {
+      // 25 pages at 600 dpi is 15 000, which the server takes.
+      await openOptions(tester, spools: 25, dpi: 600);
+
+      expect(find.text(pl.labelPngTooLarge(25, 600, 25)), findsNothing);
+      expect(printEnabled(tester), isTrue);
+    });
+
+    testWidgets('a PDF has no such cap', (tester) async {
+      await openOptions(
+        tester,
+        spools: 30,
+        dpi: 600,
+        format: SpoolLabelFormat.pdf,
+      );
+
+      expect(find.text(pl.labelPngTooLarge(25, 600, 30)), findsNothing);
+      expect(printEnabled(tester), isTrue);
+    });
+  });
 
   group('print options', () {
     late _RenderingRepository rendering;

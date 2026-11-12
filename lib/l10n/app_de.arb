@@ -1884,6 +1884,149 @@
       }
     }
   },
+  "labelSheetCustom": "Eigener Bogen",
+  "labelSheetCustomHint": "Eigene Seite, Etikettengröße und Raster",
+  "labelSheetSavedTitle": "Gespeicherte Vorlagen",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} Etikett} other{{count} Etiketten}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Seite",
+  "labelSheetLabelWidth": "Etikettenbreite, mm",
+  "labelSheetLabelHeight": "Etikettenhöhe, mm",
+  "labelSheetColumns": "Spalten",
+  "labelSheetRows": "Zeilen",
+  "labelSheetTopMargin": "Oberer Rand, mm",
+  "labelSheetLeftMargin": "Linker Rand, mm",
+  "labelSheetColumnGap": "Spaltenabstand, mm",
+  "labelSheetRowGap": "Zeilenabstand, mm",
+  "labelSheetIncomplete": "In jedes Feld eine Zahl eintragen.",
+  "labelSheetTooSmall": "Etiketten müssen mindestens {minWidth} mm breit und {minHeight} mm hoch sein.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Größen, Ränder und Abstände dürfen höchstens {max} mm betragen.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Die Spaltenzahl muss eine ganze Zahl von 1 bis {max} sein.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Die Zeilenzahl muss eine ganze Zahl von 1 bis {max} sein.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Ränder und Abstände dürfen nicht negativ sein.",
+  "labelSheetTooWide": "Die Etiketten sind mit dem linken Rand {size} mm breit, die Seite aber nur {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Die Etiketten sind mit dem oberen Rand {size} mm hoch, die Seite aber nur {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Diesen Bogen verwenden",
+  "labelSheetName": "Vorlagenname",
+  "labelSheetNameTaken": "Eine Vorlage mit diesem Namen gibt es schon.",
+  "labelSheetSaveAs": "Als Vorlage speichern",
+  "labelSheetSaveChanges": "Änderungen speichern",
+  "labelSheetDelete": "Vorlage löschen",
+  "labelSheetSaved": "Vorlage „{name}“ gespeichert",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Vorlage „{name}“ gelöscht",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "„{name}“ löschen?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Bereits gedruckte Etiketten bleiben unverändert.",
+  "labelSheetEdit": "Vorlage bearbeiten",
+  "labelSheetSaveAsNew": "Als neu speichern",
+  "labelPngTooLarge": "PNG ist bei {dpi} dpi auf {maxPages} Bogenseiten begrenzt, dieser Druck braucht {pages}. PDF, eine niedrigere Auflösung oder weniger Spulen wählen.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Keine Wartungsdaten",
   "maintenanceTotalHours": "{hours} h gesamt",
   "@maintenanceTotalHours": {

@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'json_utils.dart';
+import 'label_template.dart';
 
 /// Label stock the server can render onto. Wire values must match the
 /// backend's `LabelRequest.template` literals exactly — anything else is a 400.
@@ -28,7 +29,12 @@ enum SpoolLabelTemplate {
   avery5160(
     'avery_5160',
     sheet: (columns: 3, rows: 10, widthMm: 66.675, heightMm: 25.4),
-  );
+  ),
+
+  /// A sheet of the user's own measures (server #3296): the request carries it
+  /// as [SpoolLabelRequest.layout]. It has no `sheet` of its own — the grid is
+  /// the layout's — so read the capacity through [LabelStock], never from here.
+  custom('custom');
 
   const SpoolLabelTemplate(this.wire, {this.sheet, this.printerStock});
 
@@ -55,6 +61,31 @@ enum SpoolLabelTemplate {
   int? get sheetCapacity {
     final layout = sheet;
     return layout == null ? null : layout.columns * layout.rows;
+  }
+}
+
+/// What the user picked to print on: a built-in [template], or [custom] with
+/// the [layout] that was typed or saved. Carries the one fact the later steps
+/// ask — how many labels a sheet holds — so none of them reads the enum alone,
+/// which knows nothing of a custom sheet's grid.
+class LabelStock {
+  const LabelStock(this.template, {this.layout})
+    : assert(
+        (template == SpoolLabelTemplate.custom) == (layout != null),
+        'a layout goes with the custom template and with no other',
+      );
+
+  final SpoolLabelTemplate template;
+  final SheetLayout? layout;
+
+  /// The grid, or null for a roll template that prints one label per page.
+  ({int columns, int rows, double widthMm, double heightMm})? get sheet =>
+      layout?.sheet ?? template.sheet;
+
+  /// Labels one sheet holds, or null for a roll template.
+  int? get capacity {
+    final grid = sheet;
+    return grid == null ? null : grid.columns * grid.rows;
   }
 }
 
@@ -139,6 +170,32 @@ enum SpoolLabelFile {
   };
 }
 
+/// The server's cap on PNG sheets: pages × dpi (`MAX_PNG_SHEET_PAGES_X_DPI` in
+/// `labels.py`). A sheet page is a whole A4 or Letter page rasterised under a
+/// process-wide lock, so a long run at a high resolution is refused with a 422.
+const maxPngSheetPagesTimesDpi = 15000;
+
+/// Pages [labels] labels take on a sheet of [capacity], the first label at
+/// [startingPosition] (`sheet_page_count`).
+int sheetPageCount(int capacity, int labels, [int startingPosition = 1]) =>
+    (startingPosition - 1 + labels + capacity - 1) ~/ capacity;
+
+/// What a PNG of a sheet would take, or null when it is within the server's cap
+/// — or when [stock] is a roll, which has no such cap. The same arithmetic as
+/// the 422 the server answers, so the options sheet can say so before "Print".
+({int pages, int maxPages})? pngSheetOverCap(
+  LabelStock stock, {
+  required int labels,
+  required int startingPosition,
+  required int dpi,
+}) {
+  final capacity = stock.capacity;
+  if (capacity == null) return null;
+  final pages = sheetPageCount(capacity, labels, startingPosition);
+  if (pages * dpi <= maxPngSheetPagesTimesDpi) return null;
+  return (pages: pages, maxPages: maxPngSheetPagesTimesDpi ~/ dpi);
+}
+
 /// Server-side cap on one label request (`MAX_LABELS_PER_REQUEST`). Asking for
 /// more is a 422, so the UI blocks the print instead of sending it.
 const maxSpoolLabelsPerRequest = 500;
@@ -159,7 +216,12 @@ class SpoolLabelRequest {
     this.fields,
     this.format = SpoolLabelFormat.pdf,
     this.dpi = 300,
-  }) : assert(startingPosition >= 1, 'sheet positions are numbered from 1');
+    this.layout,
+  }) : assert(startingPosition >= 1, 'sheet positions are numbered from 1'),
+       assert(
+         (template == SpoolLabelTemplate.custom) == (layout != null),
+         'a layout goes with the custom template and with no other',
+       );
 
   /// Also the print order: the server renders in the order it receives ids, so
   /// a caller-chosen sort is what reaches the sheet.
@@ -187,6 +249,11 @@ class SpoolLabelRequest {
   /// PNG only; the server ignores it for a PDF.
   final int dpi;
 
+  /// The sheet, for [SpoolLabelTemplate.custom] only — the server refuses one
+  /// without the other. A saved template prints this way too: the layout travels
+  /// with the request, and the saved list is never read to print.
+  final SheetLayout? layout;
+
   Map<String, dynamic> toJson() => {
     'spool_ids': spoolIds,
     'template': template.wire,
@@ -200,6 +267,7 @@ class SpoolLabelRequest {
     // an older server would drop them without a word.
     if (fields != null) 'fields': [for (final f in fields!) f.wire],
     if (format != SpoolLabelFormat.pdf) ...{'format': format.wire, 'dpi': dpi},
+    if (layout != null) 'layout': layout!.toJson(),
   };
 }
 

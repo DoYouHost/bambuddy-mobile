@@ -1884,6 +1884,149 @@
       }
     }
   },
+  "labelSheetCustom": "Planche personnalisée",
+  "labelSheetCustomHint": "Votre propre page, la taille des étiquettes et la grille",
+  "labelSheetSavedTitle": "Modèles enregistrés",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} étiquette} other{{count} étiquettes}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Page",
+  "labelSheetLabelWidth": "Largeur de l’étiquette, mm",
+  "labelSheetLabelHeight": "Hauteur de l’étiquette, mm",
+  "labelSheetColumns": "Colonnes",
+  "labelSheetRows": "Lignes",
+  "labelSheetTopMargin": "Marge supérieure, mm",
+  "labelSheetLeftMargin": "Marge gauche, mm",
+  "labelSheetColumnGap": "Espace entre colonnes, mm",
+  "labelSheetRowGap": "Espace entre lignes, mm",
+  "labelSheetIncomplete": "Saisissez un nombre dans chaque champ.",
+  "labelSheetTooSmall": "Les étiquettes doivent mesurer au moins {minWidth} mm de large et {minHeight} mm de haut.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Les tailles, marges et espaces ne peuvent pas dépasser {max} mm.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Le nombre de colonnes doit être un entier de 1 à {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Le nombre de lignes doit être un entier de 1 à {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Les marges et les espaces ne peuvent pas être négatifs.",
+  "labelSheetTooWide": "Avec la marge gauche, les étiquettes font {size} mm de large, mais la page ne fait que {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Avec la marge supérieure, les étiquettes font {size} mm de haut, mais la page ne fait que {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Utiliser cette planche",
+  "labelSheetName": "Nom du modèle",
+  "labelSheetNameTaken": "Un modèle portant ce nom existe déjà.",
+  "labelSheetSaveAs": "Enregistrer comme modèle",
+  "labelSheetSaveChanges": "Enregistrer les modifications",
+  "labelSheetDelete": "Supprimer le modèle",
+  "labelSheetSaved": "Modèle « {name} » enregistré",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Modèle « {name} » supprimé",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Supprimer « {name} » ?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Les étiquettes déjà imprimées ne changent pas.",
+  "labelSheetEdit": "Modifier le modèle",
+  "labelSheetSaveAsNew": "Enregistrer comme nouveau",
+  "labelPngTooLarge": "Le PNG est limité à {maxPages} pages de planche à {dpi} dpi, et cette impression en demande {pages}. Utilisez le PDF, une résolution plus basse ou moins de bobines.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Aucune donnée de maintenance",
   "maintenanceTotalHours": "{hours} h au total",
   "@maintenanceTotalHours": {

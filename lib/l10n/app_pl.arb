@@ -1357,6 +1357,149 @@
       }
     }
   },
+  "labelSheetCustom": "Własny arkusz",
+  "labelSheetCustomHint": "Własna strona, rozmiar etykiety i siatka",
+  "labelSheetSavedTitle": "Zapisane szablony",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} etykieta} few{{count} etykiety} many{{count} etykiet} other{{count} etykiety}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Strona",
+  "labelSheetLabelWidth": "Szerokość etykiety, mm",
+  "labelSheetLabelHeight": "Wysokość etykiety, mm",
+  "labelSheetColumns": "Kolumny",
+  "labelSheetRows": "Wiersze",
+  "labelSheetTopMargin": "Margines górny, mm",
+  "labelSheetLeftMargin": "Margines lewy, mm",
+  "labelSheetColumnGap": "Odstęp między kolumnami, mm",
+  "labelSheetRowGap": "Odstęp między wierszami, mm",
+  "labelSheetIncomplete": "Wpisz liczbę w każde pole.",
+  "labelSheetTooSmall": "Etykieta musi mieć co najmniej {minWidth} mm szerokości i {minHeight} mm wysokości.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Rozmiary, marginesy i odstępy mogą mieć najwyżej {max} mm.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Liczba kolumn musi być całkowita, od 1 do {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Liczba wierszy musi być całkowita, od 1 do {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Marginesy i odstępy nie mogą być ujemne.",
+  "labelSheetTooWide": "Etykiety razem z lewym marginesem mają {size} mm szerokości, a strona tylko {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Etykiety razem z górnym marginesem mają {size} mm wysokości, a strona tylko {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Użyj tego arkusza",
+  "labelSheetName": "Nazwa szablonu",
+  "labelSheetNameTaken": "Szablon o tej nazwie już istnieje.",
+  "labelSheetSaveAs": "Zapisz jako szablon",
+  "labelSheetSaveChanges": "Zapisz zmiany",
+  "labelSheetDelete": "Usuń szablon",
+  "labelSheetSaved": "Zapisano szablon „{name}”",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Usunięto szablon „{name}”",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Usunąć „{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Etykiety wydrukowane wcześniej zostają bez zmian.",
+  "labelSheetEdit": "Edytuj szablon",
+  "labelSheetSaveAsNew": "Zapisz jako nowy",
+  "labelPngTooLarge": "PNG ma limit {maxPages} stron arkusza przy {dpi} dpi, a ten wydruk potrzebuje {pages}. Użyj PDF, niższej rozdzielczości albo mniej szpul.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Brak danych o konserwacji",
   "maintenanceTotalHours": "{hours} h łącznie",
   "maintenanceDueBadge": "{count} zaległe",

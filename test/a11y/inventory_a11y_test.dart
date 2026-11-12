@@ -399,6 +399,57 @@ void main() {
   );
 
   a11ySurface(
+    'inventory, label template sheet scrolled to the saved sheets',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openLabelTemplates(tester);
+      await scrollSheetDown(tester);
+    },
+    shows: byLogId('labels.custom_sheet'),
+  );
+
+  a11ySurface(
+    'inventory, custom label sheet',
+    home: () => const InventoryScreen(),
+    arrange: _openCustomSheet,
+    shows: find.text(pl.labelSheetUse),
+  );
+
+  a11ySurface(
+    'inventory, custom label sheet scrolled',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openCustomSheet(tester);
+      await scrollSheetDown(tester);
+    },
+    shows: byLogId('label_sheet.save'),
+  );
+
+  a11ySurface(
+    'inventory, custom label sheet that does not fit',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openCustomSheet(tester);
+      await tester.enterText(byLogId('label_sheet.columns'), '9');
+      await scrollSheetDown(tester);
+    },
+    shows: find.text(pl.labelSheetTooWide('598,5', '210')),
+  );
+
+  a11ySurface(
+    'inventory, saved label sheet being edited',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openLabelTemplates(tester);
+      await scrollSheetDown(tester);
+      await tester.tap(byLogId('labels.edit_template').first);
+      await settle(tester);
+      await scrollSheetDown(tester);
+    },
+    shows: byLogId('label_sheet.delete'),
+  );
+
+  a11ySurface(
     'inventory, label starting position sheet',
     home: () => const InventoryScreen(),
     arrange: (tester) async {
@@ -966,6 +1017,13 @@ Future<void> _openLabels(WidgetTester tester) async {
 Future<void> _openLabelTemplates(WidgetTester tester) async {
   await _openLabels(tester);
   await tester.tap(byLogId('labels.print'));
+  await settle(tester);
+}
+
+Future<void> _openCustomSheet(WidgetTester tester) async {
+  await _openLabelTemplates(tester);
+  await scrollSheetDown(tester);
+  await tester.tap(byLogId('labels.custom_sheet'));
   await settle(tester);
 }
 

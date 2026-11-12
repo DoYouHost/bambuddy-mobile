@@ -1884,6 +1884,149 @@
       }
     }
   },
+  "labelSheetCustom": "Hoja personalizada",
+  "labelSheetCustomHint": "Tu propia página, tamaño de etiqueta y cuadrícula",
+  "labelSheetSavedTitle": "Plantillas guardadas",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} etiqueta} other{{count} etiquetas}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Página",
+  "labelSheetLabelWidth": "Ancho de la etiqueta, mm",
+  "labelSheetLabelHeight": "Alto de la etiqueta, mm",
+  "labelSheetColumns": "Columnas",
+  "labelSheetRows": "Filas",
+  "labelSheetTopMargin": "Margen superior, mm",
+  "labelSheetLeftMargin": "Margen izquierdo, mm",
+  "labelSheetColumnGap": "Espacio entre columnas, mm",
+  "labelSheetRowGap": "Espacio entre filas, mm",
+  "labelSheetIncomplete": "Escribe un número en cada campo.",
+  "labelSheetTooSmall": "Las etiquetas deben medir al menos {minWidth} mm de ancho y {minHeight} mm de alto.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Los tamaños, márgenes y espacios pueden ser de {max} mm como máximo.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Las columnas deben ser un número entero de 1 a {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Las filas deben ser un número entero de 1 a {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Los márgenes y espacios no pueden ser negativos.",
+  "labelSheetTooWide": "Las etiquetas miden {size} mm de ancho con el margen izquierdo, pero la página mide {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Las etiquetas miden {size} mm de alto con el margen superior, pero la página mide {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Usar esta hoja",
+  "labelSheetName": "Nombre de la plantilla",
+  "labelSheetNameTaken": "Ya existe una plantilla con este nombre.",
+  "labelSheetSaveAs": "Guardar como plantilla",
+  "labelSheetSaveChanges": "Guardar cambios",
+  "labelSheetDelete": "Eliminar plantilla",
+  "labelSheetSaved": "Plantilla “{name}” guardada",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Plantilla “{name}” eliminada",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "¿Eliminar “{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Las etiquetas ya impresas no cambian.",
+  "labelSheetEdit": "Editar plantilla",
+  "labelSheetSaveAsNew": "Guardar como nueva",
+  "labelPngTooLarge": "El PNG se limita a {maxPages} páginas de hoja a {dpi} dpi, y esta impresión necesita {pages}. Usa PDF, una resolución menor o menos bobinas.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Sin datos de mantenimiento",
   "maintenanceTotalHours": "{hours} h en total",
   "@maintenanceTotalHours": {
