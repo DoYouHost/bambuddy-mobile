@@ -108,6 +108,8 @@ void main() {
     int? cali = 3,
     String? tag = 'AB',
     String? uuid = 'CD',
+    int? state = 11,
+    bool? exists = true,
   }) => AmsTray(
     id: id,
     trayColor: color,
@@ -118,6 +120,8 @@ void main() {
     caliIdx: cali,
     tagUid: tag,
     trayUuid: uuid,
+    state: state,
+    exists: exists,
   );
 
   AmsUnit unit({
@@ -246,6 +250,8 @@ void main() {
       'trayInfoIdx': () => tray(idx: 'GFB00'),
       'caliIdx': () => tray(cali: 4),
       'tagUid': () => tray(tag: 'EF'),
+      'state': () => tray(state: 9),
+      'exists': () => tray(exists: false),
       'trayUuid': () => tray(uuid: 'GH'),
     }),
     _Case('AmsUnit', unit, {

@@ -755,6 +755,7 @@
   "externalInputsEmpty": "Alle {count} externen Eingänge sind leer",
   "externalSpool": "Externe Spule",
   "traySlotEmpty": "Leer",
+  "traySlotUnconfigured": "Nicht konfiguriert",
   "amsSlotFilament": "Filament",
   "amsLoad": "Laden",
   "amsUnload": "Entladen",

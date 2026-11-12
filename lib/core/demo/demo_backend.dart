@@ -1913,7 +1913,7 @@ class DemoBackend {
           'tray': [
             for (final (i, colour) in colours.indexed)
               colour == null
-                  ? {'id': i}
+                  ? {'id': i, 'state': 9}
                   : {
                       'id': i,
                       'tray_type': 'PLA',
@@ -2023,6 +2023,7 @@ class DemoBackend {
     int remain = -1,
     String? tagUid,
     String? trayUuid,
+    bool present = false,
   }) => {
     'id': id,
     'tray_color': color,
@@ -2035,7 +2036,8 @@ class DemoBackend {
     'tray_uuid': trayUuid,
     'nozzle_temp_min': type == null ? null : '190',
     'nozzle_temp_max': type == null ? null : '240',
-    'state': type == null ? 9 : 11,
+    // [present]: a spool the AMS sees but nobody named — "?" on the card.
+    'state': type == null && !present ? 9 : 11,
   };
 
   // --- AMS slot configuration ---
@@ -2325,8 +2327,10 @@ class DemoBackend {
         infoIdx: 'GFA00',
         remain: 88,
       ),
-      _tray(2, null, null),
-      _tray(3, null, null),
+      // Two spools the printer cannot name (#2527): slot 3 with one assigned
+      // to it, which the card shows instead (#3434), slot 4 with none.
+      _tray(2, null, null, present: true),
+      _tray(3, null, null, present: true),
     ],
   };
 
@@ -6391,6 +6395,13 @@ class DemoBackend {
       'ams_id': 0,
       'tray_id': 0,
       'printer_name': 'P1S',
+    },
+    {
+      'spool_id': 3,
+      'printer_id': 5,
+      'ams_id': 0,
+      'tray_id': 2,
+      'printer_name': 'X1 Carbon #2',
     },
     {
       'spool_id': 7,

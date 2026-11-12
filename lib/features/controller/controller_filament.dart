@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/filament_material.dart';
+import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printer_commands_repository.dart';
@@ -15,6 +16,7 @@ import '../common/dash_async.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/widgets/printer_card.dart';
 import '../inventory/inventory_providers.dart';
+import '../inventory/inventory_screen.dart' show parseSpoolColor;
 import 'controller_controls.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
@@ -456,6 +458,20 @@ class _Pane extends ConsumerWidget {
             : null,
         tray: tray,
         dryer: unit != null && unit.dryerSlots.contains(unit.slotAt(i)),
+        unconfigured:
+            unit != null && tray.emptyKind == EmptySlotKind.unconfigured,
+        // `pendingSlotSpool`, as on the card: the spool assigned to a slot
+        // that holds one the printer cannot name.
+        pending: tray.isEmpty && tray.emptyKind == EmptySlotKind.unconfigured
+            ? assigned.spoolOf(
+                tray,
+                amsId: amsId,
+                trayId: unit == null
+                    ? externalSlotIndex(tray.id ?? externalTrayIdBase)
+                    : unit.slotAt(i),
+                serial: serial,
+              )
+            : null,
         active: identical(tray, active),
         selected: i == chosen,
         fill: assigned.fillOf(
@@ -796,12 +812,20 @@ class _SlotCard extends StatelessWidget {
     this.caption,
     this.captionMark,
     this.dryer = false,
+    this.unconfigured = false,
+    this.pending,
   });
 
   final int? number;
 
   /// One of the AMS 3H dryer's two slots, tinted as the card tints them.
   final bool dryer;
+
+  /// A spool the printer sees but cannot name ([AmsTray.emptyKind]).
+  final bool unconfigured;
+
+  /// The spool assigned to an [unconfigured] slot, shown in its place.
+  final Spool? pending;
 
   /// What the side is called, said to a screen reader.
   final String? caption;
@@ -889,11 +913,16 @@ class _SlotCard extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final large = controllerLargeText(context);
-    final empty = tray.isEmpty;
-    final color = empty ? null : parseTrayColor(tray.trayColor);
+    final pending = this.pending;
+    final empty = tray.isEmpty && pending == null;
+    final color = pending != null
+        ? parseSpoolColor(pending.rgba)
+        : empty
+        ? null
+        : parseTrayColor(tray.trayColor);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
-    final percent = empty ? null : fill.percent;
-    final grams = empty ? null : fill.grams;
+    final percent = tray.isEmpty ? null : fill.percent;
+    final grams = tray.isEmpty ? null : fill.grams;
     final card = Material(
       color: selected
           ? t.accent.withValues(alpha: DashAlpha.faint)
@@ -945,11 +974,17 @@ class _SlotCard extends StatelessWidget {
                     ),
                     const SizedBox(height: DashSpace.sm),
                     Text(
-                      empty
-                          ? l10n.traySlotEmpty
+                      pending != null
+                          ? pending.material
+                          : empty
+                          ? (unconfigured
+                                ? l10n.traySlotUnconfigured
+                                : l10n.traySlotEmpty)
                           : (tray.materialLabel ?? l10n.traySlotEmpty),
                       style: t.titleMd.copyWith(
-                        color: empty ? t.textTertiary : t.textPrimary,
+                        color: empty && !unconfigured
+                            ? t.textTertiary
+                            : t.textPrimary,
                       ),
                       maxLines: large ? 2 : 1,
                       overflow: TextOverflow.ellipsis,

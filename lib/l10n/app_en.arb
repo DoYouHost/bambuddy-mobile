@@ -1061,6 +1061,7 @@
   },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
+  "traySlotUnconfigured": "Not set up",
   "amsSlotFilament": "Filament",
   "amsLoad": "Load",
   "amsUnload": "Unload",

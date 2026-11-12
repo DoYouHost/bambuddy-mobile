@@ -49,7 +49,11 @@ import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
+    show
+        SpoolSwatch,
+        assignmentSlotLabel,
+        openSpoolInInventory,
+        parseSpoolColor;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../add_printer_screen.dart';

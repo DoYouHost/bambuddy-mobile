@@ -1635,6 +1635,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get traySlotEmpty => 'Empty';
 
   @override
+  String get traySlotUnconfigured => 'Not set up';
+
+  @override
   String get amsSlotFilament => 'Filament';
 
   @override

@@ -81,6 +81,8 @@ AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
   caliIdx: toIntOrNull(json['cali_idx']),
   tagUid: json['tag_uid'] as String?,
   trayUuid: json['tray_uuid'] as String?,
+  state: toIntOrNull(json['state']),
+  exists: json['exists'] as bool?,
 );
 
 NozzleInfo _$NozzleInfoFromJson(Map<String, dynamic> json) => NozzleInfo(

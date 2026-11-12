@@ -1372,12 +1372,30 @@ class _FilamentRow extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final empty = tray.isEmpty;
+    final unconfigured = tray.emptyKind == EmptySlotKind.unconfigured;
+    // `pendingSlotSpool`: a spool the printer sees but cannot name, with one
+    // assigned to the slot, is shown as that spool, in its colour (#3434).
+    final pending = empty && unconfigured ? spool : null;
     final naming = empty
         ? null
         : slotNaming(l10n, ref.watchColorNames(), tray, spool, preset);
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final ink = active ? t.accentGreenInk : t.textPrimary;
+    // The external holder sends no presence signal, so the web never calls it
+    // unconfigured; only an assigned spool changes what it shows.
+    final question =
+        empty &&
+        unconfigured &&
+        pending == null &&
+        this.slot?.amsId != externalHolderUnit;
+    final title =
+        naming?.name ??
+        pending?.material ??
+        (question ? l10n.traySlotUnconfigured : l10n.traySlotEmpty);
+    final lines = naming != null
+        ? [naming.colour, ?naming.spool]
+        : [?_pendingLabel(pending)];
 
     final row = Container(
       constraints: const BoxConstraints(
@@ -1400,8 +1418,10 @@ class _FilamentRow extends ConsumerWidget {
       child: Row(
         children: [
           _SlotSwatch(
-            color: empty ? null : parseTrayColor(tray.trayColor),
-            badge: badge,
+            color: empty
+                ? parseSpoolColor(pending?.rgba)
+                : parseTrayColor(tray.trayColor),
+            badge: question ? '?' : badge,
             percent: percent,
             active: active,
             dryerInk: dryerInk,
@@ -1413,21 +1433,22 @@ class _FilamentRow extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  naming?.name ?? l10n.traySlotEmpty,
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.bodyStrong.copyWith(
-                    color: empty ? t.textTertiary : ink,
+                    color: empty && pending == null && !question
+                        ? t.textTertiary
+                        : ink,
                   ),
                 ),
-                if (naming != null)
-                  for (final line in [naming.colour, ?naming.spool])
-                    Text(
-                      line,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.bodyPlain,
-                    ),
+                for (final line in lines)
+                  Text(
+                    line,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodyPlain,
+                  ),
               ],
             ),
           ),
@@ -1479,6 +1500,18 @@ class _FilamentRow extends ConsumerWidget {
             child: tappable,
           );
   }
+}
+
+/// `pendingSlotSpool`'s label: "Bambu PETG HF (Blue)".
+String? _pendingLabel(Spool? spool) {
+  if (spool == null) return null;
+  final name = [
+    spool.brand,
+    spool.material,
+    spool.subtype,
+  ].where((p) => p != null && p.isNotEmpty).join(' ');
+  final colour = spool.colorName;
+  return colour == null || colour.isEmpty ? name : '$name ($colour)';
 }
 
 /// A slot's colour with its [badge] inside, inked black or white for contrast,

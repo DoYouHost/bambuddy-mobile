@@ -1692,6 +1692,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get traySlotEmpty => 'Pusty';
 
   @override
+  String get traySlotUnconfigured => 'Nieskonfigurowany';
+
+  @override
   String get amsSlotFilament => 'Filament';
 
   @override

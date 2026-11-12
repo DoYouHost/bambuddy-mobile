@@ -755,6 +755,7 @@
   "externalInputsEmpty": "Les {count} entrées externes sont vides",
   "externalSpool": "Bobine externe",
   "traySlotEmpty": "Vide",
+  "traySlotUnconfigured": "Non configuré",
   "amsSlotFilament": "Filament",
   "amsLoad": "Charger",
   "amsUnload": "Décharger",

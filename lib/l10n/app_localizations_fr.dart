@@ -1665,6 +1665,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get traySlotEmpty => 'Vide';
 
   @override
+  String get traySlotUnconfigured => 'Non configuré';
+
+  @override
   String get amsSlotFilament => 'Filament';
 
   @override

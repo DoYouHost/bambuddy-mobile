@@ -957,6 +957,33 @@ void main() {
     });
   });
 
+  group('AmsTray.emptyKind (getEmptySlotKind)', () {
+    AmsTray tray(Map<String, Object?> json) => AmsTray.fromJson(json);
+
+    test('a named slot has none', () {
+      expect(tray({'tray_type': 'PLA', 'exists': false}).emptyKind, isNull);
+    });
+
+    test('the presence bit decides where it is sent', () {
+      expect(
+        tray({'exists': true, 'state': 9}).emptyKind,
+        EmptySlotKind.unconfigured,
+      );
+      expect(
+        tray({'exists': false, 'state': 11}).emptyKind,
+        EmptySlotKind.empty,
+      );
+    });
+
+    test('without it, states 9 and 10 are empty and anything else is not', () {
+      expect(tray({'state': 9}).emptyKind, EmptySlotKind.empty);
+      expect(tray({'state': '10'}).emptyKind, EmptySlotKind.empty);
+      expect(tray({'state': 11}).emptyKind, EmptySlotKind.unconfigured);
+      expect(tray({}).emptyKind, EmptySlotKind.unconfigured);
+      expect(tray({'tray_type': ''}).emptyKind, EmptySlotKind.unconfigured);
+    });
+  });
+
   group('H3C (rack printer)', () {
     // Shaped like the server's status for the live H3C capture in
     // `test_h3c_ams3h.py`: one AMS 3H as unit 32, nine inputs 247-255.

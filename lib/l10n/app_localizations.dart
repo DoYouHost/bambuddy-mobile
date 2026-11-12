@@ -2708,6 +2708,12 @@ abstract class AppLocalizations {
   /// **'Empty'**
   String get traySlotEmpty;
 
+  /// No description provided for @traySlotUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set up'**
+  String get traySlotUnconfigured;
+
   /// No description provided for @amsSlotFilament.
   ///
   /// In en, this message translates to:

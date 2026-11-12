@@ -1138,6 +1138,90 @@ void main() {
       });
     }
 
+    group('a slot holding a spool the printer cannot name', () {
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('reads "?", or the spool assigned to it, at text scale '
+            '$scale', (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(
+                textScaler: TextScaler.linear(scale),
+                size: const Size(360, 3000),
+              ),
+              child: _scope(
+                Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(
+                      // Slot 2 unconfigured, slot 3 unconfigured with a spool
+                      // assigned, slot 4 really empty.
+                      item: realItem(
+                        trays: {
+                          1: {
+                            'tray_type': '',
+                            'tray_color': '',
+                            'exists': true,
+                          },
+                          2: {
+                            'tray_type': '',
+                            'tray_color': '',
+                            'exists': true,
+                          },
+                          3: {
+                            'tray_type': '',
+                            'tray_color': '',
+                            'exists': false,
+                          },
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                extra: [
+                  inventoryProvider.overrideWith(
+                    () => FixedInventory(
+                      InventoryState(
+                        spools: [
+                          Spool(
+                            id: 7,
+                            material: 'PETG',
+                            brand: 'Bambu',
+                            subtype: 'HF',
+                            colorName: 'Blue',
+                            rgba: '0178BFFF',
+                          ),
+                        ],
+                        assignments: const [
+                          SpoolAssignment(
+                            spoolId: 7,
+                            printerId: 1,
+                            amsId: 0,
+                            trayId: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+          // An overflow is a FlutterError, which fails the test on its own.
+          expect(find.text(pl.traySlotUnconfigured), findsOneWidget);
+          expect(find.text('?'), findsOneWidget);
+          expect(find.text('Bambu PETG HF (Blue)'), findsOneWidget);
+          expect(find.text(pl.traySlotEmpty), findsOneWidget);
+        });
+      }
+    });
+
     group('AMS-HT load (server 1.3.0)', () {
       for (final supported in [true, false]) {
         testWidgets(

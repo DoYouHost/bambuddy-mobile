@@ -974,6 +974,9 @@ class AmsUnit with ValueEquality {
   ];
 }
 
+/// [AmsTray.emptyKind]: really empty, or holding a spool nobody named.
+enum EmptySlotKind { empty, unconfigured }
+
 /// Filament slot (AMS tray or external spool). Only fields needed for chips —
 /// color, material, remaining amount; rest ignored.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
@@ -988,6 +991,8 @@ class AmsTray with ValueEquality {
     this.caliIdx,
     this.tagUid,
     this.trayUuid,
+    this.state,
+    this.exists,
   });
 
   factory AmsTray.fromJson(Map<String, dynamic> json) =>
@@ -1026,6 +1031,29 @@ class AmsTray with ValueEquality {
   final String? tagUid;
   final String? trayUuid;
 
+  /// The firmware's tray state (9 empty, 10 present but not loaded, 11
+  /// loaded), read only where [exists] is missing.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? state;
+
+  /// The firmware's presence bit (`tray_exist_bits`); null where the printer
+  /// did not send it, and always on an external spool.
+  final bool? exists;
+
+  /// Why a slot with no material is blank: `amsHelpers.ts::getEmptySlotKind`.
+  /// [EmptySlotKind.unconfigured] is a spool the printer sees but cannot name
+  /// (no RFID, or swapped in mid-print, #2527); the presence bit decides, and
+  /// states 9/10 only without it. Null for a slot that names its material.
+  EmptySlotKind? get emptyKind {
+    if (trayType?.trim().isNotEmpty ?? false) return null;
+    if (exists != null) {
+      return exists! ? EmptySlotKind.unconfigured : EmptySlotKind.empty;
+    }
+    return state == 9 || state == 10
+        ? EmptySlotKind.empty
+        : EmptySlotKind.unconfigured;
+  }
+
   /// Empty slot: no material or fully transparent color (alpha 00).
   bool get isEmpty {
     final type = trayType?.trim();
@@ -1053,6 +1081,8 @@ class AmsTray with ValueEquality {
     caliIdx,
     tagUid,
     trayUuid,
+    state,
+    exists,
   ];
 }
 

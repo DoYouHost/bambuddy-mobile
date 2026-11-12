@@ -1650,6 +1650,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get traySlotEmpty => 'Vacía';
 
   @override
+  String get traySlotUnconfigured => 'Sin configurar';
+
+  @override
   String get amsSlotFilament => 'Filamento';
 
   @override

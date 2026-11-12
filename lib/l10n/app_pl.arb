@@ -648,6 +648,7 @@
   "externalInputsEmpty": "{count, plural, few{Wszystkie {count} wejścia zewnętrzne są puste} many{Wszystkie {count} wejść zewnętrznych jest pustych} other{Wszystkie {count} wejścia zewnętrzne są puste}}",
   "externalSpool": "Szpula zewnętrzna",
   "traySlotEmpty": "Pusty",
+  "traySlotUnconfigured": "Nieskonfigurowany",
   "amsSlotFilament": "Filament",
   "amsLoad": "Załaduj",
   "amsUnload": "Wyładuj",

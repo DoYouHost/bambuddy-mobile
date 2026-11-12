@@ -24,7 +24,9 @@ const _phone = Size(844, 390);
 AmsTray _tray(int id, String type, String color, {int? remain = 80}) =>
     AmsTray(id: id, trayType: type, trayColor: color, remain: remain);
 
-const _empty = AmsTray(id: 3);
+// An empty slot as the server sends one: the status route always carries the
+// tray's state, and 9 is empty (a slot without it would read unconfigured).
+const _empty = AmsTray(id: 3, state: 9);
 
 const _serial = '01P00A123456789';
 
@@ -624,6 +626,38 @@ void main() {
       await settle(tester);
 
       expect(commands.calls, ['amsLoad:1:254:-']);
+    });
+  });
+
+  group('a slot holding a spool the printer cannot name', () {
+    testWidgets('reads unconfigured, or the spool assigned to it', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          ams: [
+            AmsUnit(
+              id: 0,
+              trays: [
+                _tray(0, 'PLA', '1D1D1FFF'),
+                const AmsTray(id: 1, exists: true),
+                const AmsTray(id: 2, exists: true),
+                const AmsTray(id: 3, exists: false),
+              ],
+            ),
+          ],
+        ),
+        inventory: InventoryState(
+          spools: [Spool(id: 7, material: 'PETG', rgba: '0178BFFF')],
+          assignments: const [
+            SpoolAssignment(spoolId: 7, printerId: 1, amsId: 0, trayId: 2),
+          ],
+        ),
+      );
+      expect(find.text(pl.traySlotUnconfigured), findsOneWidget);
+      expect(find.text('PETG'), findsOneWidget);
+      expect(find.text(pl.traySlotEmpty), findsOneWidget);
     });
   });
 

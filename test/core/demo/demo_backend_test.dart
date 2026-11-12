@@ -64,6 +64,7 @@ import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Contract test: every repository the app uses must parse DemoBackend's
@@ -1280,6 +1281,16 @@ void main() {
     });
 
     final source = NativeInventorySource(dio);
+
+    test('the second X1C shows unconfigured slots, one with a spool', () async {
+      final status = (await PrintersRepository(dio).fetchStatus(5))!;
+      final trays = status.ams!.single.trays!;
+      expect(trays[2].emptyKind, EmptySlotKind.unconfigured);
+      expect(trays[3].emptyKind, EmptySlotKind.unconfigured);
+      final assignments = await source.fetchAssignments(printerId: 5);
+      expect(assignments.any((a) => a.amsId == 0 && a.trayId == 2), isTrue);
+      expect(assignments.any((a) => a.amsId == 0 && a.trayId == 3), isFalse);
+    });
 
     test('spools, assignments, reference data', () async {
       final spools = await source.fetchSpools();
