@@ -26,6 +26,12 @@ void main() {
   late DioAdapter adapter;
   late ProviderContainer container;
   late InMemoryCredentialsStore credentials;
+  late DiagnosticRecorder recorder;
+  Future<String>? stopped;
+
+  // The recorder attaches the interaction probe on start, which needs a
+  // binding.
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   /// The overrides every container here needs; a group that wants one more
   /// (the 2FA countdown) rebuilds the container on top of these.
@@ -54,7 +60,26 @@ void main() {
       bareDioProvider.overrideWithValue(dio),
     ];
     container = buildContainer();
+    stopped = null;
+    recorder = testRecorder();
+    addTearDown(recorder.discard);
+    await recorder.start();
   });
+
+  // stop() hands the log over once; a test that reads two kinds of row shares
+  // it.
+  Future<String> log() => stopped ??= recorder.stop();
+
+  Future<List<Map<String, dynamic>>> records(String evt) async => [
+    for (final line in const LineSplitter().convert(await log()))
+      if (jsonDecode(line) case final Map<String, dynamic> row
+          when row['evt'] == evt)
+        row,
+  ];
+
+  /// The control named by the one failure the user was shown (#66).
+  Future<String?> failedAction() async =>
+      (await records('action_failed')).single['action'] as String?;
 
   SetupController controller() =>
       container.read(setupControllerProvider.notifier);
@@ -196,27 +221,6 @@ void main() {
   // #66: five 200s from /auth/status and no way to tell from the log which of
   // three screens followed each one.
   group('what a probe leaves in a bug report', () {
-    late DiagnosticRecorder recorder;
-    // stop() hands the log over once; a test that reads two kinds of row
-    // shares it.
-    Future<String>? stopped;
-    Future<String> log() => stopped ??= recorder.stop();
-
-    setUp(() async {
-      stopped = null;
-      TestWidgetsFlutterBinding.ensureInitialized();
-      recorder = testRecorder();
-      addTearDown(recorder.discard);
-      await recorder.start();
-    });
-
-    Future<List<Map<String, dynamic>>> records(String evt) async => [
-      for (final line in const LineSplitter().convert(await log()))
-        if (jsonDecode(line) case final Map<String, dynamic> row
-            when row['evt'] == evt)
-          row,
-    ];
-
     void replyHtml({Duration? delay}) => adapter.onGet(
       '$_baseUrl/api/v1/auth/status',
       (server) => server.reply(
@@ -386,6 +390,7 @@ void main() {
       expect(savedProfile(), isNull);
       expect(credentials.jwt, isNull);
       expect(await credentials.readRememberedLogin(), isNull);
+      expect(await failedAction(), 'setup.connect_login');
     });
 
     test('rate-limited → "too many attempts", not "wrong password"', () async {
@@ -509,6 +514,24 @@ void main() {
       expect(profile?.authMode, AuthMode.none);
       expect(state().error, isNull);
     });
+
+    test('a wrong demo password is recorded like a real one', () async {
+      await controller().probe(DemoConfig.baseUrl);
+      await controller().connectWithLogin(
+        username: DemoConfig.username,
+        password: 'not-it',
+        remember: false,
+      );
+
+      expect(await failedAction(), 'setup.connect_login');
+    });
+
+    test('a wrong demo key is recorded like a real one', () async {
+      await controller().probe(DemoConfig.baseUrl);
+      await controller().connectWithApiKey('not-it');
+
+      expect(await failedAction(), 'setup.connect_api_key');
+    });
   });
 
   group('SetupController.connectWithApiKey', () {
@@ -574,6 +597,7 @@ void main() {
       expect(state().busy, isFalse);
       expect(savedProfile(), isNull);
       expect(credentials.apiKey, isNull);
+      expect(await failedAction(), 'setup.connect_api_key');
     });
 
     test('a key the server knows but refuses says which permission', () async {
@@ -705,6 +729,7 @@ void main() {
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(state().busy, isFalse);
       expect(savedProfile(), isNull);
+      expect(await failedAction(), 'setup.two_factor_verify');
     });
 
     test('an expired challenge drops back to the password form', () async {
@@ -795,6 +820,7 @@ void main() {
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(state().emailCodeSent, isFalse);
       expect(state().busy, isFalse);
+      expect(await failedAction(), 'setup.two_factor_send_email');
     });
 
     test('an untouched step gives way once the token has run out', () async {
