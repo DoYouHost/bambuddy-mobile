@@ -35,7 +35,16 @@ The profile is invalidated **only when it actually changed**. Invalidating
 rebuilds the transport too, which disposes the relay's reply listener under any
 request already on the bridge; the phone pushes the same config on every launch,
 so every cold start used to pay a relay timeout for its first poll. A refreshed
-secret needs no invalidate: `authHeaders` reads the store on each request.
+secret needs no invalidate: `authHeaders` reads the store on each request. The CA
+and the client certificate go in one `setBoth`, which changes nothing when neither
+changed, for the same reason: a change rebuilds every API client
+(docs/android-platform.md).
+
+`adopt` itself is **queued**. `WearApp` adopts each push as it arrives without
+waiting for the one before, and the phone sends two within milliseconds when both
+certificates change ("Remove all"). Run side by side, the later adopt compared
+against state the earlier had not written yet: a certificate added and then removed
+could be skipped as "unchanged", leaving the watch with one the phone no longer has.
 
 ## `WearFleetNotifier`: the flags and an epoch
 

@@ -6,6 +6,7 @@ import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
 import 'next_pause.dart';
 import 'value_equality.dart';
+import 'json_utils.dart';
 
 part 'printer_status.g.dart';
 
@@ -59,6 +60,7 @@ class PrinterStatus {
     this.nozzleRack,
     this.filaSwitch,
     this.amsFilamentBackup,
+    this.trayChangeLog,
     this.extruderSlots,
     this.nextPause,
   });
@@ -245,6 +247,14 @@ class PrinterStatus {
   /// near-empty spool (`effectivePreferLowest`).
   final bool? amsFilamentBackup;
 
+  /// The trays the running print has fed from, in order, each with the layer
+  /// it took over at (`tray_change_log`, `[[tray, layer], …]`). A spool that
+  /// runs out with AMS Filament Backup on hands over to a tray the job's mapping
+  /// does not name — what a queue row's chip follows (`backupTrays`). Null on
+  /// a server that does not send it.
+  @JsonKey(fromJson: _trayChangeLogOrNull)
+  final List<(int, int)>? trayChangeLog;
+
   /// The next pause the slicer put into the running print, null when none is
   /// ahead — and on a server that does not send it (docs/server-gates.md).
   /// **Not inherited by [mergedWith]**: the server writes the key into every
@@ -344,6 +354,7 @@ class PrinterStatus {
     filaSwitch,
     extruderSlots,
     amsFilamentBackup,
+    trayChangeLog,
     nextPause,
   ];
 
@@ -432,6 +443,7 @@ class PrinterStatus {
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
       amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
+      trayChangeLog: trayChangeLog ?? previous.trayChangeLog,
       nextPause: nextPause,
     )._clearedIfOffline();
   }
@@ -699,12 +711,51 @@ class PrinterStatus {
     _ => false,
   };
 
+  /// How this printer numbers its trays: unit types, and whether it is a rack
+  /// printer with nine external inputs.
+  TrayLayout get trayLayout => TrayLayout.of(
+    [
+      for (final (i, unit) in (ams ?? const <AmsUnit>[]).indexed)
+        (id: unit.id ?? i, amsType: unit.amsType),
+    ],
+    [for (final t in vtTray ?? const <AmsTray>[]) t.id],
+    model,
+  );
+
   /// External spools sorted by global id ascending (254 = Ext-L first).
   List<AmsTray> get externalSpools {
     final list = [...?vtTray];
     list.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
     return list;
   }
+
+  /// The hotend on a rack printer's toolhead, by its 1-based rack position:
+  /// it reports id 0 with `addr_id`, its home (`PrintersPage.tsx`,
+  /// `mountedHotend`). Null on every other printer.
+  int? get mountedRackPosition {
+    if (!trayLayout.rack) return null;
+    final addr = nozzleRack
+        ?.where((n) => n.id == 0 && n.addrId != null)
+        .firstOrNull
+        ?.addrId;
+    return addr == null ? null : addr + 1;
+  }
+
+  /// The external spools the card and the controller list: on a rack printer
+  /// a loaded input, or an empty one with a spool [assigned] to its tray so the
+  /// assignment stays visible and can be undone, Ext-1 first
+  /// (`PrintersPage.tsx`, `shownExternals`); elsewhere every holder.
+  List<AmsTray> shownExternalSpools(bool Function(int trayId) assigned) =>
+      trayLayout.rack
+      ? (externalSpools
+            .where(
+              (t) =>
+                  (t.trayType?.isNotEmpty ?? false) ||
+                  assigned(externalSlotIndex(t.id ?? externalTrayIdBase)),
+            )
+            .toList()
+          ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)))
+      : externalSpools;
 
   /// Two-nozzle machine, by the web's rule wherever it has the printer and its
   /// status (`PrintersPage.tsx`, `AssignToAmsModal.tsx`): the printer row's
@@ -756,6 +807,13 @@ class PrinterStatus {
     final now = trayNow;
     if (now == null) return null;
 
+    // A rack printer has one extruder and an input per hotend: the id alone
+    // names the spool. 255 there is "nothing loaded" (`NO_TRAY`), not Ext-1.
+    final layout = trayLayout;
+    if (layout.rack && isExternalTray(now, rack: true)) {
+      if (now == 255) return null;
+      return externalSpools.firstWhereOrNull((t) => t.id == now);
+    }
     if (isExternalHolder(now)) {
       final spools = externalSpools;
       if (spools.isEmpty) return null;
@@ -778,7 +836,7 @@ class PrinterStatus {
         // An id-less tray cannot be addressed; assuming slot 0 for it would
         // match some other unit's slot rather than admit the gap.
         if (slot == null) continue;
-        if (globalTrayId(amsId: unitId, trayId: slot) == now) return t;
+        if (layout.globalTrayIdOf(unitId, slot) == now) return t;
       }
     }
     return null;
@@ -807,6 +865,10 @@ class AmsUnit with ValueEquality {
     this.dryStatus,
     this.moduleType,
     this.dryCountdownStalled = false,
+    this.dryerSlots = const [],
+    this.dryerHumidity,
+    this.dryerTemp,
+    this.amsType,
   });
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
@@ -847,15 +909,54 @@ class AmsUnit with ValueEquality {
   @JsonKey(fromJson: toBoolOrFalse)
   final bool dryCountdownStalled;
 
+  /// The AMS 3H's built-in dryer: the 0-based slots its drying zone holds, and
+  /// that zone's own humidity and temperature, apart from the unit's
+  /// [humidity]/[temp]. Empty and null on every other unit and on a server
+  /// older than the field (`_dryer_fields`, `printer_manager.py`), so
+  /// [hasDryer] is false there.
+  @JsonKey(fromJson: intListFromJson)
+  final List<int> dryerSlots;
+
+  @JsonKey(fromJson: toIntOrNull)
+  final int? dryerHumidity;
+
+  @JsonKey(fromJson: toDoubleOrNull)
+  final double? dryerTemp;
+
+  bool get hasDryer => dryerSlots.isNotEmpty;
+
+  /// Bambu Studio's AMS type ([AmsType]); absent on a server older than the
+  /// H3C, where [unitAmsType] tells the type from the id.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? amsType;
+
+  /// The H3C's nine-slot AMS 3H.
+  bool get isAms3h => unitAmsType(id ?? -1, amsType) == AmsType.zmultiA;
+
+  /// Wider than [isDrying]: the web lights the dryer through every phase from
+  /// checking to stopping (`ams3hDryerActive`, `PrintersPage.tsx`), not only 2.
+  /// Unlike the web's dryer box, a parked timer stays dark — the server flags
+  /// it so no amber badge claims a cycle that is not running.
+  bool get isDryerActive =>
+      hasDryer &&
+      ((!dryCountdownStalled && (dryTime ?? 0) > 0) ||
+          const [1, 2, 3, 4].contains(dryStatus));
+
   /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
   /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
   final String? moduleType;
 
-  /// Whether this AMS module can dry filament (AMS 2 Pro or AMS-HT).
-  bool get canDry => moduleType == 'n3f' || moduleType == 'n3s';
+  /// Whether this AMS module can dry filament: an AMS 2 Pro, an AMS-HT or the
+  /// AMS 3H (`isAms3hUnit` in the web's drying gate).
+  bool get canDry => moduleType == 'n3f' || moduleType == 'n3s' || isAms3h;
 
-  /// AMS-HT (high-temp) module — dries hotter (up to 85 °C vs 65 °C).
-  bool get isHtDryModule => moduleType == 'n3s';
+  /// [slotOfTray] for the entry of [trays] at [position].
+  int slotAt(int position) =>
+      slotOfTray([for (final t in trays ?? const <AmsTray>[]) t.id], position);
+
+  /// AMS-HT (high-temp) module — dries hotter (up to 85 °C vs 65 °C). The web
+  /// opens the AMS 3H's drying with the AMS-HT's presets too.
+  bool get isHtDryModule => moduleType == 'n3s' || isAms3h;
 
   /// Whether a drying cycle is currently running (time remaining or an active
   /// status phase).
@@ -876,9 +977,16 @@ class AmsUnit with ValueEquality {
     dryStatus,
     moduleType,
     dryCountdownStalled,
+    dryerSlots,
+    dryerHumidity,
+    dryerTemp,
+    amsType,
     trays,
   ];
 }
+
+/// [AmsTray.emptyKind]: really empty, or holding a spool nobody named.
+enum EmptySlotKind { empty, unconfigured }
 
 /// Filament slot (AMS tray or external spool). Only fields needed for chips —
 /// color, material, remaining amount; rest ignored.
@@ -894,6 +1002,8 @@ class AmsTray with ValueEquality {
     this.caliIdx,
     this.tagUid,
     this.trayUuid,
+    this.state,
+    this.exists,
   });
 
   factory AmsTray.fromJson(Map<String, dynamic> json) =>
@@ -932,6 +1042,29 @@ class AmsTray with ValueEquality {
   final String? tagUid;
   final String? trayUuid;
 
+  /// The firmware's tray state (9 empty, 10 present but not loaded, 11
+  /// loaded), read only where [exists] is missing.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? state;
+
+  /// The firmware's presence bit (`tray_exist_bits`); null where the printer
+  /// did not send it, and always on an external spool.
+  final bool? exists;
+
+  /// Why a slot with no material is blank: `amsHelpers.ts::getEmptySlotKind`.
+  /// [EmptySlotKind.unconfigured] is a spool the printer sees but cannot name
+  /// (no RFID, or swapped in mid-print, #2527); the presence bit decides, and
+  /// states 9/10 only without it. Null for a slot that names its material.
+  EmptySlotKind? get emptyKind {
+    if (trayType?.trim().isNotEmpty ?? false) return null;
+    if (exists != null) {
+      return exists! ? EmptySlotKind.unconfigured : EmptySlotKind.empty;
+    }
+    return state == 9 || state == 10
+        ? EmptySlotKind.empty
+        : EmptySlotKind.unconfigured;
+  }
+
   /// Empty slot: no material or fully transparent color (alpha 00).
   bool get isEmpty {
     final type = trayType?.trim();
@@ -959,6 +1092,8 @@ class AmsTray with ValueEquality {
     caliIdx,
     tagUid,
     trayUuid,
+    state,
+    exists,
   ];
 }
 
@@ -1003,6 +1138,7 @@ class NozzleRackSlot with ValueEquality {
     this.nozzleDiameter,
     this.filamentColor,
     this.filamentType,
+    this.addrId,
   });
 
   factory NozzleRackSlot.fromJson(Map<String, dynamic> json) =>
@@ -1027,6 +1163,12 @@ class NozzleRackSlot with ValueEquality {
   /// frame, which carries every other field of this record.
   final String? filamentType;
 
+  /// H3C only: every nozzle's home rack position (0-8), the docked ones and
+  /// the one on the toolhead, which reports id 0 and is placed by this alone.
+  /// Null on an H2C and an older server.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? addrId;
+
   /// Whether the position holds a nozzle at all. A dock the operator left
   /// empty still arrives, with its properties blank.
   bool get isEmpty =>
@@ -1040,6 +1182,7 @@ class NozzleRackSlot with ValueEquality {
     nozzleDiameter,
     filamentColor,
     filamentType,
+    addrId,
   ];
 }
 
@@ -1375,3 +1518,15 @@ Map<int, ExtruderSlot>? _toExtruderSlotMapOrNull(dynamic value) =>
       value,
       (e) => parseJsonObjectOrNull(e, ExtruderSlot.fromJson),
     );
+
+/// `[[tray, layer], …]`; a malformed entry is dropped, not the whole log.
+List<(int, int)>? _trayChangeLogOrNull(Object? json) => json is List
+    ? [
+        for (final e in json)
+          if (e is List &&
+              e.length >= 2 &&
+              toIntOrNull(e[0]) != null &&
+              toIntOrNull(e[1]) != null)
+            (toIntOrNull(e[0])!, toIntOrNull(e[1])!),
+      ]
+    : null;

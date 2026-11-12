@@ -207,4 +207,28 @@ void main() {
       expect(list.byIndex(2), isNull);
     });
   });
+
+  test('a plate filament carries its slot, grams and whether it is used', () {
+    final plate = PlateList.fromJson({
+      'plates': [
+        {
+          'index': 1,
+          'filaments': [
+            {
+              'slot_id': 2,
+              'type': 'PLA',
+              'color': '#FF0000',
+              'used_grams': 12.5,
+              'used_in_plate': false,
+            },
+            // A sliced file sends no used_in_plate: every slot is used.
+            {'slot_id': '3', 'type': 'PETG', 'color': '#00FF00'},
+          ],
+        },
+      ],
+    }).plates.single;
+    final [a, b] = plate.filaments;
+    expect((a.slotId, a.usedGrams, a.usedInPlate), (2, 12.5, false));
+    expect((b.slotId, b.usedGrams, b.usedInPlate), (3, 0.0, true));
+  });
 }

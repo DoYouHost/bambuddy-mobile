@@ -498,7 +498,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       l10n: l10n,
       catalog: catalog,
       spools: spools,
-      dualExternal: (status?.vtTray?.length ?? 0) > 1,
+      status: status,
       // `ftsInletForAms`: the inlet an AMS is plumbed into, when a Filament
       // Track Switch is fitted.
       inletOf: (amsId) {
@@ -1304,24 +1304,20 @@ class _SlotOptions {
     required this.l10n,
     required this.catalog,
     required this.spools,
-    required this.dualExternal,
+    required this.status,
     required this.inletOf,
   });
 
   final AppLocalizations l10n;
   final ColorCatalog catalog;
   final Map<int, SlotSpool> spools;
-  final bool dualExternal;
+
+  /// The printer the file maps onto, which names its external inputs.
+  final PrinterStatus? status;
   final String? Function(int amsId) inletOf;
 
-  String slotOf(LoadedFilament f) {
-    if (f.isExternal) {
-      // `useFilamentMapping.ts`: the letters on the machine, not translated.
-      if (!dualExternal) return l10n.mappingExternalSpool;
-      return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
-    }
-    return formatSlotLabel(f.amsId, f.trayId, isHt: f.isHt);
-  }
+  String slotOf(LoadedFilament f) =>
+      mappingSlotLabel(f, status) ?? l10n.mappingExternalSpool;
 
   String colorOf(LoadedFilament f) {
     final bound = spools[f.globalTrayId]?.colorName;

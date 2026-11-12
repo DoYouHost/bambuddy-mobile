@@ -16,10 +16,20 @@ mkdir -p "$work/utils" "$work/hooks"
 # decides a slot.
 sed -e "s#^import { parseUTCDate } from './date';#const parseUTCDate = (s: string) => new Date(s);#" \
   "$src/utils/amsHelpers.ts" > "$work/utils/amsHelpers.ts"
+# Sibling modules amsHelpers.ts imports in newer checkouts (the tray numbering
+# since the H3C, #3442); node needs their extension spelled out.
+for mod in trayIds filamentIds filamentIdTables; do
+  [ -f "$src/utils/$mod.ts" ] || continue
+  cp "$src/utils/$mod.ts" "$work/utils/$mod.ts"
+done
+for f in "$work"/utils/*.ts; do
+  sed -i -E "s#from '\./(trayIds|filamentIds|filamentIdTables)';#from './\1.ts';#" "$f"
+done
 sed -e "s#^import { useMemo } from 'react';#const useMemo = (f: () => unknown) => f();#" \
     -e "s#^import { getColorName } from '../utils/colors';#const getColorName = (_c: string, _s?: string) => '';#" \
     -e "/^import type /d" \
     -e "s#from '../utils/amsHelpers';#from '../utils/amsHelpers.ts';#" \
+    -e "s#from '../utils/trayIds';#from '../utils/trayIds.ts';#" \
   "$src/hooks/useFilamentMapping.ts" > "$work/hooks/useFilamentMapping.ts"
 
 cat > "$work/gen.ts" <<'TS'
@@ -105,13 +115,36 @@ for (let n = 0; n < 400; n++) {
   for (const l of loaded) if (rnd() < 0.3) inventory[String(l.globalTrayId)] = pick([5, 120, 480, 900]);
   record(status, filaments, manual, inventory, rnd() < 0.5);
 }
+
+// The H3C (#3442), after the random cases so those keep their seeds: its AMS 3H
+// as unit 32 numbered 28-36, and nine external inputs on one extruder. Once
+// with ams_type, once without (an id-only report), once with an AMS-B by type.
+const h3cTrays = (colours: string[]) => colours.map((c, i) => ({ id: i, tray_type: c ? 'PLA' : '', tray_color: c, tray_info_idx: 'GFL99', remain: -1 }));
+const h3cColours = ['DE4343FF', 'FFFFFFFF', '757575FF', '000000FF', '0178BFFF', 'AE96D4FF', 'F7D959FF', '', '61C680FF'];
+const rackVt = [255, 254, 253, 252, 251, 250, 249, 248, 247].map((id) => ({ id, tray_type: id === 250 ? 'PETG' : '', tray_color: id === 250 ? '00FF00FF' : '', tray_info_idx: '', remain: -1 }));
+for (const amsType of [6, undefined]) {
+  record(
+    { id: 1, ams: [{ id: 32, ams_type: amsType, tray: h3cTrays(h3cColours) }], vt_tray: rackVt, nozzles: [{ nozzle_diameter: '0.4' }, { nozzle_diameter: '' }] },
+    [
+      { slot_id: 1, type: 'PLA', color: '#F7D959', tray_info_idx: 'GFL99', used_grams: 10 },
+      { slot_id: 2, type: 'PETG', color: '#00FF00', tray_info_idx: '', used_grams: 10 },
+      { slot_id: 3, type: 'PLA', color: '#0178BF', tray_info_idx: 'GFL99', used_grams: 10 },
+    ],
+    {}, {}, false,
+  );
+}
+record(
+  { id: 1, ams: [{ id: 40, ams_type: 7, tray: h3cTrays(['FF0000FF', '00FF00FF', '0000FFFF']) }], vt_tray: [] },
+  [{ slot_id: 1, type: 'PLA', color: '#0000FF', tray_info_idx: 'GFL99', used_grams: 10 }],
+  { 1: 39 }, {}, false,
+);
 console.log(JSON.stringify(cases));
 TS
 node --experimental-strip-types --no-warnings "$work/gen.ts" > test/fixtures/filament_mapping_golden.json
 
 # The colour names the mapping writes next to every slot (utils/colors.ts),
 # and the web's slot labels.
-cp "$src/utils/colors.ts" "$work/utils/colors.ts"
+sed -e "s#from './amsHelpers';#from './amsHelpers.ts';#" "$src/utils/colors.ts" > "$work/utils/colors.ts"
 cat > "$work/colors.ts" <<'TS'
 import { colorFamily, getColorName, setColorCatalog, disambiguateColorNames } from './utils/colors.ts';
 import { formatSlotLabel } from './utils/amsHelpers.ts';
@@ -134,7 +167,7 @@ const pairs = [
   [['Blue', '#0028FF'], ['Blue', '#0A2989']], [['Blue', '#0028FF'], ['Navy', '#0A2989']],
   [['', '#0028FF'], ['Red', 'FF0000FF']], [['Red', ''], ['red', null]], [[null, 'zz'], ['Red', '#FF0000']],
 ].map(([a, b]) => ({ a, b, out: disambiguateColorNames({ name: a[0], hex: a[1] }, { name: b[0], hex: b[1] }) }));
-const labels = [[0, 0, false], [1, 3, false], [128, 0, true], [129, 0, true], [3, 2, false]]
+const labels = [[0, 0, false], [1, 3, false], [128, 0, true], [129, 0, true], [3, 2, false], [32, 6, false]]
   .map(([a, t, ht]) => ({ ams: a, tray: t, ht, label: formatSlotLabel(a as number, t as number, ht as boolean, false) }));
 console.log(JSON.stringify({ families, catalog, names, pairs, labels }));
 TS

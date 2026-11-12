@@ -128,10 +128,40 @@ test-device avd=avd:
         adb -s "$serial" install -r -g "$apk" >/dev/null
         flutter test "$file" -d "$serial" --flavor mobile || failed=1
     done
+    # The print alarm's native half (PrintAlarm.kt), which no Dart test can see.
+    (cd android && ANDROID_SERIAL="$serial" ./gradlew -q :app:connectedMobileDebugAndroidTest \
+        -Pandroid.testInstrumentationRunnerArguments.class=page.codeberg.morganmlgman.bambuddy_mobile.PrintAlarmTest) \
+        || failed=1
     exit $failed
 
 # core.hooksPath is per-clone local config, so a fresh clone has no hooks until
 # this runs. Points git at .githooks/, which holds the commit-message check.
+# server_citations_test.dart checks every `file.py::symbol` comment against this
+# clone, so a stale one fails `just test` for a symbol the server has had for days.
+# Fetches dev by name: a clone whose fetch refspec lists only `main` never moves
+# origin/dev on a bare `git fetch` (docs/dev-environment.md).
+[doc("clone or fast-forward reference/bambuddy to the server's dev branch")]
+[group('1-develop')]
+reference-pull:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ref=reference/bambuddy
+    if [ ! -d "$ref/.git" ]; then
+        git clone --depth 200 --branch dev https://github.com/maziggy/bambuddy.git "$ref"
+        grep -qxF '/reference/' .git/info/exclude 2>/dev/null || echo '/reference/' >> .git/info/exclude
+    else
+        if [ -n "$(git -C "$ref" status --porcelain)" ]; then
+            echo "reference-pull: $ref has local changes; commit, stash or drop them first" >&2
+            exit 1
+        fi
+        git -C "$ref" fetch --quiet origin "+dev:refs/remotes/origin/dev"
+        # Back from a detached triage checkout; a clone that never had dev gets it.
+        git -C "$ref" checkout --quiet dev 2>/dev/null ||
+            git -C "$ref" checkout --quiet -b dev origin/dev
+        git -C "$ref" merge --quiet --ff-only origin/dev
+    fi
+    echo "reference-pull: $(git -C "$ref" log -1 --format='%h %cs %s')"
+
 [doc('point this clone at the versioned git hooks')]
 [group('1-develop')]
 hooks:
@@ -221,7 +251,8 @@ emu-boot avd=avd cold='':
         just emu-list >&2
         exit 1
     fi
-    flags=()
+    # `auto` falls back to lavapipe (software Vulkan), where qemu segfaults and adb reports `Lost connection`.
+    flags=(-gpu host)
     [ "{{cold}}" = cold ] && flags+=(-no-snapshot-load)
     timeout_s=${EMU_BOOT_TIMEOUT:-180}
     attempts=3

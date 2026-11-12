@@ -32,7 +32,8 @@ someone who has not met the history. Do not "restore" them:
 
 - `amsLoadTrayId` takes **local** ids like every other slot route (`amsId: 255,
   trayId: 0` becomes 254). It answers null where the server's `ams_load` has no
-  encoding (AMS-HT), and the caller hides the action.
+  encoding (an AMS-HT before 1.3.0, `ServerFeature.amsHtLoad`), and the caller
+  hides the action.
 - `PrinterStatus.activeTray` skips a tray that reports no id. Reading it as `-1`
   collided with the neighbouring unit's slot 3.
 
@@ -42,6 +43,32 @@ against live assignments of a dual-nozzle machine). This is not the MQTT `vt_tra
 254/255 of the dashboard, which is why `SpoolAssignment.extruder` goes through
 `extruderForExternalSide`. Keying the extruder on `ams_id` put both spools on "left".
 The UI shows the extruder, never "AMS255".
+
+### The H3C: the AMS 3H and nine external inputs
+
+Server #3442 numbers a slot by its unit's **AMS type** (`ams_type`, bits 0-3 of
+`info`), not by `unit * 4`: `TrayLayout` in `slot_addressing.dart` is the port of
+`utils/tray_ids.py` / `trayIds.ts`, and one `PrinterStatus.trayLayout` serves a
+whole printer.
+
+- The **AMS 3H** is unit 32 with nine slots, global **28-36** (28 + slot), stored
+  as (32, 0-8). `POST /ams/load` takes 28-36 only from that unit: a unit 7 lands
+  on 28 too, and the server refuses an AMS 3H id on a printer without one. Its
+  dryer dries two slots (`dryer_slots`), which the card, the controller and the
+  drying sheet name.
+- A printer with a direct-connected rack (a **rack printer**: an AMS 3H reported,
+  an input 247-253 seen, or the model H3C/N10 when the status lists no unit) has
+  nine external inputs, **247-255**, one per hotend: input `v` feeds hotend
+  `255 - v`, named **`Ext-n` = hotend + 1** (255 is Ext-1). They are stored as
+  (255, `externalSlotIndex`): 254 → 0, 255 → 1, 247-253 → 2-8, so the two ids every
+  other printer uses keep their trays. A tray past 1 under unit 255 names nothing
+  on another printer, which is why the assign sheet takes it back to 0 when the
+  printer changes.
+- On a rack printer **254 and 255 are inputs, not holder sides**: no Ext-L/Ext-R,
+  no extruder, and no load or unload on any input (the web offers none). Only a
+  loaded input is listed; `tray_now` 255 means nothing is loaded.
+- An assignment carries `printer_model` (#3442), which is how a label reads
+  `Ext-n` where no live status is at hand.
 
 ## Two backends behind one interface
 
@@ -76,6 +103,10 @@ From the bambuddy and Spoolman source:
   charged to the tag first and to the slot row as the fallback.
 - The web reads the slot row first and, on any RFID tray, disables Assign and hides
   Unassign (`isBambuLabSpool`).
+- The spool sheet's usage list reads `GET /spoolman/inventory/spools/{id}/usage`
+  (#3407, 1.3.1). Older servers 404 it and keep no per-print record, so
+  `SpoolmanInventorySource.fetchUsage` reads that 404 as an empty list. The app has
+  no clear-history action, so the route's `DELETE` is not wired.
 
 **One deliberate deviation.** For an RFID tag that no spool carries (auto-add off)
 the app keeps the picker enabled, where the web disables Assign and offers Link.

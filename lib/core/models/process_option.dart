@@ -7,6 +7,8 @@
 /// faithfully keeps the loose type it arrives in rather than being coerced.
 library;
 
+import 'package:app_util/app_util.dart';
+
 /// OrcaSlicer's `ConfigOptionType` names. The plural forms are per-extruder
 /// vectors, stored in a process preset as a list rather than a scalar.
 enum OptionType {
@@ -96,9 +98,7 @@ class ProcessOption {
       mode: OptionMode.parse(json['mode']),
       // Every entry but one carries a label; the key is a usable fallback and
       // beats an empty row.
-      label: (json['label'] as String?)?.trim().isNotEmpty == true
-          ? json['label'] as String
-          : key,
+      label: toStringOrNull(json['label']) ?? key,
       tooltip: json['tooltip'] as String?,
       sidetext: json['sidetext'] as String?,
       min: json['min'],

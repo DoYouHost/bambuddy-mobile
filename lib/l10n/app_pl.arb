@@ -130,6 +130,7 @@
   "ctrlSet": "Ustaw",
   "ctrlActivate": "Aktywuj",
   "ctrlNozzleActive": "Aktywna",
+  "amsDryer": "Suszarka",
   "ctrlDry": "Suszenie",
   "ctrlDrying": "Suszenie",
   "ctrlDryNotRunning": "Nie suszy",
@@ -639,8 +640,15 @@
   "cameraConnecting": "Łączenie z kamerą…",
   "cameraError": "Nie udało się wczytać strumienia kamery",
   "cameraDemoUnavailable": "Ta drukarka demo jest offline, więc nie ma obrazu z kamery.",
+  "nozzleRack": "Magazyn dysz",
+  "nozzleRackMounted": "na głowicy",
+  "nozzleRackPosition": "Pozycja {position}: {diameter} mm",
+  "nozzleRackPositionEmpty": "Pozycja {position}: pusta",
+  "externalInputs": "Wejścia zewnętrzne",
+  "externalInputsEmpty": "{count, plural, few{Wszystkie {count} wejścia zewnętrzne są puste} many{Wszystkie {count} wejść zewnętrznych jest pustych} other{Wszystkie {count} wejścia zewnętrzne są puste}}",
   "externalSpool": "Szpula zewnętrzna",
   "traySlotEmpty": "Pusty",
+  "traySlotUnconfigured": "Nieskonfigurowany",
   "amsSlotFilament": "Filament",
   "amsLoad": "Załaduj",
   "amsUnload": "Wyładuj",
@@ -653,6 +661,9 @@
   "amsFeedAlreadyLoaded": "już załadowany",
   "amsSwitchNotReady": "Filament Track Switch nie jest jeszcze skonfigurowany. Przypisz każdy AMS do wejścia na drukarce i spróbuj ponownie.",
   "amsUnloadSlotNotLoaded": "Z tego slotu nie jest zasilana żadna dysza",
+  "amsUnloadAms3h": "Wyładowywanie slotu {slot}. Gdy drukarka o to poprosi, wyciągnij filament z AMS 3H ręcznie.",
+  "amsLoadAms3hEmpty": "W slocie {slot} nie ma filamentu. Wsuń go we wlot, aż AMS 3H go wciągnie, i załaduj ponownie.",
+  "dryAms3hSlots": "AMS 3H suszy tylko sloty {a} i {b}",
   "amsActionsWhilePrinting": "Niedostępne, gdy drukarka drukuje",
   "amsSlotConfigure": "Skonfiguruj slot",
   "amsSlotConfigTitle": "Konfiguracja slotu",
@@ -697,7 +708,6 @@
   "amsSlotConfigNozzleGuess": "Drukarka nie podała średnicy dyszy — przyjmuję {diameter} mm",
   "amsSlotConfigKProfileValue": "K {value}",
   "amsSlotConfigColourCatalogue": "Kolory z katalogu",
-  "amsSlotConfigColourCustom": "Własny kolor",
   "amsSlotReset": "Wyczyść slot",
   "amsSlotResetConfirmTitle": "Wyczyścić slot?",
   "amsSlotResetConfirmMessage": "Drukarka zapomni skonfigurowany tu filament, a bambuddy zapomni, jaki to był preset.",
@@ -823,6 +833,25 @@
   "twoFactorBack": "Zaloguj się na inne konto",
   "twoFactorSessionNote": "Aplikacja nie odnowi sesji z 2FA sama, więc po jej wygaśnięciu zapyta ponownie. Klucz API nie wygasa i pomija ten krok.",
   "tryDemo": "Wypróbuj wersję demo",
+  "customCaTrusted": "Zaufany CA: {name}",
+  "customCaRemove": "Usuń certyfikat CA",
+  "certificateImport": "Importuj certyfikat",
+  "certificateInvalid": "Ten plik nie zawiera certyfikatu",
+  "clientCertInvalid": "Ten plik nie zawiera certyfikatu z kluczem",
+  "customCaPickFailed": "Nie udało się otworzyć pliku",
+  "clientCertInUse": "Certyfikat klienta: {name}",
+  "clientCertRemove": "Usuń certyfikat klienta",
+  "clientCertWrongPassword": "Błędne hasło certyfikatu",
+  "clientCertPasswordTitle": "Hasło certyfikatu",
+  "certificatesTitle": "Certyfikaty",
+  "customCaRemoveTitle": "Usunąć certyfikat CA?",
+  "customCaRemoveMessage": "Aplikacja przestanie ufać serwerom, które podpisał.",
+  "clientCertRemoveTitle": "Usunąć certyfikat klienta?",
+  "clientCertRemoveMessage": "Serwer, który go wymaga, odrzuci aplikację.",
+  "certificatesRemoveAll": "Usuń wszystkie certyfikaty",
+  "certificatesRemoveAllTitle": "Usunąć wszystkie certyfikaty?",
+  "certificatesRemoveAllMessage": "Aplikacja przestanie łączyć się z serwerami, które ich wymagają.",
+  "certificateRemoveConfirm": "Usuń",
   "scanApiKeyTitle": "Zeskanuj klucz API",
   "scanApiKeyHint": "Skieruj aparat na kod QR z kluczem API",
   "cameraPermissionTitle": "Potrzebny dostęp do aparatu",
@@ -838,7 +867,8 @@
   "errForbiddenDetail": "Brak uprawnień: {reason}",
   "errApiKeyOwnerDisabled": "Konto właściciela tego klucza API zostało wyłączone lub usunięte — klucz będzie odrzucany, dopóki to konto nie wróci.",
   "errBadResponse": "Serwer odpowiedział błędem {code}",
-  "errBadCertificate": "Nieprawidłowy certyfikat TLS (self-signed nieobsługiwany w v1)",
+  "errBadCertificate": "Certyfikat serwera nie jest zaufany",
+  "errClientCertRefused": "Serwer wymaga ważnego certyfikatu klienta",
   "errConnection": "Błąd połączenia",
   "errMalformedResponse": "Nieprawidłowa odpowiedź serwera",
   "errInvalidCredentials": "Nieprawidłowy login lub hasło",
@@ -888,6 +918,36 @@
   "notifExtrasHeader": "Szczegóły",
   "notifFinishPhotoTitle": "Zdjęcie skończonego wydruku",
   "notifFinishPhotoDesc": "Dokłada do powiadomienia o zakończeniu lub błędzie zdjęcie, które serwer robi po wydruku — gdy tylko dojdzie",
+  "alarmHeader": "Alarm",
+  "alarmTitle": "Budź mnie alarmem",
+  "alarmDesc": "Dzwoni na ekranie blokady, aż go wyłączysz",
+  "alarmEvtFinished": "Wydruk zakończony",
+  "alarmEvtFinishedDesc": "Wydruk skończył się powodzeniem",
+  "alarmEvtBlocked": "Wydruk zatrzymany przez błąd",
+  "alarmEvtBlockedDesc": "Błąd wstrzymał lub przerwał wydruk albo wydruk się nie udał",
+  "alarmEvtDrying": "Suszenie zakończone",
+  "alarmEvtDryingDesc": "Cykl suszenia w AMS dobiegł końca",
+  "alarmWindowTitle": "Tylko w wybranych godzinach",
+  "alarmWindowDesc": "Poza tymi godzinami alarm nie dzwoni",
+  "alarmWindowFrom": "Od",
+  "alarmWindowTo": "Do",
+  "alarmRingFor": "Dzwoni przez {minutes} min",
+  "alarmRingForDesc": "Potem sam ucichnie",
+  "alarmMinutes": "{minutes} min",
+  "alarmStop": "Stop",
+  "alarmTest": "Testuj alarm",
+  "alarmTestBody": "Tak brzmi alarm",
+  "alarmTestFailed": "Alarm nie mógł zadzwonić. Sprawdź, czy powiadomienia są włączone.",
+  "alarmFullScreenNeeded": "Bez zgody alarm nie zasłoni ekranu blokady",
+  "alarmFullScreenAllow": "Zezwól",
+  "alarmHoursHeader": "Godziny",
+  "alarmLengthHeader": "Jak długo",
+  "alarmSettingsSubtitle": "Co go uruchamia, w jakich godzinach i na jak długo",
+  "alarmExcludedLocationsHeader": "Wykluczone lokalizacje",
+  "alarmExcludedPrintersHeader": "Wykluczone drukarki",
+  "alarmExcludeLocationDesc": "Żadna drukarka stąd nie włączy alarmu",
+  "alarmExcludePrinterDesc": "Ta drukarka nigdy nie włączy alarmu",
+  "alarmExcludedWithLocation": "Wykluczona razem z lokalizacją {location}",
   "notifThresholdsHeader": "Progi",
   "notifEvtStarted": "Wydruk rozpoczęty",
   "notifEvtStartedDesc": "Gdy rozpoczyna się wydruk",
@@ -1142,7 +1202,7 @@
   "inventoryExtraColorsHint": "2–8 hexów koloru, po przecinku",
   "inventoryFieldEffect": "Efekt",
   "inventoryEffectNone": "Brak",
-  "inventoryColorCommon": "Popularne kolory",
+  "inventoryColorCatalog": "Katalog kolorów",
   "inventoryColorSearchHint": "Szukaj kolorów…",
   "inventoryColorPickTitle": "Wybierz kolor",
   "inventoryColorSelect": "Wybierz",
@@ -1187,6 +1247,7 @@
   "inventorySlotAms": "Slot AMS",
   "inventoryAssignUnit": "Jednostka AMS",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Wejście",
   "inventoryAssignExtruder": "Ekstruder",
   "inventoryAssignExternalHint": "Przypisze do zewnętrznego uchwytu szpuli",
   "inventoryAssignConfirm": "Przypisz",
@@ -3801,5 +3862,203 @@
   "tipsTrimTitle": "Przycinanie timelapse'a",
   "tipsTrimBody": "Przeciągnij uchwyty na pasku klatek; stuknij albo przeciągnij w innym miejscu, żeby przesunąć znacznik odtwarzania.",
   "tipsWallTitle": "Tryb ściany",
-  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany."
+  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany.",
+  "archiveRunsTitle": "Historia wydruków",
+  "archiveRunsEmpty": "Ten plik nie został jeszcze wydrukowany.",
+  "archiveRunsBeforeLog": "Wydrukowano, zanim Bambuddy zaczęło rejestrować każdy wydruk: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Brak jeszcze wydruków tej płyty.",
+  "archiveRunsAllPlates": "Wszystkie płyty",
+  "archiveRunPlate": "Płyta {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drukarka usunięta",
+  "archiveRunWithEstimate": "{value} (szac. {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} wobec {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} z {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Rozpoczęto / zakończono",
+  "archiveRunEnergy": "Energia",
+  "archiveRunFailureReason": "Przyczyna niepowodzenia",
+  "archiveRunStartedBy": "Uruchomił(a)",
+  "archiveRunNote": "Notatka do tego wydruku",
+  "archiveRunVideo": "Film timelapse",
+  "archiveRunPhotos": "Zdjęcia ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Udane: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Nieudane: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Ustaw wynik",
+  "archiveRunChangeOutcome": "Zmień wynik",
+  "archiveRunAddNote": "Dodaj notatkę",
+  "archiveRunEditNote": "Edytuj notatkę",
+  "archiveRunNoteSaved": "Notatka zapisana",
+  "archivePlatesTitle": "Płyty",
+  "archivePlateEstimate": "Szacunek {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Ostatni wydruk a szacunek: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Drukuj tę płytę",
+  "archiveShowPlatePrints": "Pokaż jej wydruki",
+  "archiveRunReprint": "Wydrukuj ponownie",
+  "archiveMergeBanner": "{count, plural, =1{1 grupa zduplikowanych archiwów} few{{count} grupy zduplikowanych archiwów} many{{count} grup zduplikowanych archiwów} other{{count} grupy zduplikowanych archiwów}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Scal",
+  "archiveMergeDismiss": "Odrzuć",
+  "archiveMergeMenu": "Scal duplikaty",
+  "archiveMergeTitle": "Scal zduplikowane archiwa",
+  "archiveMergeEffectKeep": "Najstarsze archiwum każdej grupy pozostaje i przejmuje wszystkie wydruki pozostałych archiwów, wraz z ich zdjęciami, filmami i plikami.",
+  "archiveMergeEffectLinks": "Pozostałe znikają z archiwów; ich stare linki otwierają archiwum, do którego zostały scalone.",
+  "archiveMergeEffectMoney": "Obciążenia portfela i rezerwacje budżetu pozostają tam, gdzie zostały zaksięgowane.",
+  "archiveMergeNone": "Brak duplikatów do scalenia.",
+  "archiveMergeMember": "{name} · utworzono {date} · {count, plural, =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Pozostaje",
+  "archiveMergeWaiting": "Na razie pominięte",
+  "archiveMergeLeftOut": "Pominięte przy scalaniu",
+  "archiveMergeSkipBusy": "W użyciu: drukowane, w kolejce lub właśnie wydrukowane. Spróbuj później.",
+  "archiveMergeSkipConflicting": "Archiwa zawierają różne pliki źródłowe, pliki projektu lub filmy. Najpierw zachowaj jedno ręcznie.",
+  "archiveMergeSkipFailed": "Scalanie nie powiodło się.",
+  "archiveMergeSkipNotAGroup": "To już nie jest grupa duplikatów.",
+  "archiveMergeAction": "{count, plural, =1{Scal 1 grupę} few{Scal {count} grupy} many{Scal {count} grup} other{Scal {count} grupy}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Tego nie można cofnąć w aplikacji.",
+  "archiveMergeDone": "{count, plural, =1{Scalono 1 grupę.} few{Scalono {count} grupy.} many{Scalono {count} grup.} other{Scalono {count} grupy.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Scalone: {count}. Pominięte: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Widok kalendarza",
+  "archiveListView": "Widok listy",
+  "archiveCalendarToday": "Dzisiaj",
+  "archiveCalendarPrevious": "Poprzedni miesiąc",
+  "archiveCalendarNext": "Następny miesiąc",
+  "archiveCalendarPrints": "Wydruki w tym miesiącu",
+  "archiveCalendarSuccessful": "Udane",
+  "archiveCalendarFailed": "Nieudane",
+  "archiveCalendarNoPrints": "Brak wydruków tego dnia",
+  "archiveCalendarSelectDay": "Wybierz dzień, aby zobaczyć jego wydruki",
+  "archiveCalendarDay": "{date}: {count, plural, =0{brak wydruków} =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

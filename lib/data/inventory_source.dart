@@ -593,7 +593,6 @@ class NativeInventorySource implements SpoolInventorySource {
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
 /// [Spool.fromSpoolman]/[SpoolAssignment.fromSpoolman] mappers are more forgiving.
-/// Usage history has no stable shape — empty for now.
 class SpoolmanInventorySource implements SpoolInventorySource {
   SpoolmanInventorySource(this._dio);
 
@@ -645,6 +644,7 @@ class SpoolmanInventorySource implements SpoolInventorySource {
         'printer_id': draft.printerId,
         'ams_id': draft.amsId,
         'tray_id': draft.trayId,
+        if (draft.move) 'move': true,
       },
     ),
   );
@@ -682,8 +682,22 @@ class SpoolmanInventorySource implements SpoolInventorySource {
     return toIntOrNull(res.data?['spool_id']);
   });
 
+  /// The route is newer than Spoolman mode itself; below it the 404 means "no
+  /// history kept", and the handler looks no spool up, so it has no other cause.
   @override
-  Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async => const [];
+  Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
+    try {
+      return await guard(
+        () => _dio.getList(
+          Endpoints.spoolmanSpoolUsage(spoolId),
+          SpoolUsageEntry.fromNative,
+        ),
+      );
+    } on AppApiException catch (e) {
+      if (e.statusCode == 404) return const [];
+      rethrow;
+    }
+  }
 
   @override
   Future<Spool> createSpool(SpoolDraft draft) => guard(() async {

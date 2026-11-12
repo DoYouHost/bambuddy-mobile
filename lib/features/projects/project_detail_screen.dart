@@ -270,11 +270,7 @@ class _DashTag extends StatelessWidget {
         horizontal: DashSpace.sm,
         vertical: DashSpace.xs,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.xl),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.xl),
       child: Text(label, style: t.micro.copyWith(color: t.textSecondary)),
     );
   }
@@ -468,11 +464,7 @@ class _StatTile extends StatelessWidget {
         horizontal: DashSpace.md,
         vertical: DashSpace.sm,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Row(
         children: [
           Icon(icon, size: DashIcon.md, color: t.accentGreenInk),
@@ -659,16 +651,12 @@ class _OverflowMenu extends ConsumerWidget {
   Future<void> _uploadCover(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickFileFromDevice(
+    final file = await pickProjectFile(
+      messenger,
+      l10n,
       allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'gif'],
     );
-    final file = picked.file;
-    if (file == null) {
-      if (picked.outcome == DeviceFileOutcome.failed) {
-        messenger.snack(l10n.filePickerFailed);
-      }
-      return;
-    }
+    if (file == null) return;
     try {
       await ref
           .read(projectsRepositoryProvider)

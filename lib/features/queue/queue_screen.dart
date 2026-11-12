@@ -17,6 +17,7 @@ import 'queue_actions.dart';
 import 'queue_bulk_edit_screen.dart';
 import 'color_substitution_chip.dart';
 import 'queue_edit_screen.dart';
+import 'queue_filament_chips.dart';
 import 'queue_history.dart';
 import 'queue_item_view.dart';
 import 'queue_mapping_sheet.dart';
@@ -468,6 +469,7 @@ class _QueueCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: DashSpace.sm),
                     _Subtitle(item: item),
+                    QueueFilamentChips(item: item),
                   ],
                 ),
               ),

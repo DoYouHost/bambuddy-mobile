@@ -50,11 +50,7 @@ class ControllerRail extends StatelessWidget {
     final material = MaterialLocalizations.of(context);
     return Container(
       width: controllerRailWidth,
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashSpace.md + DashSpace.xs),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashSpace.md + DashSpace.xs),
       child: Column(
         children: [
           logTag(

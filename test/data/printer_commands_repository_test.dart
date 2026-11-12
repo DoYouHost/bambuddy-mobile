@@ -250,9 +250,19 @@ void main() {
       expect(amsLoadTrayId(amsId: 255, trayId: -1), isNull);
     });
 
-    test('answers null for AMS-HT, which has no number in this encoding', () {
+    test('numbers an AMS-HT by its unit id only where the server takes it', () {
       expect(amsLoadTrayId(amsId: 128, trayId: 0), isNull);
       expect(amsLoadTrayId(amsId: 135, trayId: 0), isNull);
+      expect(amsLoadTrayId(amsId: 128, trayId: 0, amsHt: true), 128);
+      expect(amsLoadTrayId(amsId: 135, trayId: 0, amsHt: true), 135);
+    });
+
+    test('numbers the AMS 3H 28..36, and only the AMS 3H', () {
+      expect(amsLoadTrayId(amsId: 32, trayId: 0), 28);
+      expect(amsLoadTrayId(amsId: 32, trayId: 8), 36);
+      // A unit 7 would land on 28 as well; the server refuses that on a
+      // printer without an AMS 3H.
+      expect(amsLoadTrayId(amsId: 7, trayId: 0), isNull);
     });
 
     test('answers null for a unit between the AMS and A2L windows', () {

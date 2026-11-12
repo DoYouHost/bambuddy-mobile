@@ -164,12 +164,14 @@ do not stay silent because it was not part of the task.
 - [docs/notification-delivery.md](docs/notification-delivery.md) — what happens to an
   alert once it exists: the `NotificationService` contract, the finish photo that
   arrives after it, button taps in a background isolate, and which HMS faults are
-  shown or notified, how to test an alert without printing, and the system 12/24 h
-  setting. **Read it before touching `lib/core/notifications/`.**
+  shown or notified, the native print alarm and why it is not the plugin's, how to
+  test an alert without printing, and the system 12/24 h setting. **Read it before
+  touching `lib/core/notifications/` or `PrintAlarm.kt`.**
 - [docs/notification-rules.md](docs/notification-rules.md) — how
   `PrintMonitor` decides to alert: the baseline frame, which frame describes this
   print, the first-layer window, HMS grace and hold, the humidity band, the
-  ongoing notification. **Read it before changing a rule or adding an event.**
+  ongoing notification, what rings the alarm. **Read it before changing a rule or
+  adding an event.**
 - [docs/ui-primitives.md](docs/ui-primitives.md) — why the shared fields, selects and
   async helpers behave as they do: the 40 dp select arrow, the null any-row,
   "unresolved is off", restoring an optimistically removed row by neighbours.
@@ -281,8 +283,9 @@ do not stay silent because it was not part of the task.
   locations.
 - [docs/android-platform.md](docs/android-platform.md) — the Android 16 Live Update,
   the camera stream and its ANR history, home-screen widgets, the overscroll
-  stutter. **Read it before touching `OngoingNotificationHost`, the widgets or the
-  camera stream.**
+  stutter, a server behind a private CA or mutual TLS. **Read it before touching
+  `OngoingNotificationHost`, the widgets, the camera stream, TLS trust or client
+  certificates.**
 - [docs/wear-os.md](docs/wear-os.md) — the watch app: flavors and source sets,
   branded launch, cold start, text input, release builds. **Read it before touching
   the wear manifest, source sets or launch.**
@@ -399,7 +402,10 @@ do not stay silent because it was not part of the task.
   (`ghcr.io/maziggy/bambuddy:daily` for the newest, `:latest` for the last
   release), mirroring `.github/workflows/contract-tests.yml` and
   `tool/ci/seed_bambuddy.sh`. Write them to pass on both generations; use your
-  own container names. Mocks only prove your reading of the contract.
+  own container names. Mocks only prove your reading of the contract. Before a
+  new contract file counts as passing, run the **whole suite in name order** on a
+  fresh server, as CI does: the server writes state as a side effect (assigning a
+  spool saves a slot preset), so one file alone on a clean seed proves less.
 - **A button that writes to the server is proven by tests, not by a device
   checklist.** Its widget test taps it with the real notifier and repository and
   records the writes (`expectSentAsRecorded` in
@@ -424,6 +430,15 @@ do not stay silent because it was not part of the task.
   routes and seed data in `lib/core/demo/demo_backend.dart` in the same branch,
   and the demo's reported server version must never be what hides a feature. Read
   the real demo data before writing a fixture that points at its ids.
+- **A review finding is rejected only with proof as strong as its claim.** A
+  second-model review (agy, `/code-review`) is a list of hypotheses, but one that
+  names a concrete scenario is disproved by running it — a test, a mutation, a
+  file:line that rules it out — never by "grep found nothing", "it is the
+  convention" or "the window is short". When the scenario is cheap to run, run
+  it before the verdict; when the fix is cheap and you are unsure, fix it. Mark
+  each verdict as measured or argued; an argued rejection is not done. **"The
+  repo already does it this way" is not a rejection**: if the finding holds, the
+  existing code has the same bug, and both occurrences get fixed.
 - **A one-off check is a test, not a `justfile` recipe or a script.** Device flows
   go to `patrol_test/`; document how to run one in the test file's header.
 - **Non-API errors in actions are rolled back and rethrown**

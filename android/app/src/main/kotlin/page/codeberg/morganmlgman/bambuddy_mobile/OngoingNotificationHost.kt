@@ -8,6 +8,7 @@ import android.os.Bundle
 import com.pravera.flutter_foreground_task.FlutterForegroundTaskLifecycleListener
 import com.pravera.flutter_foreground_task.FlutterForegroundTaskStarter
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 
 /**
@@ -26,6 +27,9 @@ class OngoingNotificationHost(private val context: Context) :
 
     private var channel: MethodChannel? = null
 
+    /** Where the print alarm's channel is served: the monitor that rings it runs on this engine. */
+    private var alarmMessenger: BinaryMessenger? = null
+
     /**
      * The last notification we posted.
      *
@@ -38,6 +42,8 @@ class OngoingNotificationHost(private val context: Context) :
 
     override fun onEngineCreate(flutterEngine: FlutterEngine?) {
         val messenger = flutterEngine?.dartExecutor?.binaryMessenger ?: return
+        PrintAlarm.serve(messenger, context, activity = null)
+        alarmMessenger = messenger
         channel = MethodChannel(messenger, ONGOING_CHANNEL).apply {
             setMethodCallHandler { call, result ->
                 if (call.method != "show") {
@@ -59,6 +65,8 @@ class OngoingNotificationHost(private val context: Context) :
     override fun onEngineWillDestroy() {
         channel?.setMethodCallHandler(null)
         channel = null
+        alarmMessenger?.let(PrintAlarm::release)
+        alarmMessenger = null
         // This listener is registered once per process and outlives any single service, so a
         // notification cached during one monitoring session must not become the recovery
         // source for the next one.

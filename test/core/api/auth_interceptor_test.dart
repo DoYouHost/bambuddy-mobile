@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_client.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -127,6 +128,53 @@ void main() {
       ),
     );
     expect(adapter.requests, hasLength(1), reason: 'no retry without a token');
+  });
+
+  group('a re-login that fails', () {
+    Future<AppApiException> failure() async {
+      store.jwt = 'expired';
+      final adapter = ScriptedAdapter.script([
+        (_) => _json('{"detail":"expired"}', 401),
+      ]);
+      final client = _client(
+        mode: AuthMode.jwt,
+        store: store,
+        adapter: adapter,
+        refreshAuth: () async => null,
+      );
+      try {
+        await client.dio.get<dynamic>('/api/v1/printers');
+      } on DioException catch (e) {
+        expect(adapter.requests, hasLength(1));
+        return mapDioException(e);
+      }
+      fail('the request succeeded');
+    }
+
+    test('without a saved login ends the session', () async {
+      expect(
+        await failure(),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.unauthorized,
+        ),
+      );
+    });
+
+    // `silentReLogin` forgets the saved login only on a refused password or a
+    // 2FA demand; anything else (429, 5xx, no network) leaves it there.
+    test('with the login still saved reads as unreachable', () async {
+      store
+        ..username = 'anna'
+        ..password = 'secret';
+      expect(
+        await failure(),
+        isA<NetworkException>()
+            .having((e) => e.code, 'code', AppErrorCode.serverUnreachable)
+            .having((e) => e.path, 'path', '/api/v1/printers'),
+      );
+    });
   });
 
   test(

@@ -721,13 +721,16 @@ void main() {
   );
 
   a11ySurface(
-    'inventory, new spool form with a catalogue colour picked',
+    'inventory, new spool form colour catalogue',
     home: () => const InventoryScreen(),
     arrange: (tester) async {
       await _openNewSpool(tester);
-      await tester.tap(byLogId('spool_form.color_swatch').first);
+      await tester.ensureVisible(byLogId('spool_form.color_catalog'));
+      await settle(tester);
+      await tester.tap(byLogId('spool_form.color_catalog'));
+      await settle(tester);
     },
-    shows: byLogId('spool_form.color_swatch'),
+    shows: byLogId('spool_form.color_search'),
   );
 
   a11ySurface(

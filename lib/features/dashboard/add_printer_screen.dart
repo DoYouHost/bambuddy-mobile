@@ -19,6 +19,7 @@ import '../../providers.dart';
 import '../common/dash_async.dart';
 import 'providers.dart';
 import '../../core/models/printer_location.dart';
+import '../../core/printers/model_code.dart';
 import '../locations/printer_locations_providers.dart';
 import 'dashboard_filters.dart';
 
@@ -33,6 +34,7 @@ const _modelGroups = <(String, List<(String, String)>)>[
     'H2 Series',
     [('H2C', 'H2C'), ('H2D', 'H2D'), ('H2D Pro', 'H2D Pro'), ('H2S', 'H2S')],
   ),
+  ('H3 Series', [('H3C', 'H3C')]),
   ('P Series', [('P1P', 'P1P'), ('P1S', 'P1S'), ('P2S', 'P2S')]),
   ('X1 Series', [('X1', 'X1'), ('X1C', 'X1 Carbon'), ('X1E', 'X1E')]),
   ('X2 Series', [('X2D', 'X2D')]),
@@ -232,7 +234,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       if (p.name.isNotEmpty) _name.text = p.name;
       _ip.text = p.ipAddress;
       _serial.text = p.serial;
-      final model = p.model;
+      final model = p.model == null ? null : mapModelCode(p.model!);
       if (model != null && _modelCodes.contains(model)) _model = model;
     });
   }
@@ -821,7 +823,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       Text(
                         [
                           p.ipAddress,
-                          if (p.model != null) p.model!,
+                          if (p.model != null) mapModelCode(p.model!),
                         ].join(' · '),
                         style: t.monoMicro.copyWith(color: t.textSecondary),
                       ),

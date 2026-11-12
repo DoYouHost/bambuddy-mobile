@@ -441,6 +441,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlNozzleActive => 'Activa';
 
   @override
+  String get amsDryer => 'Secador';
+
+  @override
   String get ctrlDry => 'Secar';
 
   @override
@@ -1617,10 +1620,37 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta impresora de demostración está desconectada, así que no hay imagen de cámara.';
 
   @override
+  String get nozzleRack => 'Soporte de boquillas';
+
+  @override
+  String get nozzleRackMounted => 'en el cabezal';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Posición $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Posición $position: vacía';
+  }
+
+  @override
+  String get externalInputs => 'Entradas externas';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Las $count entradas externas están vacías';
+  }
+
+  @override
   String get externalSpool => 'Bobina externa';
 
   @override
   String get traySlotEmpty => 'Vacía';
+
+  @override
+  String get traySlotUnconfigured => 'Sin configurar';
 
   @override
   String get amsSlotFilament => 'Filamento';
@@ -1662,6 +1692,21 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get amsUnloadSlotNotLoaded =>
       'Ninguna boquilla se alimenta desde esta ranura';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Descargando la ranura $slot. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'La ranura $slot no tiene filamento. Empújalo en la entrada hasta que el AMS 3H lo recoja y vuelve a cargar.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'El AMS 3H seca solo las ranuras $a y $b';
+  }
 
   @override
   String get amsActionsWhilePrinting =>
@@ -1761,9 +1806,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get amsSlotConfigColourCatalogue => 'Colores del catálogo';
-
-  @override
-  String get amsSlotConfigColourCustom => 'Color personalizado';
 
   @override
   String get amsSlotReset => 'Restablecer ranura';
@@ -2063,6 +2105,72 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tryDemo => 'Probar la demo';
 
   @override
+  String customCaTrusted(String name) {
+    return 'CA de confianza: $name';
+  }
+
+  @override
+  String get customCaRemove => 'Quitar certificado de CA';
+
+  @override
+  String get certificateImport => 'Importar certificado';
+
+  @override
+  String get certificateInvalid =>
+      'Este archivo no contiene ningún certificado';
+
+  @override
+  String get clientCertInvalid =>
+      'Este archivo no contiene un certificado con su clave';
+
+  @override
+  String get customCaPickFailed => 'No se pudo abrir el archivo';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Certificado de cliente: $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Quitar certificado de cliente';
+
+  @override
+  String get clientCertWrongPassword => 'Contraseña del certificado incorrecta';
+
+  @override
+  String get clientCertPasswordTitle => 'Contraseña del certificado';
+
+  @override
+  String get certificatesTitle => 'Certificados';
+
+  @override
+  String get customCaRemoveTitle => '¿Quitar el certificado de CA?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'La app dejará de confiar en los servidores que firmó.';
+
+  @override
+  String get clientCertRemoveTitle => '¿Quitar el certificado de cliente?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'Un servidor que lo pida rechazará la app.';
+
+  @override
+  String get certificatesRemoveAll => 'Quitar todos los certificados';
+
+  @override
+  String get certificatesRemoveAllTitle => '¿Quitar todos los certificados?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'La app dejará de conectar con los servidores que los necesiten.';
+
+  @override
+  String get certificateRemoveConfirm => 'Quitar';
+
+  @override
   String get scanApiKeyTitle => 'Escanear clave API';
 
   @override
@@ -2116,7 +2224,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errBadCertificate =>
-      'Certificado TLS no válido (los autofirmados no son compatibles en la v1)';
+      'El certificado del servidor no es de confianza';
+
+  @override
+  String get errClientCertRefused =>
+      'El servidor exige un certificado de cliente válido';
 
   @override
   String get errConnection => 'Error de conexión';
@@ -2305,6 +2417,108 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get notifFinishPhotoDesc =>
       'Añade la foto que toma el servidor al terminar la impresión a la notificación de finalización o fallo, en cuanto esté disponible';
+
+  @override
+  String get alarmHeader => 'Alarma';
+
+  @override
+  String get alarmTitle => 'Despertarme con una alarma';
+
+  @override
+  String get alarmDesc =>
+      'Suena en la pantalla de bloqueo hasta que la detengas';
+
+  @override
+  String get alarmEvtFinished => 'Impresión finalizada';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Una impresión terminó correctamente';
+
+  @override
+  String get alarmEvtBlocked => 'Impresión detenida por un fallo';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Un fallo pausó o detuvo la impresión, o la impresión falló';
+
+  @override
+  String get alarmEvtDrying => 'Secado finalizado';
+
+  @override
+  String get alarmEvtDryingDesc => 'Un ciclo de secado del AMS llegó a su fin';
+
+  @override
+  String get alarmWindowTitle => 'Solo en las horas elegidas';
+
+  @override
+  String get alarmWindowDesc => 'Fuera de este horario la alarma no suena';
+
+  @override
+  String get alarmWindowFrom => 'Desde';
+
+  @override
+  String get alarmWindowTo => 'Hasta';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Suena durante $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Después se detiene sola';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Detener';
+
+  @override
+  String get alarmTest => 'Probar alarma';
+
+  @override
+  String get alarmTestBody => 'Así suena la alarma';
+
+  @override
+  String get alarmTestFailed =>
+      'La alarma no pudo sonar. Comprueba que las notificaciones estén activadas.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Sin permiso, la alarma no cubrirá la pantalla de bloqueo';
+
+  @override
+  String get alarmFullScreenAllow => 'Permitir';
+
+  @override
+  String get alarmHoursHeader => 'Horario';
+
+  @override
+  String get alarmLengthHeader => 'Duración';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Qué la activa, en qué horario y durante cuánto tiempo';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Ubicaciones excluidas';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Impresoras excluidas';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Ninguna impresora de aquí activa la alarma';
+
+  @override
+  String get alarmExcludePrinterDesc => 'Esta impresora nunca activa la alarma';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Excluida con la ubicación $location';
+  }
 
   @override
   String get notifThresholdsHeader => 'Umbrales';
@@ -3021,7 +3235,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryEffectNone => 'Ninguno';
 
   @override
-  String get inventoryColorCommon => 'Colores habituales';
+  String get inventoryColorCatalog => 'Catálogo de colores';
 
   @override
   String get inventoryColorSearchHint => 'Buscar colores…';
@@ -3105,6 +3319,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Ranura';
+
+  @override
+  String get inventoryAssignInput => 'Entrada';
 
   @override
   String get inventoryAssignExtruder => 'Extrusor';
@@ -9788,4 +10005,260 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared.';
+
+  @override
+  String get archiveRunsTitle => 'Impresiones';
+
+  @override
+  String get archiveRunsEmpty => 'Este archivo aún no se ha impreso.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Impreso antes de que Bambuddy registrara cada impresión: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty => 'Esta placa aún no se ha impreso.';
+
+  @override
+  String get archiveRunsAllPlates => 'Todas las placas';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Placa $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Impresora eliminada';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (estimado $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value / $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value de $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Inicio / fin';
+
+  @override
+  String get archiveRunEnergy => 'Energía';
+
+  @override
+  String get archiveRunFailureReason => 'Motivo del fallo';
+
+  @override
+  String get archiveRunStartedBy => 'Iniciada por';
+
+  @override
+  String get archiveRunNote => 'Nota sobre esta impresión';
+
+  @override
+  String get archiveRunVideo => 'Vídeo timelapse';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Fotos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Buenas: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Fallidas: $count';
+  }
+
+  @override
+  String get archiveRunSetOutcome => 'Indicar resultado';
+
+  @override
+  String get archiveRunChangeOutcome => 'Cambiar resultado';
+
+  @override
+  String get archiveRunAddNote => 'Añadir nota';
+
+  @override
+  String get archiveRunEditNote => 'Editar nota';
+
+  @override
+  String get archiveRunNoteSaved => 'Nota guardada';
+
+  @override
+  String get archivePlatesTitle => 'Placas';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Estimado $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Última impresión frente al estimado: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Imprimir esta placa';
+
+  @override
+  String get archiveShowPlatePrints => 'Ver sus impresiones';
+
+  @override
+  String get archiveRunReprint => 'Reimprimir esta impresión';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grupos de archivos duplicados',
+      one: '1 grupo de archivos duplicados',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Fusionar';
+
+  @override
+  String get archiveMergeDismiss => 'Descartar';
+
+  @override
+  String get archiveMergeMenu => 'Fusionar duplicados';
+
+  @override
+  String get archiveMergeTitle => 'Fusionar archivos duplicados';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'El archivo más antiguo de cada grupo se mantiene y recibe todas las impresiones de los demás, con sus fotos, vídeos y ficheros.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'Los demás desaparecen del archivo; sus enlaces antiguos abren el archivo en el que se fusionaron.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Los cargos del monedero y las reservas de presupuesto se quedan donde se registraron.';
+
+  @override
+  String get archiveMergeNone => 'No hay duplicados que fusionar.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count impresiones',
+      one: '1 impresión',
+    );
+    return '$name · creado $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Se mantiene';
+
+  @override
+  String get archiveMergeWaiting => 'Omitidos por ahora';
+
+  @override
+  String get archiveMergeLeftOut => 'Omitidos al fusionar';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'En uso: imprimiendo, en cola o recién impreso. Inténtalo más tarde.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'Los archivos tienen ficheros fuente o de diseño distintos, o vídeos. Conserva uno a mano primero.';
+
+  @override
+  String get archiveMergeSkipFailed => 'La fusión falló.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'Ya no es un grupo de duplicados.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fusionar $count grupos',
+      one: 'Fusionar 1 grupo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody =>
+      'Esto no se puede deshacer en la aplicación.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grupos fusionados.',
+      one: '1 grupo fusionado.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Fusionados: $count. Omitidos: $left.';
+  }
+
+  @override
+  String get archiveCalendarView => 'Vista de calendario';
+
+  @override
+  String get archiveListView => 'Vista de lista';
+
+  @override
+  String get archiveCalendarToday => 'Hoy';
+
+  @override
+  String get archiveCalendarPrevious => 'Mes anterior';
+
+  @override
+  String get archiveCalendarNext => 'Mes siguiente';
+
+  @override
+  String get archiveCalendarPrints => 'Impresiones este mes';
+
+  @override
+  String get archiveCalendarSuccessful => 'Correctas';
+
+  @override
+  String get archiveCalendarFailed => 'Fallidas';
+
+  @override
+  String get archiveCalendarNoPrints => 'No hay impresiones este día';
+
+  @override
+  String get archiveCalendarSelectDay =>
+      'Selecciona un día para ver sus impresiones';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count impresiones',
+      one: '1 impresión',
+      zero: 'sin impresiones',
+    );
+    return '$date: $_temp0';
+  }
 }

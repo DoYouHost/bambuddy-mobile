@@ -82,3 +82,9 @@ T? enumByName<T extends Enum>(Iterable<T> values, Object? name) =>
 /// folding — so the caller adds the fallback (`?? unknown`) it needs.
 T? enumByWire<T>(Iterable<T> values, Object? raw, String Function(T) wire) =>
     raw is String ? values.where((v) => wire(v) == raw).firstOrNull : null;
+
+/// The numbers of a server-sent list, tolerant of string-typed ones from an
+/// older build or a proxy; an entry that is no number is dropped rather than
+/// failing the record, and anything but a list reads as empty.
+List<int> intListFromJson(Object? value) =>
+    value is List ? [for (final item in value) ?toIntOrNull(item)] : const [];

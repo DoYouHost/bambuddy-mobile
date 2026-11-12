@@ -34,6 +34,8 @@ class Archive {
     this.filamentUsedGrams,
     this.totalFilamentActualGrams,
     this.runCount = 0,
+    this.successfulRunCount = 0,
+    this.failedRunCount = 0,
     this.filamentType,
     this.filamentColor,
     this.cost,
@@ -144,6 +146,13 @@ class Archive {
   /// was never printed and on a server that does not send the aggregate.
   @JsonKey(defaultValue: 0)
   final int runCount;
+
+  /// [runCount] split by outcome (`_load_run_aggregates`), the archive page's
+  /// "N good" / "N failed" chips. Zero on a server without the aggregate.
+  @JsonKey(defaultValue: 0)
+  final int successfulRunCount;
+  @JsonKey(defaultValue: 0)
+  final int failedRunCount;
 
   /// Filament type (e.g. "PETG", "PLA").
   final String? filamentType;

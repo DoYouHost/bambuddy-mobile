@@ -197,6 +197,10 @@ something else fails its widget test until the file is rewritten and replayed.
 `.git/info/exclude` so the tracked `.gitignore` stays untouched. It answers contract
 questions (see AGENTS.md); these are the ways it misleads.
 
+- **Keep it current: `just reference-pull`** clones it if missing, otherwise fetches
+  `dev` by name and fast-forwards, refusing local changes. `server_citations_test`
+  checks every `file.py::symbol` comment against this clone, so a stale one fails
+  `just test` (and `ship`) on a machine whose clone lags the code.
 - **Know what it stands on.** `git -C reference/bambuddy log -1 --format='%h %cs'`
   — the checkout moves between a tag, `dev` and a detached commit. Read an older
   state with `git show <tag>:<file>`. `git log A..B` does not cross the shallow

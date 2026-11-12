@@ -9,6 +9,8 @@ import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/api/observed_capability.dart';
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -621,6 +623,7 @@ class RecordingNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {
     alerts.add({
       'event': event,
@@ -634,6 +637,7 @@ class RecordingNotifications implements NotificationService {
       'photo': picture?.photoPath,
       'thumb': picture?.thumbnailPath,
       'quiet': quiet,
+      'silent': silent,
     });
     final failure = failWith;
     if (failure != null) throw failure;
@@ -779,6 +783,10 @@ class RecordingCommands implements PrinterCommandsRepository {
     final failure = errors[kind] ?? error;
     if (failure != null) throw failure;
   }
+
+  /// No version behind it, so it answers no, as a server too old to say.
+  @override
+  final amsHtLoadCapability = ObservedCapability(ServerFeature.amsHtLoad, null);
 
   @override
   Future<Object?> fetchOpenApi() async => null;

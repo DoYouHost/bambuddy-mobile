@@ -18,17 +18,30 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
 
-typedef SentWrite = ({String method, String path, Object? body});
+/// [query] is null for a write that sends none, and is then left out of the
+/// file, so a recording made before it existed still matches.
+typedef SentWrite = ({
+  String method,
+  String path,
+  Object? body,
+  Map<String, dynamic>? query,
+});
 
 /// Every request in [requests] that changes something, oldest first.
 List<SentWrite> writesOf(Iterable<RequestOptions> requests) => [
   for (final r in requests)
-    if (r.method != 'GET') (method: r.method, path: r.path, body: r.data),
+    if (r.method != 'GET')
+      (
+        method: r.method,
+        path: r.path,
+        body: r.data,
+        query: r.queryParameters.isEmpty ? null : r.queryParameters,
+      ),
 ];
 
 String _encode(List<SentWrite> writes) =>
     '${const JsonEncoder.withIndent('  ').convert([
-      for (final w in writes) {'method': w.method, 'path': w.path, 'body': w.body},
+      for (final w in writes) {'method': w.method, 'path': w.path, 'body': w.body, 'query': ?w.query},
     ])}\n';
 
 /// Asserts [writes] are what `sent/[name].json` holds, or rewrites the file
@@ -53,24 +66,31 @@ void expectSentAsRecorded(String name, List<SentWrite> writes) {
 /// The writes recorded as [name].
 List<SentWrite> recordedWrites(String name) => [
   for (final w in readFixture('sent/$name.json') as List<dynamic>)
-    (method: w['method'] as String, path: w['path'] as String, body: w['body']),
+    (
+      method: w['method'] as String,
+      path: w['path'] as String,
+      body: w['body'],
+      query: (w['query'] as Map<String, dynamic>?),
+    ),
 ];
 
 /// Sends [writes] through [dio] in order and returns each answer; a refusal is
 /// returned too, for the test to name. Ids that differ on the live server are
-/// swapped in: [item] for the queue item in a path, and [ids] for the body keys
-/// it names (a key the body lacks stays absent).
+/// swapped in: [item] for the id in a path ([itemIn] says where it sits, the
+/// queue item by default), and [ids] for the body keys it names (a key the body
+/// lacks stays absent).
 Future<List<Response<dynamic>>> replayWrites(
   Dio dio,
   List<SentWrite> writes, {
   int? item,
+  Pattern? itemIn,
   Map<String, Object?> ids = const {},
 }) async => [
   for (final w in writes)
     await dio.request<dynamic>(
       item == null
           ? w.path
-          : w.path.replaceFirst(RegExp(r'(?<=/queue/)\d+'), '$item'),
+          : w.path.replaceFirst(itemIn ?? RegExp(r'(?<=/queue/)\d+'), '$item'),
       data: switch (w.body) {
         final Map<String, dynamic> body => {
           ...body,
@@ -79,6 +99,7 @@ Future<List<Response<dynamic>>> replayWrites(
         },
         final other => other,
       },
+      queryParameters: w.query,
       options: Options(method: w.method, validateStatus: (_) => true),
     ),
 ];

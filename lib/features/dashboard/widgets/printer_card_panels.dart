@@ -21,7 +21,11 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: DashIcon.sm, color: color),
         const SizedBox(width: DashSpace.sm),
-        Text(text, style: t.monoLabel.copyWith(color: color)),
+        // At 200 % text on a 360 dp phone one reading alone is wider than the
+        // card; it wraps instead of overflowing.
+        Flexible(
+          child: Text(text, style: t.monoLabel.copyWith(color: color)),
+        ),
       ],
     );
 
@@ -238,11 +242,7 @@ class _PrintPanel extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

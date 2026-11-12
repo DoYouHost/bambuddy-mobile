@@ -7,6 +7,7 @@ import '../auth/credentials_store.dart';
 import '../demo/demo_backend.dart';
 import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
+import 'api_exceptions.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
 /// for [ApiClient]. Single place for timeouts.
@@ -114,6 +115,23 @@ class AuthInterceptor extends Interceptor {
         } on DioException catch (retryErr) {
           handler.next(retryErr);
         }
+        return;
+      }
+      // `silentReLogin` forgets the saved login only on a refused password or
+      // a 2FA demand, so a login still saved means the attempt failed for
+      // another reason (429, 5xx, no network). Passing the 401 on would end a
+      // session that has not ended: the dashboard sends a 401 to /setup.
+      if (await credentials.readRememberedLogin() != null) {
+        final refused = mapDioException(err);
+        handler.next(
+          err.copyWith(
+            error: NetworkException(
+              AppErrorCode.serverUnreachable,
+              method: refused.method,
+              path: refused.path,
+            ),
+          ),
+        );
         return;
       }
     }
