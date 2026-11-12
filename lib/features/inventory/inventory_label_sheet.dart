@@ -424,13 +424,15 @@ class _SheetPreview extends StatelessWidget {
   final SheetLayout? layout;
   final LabelPageSize page;
 
+  static const _maxHeight = 240.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 240),
+        constraints: const BoxConstraints(maxHeight: _maxHeight),
         child: AspectRatio(
           aspectRatio: page.widthMm / page.heightMm,
           child: Semantics(
