@@ -607,11 +607,11 @@ class _DetailsPanel extends ConsumerWidget {
     final ams = status.ams ?? const [];
     final rack = status.trayLayout.rack;
     final reported = status.externalSpools;
-    final spools = status.shownExternalSpools;
+    final assigned = ref.watch(assignedSpoolsProvider(status.id));
+    final spools = shownExternals(status, assigned);
     final active = status.activeTray;
     final dual = status.isDualNozzle(nozzleCount);
     final activeExtruder = status.activeExtruder;
-    final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
     final presets =
         ref.watch(slotPresetsProvider(printerId)).value ??
@@ -756,6 +756,14 @@ _SlotRef _amsSlotRef({
   );
 }
 
+/// The external spools the card lists, as [PrinterStatus.shownExternalSpools]
+/// with this printer's assignments: one list for the card, the controller and
+/// the sheets and commands that index into it.
+List<AmsTray> shownExternals(PrinterStatus status, AssignedSpools assigned) =>
+    status.shownExternalSpools(
+      (trayId) => assigned.assignedAt(externalHolderUnit, trayId),
+    );
+
 /// The same for an external spool: addressed by the 0/1 side of its holder
 /// everywhere ids are local, and never asked the Filament Track Switch question.
 _SlotRef _externalSlotRef({
@@ -837,7 +845,10 @@ Future<void> showExternalSlotSheet(
       l10n: AppLocalizations.of(context),
       status: status,
       dual: status.isDualNozzle(nozzleCount),
-      spool: status.shownExternalSpools[spoolIndex],
+      spool: shownExternals(
+        status,
+        ref.read(assignedSpoolsProvider(status.id)),
+      )[spoolIndex],
       assigned: ref.read(assignedSpoolsProvider(status.id)),
     ),
   ),
@@ -2769,7 +2780,7 @@ Future<void> runSlotCommand(
           l10n: l10n,
           status: status,
           dual: dual,
-          spool: status.shownExternalSpools[index],
+          spool: shownExternals(status, assigned)[index],
           assigned: assigned,
         )
       : _amsSlotRef(

@@ -531,6 +531,14 @@ class AssignedSpools {
   Spool? builtInAt(int amsId, int trayId) =>
       _builtInSlots[slotKey(amsId, trayId)];
 
+  /// Whether a spool is assigned to the slot: the web's
+  /// `rackExternalAssigned`, an inventory assignment or, in Spoolman mode, a
+  /// slot assignment.
+  bool assignedAt(int amsId, int trayId) =>
+      (_tagShelf != null ? _spoolmanSlots : _builtInSlots).containsKey(
+        slotKey(amsId, trayId),
+      );
+
   /// The fill a slot shows, the grams left on the spool it was read from and
   /// that spool — both null when the AMS's own reading won. A linked spool
   /// off the shelf still has its grams, from the linked map. The web's chain branch for branch

@@ -1426,6 +1426,29 @@ void main() {
         });
       }
 
+      testWidgets('names the nozzle on the toolhead by its rack position', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            unit: dryer,
+            top: {
+              'temperatures': {'nozzle': 215.0, 'nozzle_target': 220.0},
+              'nozzle_rack': [
+                {'id': 0, 'addr_id': 4, 'nozzle_diameter': '0.4'},
+              ],
+            },
+          ),
+          expand: false,
+        );
+        expect(
+          find.text(pl.tempNozzleNumbered('5').toUpperCase()),
+          findsOneWidget,
+        );
+      });
+
       for (final (action, recording) in [
         ('assign_spool.ams_load', 'ams3h_load'),
         ('assign_spool.ams_unload', 'ams3h_unload'),
@@ -1559,6 +1582,51 @@ void main() {
         );
         expect(find.text(pl.externalInputsEmpty(9)), findsOneWidget);
         expect(find.text(pl.traySlotEmpty), findsNothing);
+      });
+
+      testWidgets('an empty input with a spool assigned keeps its row', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        // Input 251, Ext-5, is tray 6 under unit 255.
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(unit: dryer, top: {'vt_tray': inputs()}),
+                ),
+              ),
+            ),
+            extra: [
+              inventoryProvider.overrideWith(
+                () => FixedInventory(
+                  InventoryState(
+                    spools: [Spool(id: 7, material: 'PETG')],
+                    assignments: const [
+                      SpoolAssignment(
+                        spoolId: 7,
+                        printerId: 1,
+                        amsId: 255,
+                        trayId: 6,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        expect(find.text(pl.externalInputsEmpty(9)), findsNothing);
+        // The input's badge, its hotend number.
+        expect(find.text('5'), findsOneWidget);
       });
 
       // The rack from the server's H3C capture: slot 6's hotend on the

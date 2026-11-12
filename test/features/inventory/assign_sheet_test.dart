@@ -78,6 +78,10 @@ void main() {
               PrinterWithStatus(
                 printer: Printer(id: 2, name: 'Carbon', model: 'X1C'),
               ),
+              // Not in the live statuses: an H3C known only by its model.
+              PrinterWithStatus(
+                printer: Printer(id: 3, name: 'Asleep', model: 'H3C'),
+              ),
             ],
           ),
         ),
@@ -96,6 +100,13 @@ void main() {
     await tester.ensureVisible(byLogId(option).last);
     await settle(tester);
     await tester.tap(byLogId(option).last);
+    await settle(tester);
+  }
+
+  Future<void> choosePrinter(WidgetTester tester, String name) async {
+    await tester.tap(byLogId('spool_assign.printer'));
+    await settle(tester);
+    await tester.tap(find.text(name).last);
     await settle(tester);
   }
 
@@ -121,8 +132,7 @@ void main() {
   ) async {
     await openAssign(tester);
     await pick(tester, 'spool_assign.slot', 'spool_assign.slot.8');
-    await pick(tester, 'spool_assign.printer', 'spool_assign.printer_option');
-    // The menu lists both printers under one id; the second is the X1C.
+    await choosePrinter(tester, 'Carbon');
     expect(byLogId('spool_assign.slot.8'), findsNothing);
 
     await tester.tap(byLogId('spool_assign.save'));
@@ -174,12 +184,53 @@ void main() {
     await tester.tap(find.text(pl.externalSpool));
     await settle(tester);
     await pick(tester, 'spool_assign.input', 'spool_assign.input.6');
-    await pick(tester, 'spool_assign.printer', 'spool_assign.printer_option');
+    await choosePrinter(tester, 'Carbon');
     expect(byLogId('spool_assign.input'), findsNothing);
 
     await tester.tap(byLogId('spool_assign.save'));
     await settle(tester);
     final draft = shelf.drafts.single;
     expect((draft.printerId, draft.amsId, draft.trayId), (2, 255, 0));
+  });
+
+  testWidgets('an H3C input defaults to Ext-1', (tester) async {
+    await openAssign(tester);
+    await tester.tap(find.text(pl.externalSpool));
+    await settle(tester);
+    expect(find.text('Ext-1 · ${pl.traySlotEmpty}'), findsWidgets);
+
+    await tester.tap(byLogId('spool_assign.save'));
+    await settle(tester);
+    final draft = shelf.drafts.single;
+    expect((draft.printerId, draft.amsId, draft.trayId), (1, 255, 1));
+  });
+
+  testWidgets('Ext-1 does not follow the spool to a one-holder printer', (
+    tester,
+  ) async {
+    // Ext-1 is tray 1, which a printer with one holder does not have.
+    await openAssign(tester);
+    await tester.tap(find.text(pl.externalSpool));
+    await settle(tester);
+    await choosePrinter(tester, 'Carbon');
+
+    await tester.tap(byLogId('spool_assign.save'));
+    await settle(tester);
+    final draft = shelf.drafts.single;
+    expect((draft.printerId, draft.amsId, draft.trayId), (2, 255, 0));
+  });
+
+  testWidgets('an H3C with no status yet offers its AMS 3H and nine slots', (
+    tester,
+  ) async {
+    await openAssign(tester);
+    await choosePrinter(tester, 'Asleep');
+
+    expect(find.text('AMS 3H'), findsWidgets);
+    await pick(tester, 'spool_assign.slot', 'spool_assign.slot.8');
+    await tester.tap(byLogId('spool_assign.save'));
+    await settle(tester);
+    final draft = shelf.drafts.single;
+    expect((draft.printerId, draft.amsId, draft.trayId), (3, 32, 8));
   });
 }

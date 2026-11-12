@@ -695,6 +695,45 @@ void main() {
       );
     });
 
+    testWidgets('keeps an empty input that has a spool assigned', (
+      tester,
+    ) async {
+      // Input 251 (Ext-5, tray 6) is empty, but a spool is assigned to it: the
+      // tile stays so the assignment can be seen and undone.
+      await pump(
+        tester,
+        _status(
+          ams: [ams3h],
+          external: [for (var id = 247; id <= 255; id++) AmsTray(id: id)],
+        ),
+        inventory: InventoryState(
+          spools: [Spool(id: 7, material: 'PETG')],
+          assignments: const [
+            SpoolAssignment(spoolId: 7, printerId: 1, amsId: 255, trayId: 6),
+          ],
+        ),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(slots(), findsOneWidget);
+      expect(find.text('Ext-5'), findsOneWidget);
+    });
+
+    testWidgets('an AMS unit reporting no trays is not called the inputs', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          ams: [const AmsUnit(id: 32, amsType: 6, trays: [])],
+          external: [for (var id = 247; id <= 255; id++) AmsTray(id: id)],
+        ),
+      );
+      expect(find.text(pl.externalInputsEmpty(9)), findsNothing);
+      expect(find.text('—'), findsOneWidget);
+    });
+
     testWidgets('says so when none of the inputs is loaded', (tester) async {
       await pump(
         tester,

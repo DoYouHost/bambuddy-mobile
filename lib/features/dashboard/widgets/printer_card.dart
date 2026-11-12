@@ -245,6 +245,7 @@ class _PrinterCardState extends State<PrinterCard> {
     final readings = buildTempReadings(
       status?.temperatures,
       status?.airductIsHeating,
+      rackPosition: status?.mountedRackPosition,
     );
     final hasDetails = status?.hasDetails ?? false;
     final hasFans =

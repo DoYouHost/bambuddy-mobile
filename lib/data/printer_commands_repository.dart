@@ -285,10 +285,9 @@ class PrinterCommandsRepository {
 ///
 /// Ids in are **local**, like every other slot route: an AMS unit and a slot
 /// within it, or [externalHolderUnit] and a holder side. [globalTrayId] does
-/// the encoding; the only thing added here is the route's own acceptance, which
-/// AMS-HT falls outside of — its units are numbered from 128, the server
-/// answers 400, and the caller hides the action rather than offer a button that
-/// cannot work.
+/// the encoding; the only thing added here is the route's acceptance. AMS-HT
+/// is left out: the app has never offered its load (the current server takes
+/// its unit id, 128..135), and the caller hides the action.
 int? amsLoadTrayId({required int amsId, required int trayId}) {
   // Guarded before encoding, not after: an out-of-range holder side would
   // otherwise land on a perfectly valid AMS slot number, and the printer would

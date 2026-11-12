@@ -64,7 +64,7 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
     final entry = entries[_selected.clamp(0, entries.length - 1)];
     final dual = status.isDualNozzle(item.printer.nozzleCount);
     final trays = entry.unit == null
-        ? status.shownExternalSpools
+        ? shownExternals(status, ref.watch(assignedSpoolsProvider(status.id)))
         : (entry.unit!.trays ?? const <AmsTray>[]);
     final active = trays.indexWhere(
       (tray) => identical(tray, status.activeTray),
@@ -641,7 +641,9 @@ class _Pane extends ConsumerWidget {
           trays.isEmpty
               ? Center(
                   child: Text(
-                    l10n.externalInputsEmpty(status.externalSpools.length),
+                    unit == null && rack
+                        ? l10n.externalInputsEmpty(status.externalSpools.length)
+                        : '—',
                     style: t.bodySoft,
                     textAlign: TextAlign.center,
                   ),

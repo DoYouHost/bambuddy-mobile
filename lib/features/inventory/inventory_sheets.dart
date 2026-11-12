@@ -31,6 +31,9 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
   int _amsUnit = 0;
   int _amsSlot = 0;
   int _externalTray = 0; // Holder side — see `slot_addressing`.
+
+  /// Whether the user picked a rack printer's input; until then it is Ext-1.
+  bool _inputPicked = false;
   bool _saving = false;
 
   @override
@@ -53,11 +56,20 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         .firstOrNull
         ?.printer;
     final dual = status?.isDualNozzle(printer?.nozzleCount) ?? false;
-    // AMS units detected live (their ids) — if none, provide 0..3.
+    // A rack printer (H3C) has nine external inputs, one per hotend, stored as
+    // tray 0-8 of unit 255, and an AMS 3H; known by its model before any
+    // status arrives (`TrayLayout.from_state`).
+    final rack = status?.trayLayout.rack ?? isRackPrinterModel(printer?.model);
+    // AMS units detected live (their ids) — if none, provide 0..3, or the AMS
+    // 3H on a rack printer.
     final unitIds =
         (status?.ams ?? const []).map((u) => u.id ?? 0).toSet().toList()
           ..sort();
-    final unitOptions = unitIds.isNotEmpty ? unitIds : const [0, 1, 2, 3];
+    final unitOptions = unitIds.isNotEmpty
+        ? unitIds
+        : rack
+        ? const [ams3hUnit]
+        : const [0, 1, 2, 3];
     // Keep the persisted selection in sync with the current printer's actual
     // units — without this, switching to a printer with fewer AMS units only
     // fixes the *displayed* value (see `_NumberDropdown` below) while
@@ -72,11 +84,10 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         ? rackSlotCount
         : 4;
     if (_amsSlot >= slotCount) _amsSlot = 0;
-    // A rack printer (H3C) has nine external inputs, one per hotend, stored as
-    // tray 0-8 of unit 255; anywhere else a tray past the holder's two sides
-    // names nothing.
-    final rack = status?.trayLayout.rack ?? isRackPrinterModel(printer?.model);
-    if (!rack && _externalTray > 1) _externalTray = 0;
+    // A tray past the holder's two sides names nothing off a rack printer,
+    // and with one holder only its tray 0 exists.
+    if (rack && !_inputPicked) _externalTray = externalSlotIndex(255);
+    if (!rack && (!dual || _externalTray > 1)) _externalTray = 0;
 
     return DraggableSheetSurface(
       initialSize: 0.55,
@@ -153,7 +164,10 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                         256 - n,
                       ),
                   },
-                  onChanged: (v) => setState(() => _externalTray = v),
+                  onChanged: (v) => setState(() {
+                    _externalTray = v;
+                    _inputPicked = true;
+                  }),
                 )
               else if (dual) ...[
                 Text(

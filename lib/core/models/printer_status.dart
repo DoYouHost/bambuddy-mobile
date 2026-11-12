@@ -718,11 +718,31 @@ class PrinterStatus {
     return list;
   }
 
+  /// The hotend on a rack printer's toolhead, by its 1-based rack position:
+  /// it reports id 0 with `addr_id`, its home (`PrintersPage.tsx`,
+  /// `mountedHotend`). Null on every other printer.
+  int? get mountedRackPosition {
+    if (!trayLayout.rack) return null;
+    final addr = nozzleRack
+        ?.where((n) => n.id == 0 && n.addrId != null)
+        .firstOrNull
+        ?.addrId;
+    return addr == null ? null : addr + 1;
+  }
+
   /// The external spools the card and the controller list: on a rack printer
-  /// only a loaded input, Ext-1 first (`PrintersPage.tsx`, `shownExternals`);
-  /// elsewhere every holder.
-  List<AmsTray> get shownExternalSpools => trayLayout.rack
-      ? (externalSpools.where((t) => t.trayType?.isNotEmpty ?? false).toList()
+  /// a loaded input, or an empty one with a spool [assigned] to its tray so the
+  /// assignment stays visible and can be undone, Ext-1 first
+  /// (`PrintersPage.tsx`, `shownExternals`); elsewhere every holder.
+  List<AmsTray> shownExternalSpools(bool Function(int trayId) assigned) =>
+      trayLayout.rack
+      ? (externalSpools
+            .where(
+              (t) =>
+                  (t.trayType?.isNotEmpty ?? false) ||
+                  assigned(externalSlotIndex(t.id ?? externalTrayIdBase)),
+            )
+            .toList()
           ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)))
       : externalSpools;
 

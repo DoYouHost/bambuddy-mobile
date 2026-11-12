@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/features/dashboard/temp_readings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -979,6 +980,45 @@ void main() {
               {'id': id, 'tray_type': id == 250 ? 'PETG' : ''},
           ],
         });
+
+    test('names the hotend on the toolhead by its rack position', () {
+      PrinterStatus withRack(List<Map<String, Object?>> rack, {int? unit}) =>
+          PrinterStatus.fromJson({
+            'id': 1,
+            'ams': [
+              if (unit != null) {'id': unit, 'tray': const <Object>[]},
+            ],
+            'nozzle_rack': rack,
+          });
+      final rack = [
+        {'id': 0, 'addr_id': 4},
+        {'id': 16, 'addr_id': 0},
+      ];
+      expect(withRack(rack, unit: 32).mountedRackPosition, 5);
+      // No AMS 3H: not a rack printer, whatever its rack says.
+      expect(withRack(rack, unit: 0).mountedRackPosition, isNull);
+      expect(
+        withRack([
+          {'id': 0},
+        ], unit: 32).mountedRackPosition,
+        isNull,
+      );
+    });
+
+    test('the nozzle reading takes the rack position as its name only', () {
+      final readings = buildTempReadings(
+        {'nozzle': 210, 'nozzle_target': 220, 'bed': 60},
+        null,
+        rackPosition: 5,
+      );
+      final nozzle = readings.firstWhere((r) => r.kind == TempKind.nozzle);
+      expect(nozzle.label(pl), pl.tempNozzleNumbered('5'));
+      expect(nozzle.index, isNull, reason: 'it addresses no second nozzle');
+      expect(
+        readings.firstWhere((r) => r.kind == TempKind.bed).label(pl),
+        pl.tempBed,
+      );
+    });
 
     test('tray_now 28-36 names an AMS 3H slot, with or without ams_type', () {
       for (final type in [6, null]) {
