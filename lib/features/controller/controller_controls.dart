@@ -26,6 +26,7 @@ List<TempReading> controllerReadings(PrinterStatus status) => [
   for (final r in buildTempReadings(
     status.temperatures,
     status.airductIsHeating,
+    rackPosition: status.mountedRackPosition,
   ))
     if (r.kind != TempKind.unknown) r,
 ];

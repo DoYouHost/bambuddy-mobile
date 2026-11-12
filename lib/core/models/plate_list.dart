@@ -5,6 +5,16 @@ import 'embedded_settings.dart';
 /// One plate of a 3MF, from `GET /archives/{id}/plates` or
 /// `GET /library/files/{id}/plates` — the two answer the same shape, so one
 /// model reads both (the library route omits [bedType]).
+/// One slot of a plate (`PlateFilament` in the web's `types/plates.ts`).
+/// [usedInPlate] is false for a project slot the plate does not paint with.
+typedef PlateFilament = ({
+  String type,
+  String color,
+  int slotId,
+  double usedGrams,
+  bool usedInPlate,
+});
+
 class PlateInfo {
   const PlateInfo({
     required this.index,
@@ -46,6 +56,10 @@ class PlateInfo {
             (
               type: toStringOrNull(f['type']) ?? '',
               color: toStringOrNull(f['color']) ?? '',
+              slotId: toIntOrNull(f['slot_id']) ?? 0,
+              usedGrams: toDoubleOrNull(f['used_grams']) ?? 0,
+              // Absent on a sliced file, where every slot listed is used.
+              usedInPlate: f['used_in_plate'] != false,
             ),
       ],
     );
@@ -94,8 +108,9 @@ class PlateInfo {
   final String? bedType;
 
   /// What the slicer loaded for this plate, by slot (`slice_info.config`); the
-  /// archive page's plate card shows a dot and the type of each.
-  final List<({String type, String color})> filaments;
+  /// archive page's plate card shows a dot and the type of each, a queue row
+  /// the slots the plate really uses.
+  final List<PlateFilament> filaments;
 }
 
 /// Everything `GET …/plates` answers: the plates of one 3MF, the two flags the

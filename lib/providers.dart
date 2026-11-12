@@ -623,7 +623,16 @@ final skipObjectsRepositoryProvider = Provider<SkipObjectsRepository>(
 );
 
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
-  (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrinterCommandsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether load and unload reach an AMS-HT slot. See
+/// `PrinterCommandsRepository.amsHtLoadCapability`.
+final amsHtLoadProvider = capabilityGate(
+  (ref) => ref.watch(printerCommandsRepositoryProvider).amsHtLoadCapability,
 );
 
 /// Filament presets and the two slot-configuration commands.

@@ -47,6 +47,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       nozzleRack: _toNozzleRackListOrNull(json['nozzle_rack']),
       filaSwitch: _toFilaSwitchOrNull(json['fila_switch']),
       amsFilamentBackup: json['ams_filament_backup'] as bool?,
+      trayChangeLog: _trayChangeLogOrNull(json['tray_change_log']),
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
       nextPause: nextPauseFromJson(json['next_pause']),
     );
@@ -63,6 +64,12 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
   dryCountdownStalled: json['dry_countdown_stalled'] == null
       ? false
       : toBoolOrFalse(json['dry_countdown_stalled']),
+  dryerSlots: json['dryer_slots'] == null
+      ? const []
+      : intListFromJson(json['dryer_slots']),
+  dryerHumidity: toIntOrNull(json['dryer_humidity']),
+  dryerTemp: toDoubleOrNull(json['dryer_temp']),
+  amsType: toIntOrNull(json['ams_type']),
 );
 
 AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
@@ -75,6 +82,8 @@ AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
   caliIdx: toIntOrNull(json['cali_idx']),
   tagUid: json['tag_uid'] as String?,
   trayUuid: json['tray_uuid'] as String?,
+  state: toIntOrNull(json['state']),
+  exists: json['exists'] as bool?,
 );
 
 NozzleInfo _$NozzleInfoFromJson(Map<String, dynamic> json) => NozzleInfo(
@@ -89,6 +98,7 @@ NozzleRackSlot _$NozzleRackSlotFromJson(Map<String, dynamic> json) =>
       nozzleDiameter: json['nozzle_diameter'] as String?,
       filamentColor: json['filament_color'] as String?,
       filamentType: json['filament_type'] as String?,
+      addrId: toIntOrNull(json['addr_id']),
     );
 
 FilaSwitch _$FilaSwitchFromJson(Map<String, dynamic> json) => FilaSwitch(

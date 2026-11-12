@@ -20,6 +20,64 @@ NozzleRackSlot _slot(
 );
 
 void main() {
+  group('rackCardPositions', () {
+    NozzleRackSlot nozzle(int id, {int? addr, String d = '0.4'}) =>
+        NozzleRackSlot(id: id, nozzleDiameter: d, addrId: addr);
+
+    test('no rack dock, no card: the hotends alone are not a rack', () {
+      expect(rackCardPositions(null, rackPrinter: false), isNull);
+      expect(
+        rackCardPositions([nozzle(0), nozzle(1)], rackPrinter: false),
+        isNull,
+      );
+    });
+
+    test('an H2C draws six positions and leaves the picked-up one empty', () {
+      // `NozzleRackCard`: no recovery of the gap on the picture.
+      final card = rackCardPositions([
+        nozzle(0),
+        nozzle(1),
+        for (final id in [16, 18, 19, 20, 21]) nozzle(id),
+      ], rackPrinter: false)!;
+      expect(card, hasLength(6));
+      expect(card[1].slot, isNull);
+      expect(card.where((p) => p.mounted), isEmpty);
+      expect([for (final p in card) p.position], [1, 2, 3, 4, 5, 6]);
+    });
+
+    test('an H3C draws nine and rings the mounted one at its home', () {
+      // The capture in the server's test_h3c_ams3h.py: slot 6's hotend on the
+      // toolhead, id 0 with addr_id 6, its dock absent.
+      final card = rackCardPositions([
+        nozzle(0, addr: 6, d: '0.6'),
+        for (var i = 0; i < 9; i++)
+          if (i != 6) nozzle(16 + i, addr: i),
+      ], rackPrinter: true)!;
+      expect(card, hasLength(9));
+      expect(card[6].mounted, isTrue);
+      expect(card[6].slot?.nozzleDiameter, '0.6');
+      expect(card.where((p) => p.mounted), hasLength(1));
+      expect(card.where((p) => p.slot == null), isEmpty);
+    });
+
+    test('an H3C on a server without addr_id leaves the home empty', () {
+      final card = rackCardPositions([
+        nozzle(0),
+        for (var i = 0; i < 8; i++) nozzle(16 + i),
+      ], rackPrinter: true)!;
+      expect(card[8].slot, isNull);
+      expect(card.where((p) => p.mounted), isEmpty);
+    });
+
+    test('an addr_id outside the rack places nothing', () {
+      final card = rackCardPositions([
+        nozzle(0, addr: 12),
+        nozzle(16),
+      ], rackPrinter: true)!;
+      expect(card.where((p) => p.mounted), isEmpty);
+    });
+  });
+
   group('rackByPosition', () {
     test('translates physical nozzle ids into 1-based positions', () {
       final rack = rackByPosition([

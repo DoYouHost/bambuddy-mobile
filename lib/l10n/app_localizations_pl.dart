@@ -438,6 +438,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlNozzleActive => 'Aktywna';
 
   @override
+  String get amsDryer => 'Suszarka';
+
+  @override
   String get ctrlDry => 'Suszenie';
 
   @override
@@ -1652,10 +1655,44 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ta drukarka demo jest offline, więc nie ma obrazu z kamery.';
 
   @override
+  String get nozzleRack => 'Magazyn dysz';
+
+  @override
+  String get nozzleRackMounted => 'na głowicy';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Pozycja $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Pozycja $position: pusta';
+  }
+
+  @override
+  String get externalInputs => 'Wejścia zewnętrzne';
+
+  @override
+  String externalInputsEmpty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Wszystkie $count wejścia zewnętrzne są puste',
+      many: 'Wszystkie $count wejść zewnętrznych jest pustych',
+      few: 'Wszystkie $count wejścia zewnętrzne są puste',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get externalSpool => 'Szpula zewnętrzna';
 
   @override
   String get traySlotEmpty => 'Pusty';
+
+  @override
+  String get traySlotUnconfigured => 'Nieskonfigurowany';
 
   @override
   String get amsSlotFilament => 'Filament';
@@ -1697,6 +1734,21 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get amsUnloadSlotNotLoaded =>
       'Z tego slotu nie jest zasilana żadna dysza';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Wyładowywanie slotu $slot. Gdy drukarka o to poprosi, wyciągnij filament z AMS 3H ręcznie.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'W slocie $slot nie ma filamentu. Wsuń go we wlot, aż AMS 3H go wciągnie, i załaduj ponownie.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'AMS 3H suszy tylko sloty $a i $b';
+  }
 
   @override
   String get amsActionsWhilePrinting => 'Niedostępne, gdy drukarka drukuje';
@@ -3307,6 +3359,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Slot';
+
+  @override
+  String get inventoryAssignInput => 'Wejście';
 
   @override
   String get inventoryAssignExtruder => 'Ekstruder';

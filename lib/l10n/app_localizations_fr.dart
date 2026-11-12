@@ -441,6 +441,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlNozzleActive => 'Active';
 
   @override
+  String get amsDryer => 'Séchoir';
+
+  @override
   String get ctrlDry => 'Séchage';
 
   @override
@@ -1632,10 +1635,37 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette imprimante de démo est hors ligne, il n\'y a donc pas d\'image de caméra.';
 
   @override
+  String get nozzleRack => 'Rack à buses';
+
+  @override
+  String get nozzleRackMounted => 'sur la tête d\'outil';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Position $position : $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Position $position : vide';
+  }
+
+  @override
+  String get externalInputs => 'Entrées externes';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Les $count entrées externes sont vides';
+  }
+
+  @override
   String get externalSpool => 'Bobine externe';
 
   @override
   String get traySlotEmpty => 'Vide';
+
+  @override
+  String get traySlotUnconfigured => 'Non configuré';
 
   @override
   String get amsSlotFilament => 'Filament';
@@ -1677,6 +1707,21 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get amsUnloadSlotNotLoaded =>
       'Aucune buse n\'est alimentée depuis cet emplacement';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Déchargement de l\'emplacement $slot. Quand l\'imprimante le demande, retirez le filament de l\'AMS 3H à la main.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'L\'emplacement $slot n\'a pas de filament. Poussez-le dans l\'entrée jusqu\'à ce que l\'AMS 3H le saisisse, puis rechargez.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'L\'AMS 3H ne sèche que les emplacements $a et $b';
+  }
 
   @override
   String get amsActionsWhilePrinting => 'Indisponible pendant l\'impression';
@@ -3299,6 +3344,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Emplacement';
+
+  @override
+  String get inventoryAssignInput => 'Entrée';
 
   @override
   String get inventoryAssignExtruder => 'Extrudeur';

@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
 import '../wall/wall_providers.dart';
+import '../common/progress_ring.dart';
 import 'controller_faults.dart';
 import 'controller_providers.dart';
 
@@ -411,9 +412,10 @@ class _SaverBox extends ConsumerWidget {
         SizedBox.square(
           dimension: _ring,
           child: CustomPaint(
-            painter: _RingPainter(
+            painter: ProgressRingPainter(
               value: (progress / 100).clamp(0.0, 1.0),
               color: color,
+              track: color.withValues(alpha: DashAlpha.wash),
               stroke: _ringStroke,
             ),
             child: Center(
@@ -536,42 +538,4 @@ class _SaverBox extends ConsumerWidget {
 
   /// The file name never runs the box wider than this.
   static const _nameWidth = 260.0;
-}
-
-/// The progress ring: a dim track, and an arc from 12 o'clock with round
-/// ends.
-class _RingPainter extends CustomPainter {
-  const _RingPainter({
-    required this.value,
-    required this.color,
-    required this.stroke,
-  });
-
-  final double value;
-  final Color color;
-  final double stroke;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).deflate(stroke / 2);
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = color.withValues(alpha: DashAlpha.wash);
-    canvas.drawArc(rect, 0, 2 * math.pi, false, track);
-    if (value <= 0) return;
-    final sweep = 2 * math.pi * value;
-    // One colour: a sweep gradient wraps around where the round cap reaches
-    // back past 12 o'clock, and painted a bright blob at the start.
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = color;
-    canvas.drawArc(rect, -math.pi / 2, sweep, false, arc);
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.value != value || old.color != color || old.stroke != stroke;
 }

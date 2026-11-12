@@ -193,6 +193,10 @@
   "ctrlSet": "Set",
   "ctrlActivate": "Activate",
   "ctrlNozzleActive": "Active",
+  "amsDryer": "Dryer",
+  "@amsDryer": {
+    "description": "Screen-reader label of the AMS 3H built-in dryer: its readings chip and the mark on the slots it holds (a noun, the device)"
+  },
   "ctrlDry": "Dry",
   "ctrlDrying": "Drying",
   "ctrlDryNotRunning": "Not running",
@@ -1020,8 +1024,44 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "This demo printer is offline, so there is no camera picture.",
+  "nozzleRack": "Nozzle rack",
+  "nozzleRackMounted": "on the toolhead",
+  "@nozzleRackMounted": {
+    "description": "Screen-reader suffix of the rack position whose nozzle is on the toolhead"
+  },
+  "nozzleRackPosition": "Position {position}: {diameter} mm",
+  "@nozzleRackPosition": {
+    "description": "Screen-reader label of one nozzle rack position",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "diameter": {
+        "type": "String"
+      }
+    }
+  },
+  "nozzleRackPositionEmpty": "Position {position}: empty",
+  "@nozzleRackPositionEmpty": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "externalInputs": "External inputs",
+  "externalInputsEmpty": "All {count} external inputs are empty",
+  "@externalInputsEmpty": {
+    "description": "A rack printer (H3C) with none of its per-hotend external inputs loaded",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
+  "traySlotUnconfigured": "Not set up",
   "amsSlotFilament": "Filament",
   "amsLoad": "Load",
   "amsUnload": "Unload",
@@ -1041,6 +1081,33 @@
   "amsFeedAlreadyLoaded": "already loaded",
   "amsSwitchNotReady": "The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.",
   "amsUnloadSlotNotLoaded": "No nozzle is fed from this slot",
+  "amsUnloadAms3h": "Unloading slot {slot}. When the printer asks, pull the filament back out of the AMS 3H by hand.",
+  "@amsUnloadAms3h": {
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  },
+  "amsLoadAms3hEmpty": "Slot {slot} holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.",
+  "@amsLoadAms3hEmpty": {
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  },
+  "dryAms3hSlots": "The AMS 3H dries slots {a} and {b} only",
+  "@dryAms3hSlots": {
+    "placeholders": {
+      "a": {
+        "type": "int"
+      },
+      "b": {
+        "type": "int"
+      }
+    }
+  },
   "amsActionsWhilePrinting": "Unavailable while the printer is printing",
   "amsSlotConfigure": "Configure slot",
   "amsSlotConfigTitle": "Slot configuration",
@@ -2103,6 +2170,7 @@
   "inventorySlotAms": "AMS slot",
   "inventoryAssignUnit": "AMS unit",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Input",
   "inventoryAssignExtruder": "Extruder",
   "inventoryAssignExternalHint": "Assigns to the external spool holder",
   "inventoryAssignConfirm": "Assign",

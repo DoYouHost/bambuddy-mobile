@@ -78,6 +78,9 @@ void main() {
       expect(isGcodeCompatible('N7', 'P2S'), isTrue);
       expect(isGcodeCompatible('O1D', 'H2D'), isTrue);
       expect(isGcodeCompatible('O1C2', 'H2C'), isTrue);
+      expect(isGcodeCompatible('N10', 'H3C'), isTrue);
+      expect(isGcodeCompatible('H3C', 'N10'), isTrue);
+      expect(isGcodeCompatible('N10', 'H2C'), isFalse);
     });
 
     test('keep their family', () {
@@ -112,6 +115,7 @@ void main() {
       expect(isGcodeCompatible('Bambu Lab X1 Carbon', 'X1C'), isTrue);
       expect(isGcodeCompatible('Bambu Lab A1 mini', 'A1 Mini'), isTrue);
       expect(isGcodeCompatible('Bambu Lab H2D', 'O1D'), isTrue);
+      expect(isGcodeCompatible('Bambu Lab H3C', 'N10'), isTrue);
     });
 
     test('are matched whatever their case', () {

@@ -9,6 +9,9 @@
 /// orifice.
 library;
 
+import 'package:collection/collection.dart';
+
+import '../ams/slot_addressing.dart';
 import '../format/fixed_format.dart';
 import '../models/filament_requirement.dart';
 import '../models/printer_status.dart';
@@ -59,6 +62,41 @@ Map<int, NozzleRackSlot> rackByPosition(List<NozzleRackSlot>? slots) {
     byPosition[missing.single] = carriage;
   }
   return byPosition;
+}
+
+/// One position of the rack card: its 1-based number, the nozzle there (null
+/// for an empty dock) and whether that nozzle is the one on the toolhead.
+typedef RackCardPosition = ({int position, NozzleRackSlot? slot, bool mounted});
+
+/// The positions the web's rack card draws (`NozzleRackCard`), or null when
+/// the printer reports no rack dock at all — ids 0 and 1 are the hotends.
+///
+/// Unlike [rackByPosition] this is only a picture, and a rack printer's
+/// mounted nozzle is drawn at its home position from `addr_id` alone. The
+/// print form keeps to [rackByPosition], because dispatch does.
+List<RackCardPosition>? rackCardPositions(
+  List<NozzleRackSlot>? slots, {
+  required bool rackPrinter,
+}) {
+  final all = slots ?? const <NozzleRackSlot>[];
+  if (!all.any((s) => (s.id ?? -1) >= 2)) return null;
+  RackCardPosition at(int index) {
+    final docked = all.firstWhereOrNull(
+      (s) => s.id == _rackPositionBase + 1 + index,
+    );
+    if (docked != null) {
+      return (position: index + 1, slot: docked, mounted: false);
+    }
+    final carriage = rackPrinter
+        ? all.firstWhereOrNull(
+            (s) => s.id == _carriageNozzleId && s.addrId == index,
+          )
+        : null;
+    return (position: index + 1, slot: carriage, mounted: carriage != null);
+  }
+
+  final size = rackPrinter ? rackSlotCount : rackPositions.length;
+  return [for (var i = 0; i < size; i++) at(i)];
 }
 
 /// Whether the nozzle in one rack position can print a group that asks for

@@ -20,6 +20,7 @@ import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
 import '../../../core/printers/bed_jog.dart';
 import '../../../core/printers/hms_readback.dart';
+import '../../../core/printers/nozzle_rack.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
@@ -48,7 +49,11 @@ import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
+    show
+        SpoolSwatch,
+        assignmentSlotLabel,
+        openSpoolInInventory,
+        parseSpoolColor;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../add_printer_screen.dart';
@@ -244,6 +249,7 @@ class _PrinterCardState extends State<PrinterCard> {
     final readings = buildTempReadings(
       status?.temperatures,
       status?.airductIsHeating,
+      rackPosition: status?.mountedRackPosition,
     );
     final hasDetails = status?.hasDetails ?? false;
     final hasFans =

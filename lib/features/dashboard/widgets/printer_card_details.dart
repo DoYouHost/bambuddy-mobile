@@ -605,20 +605,25 @@ class _DetailsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final ams = status.ams ?? const [];
-    final spools = status.externalSpools;
+    final rack = status.trayLayout.rack;
+    final reported = status.externalSpools;
+    final assigned = ref.watch(assignedSpoolsProvider(status.id));
+    final spools = shownExternals(status, assigned);
     final active = status.activeTray;
     final dual = status.isDualNozzle(nozzleCount);
     final activeExtruder = status.activeExtruder;
-    final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
     final presets =
         ref.watch(slotPresetsProvider(printerId)).value ??
         const <(int, int), SlotPreset>{};
     // The 0/1 side the external holder is addressed by everywhere ids are
     // local — the slot routes, the inventory assignment and the load command.
-    int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
+    int trayIdOf(int i) =>
+        externalSlotIndex(spools[i].id ?? externalTrayIdBase);
 
+    final rackCard = rackCardPositions(status.nozzleRack, rackPrinter: rack);
     final blocks = <Widget>[
+      if (rackCard != null) _NozzleRackSection(positions: rackCard),
       for (var i = 0; i < ams.length; i++)
         _AmsSection(
           unit: ams[i],
@@ -643,13 +648,17 @@ class _DetailsPanel extends ConsumerWidget {
             unitIndex: i,
             trayIndex: trayIndex,
             assigned: assigned,
+            amsHtLoad: ref.watch(amsHtLoadProvider).orFalse,
           ),
         ),
+      if (rack && spools.isEmpty && reported.isNotEmpty)
+        _ExternalInputsEmpty(count: reported.length),
       if (spools.isNotEmpty)
         _SpoolSection(
           trays: spools,
           active: active,
-          extruderOf: dual
+          rack: rack,
+          extruderOf: dual && !rack
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
           fillOf: (i) => assigned.fillOf(
@@ -718,6 +727,7 @@ _SlotRef _amsSlotRef({
   required int unitIndex,
   required int trayIndex,
   required AssignedSpools assigned,
+  required bool amsHtLoad,
 }) {
   final amsId = unit.id ?? unitIndex;
   final tray = (unit.trays ?? const <AmsTray>[])[trayIndex];
@@ -729,7 +739,7 @@ _SlotRef _amsSlotRef({
     trayId: slot,
     label: amsSlotName(amsId, slot),
     printing: status.isPrinting && !status.isPaused,
-    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: slot),
+    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: slot, amsHt: amsHtLoad),
     canRereadRfid: true,
     tagUid: tray.tagUid,
     trayUuid: tray.trayUuid,
@@ -748,6 +758,14 @@ _SlotRef _amsSlotRef({
   );
 }
 
+/// The external spools the card lists, as [PrinterStatus.shownExternalSpools]
+/// with this printer's assignments: one list for the card, the controller and
+/// the sheets and commands that index into it.
+List<AmsTray> shownExternals(PrinterStatus status, AssignedSpools assigned) =>
+    status.shownExternalSpools(
+      (trayId) => assigned.assignedAt(externalHolderUnit, trayId),
+    );
+
 /// The same for an external spool: addressed by the 0/1 side of its holder
 /// everywhere ids are local, and never asked the Filament Track Switch question.
 _SlotRef _externalSlotRef({
@@ -757,20 +775,28 @@ _SlotRef _externalSlotRef({
   required AmsTray spool,
   required AssignedSpools assigned,
 }) {
-  final side = externalSideOf(spool.id) ?? 0;
-  final extruder = dual ? status.extruderForExternal(spool.id) : null;
+  final rack = status.trayLayout.rack;
+  final global = spool.id ?? externalTrayIdBase;
+  final side = externalSlotIndex(global);
+  final extruder = dual && !rack ? status.extruderForExternal(spool.id) : null;
   return _SlotRef(
     printerId: status.id,
     printerName: status.name,
     amsId: externalHolderUnit,
     trayId: side,
-    label: switch (extruder) {
-      1 => l10n.extruderLeft,
-      0 => l10n.extruderRight,
-      _ => l10n.externalSpool,
-    },
+    label: rack
+        ? rackExternalLabel(global)
+        : switch (extruder) {
+            1 => l10n.extruderLeft,
+            0 => l10n.extruderRight,
+            _ => l10n.externalSpool,
+          },
     printing: status.isPrinting && !status.isPaused,
-    loadTrayId: amsLoadTrayId(amsId: externalHolderUnit, trayId: side),
+    // The web offers no load or unload on a rack printer's inputs; assigning
+    // and configuring stay.
+    loadTrayId: rack
+        ? null
+        : amsLoadTrayId(amsId: externalHolderUnit, trayId: side),
     trayInfoIdx: spool.trayInfoIdx,
     trayColour: spool.trayColor,
     caliIdx: spool.caliIdx,
@@ -803,6 +829,7 @@ Future<void> showAmsSlotSheet(
       unitIndex: unitIndex,
       trayIndex: trayIndex,
       assigned: ref.read(assignedSpoolsProvider(status.id)),
+      amsHtLoad: ref.read(amsHtLoadProvider).orFalse,
     ),
   ),
 );
@@ -821,7 +848,10 @@ Future<void> showExternalSlotSheet(
       l10n: AppLocalizations.of(context),
       status: status,
       dual: status.isDualNozzle(nozzleCount),
-      spool: status.externalSpools[spoolIndex],
+      spool: shownExternals(
+        status,
+        ref.read(assignedSpoolsProvider(status.id)),
+      )[spoolIndex],
       assigned: ref.read(assignedSpoolsProvider(status.id)),
     ),
   ),
@@ -903,7 +933,7 @@ class _AmsSection extends ConsumerWidget {
             context,
             printerId: printerId,
             amsId: unit.id ?? unitIndex,
-            amsLabel: amsUnitName(unit.id ?? unitIndex),
+            amsLabel: amsUnitName(unit.id ?? unitIndex, amsType: unit.amsType),
             initialMetric: metric,
           )
         : null;
@@ -926,6 +956,17 @@ class _AmsSection extends ConsumerWidget {
           onTap: openHistory(AmsHistoryMetric.temperature),
         ),
       );
+    }
+    final dryerInk = unit.isDryerActive ? t.accentOrangeInk : t.textTertiary;
+    final dryControl =
+        supportsDrying &&
+        unit.canDry &&
+        !ref.watch(controlRefusedProvider(ControlPermission.control));
+    // Where the drying control is shown it carries the dryer's readings; the
+    // chip is for a viewer without it. Without a reading the chip would be a
+    // bare flame, and the slots carry that.
+    if (!dryControl && _dryerReadings(unit) != null) {
+      metaParts.add(_AmsDryerChip(unit: unit, ink: dryerInk));
     }
 
     // Report positions in slot order: an AMS can report only some trays, or
@@ -950,7 +991,10 @@ class _AmsSection extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    amsUnitName(unit.id ?? unitIndex).toUpperCase(),
+                    amsUnitName(
+                      unit.id ?? unitIndex,
+                      amsType: unit.amsType,
+                    ).toUpperCase(),
                     style: t.bodyBold.copyWith(
                       color: t.textPrimary,
                       letterSpacing: DashTracking.label,
@@ -978,7 +1022,10 @@ class _AmsSection extends ConsumerWidget {
                       _AmsDryControl(
                         printerId: printerId,
                         amsId: unit.id ?? unitIndex,
-                        amsLabel: amsUnitName(unit.id ?? unitIndex),
+                        amsLabel: amsUnitName(
+                          unit.id ?? unitIndex,
+                          amsType: unit.amsType,
+                        ),
                         unit: unit,
                       ),
                   ],
@@ -1026,6 +1073,9 @@ class _AmsSection extends ConsumerWidget {
               preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
               last: i == order.last,
               badge: '${unit.slotAt(i) + 1}',
+              dryerInk: unit.dryerSlots.contains(unit.slotAt(i))
+                  ? dryerInk
+                  : null,
               slot: slotRef(i),
             ),
       ],
@@ -1044,32 +1094,30 @@ class _SpoolSection extends StatelessWidget {
     required this.spoolOf,
     required this.presetOf,
     required this.slotRef,
+    this.rack = false,
   });
 
   final List<AmsTray> trays;
   final AmsTray? active;
+
+  /// The inputs of a rack printer, named by the hotend each feeds.
+  final bool rack;
   final int? Function(int index) extruderOf;
   final TrayFill Function(int index) fillOf;
   final Spool? Function(int index) spoolOf;
   final SlotPreset? Function(int index) presetOf;
 
-  /// The slot sheet's input for spool [index], built by [_externalSlotRef].
-  final _SlotRef Function(int index) slotRef;
+  /// The slot sheet's input for spool [index], built by [_externalSlotRef];
+  /// null where the slot takes no action.
+  final _SlotRef? Function(int index) slotRef;
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.externalSpool.toUpperCase(),
-          style: t.label.copyWith(
-            color: t.textPrimary,
-            letterSpacing: DashTracking.label,
-          ),
-        ),
+        _ExternalTitle(rack: rack),
         const SizedBox(height: DashSpace.md),
         for (var i = 0; i < trays.length; i++)
           _FilamentRow(
@@ -1079,13 +1127,163 @@ class _SpoolSection extends StatelessWidget {
             spool: spoolOf(i),
             preset: presetOf(i),
             last: i == trays.length - 1,
-            badge: switch (extruderOf(i)) {
-              1 => l10n.extruderLeftShort,
-              0 => l10n.extruderRightShort,
-              _ => null,
-            },
+            badge: rack
+                ? '${externalHotend(trays[i].id ?? 255) + 1}'
+                : switch (extruderOf(i)) {
+                    1 => l10n.extruderLeftShort,
+                    0 => l10n.extruderRightShort,
+                    _ => null,
+                  },
             slot: slotRef(i),
           ),
+      ],
+    );
+  }
+}
+
+/// The nozzle rack as the web's rack card draws it: one chip per position in
+/// the colour of the filament on that nozzle, the diameter on it and the
+/// position under it; the nozzle on the toolhead ringed.
+class _NozzleRackSection extends StatelessWidget {
+  const _NozzleRackSection({required this.positions});
+
+  final List<RackCardPosition> positions;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.nozzleRack.toUpperCase(),
+          style: t.label.copyWith(
+            color: t.textPrimary,
+            letterSpacing: DashTracking.label,
+          ),
+        ),
+        const SizedBox(height: DashSpace.md),
+        Wrap(
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
+          children: [for (final p in positions) _RackChip(position: p)],
+        ),
+      ],
+    );
+  }
+}
+
+class _RackChip extends StatelessWidget {
+  const _RackChip({required this.position});
+
+  final RackCardPosition position;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final slot = position.slot;
+    final empty = slot == null || slot.isEmpty;
+    final diameter = empty ? null : nozzleDiameterLabel(slot.nozzleDiameter);
+    // "00000000" is the printer's way of saying no filament.
+    final filament = empty ? null : parseTrayColor(slot.filamentColor);
+    final fill = filament == null || filament.a == 0
+        ? null
+        : Color.alphaBlend(filament, t.overlaySurface);
+    final number = position.position;
+    final label = [
+      diameter == null
+          ? l10n.nozzleRackPositionEmpty(number)
+          : l10n.nozzleRackPosition(number, diameter),
+      if (position.mounted) l10n.nozzleRackMounted,
+    ].join(', ');
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: DashSize.d32,
+            height: DashSize.d32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: fill ?? t.subCard,
+              borderRadius: BorderRadius.circular(DashRadius.sm),
+              border: Border.all(
+                color: position.mounted ? t.accentGreen : t.subCardBorder,
+                width: position.mounted
+                    ? DashStroke.regular
+                    : DashStroke.hairline,
+              ),
+            ),
+            // Clamped so the diameter stays inside the fixed chip; the label
+            // above reads it out at full size.
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: Text(
+                diameter ?? '—',
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: DashFontSize.micro,
+                  fontWeight: DashWeight.bold,
+                  color: fill == null ? t.textTertiary : _inkOn(fill),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: DashSpace.xs),
+          Text(
+            '$number',
+            style: t.monoLabel.copyWith(
+              color: position.mounted ? t.accentGreenInk : t.textTertiary,
+              fontWeight: position.mounted ? DashWeight.bold : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExternalTitle extends StatelessWidget {
+  const _ExternalTitle({required this.rack});
+
+  final bool rack;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Text(
+      (rack ? l10n.externalInputs : l10n.externalSpool).toUpperCase(),
+      style: t.label.copyWith(
+        color: t.textPrimary,
+        letterSpacing: DashTracking.label,
+      ),
+    );
+  }
+}
+
+/// A rack printer with none of its inputs loaded: one line, not nine rows.
+class _ExternalInputsEmpty extends StatelessWidget {
+  const _ExternalInputsEmpty({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _ExternalTitle(rack: true),
+        const SizedBox(height: DashSpace.sm),
+        Text(
+          AppLocalizations.of(context).externalInputsEmpty(count),
+          style: t.bodyPlain.copyWith(color: t.textTertiary),
+        ),
       ],
     );
   }
@@ -1142,6 +1340,7 @@ class _FilamentRow extends ConsumerWidget {
     required this.preset,
     required this.last,
     this.badge,
+    this.dryerInk,
     this.slot,
   });
 
@@ -1163,6 +1362,9 @@ class _FilamentRow extends ConsumerWidget {
 
   /// The slot's number, or the external holder's side on a dual machine.
   final String? badge;
+
+  /// Set on a slot inside the AMS 3H's dryer, in the dryer chip's colour.
+  final Color? dryerInk;
   final _SlotRef? slot;
 
   @override
@@ -1170,12 +1372,30 @@ class _FilamentRow extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final empty = tray.isEmpty;
+    final unconfigured = tray.emptyKind == EmptySlotKind.unconfigured;
+    // `pendingSlotSpool`: a spool the printer sees but cannot name, with one
+    // assigned to the slot, is shown as that spool, in its colour (#3434).
+    final pending = empty && unconfigured ? spool : null;
     final naming = empty
         ? null
         : slotNaming(l10n, ref.watchColorNames(), tray, spool, preset);
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final ink = active ? t.accentGreenInk : t.textPrimary;
+    // The external holder sends no presence signal, so the web never calls it
+    // unconfigured; only an assigned spool changes what it shows.
+    final question =
+        empty &&
+        unconfigured &&
+        pending == null &&
+        this.slot?.amsId != externalHolderUnit;
+    final title =
+        naming?.name ??
+        pending?.material ??
+        (question ? l10n.traySlotUnconfigured : l10n.traySlotEmpty);
+    final lines = naming != null
+        ? [naming.colour, ?naming.spool]
+        : [?_pendingLabel(pending)];
 
     final row = Container(
       constraints: const BoxConstraints(
@@ -1198,10 +1418,13 @@ class _FilamentRow extends ConsumerWidget {
       child: Row(
         children: [
           _SlotSwatch(
-            color: empty ? null : parseTrayColor(tray.trayColor),
-            badge: badge,
+            color: empty
+                ? parseSpoolColor(pending?.rgba)
+                : parseTrayColor(tray.trayColor),
+            badge: question ? '?' : badge,
             percent: percent,
             active: active,
+            dryerInk: dryerInk,
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(
@@ -1210,21 +1433,22 @@ class _FilamentRow extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  naming?.name ?? l10n.traySlotEmpty,
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.bodyStrong.copyWith(
-                    color: empty ? t.textTertiary : ink,
+                    color: empty && pending == null && !question
+                        ? t.textTertiary
+                        : ink,
                   ),
                 ),
-                if (naming != null)
-                  for (final line in [naming.colour, ?naming.spool])
-                    Text(
-                      line,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.bodyPlain,
-                    ),
+                for (final line in lines)
+                  Text(
+                    line,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodyPlain,
+                  ),
               ],
             ),
           ),
@@ -1278,6 +1502,18 @@ class _FilamentRow extends ConsumerWidget {
   }
 }
 
+/// `pendingSlotSpool`'s label: "Bambu PETG HF (Blue)".
+String? _pendingLabel(Spool? spool) {
+  if (spool == null) return null;
+  final name = [
+    spool.brand,
+    spool.material,
+    spool.subtype,
+  ].where((p) => p != null && p.isNotEmpty).join(' ');
+  final colour = spool.colorName;
+  return colour == null || colour.isEmpty ? name : '$name ($colour)';
+}
+
 /// A slot's colour with its [badge] inside, inked black or white for contrast,
 /// and the fill as a ring around it. Icon-sized: it does not grow with the
 /// text.
@@ -1287,6 +1523,7 @@ class _SlotSwatch extends StatelessWidget {
     required this.badge,
     required this.percent,
     required this.active,
+    this.dryerInk,
   });
 
   /// Null for an empty slot, drawn as an outline.
@@ -1294,10 +1531,12 @@ class _SlotSwatch extends StatelessWidget {
   final String? badge;
   final int? percent;
   final bool active;
+  final Color? dryerInk;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final dryerInk = this.dryerInk;
     final color = this.color;
     final percent = this.percent;
     // A translucent filament reads as it shows over the card, not as its hex.
@@ -1352,6 +1591,25 @@ class _SlotSwatch extends StatelessWidget {
                     ),
                   ),
           ),
+          if (dryerInk != null)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: DashIcon.sm,
+                height: DashIcon.sm,
+                decoration: BoxDecoration(
+                  color: t.overlaySurface,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.local_fire_department,
+                  size: DashIcon.xs,
+                  color: dryerInk,
+                  semanticLabel: AppLocalizations.of(context).amsDryer,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1386,6 +1644,49 @@ class _AmsMeta extends StatelessWidget {
       text: text,
       onTap: onTap,
     ).tagged('printer.ams_meta');
+  }
+}
+
+/// "25% · 56°", the AMS 3H dryer's readings; null without a dryer or a reading.
+String? _dryerReadings(AmsUnit unit) {
+  if (!unit.hasDryer) return null;
+  final humidity = unit.dryerHumidity;
+  final temp = unit.dryerTemp;
+  final parts = [
+    if (humidity != null) '$humidity%',
+    if (temp != null) '${temp.toStringAsFixed(0)}°',
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
+
+/// The AMS 3H dryer's own humidity and temperature, apart from the unit's.
+/// No history to open: the server records only the unit's readings.
+class _AmsDryerChip extends StatelessWidget {
+  const _AmsDryerChip({required this.unit, required this.ink});
+
+  final AmsUnit unit;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Semantics(
+      label: AppLocalizations.of(context).amsDryer,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: unit.isDryerActive
+              ? t.accentOrange.withValues(alpha: DashAlpha.wash)
+              : null,
+          borderRadius: BorderRadius.circular(DashRadius.sm),
+        ),
+        child: _AmsChip(
+          icon: Icons.local_fire_department,
+          color: ink,
+          text: _dryerReadings(unit)!,
+          onTap: null,
+        ),
+      ),
+    ).tagged('printer.ams_dryer');
   }
 }
 
@@ -1426,7 +1727,11 @@ class _AmsChip extends StatelessWidget {
           children: [
             Icon(icon, size: DashIcon.xs, color: color),
             const SizedBox(width: DashSpace.xs),
-            Text(text, style: t.monoLabel.copyWith(color: color)),
+            // Wraps rather than overflows: the drying control with the AMS 3H
+            // dryer's readings is wider than a phone at 200 % text.
+            Flexible(
+              child: Text(text, style: t.monoLabel.copyWith(color: color)),
+            ),
           ],
         ),
       ),
@@ -1493,11 +1798,12 @@ class _AmsDryControl extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
+    final readings = _dryerReadings(unit);
 
     return _AmsChip(
       icon: look.icon,
       color: look.color,
-      text: look.label,
+      text: readings == null ? look.label : '${look.label} · $readings',
       onTap: () => showAmsDryingSheet(
         context,
         ref,
@@ -1568,9 +1874,25 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     _adopt(ref.read(dryingPresetsProvider));
   }
 
+  /// The material the sheet opens on, as the web's drying popover picks it:
+  /// the first loaded tray, and on an AMS 3H the first in its dryer's slots,
+  /// the only ones it dries (`openDryingPopover`).
+  String? get _seedType {
+    final unit = widget.unit;
+    final trays = unit.trays ?? const <AmsTray>[];
+    final dryer = unit.isAms3h ? unit.dryerSlots : const <int>[];
+    for (final (i, tray) in trays.indexed) {
+      if (dryer.isNotEmpty && !dryer.contains(unit.slotAt(i))) continue;
+      final type = tray.trayType;
+      if (type != null && type.isNotEmpty) return type;
+    }
+    return null;
+  }
+
   /// Takes [presets] as the table to seed from, and re-seeds the pickers.
   void _adopt(Map<String, DryPreset> presets) {
     _presets = presets;
+    _filament = dryingPresetKey(_seedType, presets);
     // A table the server configured need not contain PLA — open on the first
     // filament it does have, so the dropdown always has its own value in it.
     if (!_presets.containsKey(_filament)) {
@@ -1755,6 +2077,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   }
 
   List<Widget> _setupBody(DashTokens t, AppLocalizations l10n) => [
+    if (widget.unit.isAms3h && widget.unit.dryerSlots.length == 2) ...[
+      Text(
+        l10n.dryAms3hSlots(
+          widget.unit.dryerSlots[0] + 1,
+          widget.unit.dryerSlots[1] + 1,
+        ),
+        style: t.bodySoft,
+      ),
+      const SizedBox(height: DashSpace.md),
+    ],
     dashCombo<String>(
       context,
       id: 'drying.filament',
@@ -2052,8 +2384,9 @@ class _SlotRef {
   /// frame.
   final bool printing;
 
-  /// Global tray number for the load command, or null where the slot cannot be
-  /// addressed by it (AMS-HT) — see [amsLoadTrayId].
+  /// Global tray number for the load command, or null where this server cannot
+  /// address the slot by it (an AMS-HT before 1.3.0, a rack input) — see
+  /// [amsLoadTrayId].
   final int? loadTrayId;
 
   /// Whether the slot has a tag to re-read. False for external spools: they
@@ -2169,8 +2502,9 @@ class _SlotActions extends ConsumerWidget {
     final loadTrayId = slot.loadTrayId;
     final canLoad = canDrive && loadTrayId != null;
     // Configuring needs nothing but `printers:control`, so it survives where
-    // loading does not: an AMS-HT slot has no global tray number to load by,
-    // and the configure route addresses it by unit and slot like any other.
+    // loading does not: an AMS-HT slot on a server before 1.3.0 has no global
+    // tray number to load by, and the configure route addresses it by unit and
+    // slot like any other.
     if (!canDrive && !canReread) return const SizedBox.shrink();
 
     final busy = ref.watch(
@@ -2301,6 +2635,7 @@ Future<void> _runSlotAction(
   String startedMessage, {
   VoidCallback? beforeSend,
   String? Function(ApiException error)? wordFailure,
+  Duration startedFor = const Duration(seconds: 4),
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   beforeSend?.call();
@@ -2309,8 +2644,10 @@ Future<void> _runSlotAction(
     ActionFailed(error: final ApiException e) => wordFailure?.call(e),
     _ => null,
   };
+  final message = failure ?? outcome.messageFor(l10n);
   messenger.snack(
-    failure ?? outcome.messageFor(l10n) ?? startedMessage,
+    message ?? startedMessage,
+    duration: message == null ? startedFor : const Duration(seconds: 4),
     clearQueue: true,
   );
 }
@@ -2331,7 +2668,14 @@ Future<void> _unloadSlot(
   context,
   l10n,
   () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
-  l10n.amsUnloadStarted,
+  // The AMS 3H cannot rewind: the printer then waits for a hand pull, which
+  // the web says in a warning toast (`printers.toast.unloadAms3h`).
+  slot.amsId == ams3hUnit
+      ? l10n.amsUnloadAms3h(slot.trayId + 1)
+      : l10n.amsUnloadStarted,
+  startedFor: slot.amsId == ams3hUnit
+      ? const Duration(seconds: 8)
+      : const Duration(seconds: 4),
   beforeSend: beforeSend,
   // The one status this route answers for a reason the user can act on, and
   // which "server returned error 409" would hide.
@@ -2360,8 +2704,6 @@ Future<void> _startSlotLoad(
   // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
   // alongside one anyway: it would occupy an extruder channel permanently,
   // which is why Bambu's own guidance is to take the switch off first.
-  // An AMS-HT never reaches here at all: it has no global tray number, so the
-  // button is hidden rather than disabled.
   final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
   if (!asks) {
     await _runSlotAction(
@@ -2370,6 +2712,11 @@ Future<void> _startSlotLoad(
       () => controls.amsLoad(slot.printerId, loadTrayId),
       l10n.amsLoadStarted,
       beforeSend: beforeSend,
+      // The server refuses an AMS 3H slot the unit has not pulled filament
+      // into yet (`printers.py` `ams_load`).
+      wordFailure: (e) => e.statusCode == 409 && slot.amsId == ams3hUnit
+          ? l10n.amsLoadAms3hEmpty(slot.trayId + 1)
+          : null,
     );
     return;
   }
@@ -2450,8 +2797,8 @@ Future<int?> _askFeedDirection(
 /// Loads or unloads one slot from outside its sheet — the single-printer
 /// controller's Filament tab — with the sheet's wording, its Filament Track
 /// Switch question and its addressing. [unitIndex] null means external spool
-/// [index]; otherwise [index] is the slot of that AMS unit. A slot with no
-/// global tray number (AMS-HT) is not addressable here and does nothing.
+/// [index]; otherwise [index] is the slot of that AMS unit. A slot this server
+/// cannot address by a global tray number does nothing.
 Future<void> runSlotCommand(
   BuildContext context,
   WidgetRef ref, {
@@ -2469,7 +2816,7 @@ Future<void> runSlotCommand(
           l10n: l10n,
           status: status,
           dual: dual,
-          spool: status.externalSpools[index],
+          spool: shownExternals(status, assigned)[index],
           assigned: assigned,
         )
       : _amsSlotRef(
@@ -2479,6 +2826,7 @@ Future<void> runSlotCommand(
           unitIndex: unitIndex,
           trayIndex: index,
           assigned: assigned,
+          amsHtLoad: ref.read(amsHtLoadProvider).orFalse,
         );
   final loadTrayId = slot.loadTrayId;
   if (loadTrayId == null) return;

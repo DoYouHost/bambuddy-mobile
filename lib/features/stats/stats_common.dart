@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:material_ui/material_ui.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -7,6 +5,7 @@ import 'package:dash_kit/dash_kit.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/progress_ring.dart';
 import 'stats_computed.dart';
 
 /// Metric chosen in "Weight / Prints / Time" toggles.
@@ -120,6 +119,8 @@ class RingGauge extends StatelessWidget {
   final Color color;
   final String label;
 
+  static const _ringStroke = 10.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -127,59 +128,16 @@ class RingGauge extends StatelessWidget {
       width: DashSize.d112,
       height: DashSize.d112,
       child: CustomPaint(
-        painter: _RingPainter(
-          percent: percent.clamp(0, 100).toDouble(),
+        painter: ProgressRingPainter(
+          value: percent.clamp(0, 100) / 100,
           color: color,
           track: t.gaugeTrack,
+          stroke: _ringStroke,
         ),
         child: Center(child: Text(label, style: t.display)),
       ),
     );
   }
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter({
-    required this.percent,
-    required this.color,
-    required this.track,
-  });
-
-  final double percent;
-  final Color color;
-  final Color track;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const stroke = 10.0;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (math.min(size.width, size.height) - stroke) / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..color = track,
-    );
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      percent / 100 * 2 * math.pi,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round
-        ..color = color,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.percent != percent || old.color != color || old.track != track;
 }
 
 /// Horizontal color-text legend (dot + label).
