@@ -1020,6 +1020,19 @@ void main() {
       },
     );
 
+    test(
+      "the H3C's loaded inputs come back as trays 0-8 of unit 255",
+      () async {
+        final printers = (await SlicerRepository(dio).loadedSpools())!;
+        final h3c = printers.singleWhere((p) => p.model == 'H3C');
+        expect(h3c.external, isNotEmpty);
+        for (final tray in h3c.external) {
+          expect(tray.amsId, 255);
+          expect(tray.trayId, inInclusiveRange(0, 8));
+        }
+      },
+    );
+
     test('the stored preset refs resolve against /slicer/presets', () async {
       // The same catalogue the slice form's pickers read, or every row of the card would
       // read "No longer in the catalog".

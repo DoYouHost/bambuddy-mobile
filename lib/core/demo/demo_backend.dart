@@ -942,7 +942,9 @@ class DemoBackend {
                     tray(
                       printer['id'] as int,
                       255,
-                      (raw['id'] as int? ?? 254) - 254,
+                      // `slicer_presets.py`: `external_slot_index`, so an
+                      // H3C's inputs 247-253 are trays 2-8.
+                      externalSlotIndex(raw['id'] as int? ?? 254),
                       raw,
                     ),
               ],

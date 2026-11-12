@@ -43,6 +43,32 @@ against live assignments of a dual-nozzle machine). This is not the MQTT `vt_tra
 `extruderForExternalSide`. Keying the extruder on `ams_id` put both spools on "left".
 The UI shows the extruder, never "AMS255".
 
+### The H3C: the AMS 3H and nine external inputs
+
+Server #3442 numbers a slot by its unit's **AMS type** (`ams_type`, bits 0-3 of
+`info`), not by `unit * 4`: `TrayLayout` in `slot_addressing.dart` is the port of
+`utils/tray_ids.py` / `trayIds.ts`, and one `PrinterStatus.trayLayout` serves a
+whole printer.
+
+- The **AMS 3H** is unit 32 with nine slots, global **28-36** (28 + slot), stored
+  as (32, 0-8). `POST /ams/load` takes 28-36 only from that unit: a unit 7 lands
+  on 28 too, and the server refuses an AMS 3H id on a printer without one. Its
+  dryer dries two slots (`dryer_slots`), which the card, the controller and the
+  drying sheet name.
+- A printer with a direct-connected rack (a **rack printer**: an AMS 3H reported,
+  an input 247-253 seen, or the model H3C/N10 when the status lists no unit) has
+  nine external inputs, **247-255**, one per hotend: input `v` feeds hotend
+  `255 - v`, named **`Ext-n` = hotend + 1** (255 is Ext-1). They are stored as
+  (255, `externalSlotIndex`): 254 → 0, 255 → 1, 247-253 → 2-8, so the two ids every
+  other printer uses keep their trays. A tray past 1 under unit 255 names nothing
+  on another printer, which is why the assign sheet takes it back to 0 when the
+  printer changes.
+- On a rack printer **254 and 255 are inputs, not holder sides**: no Ext-L/Ext-R,
+  no extruder, and no load or unload on any input (the web offers none). Only a
+  loaded input is listed; `tray_now` 255 means nothing is loaded.
+- An assignment carries `printer_model` (#3442), which is how a label reads
+  `Ext-n` where no live status is at hand.
+
 ## Two backends behind one interface
 
 `SpoolInventorySource` has two implementations: `NativeInventorySource`
