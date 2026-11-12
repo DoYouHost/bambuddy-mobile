@@ -80,10 +80,10 @@ void main() {
       const [],
       null,
     );
-    expect([for (final f in out) (f.type, f.color)], [
-      ('PLA', '#FF0000'),
-      ('PETG', '#00FF00'),
-    ]);
+    expect(
+      [for (final f in out) (f.type, f.color)],
+      [('PLA', '#FF0000'), ('PETG', '#00FF00')],
+    );
   });
 
   test('a mapped tray shows what it holds and where it is', () {
