@@ -2012,6 +2012,21 @@
   },
   "labelSheetDeleteBody": "Les étiquettes déjà imprimées ne changent pas.",
   "labelSheetEdit": "Modifier le modèle",
+  "labelSheetSaveAsNew": "Enregistrer comme nouveau",
+  "labelPngTooLarge": "Le PNG est limité à {maxPages} pages de planche à {dpi} dpi, et cette impression en demande {pages}. Utilisez le PDF, une résolution plus basse ou moins de bobines.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Aucune donnée de maintenance",
   "maintenanceTotalHours": "{hours} h au total",
   "@maintenanceTotalHours": {

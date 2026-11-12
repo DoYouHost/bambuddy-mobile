@@ -2554,6 +2554,21 @@
   },
   "labelSheetDeleteBody": "Labels already printed with it are unaffected.",
   "labelSheetEdit": "Edit template",
+  "labelSheetSaveAsNew": "Save as new",
+  "labelPngTooLarge": "PNG is limited to {maxPages} sheet pages at {dpi} dpi, and this needs {pages}. Use PDF, a lower resolution or fewer spools.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "No maintenance data",
   "maintenanceTotalHours": "{hours} h total",
   "@maintenanceTotalHours": {

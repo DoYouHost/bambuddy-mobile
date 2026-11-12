@@ -419,6 +419,100 @@ void main() {
     });
   });
 
+  group('the PNG sheet cap', () {
+    // A sheet with one label per page: every spool is a page.
+    final single = LabelStock(
+      SpoolLabelTemplate.custom,
+      layout: const SheetLayout(
+        page: LabelPageSize.a4,
+        labelWidthMm: 100,
+        labelHeightMm: 100,
+        columns: 1,
+        rows: 1,
+        topMm: 0,
+        leftMm: 0,
+      ),
+    );
+
+    ({int pages, int maxPages})? over(
+      LabelStock stock,
+      int labels, {
+      int dpi = 300,
+      int start = 1,
+    }) => pngSheetOverCap(
+      stock,
+      labels: labels,
+      startingPosition: start,
+      dpi: dpi,
+    );
+
+    test(
+      'pages are the labels plus the blanks before the first, rounded up',
+      () {
+        expect(sheetPageCount(21, 21), 1);
+        expect(sheetPageCount(21, 22), 2);
+        expect(sheetPageCount(21, 3, 20), 2);
+        expect(sheetPageCount(21, 2, 20), 1);
+        expect(sheetPageCount(1, 500), 500);
+      },
+    );
+
+    test('the limit is pages × dpi up to and including 15 000', () {
+      // 25 pages at 600, 50 at 300 and 73 at 203, as the server's comment says.
+      expect(over(single, 25, dpi: 600), isNull);
+      expect(over(single, 26, dpi: 600)?.pages, 26);
+      expect(over(single, 26, dpi: 600)?.maxPages, 25);
+      expect(over(single, 50), isNull);
+      expect(over(single, 51)?.maxPages, 50);
+      expect(over(single, 73, dpi: 203), isNull);
+      expect(over(single, 74, dpi: 203)?.maxPages, 73);
+    });
+
+    test('a part-used sheet counts its blank slots as pages too', () {
+      // 2 slots a page, so the blank slot before the first label can add a page.
+      final pair = LabelStock(
+        SpoolLabelTemplate.custom,
+        layout: const SheetLayout(
+          page: LabelPageSize.a4,
+          labelWidthMm: 100,
+          labelHeightMm: 100,
+          columns: 2,
+          rows: 1,
+          topMm: 0,
+          leftMm: 0,
+        ),
+      );
+      // 50 labels fill 25 pages from slot 1, and start the 26th from slot 2.
+      expect(over(pair, 50, dpi: 600), isNull);
+      expect(over(pair, 50, start: 2, dpi: 600)?.pages, 26);
+    });
+
+    test('the built-in sheets always fit, at the largest batch', () {
+      for (final template in [
+        SpoolLabelTemplate.averyL7160,
+        SpoolLabelTemplate.avery5160,
+      ]) {
+        expect(
+          over(
+            LabelStock(template),
+            maxSpoolLabelsPerRequest,
+            dpi: 600,
+            start: template.sheetCapacity!,
+          ),
+          isNull,
+          reason: template.wire,
+        );
+      }
+    });
+
+    test('a roll template has no cap', () {
+      expect(
+        over(const LabelStock(SpoolLabelTemplate.box62x29), 500, dpi: 600),
+        isNull,
+      );
+    });
+  });
+
   group('a custom sheet', () {
     late Dio dio;
     late _FakeAdapter adapter;

@@ -3812,6 +3812,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelSheetEdit => 'Edit template';
 
   @override
+  String get labelSheetSaveAsNew => 'Save as new';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG is limited to $maxPages sheet pages at $dpi dpi, and this needs $pages. Use PDF, a lower resolution or fewer spools.';
+  }
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

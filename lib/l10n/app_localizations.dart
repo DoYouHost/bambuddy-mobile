@@ -6237,6 +6237,18 @@ abstract class AppLocalizations {
   /// **'Edit template'**
   String get labelSheetEdit;
 
+  /// No description provided for @labelSheetSaveAsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new'**
+  String get labelSheetSaveAsNew;
+
+  /// No description provided for @labelPngTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG is limited to {maxPages} sheet pages at {dpi} dpi, and this needs {pages}. Use PDF, a lower resolution or fewer spools.'**
+  String labelPngTooLarge(int maxPages, int dpi, int pages);
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

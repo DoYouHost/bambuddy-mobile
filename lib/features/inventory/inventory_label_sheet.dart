@@ -120,9 +120,10 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
   ).layout;
 
   /// Saves the sheet on the server: a new template, or the one being edited
-  /// replaced as a whole. The form stays open, so the sheet can be used right
+  /// replaced as a whole — or, with [asNew], a copy of that one under another
+  /// name, which the form then edits. The form stays open, so the sheet can be used right
   /// after, and a new template becomes the one the form edits.
-  Future<void> _save() async {
+  Future<void> _save({bool asNew = false}) async {
     final layout = _layout;
     final name = _name.text.trim();
     if (layout == null || layout.problem != null || name.isEmpty) return;
@@ -130,7 +131,7 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
     final messenger = ScaffoldMessenger.of(context);
     final repo = ref.read(labelTemplatesRepositoryProvider);
     final container = ProviderScope.containerOf(context);
-    final existing = _saved;
+    final existing = asNew ? null : _saved;
     setState(() => _saving = true);
     try {
       final saved = existing == null
@@ -371,6 +372,11 @@ class _CustomSheetFormState extends ConsumerState<_CustomSheetForm> {
                     ),
                   ).tagged('label_sheet.save'),
                   if (_saved != null) ...[
+                    gap,
+                    OutlinedButton(
+                      onPressed: canSave ? () => _save(asNew: true) : null,
+                      child: Text(l10n.labelSheetSaveAsNew),
+                    ).tagged('label_sheet.save_as_new'),
                     gap,
                     OutlinedButton(
                       onPressed: _saving ? null : _delete,

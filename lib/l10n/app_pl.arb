@@ -1485,6 +1485,21 @@
   },
   "labelSheetDeleteBody": "Etykiety wydrukowane wcześniej zostają bez zmian.",
   "labelSheetEdit": "Edytuj szablon",
+  "labelSheetSaveAsNew": "Zapisz jako nowy",
+  "labelPngTooLarge": "PNG ma limit {maxPages} stron arkusza przy {dpi} dpi, a ten wydruk potrzebuje {pages}. Użyj PDF, niższej rozdzielczości albo mniej szpul.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Brak danych o konserwacji",
   "maintenanceTotalHours": "{hours} h łącznie",
   "maintenanceDueBadge": "{count} zaległe",

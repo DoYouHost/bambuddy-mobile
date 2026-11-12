@@ -2012,6 +2012,21 @@
   },
   "labelSheetDeleteBody": "Bereits gedruckte Etiketten bleiben unverändert.",
   "labelSheetEdit": "Vorlage bearbeiten",
+  "labelSheetSaveAsNew": "Als neu speichern",
+  "labelPngTooLarge": "PNG ist bei {dpi} dpi auf {maxPages} Bogenseiten begrenzt, dieser Druck braucht {pages}. PDF, eine niedrigere Auflösung oder weniger Spulen wählen.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Keine Wartungsdaten",
   "maintenanceTotalHours": "{hours} h gesamt",
   "@maintenanceTotalHours": {

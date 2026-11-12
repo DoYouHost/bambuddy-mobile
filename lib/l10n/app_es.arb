@@ -2012,6 +2012,21 @@
   },
   "labelSheetDeleteBody": "Las etiquetas ya impresas no cambian.",
   "labelSheetEdit": "Editar plantilla",
+  "labelSheetSaveAsNew": "Guardar como nueva",
+  "labelPngTooLarge": "El PNG se limita a {maxPages} páginas de hoja a {dpi} dpi, y esta impresión necesita {pages}. Usa PDF, una resolución menor o menos bobinas.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Sin datos de mantenimiento",
   "maintenanceTotalHours": "{hours} h en total",
   "@maintenanceTotalHours": {

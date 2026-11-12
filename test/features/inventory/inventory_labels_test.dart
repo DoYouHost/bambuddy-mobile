@@ -49,6 +49,21 @@ class _CapturingInventory extends InventoryNotifier {
   );
 }
 
+/// [count] spools, for a print big enough to meet the server's PNG cap.
+class _ManySpools extends InventoryNotifier {
+  _ManySpools(this.count);
+
+  final int count;
+
+  @override
+  Future<InventoryState> build() async => InventoryState(
+    spools: [
+      for (var i = 1; i <= count; i++)
+        Spool(id: i, material: 'PLA', brand: 'Bambu'),
+    ],
+  );
+}
+
 /// Records the render request, then refuses — the refusal is what keeps the
 /// bytes away from the platform print dialog, which no widget test can serve.
 class _CapturingRepository extends InventoryRepository {
@@ -225,19 +240,23 @@ void main() {
     AsyncValue<bool>? gate,
     List<Override> extra = const [],
     LabelPrintPrefs Function()? prefs,
+    int spools = 1,
+    bool fieldsGate = false,
   }) async {
     final repo = _CapturingRepository();
     await pumpPhone(
       tester,
       const InventoryScreen(),
       overrides: [
-        inventoryProvider.overrideWith(_CapturingInventory.new),
+        inventoryProvider.overrideWith(
+          spools == 1 ? _CapturingInventory.new : () => _ManySpools(spools),
+        ),
         serverProfileProvider.overrideWith(_NullProfile.new),
         labelPrinterUrlProvider.overrideWith(_NoUrl.new),
         labelPrintPrefsProvider.overrideWith(
           prefs == null ? _MemoryPrefs.new : () => _SeededPrefs(prefs()),
         ),
-        labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+        labelFieldsProvider.overrideWithValue(AsyncData(fieldsGate)),
         inventoryRepositoryProvider.overrideWithValue(repo),
         labelStartingPositionProvider.overrideWithValue(
           gate ?? AsyncData(startingPositionSupported),
@@ -249,7 +268,7 @@ void main() {
 
     await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
     await settle(tester);
-    await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
+    await tester.tap(find.text('${pl.inventoryLabelsPrint} ($spools)'));
     await settle(tester);
     return repo;
   }
@@ -849,6 +868,54 @@ void main() {
       );
     });
 
+    testWidgets('a saved sheet can be saved again under another name', (
+      tester,
+    ) async {
+      adapter.onPost(
+        '/api/v1/label-templates',
+        (s) => s.reply(201, {...address, 'id': 9, 'name': 'Address copy'}),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.enterText(nameField(), 'Address copy');
+      await tester.enterText(
+        find.widgetWithText(TextField, pl.labelSheetColumns),
+        '2',
+      );
+      await settle(tester);
+      await tester.tap(saveButton(pl.labelSheetSaveAsNew));
+      await settle(tester);
+
+      // A POST, not a PUT: template 1 is left as it was.
+      expectSentAsRecorded(
+        'label_template_save_as_new',
+        writesOf(sent.requests),
+      );
+      expect(find.text(pl.labelSheetSaved('Address copy')), findsOneWidget);
+    });
+
+    testWidgets('saving as new under the same name is a name taken', (
+      tester,
+    ) async {
+      adapter.onPost(
+        '/api/v1/label-templates',
+        (s) => s.reply(409, {
+          'detail': 'A label template with this name already exists',
+        }),
+        data: Matchers.any,
+      );
+      await open(tester);
+      await openSaved(tester);
+
+      await tester.tap(saveButton(pl.labelSheetSaveAsNew));
+      await settle(tester);
+
+      expect(find.text(pl.labelSheetNameTaken), findsOneWidget);
+      expect(saveButton(pl.labelSheetSaveChanges), findsOneWidget);
+    });
+
     testWidgets('a delete asks first, then removes the template', (
       tester,
     ) async {
@@ -1065,6 +1132,102 @@ void main() {
         isNotNull,
         reason: 'the form must not stay locked behind the error',
       );
+    });
+  });
+
+  /// The server refuses a PNG of sheets past pages × dpi = 15 000 with a 422
+  /// — which the options sheet says before "Print" instead of after it.
+  group('the PNG sheet cap', () {
+    const single = SheetLayout(
+      page: LabelPageSize.a4,
+      labelWidthMm: 100,
+      labelHeightMm: 100,
+      columns: 1,
+      rows: 1,
+      topMm: 0,
+      leftMm: 0,
+    );
+
+    /// One label per page, [spools] of them, as a PNG at [dpi]; stops on the
+    /// options sheet.
+    Future<void> openOptions(
+      WidgetTester tester, {
+      required int spools,
+      required int dpi,
+      SpoolLabelFormat format = SpoolLabelFormat.png,
+    }) async {
+      tester.view.physicalSize = const Size(411, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        spools: spools,
+        fieldsGate: true,
+        prefs: () => LabelPrintPrefs(format: format, dpi: dpi),
+        extra: [
+          labelTemplatesSupportedProvider.overrideWithValue(
+            const AsyncData(true),
+          ),
+          labelTemplatesProvider.overrideWith(
+            (ref) async => const [
+              SavedLabelTemplate(id: 1, name: 'One a page', layout: single),
+            ],
+          ),
+        ],
+      );
+      await pickTemplate(tester, 'One a page');
+      await tester.ensureVisible(find.text('1').first);
+      await tester.tap(find.text('1').first);
+      await settle(tester);
+    }
+
+    bool printEnabled(WidgetTester tester) =>
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, pl.inventoryLabelsPrint),
+            )
+            .onPressed !=
+        null;
+
+    testWidgets('a run past the cap is said, and cannot be printed', (
+      tester,
+    ) async {
+      // 30 pages at 600 dpi is 18 000.
+      await openOptions(tester, spools: 30, dpi: 600);
+
+      expect(find.text(pl.labelPngTooLarge(25, 600, 30)), findsOneWidget);
+      expect(printEnabled(tester), isFalse);
+    });
+
+    testWidgets('the same run at a lower resolution is fine', (tester) async {
+      await openOptions(tester, spools: 30, dpi: 300);
+
+      expect(
+        find.textContaining(pl.labelPngTooLarge(50, 300, 30)),
+        findsNothing,
+      );
+      expect(printEnabled(tester), isTrue);
+    });
+
+    testWidgets('exactly the cap is allowed', (tester) async {
+      // 25 pages at 600 dpi is 15 000, which the server takes.
+      await openOptions(tester, spools: 25, dpi: 600);
+
+      expect(find.text(pl.labelPngTooLarge(25, 600, 25)), findsNothing);
+      expect(printEnabled(tester), isTrue);
+    });
+
+    testWidgets('a PDF has no such cap', (tester) async {
+      await openOptions(
+        tester,
+        spools: 30,
+        dpi: 600,
+        format: SpoolLabelFormat.pdf,
+      );
+
+      expect(find.text(pl.labelPngTooLarge(25, 600, 30)), findsNothing);
+      expect(printEnabled(tester), isTrue);
     });
   });
 

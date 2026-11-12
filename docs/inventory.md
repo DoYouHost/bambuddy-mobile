@@ -256,7 +256,13 @@ The stock picker lists the built-in labels, the sheets saved on the server and a
   composition); every other refusal goes through `showApiFailure`, and anything that is not
   an `AppApiException` is rethrown with the busy flag lowered. The list behind the form is
   refetched after every write, refusals included: a 404 is a template someone deleted.
-- **Not built, from the web form**: "Save as new" while editing a saved template. Saving a
-  one-off sheet under another name covers it, at the cost of retyping the layout.
+- **"Save as new"** sits beside "Save changes" in the editor: the same `POST` as a first
+  save, from the name and layout on screen, so a template becomes a copy without retyping
+  it. Under the same name it is a 409, said on the name field.
+- **The PNG cap is said before "Print"** (`pngSheetOverCap`, `spool_label.dart`): the server
+  refuses a PNG of sheets with pages × dpi over 15 000 (`MAX_PNG_SHEET_PAGES_X_DPI`,
+  `labels.py`), and the web modal does the arithmetic first too. The built-in sheets always
+  fit; a custom one-label-per-page sheet does not at 26 spools and 600 dpi. Pages count the
+  blank slots before the first label. A roll has no cap, and a PDF none either.
 - What each button sends is recorded in `test/fixtures/sent/label_template_*.json` by the
   widget test and replayed on a live server by `label_templates_contract_test.dart`.

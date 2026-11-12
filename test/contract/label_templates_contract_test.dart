@@ -275,6 +275,14 @@ void main() {
         sentName,
       );
 
+      // "Save as new" from an edit: the same POST, another name.
+      final copied = (await replayWrites(
+        dio,
+        recordedWrites('label_template_save_as_new'),
+      )).single;
+      expect(copied.statusCode, 201, reason: '${copied.data}');
+      templateIds.add((copied.data as Map)['id'] as int);
+
       // "Save changes": the recorded PUT, aimed at the template just made.
       final updated = (await replayWrites(
         dio,
@@ -310,6 +318,51 @@ void main() {
       final png = pngSize(await render(letter, format: SpoolLabelFormat.png));
       // US Letter, not the A4 the built-in sheet sits on.
       expect(png.width / png.height, closeTo(215.9 / 279.4, 0.01));
+    });
+
+    test('a PNG of sheets past pages × dpi is refused, as the app says before '
+        'it is asked', () async {
+      if (!hasTemplates) {
+        markTestSkipped('server predates #3296');
+        return;
+      }
+      const single = SheetLayout(
+        page: LabelPageSize.a4,
+        labelWidthMm: 100,
+        labelHeightMm: 100,
+        columns: 1,
+        rows: 1,
+        topMm: 0,
+        leftMm: 0,
+      );
+      final stock = LabelStock(SpoolLabelTemplate.custom, layout: single);
+      // One page a label: the first count past 15 000 at each resolution. Only
+      // the refusal is asked for — it comes before anything is rendered.
+      for (final (labels, dpi) in const [(26, 600), (51, 300), (74, 203)]) {
+        final over = pngSheetOverCap(
+          stock,
+          labels: labels,
+          startingPosition: 1,
+          dpi: dpi,
+        );
+        expect(over, isNotNull, reason: '$labels at $dpi dpi');
+        final res = await dio.post<dynamic>(
+          Endpoints.inventoryLabels,
+          data: {
+            'spool_ids': [for (var i = 0; i < labels; i++) spoolId],
+            'template': 'custom',
+            'layout': single.toJson(),
+            'format': 'png',
+            'dpi': dpi,
+          },
+          options: Options(validateStatus: (_) => true),
+        );
+        expect(res.statusCode, 422, reason: '$labels at $dpi dpi: ${res.data}');
+        expect(
+          '${res.data}',
+          contains('limited to ${over!.maxPages} sheet pages'),
+        );
+      }
     });
 
     test('a custom sheet starts within its own grid', () async {

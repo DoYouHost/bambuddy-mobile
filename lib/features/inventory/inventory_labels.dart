@@ -310,7 +310,11 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     // "Print" cancels, like the steps before it.
     final destination = await dashSurfaceSheet<LabelDestination>(
       context,
-      builder: (_) => _LabelOptionsSheet(template: template),
+      builder: (_) => _LabelOptionsSheet(
+        stock: stock,
+        labelCount: _selected.length,
+        startingPosition: startingPosition,
+      ),
     );
     if (destination == null || !mounted) return;
 

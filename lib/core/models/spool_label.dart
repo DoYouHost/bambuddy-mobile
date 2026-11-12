@@ -170,6 +170,32 @@ enum SpoolLabelFile {
   };
 }
 
+/// The server's cap on PNG sheets: pages × dpi (`MAX_PNG_SHEET_PAGES_X_DPI` in
+/// `labels.py`). A sheet page is a whole A4 or Letter page rasterised under a
+/// process-wide lock, so a long run at a high resolution is refused with a 422.
+const maxPngSheetPagesTimesDpi = 15000;
+
+/// Pages [labels] labels take on a sheet of [capacity], the first label at
+/// [startingPosition] (`sheet_page_count`).
+int sheetPageCount(int capacity, int labels, [int startingPosition = 1]) =>
+    (startingPosition - 1 + labels + capacity - 1) ~/ capacity;
+
+/// What a PNG of a sheet would take, or null when it is within the server's cap
+/// — or when [stock] is a roll, which has no such cap. The same arithmetic as
+/// the 422 the server answers, so the options sheet can say so before "Print".
+({int pages, int maxPages})? pngSheetOverCap(
+  LabelStock stock, {
+  required int labels,
+  required int startingPosition,
+  required int dpi,
+}) {
+  final capacity = stock.capacity;
+  if (capacity == null) return null;
+  final pages = sheetPageCount(capacity, labels, startingPosition);
+  if (pages * dpi <= maxPngSheetPagesTimesDpi) return null;
+  return (pages: pages, maxPages: maxPngSheetPagesTimesDpi ~/ dpi);
+}
+
 /// Server-side cap on one label request (`MAX_LABELS_PER_REQUEST`). Asking for
 /// more is a 422, so the UI blocks the print instead of sending it.
 const maxSpoolLabelsPerRequest = 500;

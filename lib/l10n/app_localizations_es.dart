@@ -3854,6 +3854,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get labelSheetEdit => 'Editar plantilla';
 
   @override
+  String get labelSheetSaveAsNew => 'Guardar como nueva';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'El PNG se limita a $maxPages páginas de hoja a $dpi dpi, y esta impresión necesita $pages. Usa PDF, una resolución menor o menos bobinas.';
+  }
+
+  @override
   String get maintenanceEmpty => 'Sin datos de mantenimiento';
 
   @override
