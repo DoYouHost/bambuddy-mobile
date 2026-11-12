@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../helpers.dart';
 
@@ -35,6 +36,8 @@ class _Statuses extends PrinterStatusesNotifier {
       id: PrinterStatus(
         id: id,
         connected: true,
+        // Input 251 feeds hotend 4: Ext-5, stored as tray 6.
+        vtTray: [if (unit == 32) const AmsTray(id: 251, trayType: 'PETG')],
         ams: [
           AmsUnit(
             id: unit,
@@ -50,12 +53,18 @@ class _Statuses extends PrinterStatusesNotifier {
 void main() {
   late _Shelf shelf;
 
-  Future<void> openAssign(WidgetTester tester) async {
+  Future<void> openAssign(WidgetTester tester, {double scale = 1.0}) async {
     shelf = _Shelf();
     usePhoneWindow(tester, dp: 2400);
     await pumpPhone(
       tester,
       const InventoryScreen(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
       overrides: [
         inventoryProvider.overrideWith(() => shelf),
         noServerProfileOverride,
@@ -120,5 +129,57 @@ void main() {
     await settle(tester);
     final draft = shelf.drafts.single;
     expect((draft.amsId, draft.trayId), (0, 0));
+  });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets("the H3C's input menu fits at text scale $scale", (
+      tester,
+    ) async {
+      await openAssign(tester, scale: scale);
+      await tester.tap(find.text(pl.externalSpool));
+      await settle(tester);
+      await tester.tap(byLogId('spool_assign.input'));
+      await settle(tester);
+      // An overflow is a FlutterError, which fails the test on its own.
+      expect(find.text('Ext-5 · PETG'), findsWidgets);
+    });
+  }
+
+  testWidgets("an H3C's external spool goes to the input picked, Ext-n", (
+    tester,
+  ) async {
+    await openAssign(tester);
+    await tester.tap(find.text(pl.externalSpool));
+    await settle(tester);
+    expect(find.text(pl.inventoryAssignExternalHint), findsNothing);
+    await tester.tap(byLogId('spool_assign.input'));
+    await settle(tester);
+    expect(find.text('Ext-5 · PETG'), findsWidgets);
+    expect(find.text('Ext-1 · ${pl.traySlotEmpty}'), findsWidgets);
+    await tester.ensureVisible(byLogId('spool_assign.input.6').last);
+    await settle(tester);
+    await tester.tap(byLogId('spool_assign.input.6').last);
+    await settle(tester);
+
+    await tester.tap(byLogId('spool_assign.save'));
+    await settle(tester);
+    final draft = shelf.drafts.single;
+    expect((draft.printerId, draft.amsId, draft.trayId), (1, 255, 6));
+  });
+
+  testWidgets('a printer with one holder takes a rack input back to it', (
+    tester,
+  ) async {
+    await openAssign(tester);
+    await tester.tap(find.text(pl.externalSpool));
+    await settle(tester);
+    await pick(tester, 'spool_assign.input', 'spool_assign.input.6');
+    await pick(tester, 'spool_assign.printer', 'spool_assign.printer_option');
+    expect(byLogId('spool_assign.input'), findsNothing);
+
+    await tester.tap(byLogId('spool_assign.save'));
+    await settle(tester);
+    final draft = shelf.drafts.single;
+    expect((draft.printerId, draft.amsId, draft.trayId), (2, 255, 0));
   });
 }

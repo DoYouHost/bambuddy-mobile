@@ -3358,6 +3358,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryAssignSlot => 'Slot';
 
   @override
+  String get inventoryAssignInput => 'Wejście';
+
+  @override
   String get inventoryAssignExtruder => 'Ekstruder';
 
   @override

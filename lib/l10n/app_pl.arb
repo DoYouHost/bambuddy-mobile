@@ -1246,6 +1246,7 @@
   "inventorySlotAms": "Slot AMS",
   "inventoryAssignUnit": "Jednostka AMS",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Wejście",
   "inventoryAssignExtruder": "Ekstruder",
   "inventoryAssignExternalHint": "Przypisze do zewnętrznego uchwytu szpuli",
   "inventoryAssignConfirm": "Przypisz",

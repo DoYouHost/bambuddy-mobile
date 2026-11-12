@@ -1633,6 +1633,7 @@
   "inventorySlotAms": "Ranura AMS",
   "inventoryAssignUnit": "Unidad AMS",
   "inventoryAssignSlot": "Ranura",
+  "inventoryAssignInput": "Entrada",
   "inventoryAssignExtruder": "Extrusor",
   "inventoryAssignExternalHint": "Asigna al soporte de bobina externo",
   "inventoryAssignConfirm": "Asignar",

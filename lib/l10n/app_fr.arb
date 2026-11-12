@@ -1633,6 +1633,7 @@
   "inventorySlotAms": "Emplacement AMS",
   "inventoryAssignUnit": "Unité AMS",
   "inventoryAssignSlot": "Emplacement",
+  "inventoryAssignInput": "Entrée",
   "inventoryAssignExtruder": "Extrudeur",
   "inventoryAssignExternalHint": "Assigne au support de bobine externe",
   "inventoryAssignConfirm": "Assigner",

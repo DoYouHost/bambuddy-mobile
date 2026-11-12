@@ -1633,6 +1633,7 @@
   "inventorySlotAms": "AMS-Slot",
   "inventoryAssignUnit": "AMS-Einheit",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Eingang",
   "inventoryAssignExtruder": "Extruder",
   "inventoryAssignExternalHint": "Weist dem externen Spulenhalter zu",
   "inventoryAssignConfirm": "Zuweisen",

@@ -72,6 +72,11 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         ? rackSlotCount
         : 4;
     if (_amsSlot >= slotCount) _amsSlot = 0;
+    // A rack printer (H3C) has nine external inputs, one per hotend, stored as
+    // tray 0-8 of unit 255; anywhere else a tray past the holder's two sides
+    // names nothing.
+    final rack = status?.trayLayout.rack ?? isRackPrinterModel(printer?.model);
+    if (!rack && _externalTray > 1) _externalTray = 0;
 
     return DraggableSheetSurface(
       initialSize: 0.55,
@@ -134,7 +139,23 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
             const SizedBox(height: DashSpace.lg),
 
             if (_external) ...[
-              if (dual) ...[
+              if (rack)
+                _NumberDropdown(
+                  key: ValueKey(_printerId),
+                  id: 'spool_assign.input',
+                  label: l10n.inventoryAssignInput,
+                  value: _externalTray,
+                  items: {
+                    for (var n = 1; n <= rackSlotCount; n++)
+                      externalSlotIndex(256 - n): _inputLabel(
+                        l10n,
+                        status,
+                        256 - n,
+                      ),
+                  },
+                  onChanged: (v) => setState(() => _externalTray = v),
+                )
+              else if (dual) ...[
                 Text(
                   l10n.inventoryAssignExtruder,
                   style: theme.textTheme.labelLarge,
@@ -201,6 +222,17 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         ],
       ),
     );
+  }
+
+  /// "Ext-4 · PETG", or "Ext-4 · Empty": what the input holds now, so the
+  /// choice is made by the spool in it rather than by counting hotends.
+  String _inputLabel(AppLocalizations l10n, PrinterStatus? status, int global) {
+    final type = status?.externalSpools
+        .where((t) => t.id == global)
+        .firstOrNull
+        ?.trayType;
+    final held = type == null || type.isEmpty ? l10n.traySlotEmpty : type;
+    return '${rackExternalLabel(global)} · $held';
   }
 
   Future<void> _assign() async {

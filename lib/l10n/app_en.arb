@@ -2169,6 +2169,7 @@
   "inventorySlotAms": "AMS slot",
   "inventoryAssignUnit": "AMS unit",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Input",
   "inventoryAssignExtruder": "Extruder",
   "inventoryAssignExternalHint": "Assigns to the external spool holder",
   "inventoryAssignConfirm": "Assign",

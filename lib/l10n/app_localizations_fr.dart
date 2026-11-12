@@ -3343,6 +3343,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryAssignSlot => 'Emplacement';
 
   @override
+  String get inventoryAssignInput => 'Entrée';
+
+  @override
   String get inventoryAssignExtruder => 'Extrudeur';
 
   @override

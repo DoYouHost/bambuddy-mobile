@@ -5486,6 +5486,12 @@ abstract class AppLocalizations {
   /// **'Slot'**
   String get inventoryAssignSlot;
 
+  /// No description provided for @inventoryAssignInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get inventoryAssignInput;
+
   /// No description provided for @inventoryAssignExtruder.
   ///
   /// In en, this message translates to:
