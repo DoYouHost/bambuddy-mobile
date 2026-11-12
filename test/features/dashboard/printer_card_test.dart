@@ -1831,6 +1831,38 @@ void main() {
         });
       }
 
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('nine positions sit 5 over 4, both rows centred, at text '
+            'scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': h3cRack()}),
+          );
+          // An overflow is a FlutterError, which fails the test on its own.
+          // "Position n: " — the label up to the diameter.
+          Rect at(int n) => tester.getRect(
+            chipLabelled(
+              RegExp(
+                '^${RegExp.escape(pl.nozzleRackPosition(n, '@').split('@').first)}',
+              ),
+            ),
+          );
+          final top = [for (var n = 1; n <= 5; n++) at(n)];
+          final bottom = [for (var n = 6; n <= 9; n++) at(n)];
+          expect(top.map((r) => r.top).toSet(), hasLength(1));
+          expect(bottom.map((r) => r.top).toSet(), hasLength(1));
+          expect(bottom.first.top, greaterThan(top.first.bottom));
+          // Centred: the four start half a step in from the five, and the two
+          // rows share a centre line.
+          expect(bottom.first.left, greaterThan(top.first.left));
+          expect(bottom.first.left, lessThan(top[1].left));
+          final topMid = (top.first.left + top.last.right) / 2;
+          final bottomMid = (bottom.first.left + bottom.last.right) / 2;
+          expect((topMid - bottomMid).abs(), lessThan(1));
+        });
+      }
+
       testWidgets('an H2C rack draws six, none ringed without addr_id', (
         tester,
       ) async {
