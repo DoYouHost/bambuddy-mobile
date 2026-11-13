@@ -50,7 +50,7 @@ Future<void> _pump(WidgetTester tester, Widget child) => pumpPhone(
   Scaffold(body: SingleChildScrollView(child: child)),
   overrides: [
     noServerProfileOverride,
-    printersForPickerProvider.overrideWith(
+    printerListProvider.overrideWith(
       (ref) async => const [Printer(id: 4, name: 'Workshop X2D')],
     ),
   ],

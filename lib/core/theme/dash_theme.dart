@@ -15,4 +15,17 @@ const bambuddyBrand = DashBrand(
 extension BambuddyAccent on DashTokens {
   Color get accentGreen => accent;
   Color get accentGreenInk => accentInk;
+
+  /// A box washed in [accent] with a soft outline of it: the banners and
+  /// notices that stand out from a card (merge, resume, no 3MF, locked group).
+  /// Decoration only, like [cardBox]; the layout stays with the caller.
+  BoxDecoration tintBox(Color accent) => BoxDecoration(
+    color: accent.withValues(alpha: DashAlpha.faint),
+    borderRadius: BorderRadius.circular(DashRadius.lg),
+    border: Border.all(color: accent.withValues(alpha: DashAlpha.soft)),
+  );
+
+  /// [bodyBold] in the primary ink: a section heading inside a sheet, or a
+  /// row's main line.
+  TextStyle get bodyBoldPrimary => bodyBold.copyWith(color: textPrimary);
 }

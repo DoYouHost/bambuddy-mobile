@@ -457,7 +457,7 @@ class _SkipObjectsRow extends StatelessWidget {
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context).skipObjectsTitle,
-                    style: t.bodyBold.copyWith(color: t.textPrimary),
+                    style: t.bodyBoldPrimary,
                   ),
                 ),
                 Icon(Icons.chevron_right_rounded, color: t.textTertiary),

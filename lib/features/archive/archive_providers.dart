@@ -11,7 +11,6 @@ import '../../core/models/current_user.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/print_log_entry.dart';
 import '../../core/models/print_run.dart';
-import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
@@ -461,12 +460,6 @@ class ArchiveNotifier extends AsyncNotifier<List<Archive>>
     return (ok: deleted, failed: failed);
   }
 }
-
-/// Lightweight printer list for picker (reprint / add to queue). Config only,
-/// no statuses — cheaper than `fetchAll`.
-final printersForPickerProvider = FutureProvider.autoDispose<List<Printer>>(
-  (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
-);
 
 /// Whether to nudge the user about prints that archived without their 3MF, and
 /// why — `GET /archives/no-3mf-warning`, read once per app run.

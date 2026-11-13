@@ -61,13 +61,7 @@ class ArchiveMergeBanner extends ConsumerWidget {
             DashSpace.xs,
             DashSpace.xs,
           ),
-          decoration: BoxDecoration(
-            color: t.accentBlue.withValues(alpha: DashAlpha.faint),
-            borderRadius: BorderRadius.circular(DashRadius.lg),
-            border: Border.all(
-              color: t.accentBlue.withValues(alpha: DashAlpha.soft),
-            ),
-          ),
+          decoration: t.tintBox(t.accentBlue),
           child: Row(
             children: [
               Icon(Icons.merge_type, size: DashIcon.md, color: t.accentBlueInk),

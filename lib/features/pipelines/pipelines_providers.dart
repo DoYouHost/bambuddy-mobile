@@ -247,13 +247,6 @@ final pipelineRunProvider = FutureProvider.autoDispose.family<PipelineRun, int>(
   (ref, runId) => ref.watch(pipelinesRepositoryProvider).runById(runId),
 );
 
-/// Every printer, for the "specific printer" target picker.
-final pipelineTargetPrintersProvider =
-    FutureProvider.autoDispose<List<Printer>>((ref) async {
-      final all = await ref.watch(printersRepositoryProvider).fetchAll();
-      return [for (final p in all) p.printer];
-    });
-
 /// The distinct printer models installed here, for the "printer class" picker.
 ///
 /// **Verbatim, not normalised**, so this cannot reuse
@@ -262,7 +255,7 @@ final pipelineTargetPrintersProvider =
 /// upper-cased value simply matches nothing.
 final pipelinePrinterClassesProvider = FutureProvider.autoDispose<List<String>>(
   (ref) async {
-    final printers = await ref.watch(pipelineTargetPrintersProvider.future);
+    final printers = await ref.watch(printerListProvider.future);
     return distinctPrinterModels(printers);
   },
 );

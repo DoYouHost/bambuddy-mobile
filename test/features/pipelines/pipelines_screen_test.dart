@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipeline_eligibility_view.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -65,7 +66,7 @@ void main() {
         canWritePipelinesProvider.overrideWithValue(AsyncData(canWrite)),
         canRunPipelinesProvider.overrideWithValue(const AsyncData(true)),
         pipelinesSupportedProvider.overrideWithValue(const AsyncData(true)),
-        pipelineTargetPrintersProvider.overrideWith((ref) async => printers),
+        printerListProvider.overrideWith((ref) async => printers),
         pipelinePrinterClassesProvider.overrideWith((ref) async => ['X1C']),
         slicerPresetsProvider.overrideWith((ref) async => _presets),
       ],

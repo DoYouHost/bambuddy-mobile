@@ -231,13 +231,7 @@ class _LoginBanner extends StatelessWidget {
     final t = DashTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(
-          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
-        ),
-      ),
+      decoration: t.tintBox(t.accentOrange),
       child: Row(
         children: [
           Icon(Icons.cloud_off, color: t.accentOrangeInk),

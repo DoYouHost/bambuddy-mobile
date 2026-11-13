@@ -202,7 +202,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       Expanded(
                         child: Text(
                           l10n.groupsAdvancedPermissions,
-                          style: t.bodyBold.copyWith(color: t.textPrimary),
+                          style: t.bodyBoldPrimary,
                         ),
                       ),
                       if (advancedSelected > 0)
@@ -423,13 +423,7 @@ class _LockedNotice extends StatelessWidget {
         horizontal: DashSpace.md,
         vertical: DashSpace.md,
       ),
-      decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(
-          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
-        ),
-      ),
+      decoration: t.tintBox(t.accentOrange),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

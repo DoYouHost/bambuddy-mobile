@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
-import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_screen.dart';
 import 'package:bambuddy_mobile/features/stats/stats_common.dart' show fmtNum;
 import 'package:bambuddy_mobile/providers.dart';
@@ -129,7 +128,7 @@ void main() {
         // Money needs the server's currency, which otherwise means building an
         // API client — and there is no profile here to build one from.
         serverSettingsOverride(const {'currency': 'PLN'}),
-        printersForPickerProvider.overrideWith(
+        printerListProvider.overrideWith(
           (ref) async => const [Printer(id: 3, name: 'P1S')],
         ),
         noServerProfileOverride,

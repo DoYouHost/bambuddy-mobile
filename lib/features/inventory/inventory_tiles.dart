@@ -657,7 +657,7 @@ class _SheetSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Text(label, style: t.bodyBold.copyWith(color: t.textPrimary));
+    return Text(label, style: t.bodyBoldPrimary);
   }
 }
 
@@ -881,7 +881,7 @@ class _SupplierLinkRow extends StatelessWidget {
                         link.supplierName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: t.bodyBold.copyWith(color: t.textPrimary),
+                        style: t.bodyBoldPrimary,
                       ),
                     ),
                     if (link.isPurchaseSource) ...[

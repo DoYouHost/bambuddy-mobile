@@ -54,8 +54,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final printers =
-        ref.watch(pipelineTargetPrintersProvider).value ?? const [];
+    final printers = ref.watch(printerListProvider).value ?? const [];
     final classes = ref.watch(pipelinePrinterClassesProvider).value ?? const [];
 
     return Scaffold(
