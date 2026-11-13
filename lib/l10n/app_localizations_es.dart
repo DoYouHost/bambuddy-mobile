@@ -10557,4 +10557,30 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get wledStateOffline => 'Desconectada';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Ya está aquí';
+
+  @override
+  String get fmMoveBlockedSelf => 'La carpeta que se mueve';
+
+  @override
+  String get fmMoveBlockedInside => 'Dentro de la carpeta que se mueve';
+
+  @override
+  String get fmMoveBlockedExternal => 'Carpeta externa';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'No es tuyo ni está compartido';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Carpeta de solo lectura';
+
+  @override
+  String get fmNotMoved => 'No se movió el archivo';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'No se movió el archivo: $reason';
+  }
 }

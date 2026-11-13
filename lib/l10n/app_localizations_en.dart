@@ -10427,4 +10427,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Already here';
+
+  @override
+  String get fmMoveBlockedSelf => 'The folder being moved';
+
+  @override
+  String get fmMoveBlockedInside => 'Inside the folder being moved';
+
+  @override
+  String get fmMoveBlockedExternal => 'External folder';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Not yours and not shared';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Read-only folder';
+
+  @override
+  String get fmNotMoved => 'File not moved';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'File not moved: $reason';
+  }
 }

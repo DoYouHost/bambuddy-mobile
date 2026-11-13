@@ -69,8 +69,14 @@ up() {
   docker run -d --rm --name "$spoolman" ghcr.io/donkie/spoolman:latest >/dev/null
 
   docker pull --quiet "ghcr.io/maziggy/bambuddy:$tag" >/dev/null
+  # Two directories the tests may mount as external library folders, one
+  # writable and one to mount read-only: the server takes only paths under
+  # BAMBUDDY_EXTERNAL_ROOTS, and they must exist.
   docker run -d --rm --name "$server" -p "$gateway:$port:8000" \
-    -e DATA_DIR=/app/data -e TZ=Europe/Warsaw "ghcr.io/maziggy/bambuddy:$tag" >/dev/null
+    -e DATA_DIR=/app/data -e TZ=Europe/Warsaw \
+    -e BAMBUDDY_EXTERNAL_ROOTS=/srv/external \
+    --tmpfs /srv/external/rw:mode=1777 --tmpfs /srv/external/ro:mode=1777 \
+    "ghcr.io/maziggy/bambuddy:$tag" >/dev/null
 
   local base="http://$gateway:$port"
   local broker_ip
@@ -98,6 +104,7 @@ BAMBUDDY_CONTRACT_BROKER=$broker
 BAMBUDDY_CONTRACT_BROKER_IP=$broker_ip
 BAMBUDDY_CONTRACT_SPOOLMAN_URL=http://$(ip_of "$spoolman"):8000
 BAMBUDDY_CONTRACT_WLED_URL=http://$(ip_of "$wled")
+BAMBUDDY_CONTRACT_EXTERNAL_ROOT=/srv/external
 TZ=Europe/Warsaw
 ENV
   echo "bambuddy:$tag $(curl -s "$base/api/v1/updates/version") at $base"

@@ -137,7 +137,9 @@ The traps that shaped them are written next to the code they bit:
 [contract-tests.yml](../.github/workflows/contract-tests.yml): a broker standing in
 for a printer, `ghcr.io/maziggy/bambuddy:<tag>` published on the docker bridge's
 gateway, the [fake WLED](../tool/ci/fake_wled.py) and Spoolman as containers, all
-seeded, under names that carry your user so another session's stack survives.
+seeded, under names that carry your user so another session's stack survives. The
+server gets `/srv/external/{rw,ro}` and `BAMBUDDY_EXTERNAL_ROOTS` for the
+external-folder tests.
 `just contract-test <tag> [files]` runs the suite against it, `just contract-down
 <tag>` removes it. The label printer and Manyfold are left out; their tests skip.
 

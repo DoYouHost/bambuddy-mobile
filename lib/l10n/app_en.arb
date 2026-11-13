@@ -7729,5 +7729,21 @@
   "wledStateQueueWaiting": "Waiting for the plate to be cleared",
   "wledStateFilamentProblem": "Filament problem",
   "wledStateHmsError": "HMS error",
-  "wledStateOffline": "Offline"
+  "wledStateOffline": "Offline",
+  "fmMoveBlockedCurrent": "Already here",
+  "fmMoveBlockedSelf": "The folder being moved",
+  "fmMoveBlockedInside": "Inside the folder being moved",
+  "fmMoveBlockedExternal": "External folder",
+  "fmMoveBlockedNotWritable": "Not yours and not shared",
+  "fmMoveBlockedReadOnly": "Read-only folder",
+  "fmNotMoved": "File not moved",
+  "fmNotMovedReason": "File not moved: {reason}",
+  "@fmNotMovedReason": {
+    "description": "The server's own English reason for skipping the file.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  }
 }

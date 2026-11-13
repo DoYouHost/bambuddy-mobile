@@ -10534,4 +10534,30 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Bereits hier';
+
+  @override
+  String get fmMoveBlockedSelf => 'Der verschobene Ordner';
+
+  @override
+  String get fmMoveBlockedInside => 'Im verschobenen Ordner';
+
+  @override
+  String get fmMoveBlockedExternal => 'Externer Ordner';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Nicht deiner und nicht freigegeben';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Schreibgeschützter Ordner';
+
+  @override
+  String get fmNotMoved => 'Datei nicht verschoben';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Datei nicht verschoben: $reason';
+  }
 }

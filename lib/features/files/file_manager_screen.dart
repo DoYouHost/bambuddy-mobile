@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/api/endpoints.dart';
 import '../../core/models/cost_center.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
@@ -405,6 +407,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final tagsSupported = ref.read(libraryTagsSupportedProvider).orFalse;
     // Settled by the listing this file came from, so one read is the answer.
     final extrasSupported = ref.read(libraryFileExtrasProvider).orFalse;
+    // A file on a mount moves too, its bytes with it, as the web offers; one on
+    // a read-only mount would only be skipped (`source_readonly`).
+    final inReadOnlyMount =
+        file.isExternal &&
+        (ref
+                .read(fileManagerProvider)
+                .value
+                ?.allFolders
+                .firstWhereOrNull((f) => f.id == file.folderId)
+                ?.externalReadonly ??
+            false);
     dashSheet<void>(
       context,
       scrollControlled: false,
@@ -553,7 +566,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   );
                 },
               ).tagged('file_actions.details'),
-            if (!file.isExternal) ...[
+            if (!file.isExternal)
               ListTile(
                 leading: const Icon(Icons.drive_file_rename_outline),
                 title: Text(l10n.fmRename),
@@ -562,6 +575,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _renameFile(file);
                 },
               ).tagged('file_actions.rename'),
+            if (!inReadOnlyMount)
               ListTile(
                 leading: const Icon(Icons.drive_file_move_outline),
                 title: Text(l10n.fmMoveTo),
@@ -570,6 +584,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _moveFile(file);
                 },
               ).tagged('file_actions.move'),
+            if (!file.isExternal)
               ListTile(
                 leading: const Icon(Icons.delete_outline),
                 title: Text(l10n.fmDelete),
@@ -578,7 +593,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _deleteFile(file);
                 },
               ).tagged('file_actions.delete'),
-            ],
           ],
         ),
       ),
@@ -629,8 +643,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (state == null) return;
     final target = await _pickFolder(
       state,
-      candidates: folderMoveTargets(state.allFolders, folder),
-      allowRoot: folder.parentId != null,
+      block: (target) => folderMoveBlock(state.allFolders, folder, target),
     );
     if (target == null || !mounted) return; // cancelled
     try {
@@ -690,12 +703,39 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _moveFile(LibraryFile file) async {
     final state = ref.read(fileManagerProvider).value;
     if (state == null) return;
-    final target = await _pickFolder(state);
+    final target = await _pickFolder(
+      state,
+      // Where the file is, not the folder on screen: search and the tag filter
+      // list files from every folder.
+      block: (target) => fileMoveBlock(file.folderId, target),
+    );
     if (target == null || !mounted) return; // cancelled
     try {
-      await ref.read(libraryRepositoryProvider).moveFiles([
+      final outcome = await ref.read(libraryRepositoryProvider).moveFiles([
         file.id,
       ], folderId: target.moveTargetId);
+      // Nothing moved: skipped with a reason, or gone before the server got to
+      // it. Recorded even if the screen was left, and nothing to refresh.
+      if (outcome.moved == 0) {
+        final reason = outcome.skipReason;
+        // The record keeps the code only: the reason names the file and the
+        // mount's path, which stay out of a bug report.
+        return _failed(
+          ApiException(
+            AppErrorCode.badResponse,
+            statusCode: 200,
+            detail: outcome.skipCode,
+            method: 'POST',
+            path: Endpoints.libraryFilesMove,
+          ),
+          'file_actions.move',
+          message: mounted
+              ? (reason == null
+                    ? _l10n.fmNotMoved
+                    : _l10n.fmNotMovedReason(reason))
+              : null,
+        );
+      }
       if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
       if (!mounted) return;
@@ -1114,17 +1154,47 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     String? initial,
   }) => promptName(context, title: title, label: label, initial: initial);
 
-  /// Target folder picker (move). Offers "All Files" (root) unless [allowRoot]
-  /// is off, and [candidates] (default: every folder) that are local and
-  /// writable.
+  /// The move target picker, the folder tree as the web's `FolderTargetList`
+  /// draws it: the root, then every folder indented by depth. A row [block]
+  /// refuses stays in the tree, dimmed, with the reason under its name, so the
+  /// tree keeps its shape and nobody wonders where a folder went.
   Future<LibraryFolder?> _pickFolder(
     FileManagerState s, {
-    List<LibraryFolder>? candidates,
-    bool allowRoot = true,
+    required MoveBlock? Function(LibraryFolder? target) block,
   }) {
     final l10n = _l10n;
-    final folders = [...(candidates ?? s.allFolders)]
-      ..sort((a, b) => compareIgnoringCase(a.name, b.name));
+    final rows = folderRows(s.allFolders);
+    String? why(MoveBlock? b) => switch (b) {
+      null => null,
+      MoveBlock.current => l10n.fmMoveBlockedCurrent,
+      MoveBlock.self => l10n.fmMoveBlockedSelf,
+      MoveBlock.inside => l10n.fmMoveBlockedInside,
+      MoveBlock.external => l10n.fmMoveBlockedExternal,
+      MoveBlock.readOnly => l10n.fmMoveBlockedReadOnly,
+      MoveBlock.notWritable => l10n.fmMoveBlockedNotWritable,
+    };
+    Widget tile(
+      BuildContext ctx, {
+      required IconData icon,
+      required String name,
+      required int depth,
+      required MoveBlock? blocked,
+      required LibraryFolder picked,
+    }) {
+      final reason = why(blocked);
+      return ListTile(
+        enabled: reason == null,
+        contentPadding: EdgeInsetsDirectional.only(
+          start: DashSpace.gutter + DashSpace.lg * depth,
+          end: DashSpace.gutter,
+        ),
+        leading: Icon(icon),
+        title: Text(name),
+        subtitle: reason == null ? null : Text(reason),
+        onTap: () => Navigator.pop(ctx, picked),
+      );
+    }
+
     return dashSheet<LibraryFolder>(
       context,
       scrollControlled: false,
@@ -1142,22 +1212,24 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 style: Theme.of(ctx).textTheme.titleMedium,
               ),
             ),
-            if (allowRoot)
-              ListTile(
-                leading: const Icon(Icons.home_outlined),
-                title: Text(l10n.fmRoot),
-                onTap: () => Navigator.pop(
-                  ctx,
-                  const LibraryFolder(id: -1, name: ''),
-                ), // Sentinel for root.
-              ).tagged('files.move_target_root'),
-            for (final f in folders)
-              if (!f.isExternal && f.canWrite)
-                ListTile(
-                  leading: const Icon(Icons.folder_outlined),
-                  title: Text(f.name),
-                  onTap: () => Navigator.pop(ctx, f),
-                ).tagged('files.move_target'),
+            tile(
+              ctx,
+              icon: Icons.home_outlined,
+              name: l10n.fmRoot,
+              depth: 0,
+              blocked: block(null),
+              // Sentinel for root.
+              picked: const LibraryFolder(id: -1, name: ''),
+            ).tagged('files.move_target_root'),
+            for (final row in rows)
+              tile(
+                ctx,
+                icon: Icons.folder_outlined,
+                name: row.folder.name,
+                depth: row.depth,
+                blocked: block(row.folder),
+                picked: row.folder,
+              ).tagged('files.move_target'),
           ],
         ),
       ),
