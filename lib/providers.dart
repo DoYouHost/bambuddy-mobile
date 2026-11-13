@@ -41,6 +41,7 @@ import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
+import 'core/models/printer.dart';
 import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
@@ -615,6 +616,14 @@ final printersRepositoryProvider = Provider<PrintersRepository>(
 /// listing settles it, so nothing probes.
 final wledSupportedProvider = capabilityGate(
   (ref) => ref.watch(printersRepositoryProvider).wledCapability,
+);
+
+/// Every printer's configuration, without statuses: the pickers and filters
+/// that name printers. `autoDispose`, so each one that opens reads the fleet
+/// afresh. A queue item's target picker keeps a busy printer listed, since
+/// nothing here drops one (the web edit modal's `showInactive`).
+final printerListProvider = FutureProvider.autoDispose<List<Printer>>(
+  (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
 );
 
 /// Whether the server can hold a user's jobs for review (#1620). See

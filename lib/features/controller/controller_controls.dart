@@ -528,7 +528,7 @@ class _SwitchTile extends StatelessWidget {
                             // One line at a large text size, where a second
                             // line does not fit the height of a finger.
                             large && sub != null ? '$label · $sub' : label,
-                            style: t.bodyBold.copyWith(color: t.textPrimary),
+                            style: t.bodyBoldPrimary,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

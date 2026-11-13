@@ -134,7 +134,10 @@ do not stay silent because it was not part of the task.
   button, system swipe, permission dialogs) — on-device tests. `just test` runs
   them after the host tests wherever adb and the emulator are installed, and
   says so when it skips them.
-- `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
+- `justfile` — `just test`, `just l10n-check`, `just l10n-add` (new strings into
+  every `.arb` from one JSON file), `just contract-up` / `contract-test` /
+  `contract-down` (the contract-test stack, see docs/dev-environment.md), `just
+  build` / `build-wear` /
   `build-aab`, `just release-start X.Y.Z`, `just ship X.Y.Z`, `just ship-dev`,
   emulator recipes. **`just
   hooks` once per clone** points git at `.githooks/`, which refuses a commit

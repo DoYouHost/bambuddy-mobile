@@ -12,7 +12,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/print_log_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../archive/archive_providers.dart' show printersForPickerProvider;
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/pick_date_range.dart';
@@ -506,7 +505,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(printLogFiltersProvider);
     final notifier = ref.read(printLogFiltersProvider.notifier);
-    final printers = ref.watch(printersForPickerProvider).value ?? const [];
+    final printers = ref.watch(printerListProvider).value ?? const [];
     // Empty (including on 403) hides the picker, mirroring the Stats screen:
     // the server decides who may list users, and the app has no permission
     // model of its own to ask.

@@ -220,11 +220,7 @@ class _PipelineCard extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: DashSpace.sm),
-            _targetLine(
-              theme,
-              l10n,
-              ref.watch(pipelineTargetPrintersProvider).value,
-            ),
+            _targetLine(theme, l10n, ref.watch(printerListProvider).value),
           ],
         ),
       ),

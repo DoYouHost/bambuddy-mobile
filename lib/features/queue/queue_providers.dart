@@ -417,17 +417,6 @@ final mayStartQueueItemProvider = Provider.family<bool, StartTarget>((
       (target.createdById == null && target.printerId != null);
 });
 
-/// All printers regardless of state, for the Edit Queue Item target picker.
-/// Unlike [availablePrintersProvider] it does NOT drop busy/printing printers,
-/// so the item's currently-assigned printer is always present and selectable
-/// (mirrors the web edit modal's `showInactive`).
-final allPrintersProvider = FutureProvider.autoDispose<List<Printer>>((
-  ref,
-) async {
-  final all = await ref.watch(printersRepositoryProvider).fetchAll();
-  return [for (final p in all) p.printer];
-});
-
 /// Filaments loaded on active printers of a model, for the Edit Queue Item
 /// filament-override dropdowns. Keyed by `(model, location)` — location `''`
 /// means no filter.

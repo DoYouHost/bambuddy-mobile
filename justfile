@@ -99,6 +99,39 @@ test-a11y *files='test/a11y':
     systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0 \
         -p RuntimeMaxSec=3000 flutter test --concurrency=4 -r failures-only {{files}}
 
+# The stack of .github/workflows/contract-tests.yml on this machine: broker,
+# bambuddy:<tag>, the fake WLED and Spoolman, seeded. tool/contract_stack.sh says
+# what is left out and why the server sits on the bridge gateway.
+[doc('start a seeded bambuddy (daily, latest, 1.2.5…) and its stand-ins for the contract tests')]
+[group('1-develop')]
+contract-up tag='daily' port='18000':
+    bash tool/contract_stack.sh up {{tag}} {{port}}
+
+[doc('stop the contract-test stack of one tag')]
+[group('1-develop')]
+contract-down tag='daily':
+    bash tool/contract_stack.sh down {{tag}}
+
+# In name order and one file at a time, as CI runs them (docs/dev-environment.md
+# says why both matter). Files narrow the run.
+[doc('run the contract tests against the stack contract-up started')]
+[group('1-develop')]
+contract-test tag='daily' *files:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    env=build/contract-{{tag}}.env
+    [ -f "$env" ] || { echo "no $env: run just contract-up {{tag}} first" >&2; exit 1; }
+    set -a; . "$env"; set +a
+    vars=()
+    while IFS='=' read -r key _; do vars+=(-E "$key"); done < "$env"
+    if [ -n "{{files}}" ]; then
+        files=({{files}})
+    else
+        mapfile -t files < <(find test/contract -maxdepth 1 -name '*_test.dart' | LC_ALL=C sort)
+    fi
+    systemd-run --user --scope -q -p MemoryMax=8G -p MemorySwapMax=0 \
+        -p RuntimeMaxSec=3000 "${vars[@]}" flutter test "${files[@]}" --concurrency=1
+
 [doc('run the on-device integration tests (boots the AVD first)')]
 [group('1-develop')]
 test-device avd=avd:
@@ -196,6 +229,15 @@ l10n-check-all:
 l10n-glue:
     dart run app_guards:glue_short_words
     flutter gen-l10n
+
+# Input: {"key": {"en": "…", "pl": "…", "de": "…", "es": "…", "fr": "…",
+# "@": {"placeholders": {…}}}}, every language required, "@" optional. Run
+# `just l10n-check` after it, as for any copy.
+[doc('add new strings to every .arb from one JSON file, then glue and gen-l10n')]
+[group('1-develop')]
+l10n-add file:
+    dart run tool/l10n_add.dart {{file}}
+    just l10n-glue
 
 [doc('check translation status and missing keys against app_en.arb')]
 [group('1-develop')]

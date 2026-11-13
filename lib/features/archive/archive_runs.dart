@@ -171,10 +171,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.archiveRunsTitle,
-            style: t.bodyBold.copyWith(color: t.textPrimary),
-          ),
+          Text(l10n.archiveRunsTitle, style: t.bodyBoldPrimary),
           if (multiPlate)
             Padding(
               padding: const EdgeInsets.only(top: DashSpace.sm),
@@ -402,24 +399,13 @@ class _VerdictPill extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final verdict = run.userVerdict;
-    final (label, icon, accent, ink) = switch (verdict) {
-      PrintVerdict.good => (
-        l10n.outcomeGoodPart,
-        Icons.thumb_up_alt,
-        t.accentGreen,
-        t.accentGreenInk,
-      ),
-      PrintVerdict.reject => (
-        l10n.outcomeRejected,
-        Icons.thumb_down_alt,
-        t.danger,
-        t.dangerInk,
-      ),
+    final (:label, :icon, tone: accent, :ink) = switch (verdict) {
+      final verdict? => verdictLook(t, l10n, verdict),
       null => (
-        l10n.outcomeAwaiting,
-        Icons.help_outline,
-        t.accentOrange,
-        t.accentOrangeInk,
+        label: l10n.outcomeAwaiting,
+        icon: Icons.help_outline,
+        tone: t.accentOrange,
+        ink: t.accentOrangeInk,
       ),
     };
     final source = verdict == null

@@ -14,6 +14,11 @@ import 'server_version_service.dart';
 /// and keeps the default.
 const treat404AsAbsent = {404, 403};
 
+/// [treat404AsAbsent] for a route an older server reads as `/<resource>/{id}`
+/// with a word where the id goes (`/archives/merge-count`, `/queue/batches`):
+/// it answers **422**, failing to parse the word as an int, and never 404.
+const treatPathCaptureAsAbsent = {404, 403, 422};
+
 /// A server capability the app settles by watching what the server actually
 /// answers, with [ServerVersion.introducedIn] behind it for before anything has
 /// been seen — a version number cannot always answer the question (see
@@ -160,9 +165,11 @@ class ObservedCapability {
 
   /// A **404** is the route not being there, a **403** is it not being for this
   /// caller; anything else (401, 5xx, no response) says nothing about either.
+  /// A **422** counts as the route missing only for a caller that passes it in
+  /// `observing` ([treatPathCaptureAsAbsent]).
   void observeFailure(int? status) {
     switch (status) {
-      case 404:
+      case 404 || 422:
         observe(present: false);
       case 403:
         observeRefusal();

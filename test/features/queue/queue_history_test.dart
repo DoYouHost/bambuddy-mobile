@@ -158,15 +158,7 @@ Future<void> _openHistory(
         currentUserOverride(user),
         noServerProfileOverride,
       ],
-      child: plApp(
-        const QueueScreen(),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
-          child: child!,
-        ),
-      ),
+      child: plApp(const QueueScreen(), builder: textScaled(textScale)),
     ),
   );
   await tester.pumpAndSettle();

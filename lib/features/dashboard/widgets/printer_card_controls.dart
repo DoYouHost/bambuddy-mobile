@@ -533,7 +533,7 @@ class _SpeedControl extends StatelessWidget {
                 ? _btnSpinner
                 : Icon(Icons.speed, size: DashIcon.md, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
-            Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
+            Text(label, style: t.bodyBoldPrimary),
             Icon(
               Icons.arrow_drop_down,
               size: DashIcon.md,

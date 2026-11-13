@@ -84,12 +84,7 @@ void main() {
     await pumpPhone(
       tester,
       const WledSettingsScreen(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
-      ),
+      builder: textScaled(textScale),
       overrides: [
         noServerProfileOverride,
         printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),

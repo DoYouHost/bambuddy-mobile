@@ -254,12 +254,7 @@ void main() {
       late List<Response<dynamic>> answers;
       final command = await firstRequest(
         serial,
-        () async => answers = await replayWrites(
-          dio,
-          sent,
-          item: printerId,
-          itemIn: RegExp(r'(?<=/printers/)\d+'),
-        ),
+        () async => answers = await replayWrites(dio, sent, item: printerId),
         where: (print) => print['command'] == 'ams_filament_drying',
       );
 
@@ -291,12 +286,7 @@ void main() {
         late List<Response<dynamic>> answers;
         final command = await firstRequest(
           serial,
-          () async => answers = await replayWrites(
-            dio,
-            sent,
-            item: printerId,
-            itemIn: RegExp(r'(?<=/printers/)\d+'),
-          ),
+          () async => answers = await replayWrites(dio, sent, item: printerId),
           where: (print) => print['command'] == 'ams_change_filament',
         );
 

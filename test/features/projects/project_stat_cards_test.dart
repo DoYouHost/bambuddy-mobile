@@ -54,12 +54,7 @@ void main() {
                 child: ProjectStatCards(stats: _stats),
               ),
             ),
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(scale)),
-              child: child!,
-            ),
+            builder: textScaled(scale),
           ),
         );
         await tester.pumpAndSettle();

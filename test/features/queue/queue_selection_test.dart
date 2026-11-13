@@ -30,7 +30,7 @@ void main() {
         overrides: layerOverrides([
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,
-          allPrintersProvider.overrideWith((ref) async => const <Printer>[]),
+          printerListProvider.overrideWith((ref) async => const <Printer>[]),
         ], extra),
         child: plApp(const QueueScreen()),
       );

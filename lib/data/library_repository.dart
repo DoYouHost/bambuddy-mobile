@@ -208,20 +208,13 @@ class LibraryRepository {
   /// with a 404, and "this file is not grouped" is the ordinary answer, not a
   /// failure. A 404 from an older server that has no such route reads the same
   /// and is equally harmless.
-  Future<VariantGroup?> variantGroupForFile(int fileId) async {
-    try {
-      final body = await guard(() async {
+  Future<VariantGroup?> variantGroupForFile(int fileId) =>
+      guardAbsent(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.libraryVariantGroupByFile(fileId),
         );
-        return res.data ?? const <String, dynamic>{};
-      });
-      return VariantGroup.fromJson(body);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+        return VariantGroup.fromJson(res.data ?? const <String, dynamic>{});
+      }, null);
 
   /// GET /library/files/{id}/plates — the plates of a multi-plate 3MF.
   ///

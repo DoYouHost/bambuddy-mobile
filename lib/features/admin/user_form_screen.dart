@@ -406,11 +406,7 @@ class _Notice extends StatelessWidget {
         horizontal: DashSpace.md,
         vertical: DashSpace.md,
       ),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: DashAlpha.faint),
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: accent.withValues(alpha: DashAlpha.soft)),
-      ),
+      decoration: t.tintBox(accent),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -12,11 +12,6 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 
-/// The printers a mapping is chosen for; their rows carry the stored mapping.
-final _wledPrintersProvider = FutureProvider.autoDispose<List<Printer>>(
-  (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
-);
-
 /// The finished-to-idle delay as typed: empty is 0 (off), anything but a whole
 /// number in 0..86400 is null.
 int? parseFinishedTimeout(String text) {
@@ -74,7 +69,7 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    ref.listenManual(_wledPrintersProvider, (_, next) {
+    ref.listenManual(printerListProvider, (_, next) {
       final printers = next.value;
       if (printers == null || printers.isEmpty) return;
       if (printers.none((p) => p.id == _printerId)) _select(printers.first);
@@ -291,8 +286,8 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
         appBar: dashAppBar(context, title: l10n.wledTitle),
         body: dashAsync(
           context,
-          ref.watch(_wledPrintersProvider),
-          onRetry: () => ref.invalidate(_wledPrintersProvider),
+          ref.watch(printerListProvider),
+          onRetry: () => ref.invalidate(printerListProvider),
           data: (printers) {
             final printer = printers.firstWhereOrNull(
               (p) => p.id == _printerId,
