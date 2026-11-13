@@ -6,7 +6,7 @@ feed — there is no Bambu Lab cloud connection of our own.
 
 ## CI is the answer to most questions
 
-Every pull request into `master` runs
+Every pull request into `master` or `dev` runs
 [.github/workflows/ci.yml](.github/workflows/ci.yml): `dart format` (check only),
 `flutter analyze`, `flutter test`, a debug APK build of both flavors, and a check
 of what the watch APK ships. A pull request that only touches `docs/`, `site/`,
@@ -16,8 +16,8 @@ a11y in three shards, build) behind one `analyze · test · build` job, the stat
 master requires. The pull request is opened as a draft by `just release-start`, so
 CI runs on every push to `release/X.Y.Z` through it; there is no `push` trigger,
 which would run it twice. `contract-tests.yml` is not part of that gate: it runs on
-pull requests into `master` that touch the contract code, and daily. Pull requests
-into `dev` and topic branches get no CI run of their own.
+pull requests into `master` that touch the contract code, and daily. A topic branch
+gets no CI run until its pull request into `dev` is opened.
 
 **Before you ask a question, check the CI result and fix what is red.** Analyzer
 errors, failing tests, broken builds and missing imports are yours to resolve —
@@ -134,7 +134,10 @@ do not stay silent because it was not part of the task.
   button, system swipe, permission dialogs) — on-device tests. `just test` runs
   them after the host tests wherever adb and the emulator are installed, and
   says so when it skips them.
-- `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
+- `justfile` — `just test`, `just l10n-check`, `just l10n-add` (new strings into
+  every `.arb` from one JSON file), `just contract-up` / `contract-test` /
+  `contract-down` (the contract-test stack, see docs/dev-environment.md), `just
+  build` / `build-wear` /
   `build-aab`, `just release-start X.Y.Z`, `just ship X.Y.Z`, `just ship-dev`,
   emulator recipes. **`just
   hooks` once per clone** points git at `.githooks/`, which refuses a commit

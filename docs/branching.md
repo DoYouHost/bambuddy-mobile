@@ -12,9 +12,10 @@ topic ──merge──▶ dev ──merge a SHA──▶ release/X.Y.Z ──PR
 ```
 
 - **Topic branches** are `feat/…`, `fix/…`, `refactor/…`, `docs/…`, `test/…`. They
-  merge into `dev` with a merge commit and are deleted. Nothing runs on them or on
-  `dev`: iterate on the tests of what you touched, the full suite runs on the
-  release branch.
+  merge into `dev` with a merge commit and are deleted. Nothing runs on a branch
+  itself: iterate on the tests of what you touched, and open a pull request into
+  `dev`, which runs the full CI (the same `ci.yml` as a release pull request). A
+  local merge into `dev` runs nothing.
 - **`dev`** is the integration branch. Nothing is released from it and `ship`
   refuses to run on it. `ship-dev` (a prerelease, no commit) still runs anywhere.
 - **`release/X.Y.Z`** is cut for every stable version and is the only branch
