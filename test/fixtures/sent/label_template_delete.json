@@ -1,0 +1,7 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/v1/label-templates/1",
+    "body": null
+  }
+]

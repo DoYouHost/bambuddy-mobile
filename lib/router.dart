@@ -26,6 +26,7 @@ import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
+import 'features/alarm/alarm_settings_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/inventory/profile_defaults_screen.dart';
 import 'features/settings/pause_warning_screen.dart';
@@ -33,6 +34,7 @@ import 'features/settings/queue_settings_screen.dart';
 import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
+import 'features/settings/wled_settings_screen.dart';
 import 'features/model_sources/model_sources_screen.dart';
 import 'features/locations/printer_locations_screen.dart';
 import 'features/orders/order_edit_screen.dart';
@@ -158,6 +160,10 @@ GoRouter buildAppRouter({
         path: '/settings/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),
       ),
+      GoRoute(
+        path: '/settings/alarm',
+        builder: (_, _) => const AlarmSettingsScreen(),
+      ),
 
       // Server settings — the hub, and the one form it owns outright. Full
       // screens outside the shell (pushed from the drawer). The entries the hub
@@ -178,6 +184,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: '/settings/profile-defaults',
         builder: (_, _) => const ProfileDefaultsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/wled',
+        builder: (_, _) => const WledSettingsScreen(),
       ),
 
       // Maintenance settings (types + per-printer overrides) — full screen
@@ -392,6 +402,7 @@ GoRouter buildAppRouter({
           final q = state.uri.queryParameters;
           return TimelapseScreen(
             archiveId: int.parse(q['archive']!),
+            runId: int.tryParse(q['run'] ?? ''),
             title: q['name'],
           );
         },
@@ -405,6 +416,8 @@ GoRouter buildAppRouter({
           final q = state.uri.queryParameters;
           return ArchivePhotosScreen(
             archiveId: int.parse(q['archive']!),
+            // Repeated `photo=` keys, one per file of the print's own.
+            only: state.uri.queryParametersAll['photo'],
             title: q['name'],
           );
         },

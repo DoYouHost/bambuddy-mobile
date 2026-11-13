@@ -14,6 +14,11 @@ void main() {
         expect(supportsChamberHeater('O1C'), isTrue);
       });
 
+      test('the H3C, by name and by its N10 code', () {
+        expect(supportsChamberHeater('H3C'), isTrue);
+        expect(supportsChamberHeater('N10'), isTrue);
+      });
+
       test('normalizes case and surrounding whitespace', () {
         expect(supportsChamberHeater('  h2d  '), isTrue);
         expect(supportsChamberHeater('h2c'), isTrue);
@@ -38,6 +43,11 @@ void main() {
         expect(supportsAirduct('H2D'), isTrue);
         expect(supportsAirduct('N7'), isTrue);
         expect(supportsAirduct('N6'), isTrue);
+      });
+
+      test('the H3C, by name and by its N10 code', () {
+        expect(supportsAirduct('H3C'), isTrue);
+        expect(supportsAirduct('N10'), isTrue);
       });
 
       test('normalizes case and surrounding whitespace', () {

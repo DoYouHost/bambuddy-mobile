@@ -262,6 +262,23 @@ The catalog is `/library/tags` (CRUD), assignment is `bulk-assign`, and the filt
   blip does not remove the feature.
 - Tag names travel inside the file listing, so a rename refreshes the file list as
   well as the catalog.
+- **Moving a folder takes `{"parent_id": 0}` for the root.** `null` is "no change", the
+  same trap as the project link (`library.py::update_folder`). `LibraryRepository.moveFolder`
+  sends `parentId ?? 0`. The route has taken `parent_id` since before 1.2.5, so there is
+  no gate; server #3306 only added refusals (a local folder cannot go into a mount, a
+  mount cannot move), which `folderMoveBlock` mirrors from the web's
+  `moveDisallowedFolderIds` so the picker never lets one be picked: like the web's
+  `FolderTargetList` it shows them in the tree, dimmed, with the reason.
+- **A file moves into a writable mount with its bytes.** `POST /library/files/move`
+  copies the file onto the mount and repoints it, and back again to the root; measured
+  the same on 1.2.5, 1.3.1 and the dailies (`library_external_move_contract_test.dart`).
+  A read-only mount is a 403 before anything moves, which `fileMoveBlock` mirrors. The
+  other refusals are per file and arrive inside a **200**: `moved`, `skipped` and
+  `skipped_reasons` (`code`, English `reason`) — a name already on the mount, a source
+  gone from disk, a file the user does not own; a file deleted meanwhile is neither
+  moved nor skipped. The web ignores the body and says "Files moved" on any 200; the app
+  says the reason when nothing moved, and records only the `code`, since the reason
+  names the file and the mount's path.
 
 ### Projects (`/api/v1/projects/*`)
 

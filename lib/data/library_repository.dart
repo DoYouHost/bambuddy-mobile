@@ -21,6 +21,14 @@ import 'streamed_download.dart';
 /// Auth adds [AuthInterceptor] to the shared Dio (thumbnails go separately via
 /// `?token=` — see `LibraryThumbnail`). Each method maps [DioException] to
 /// [AppApiException].
+/// What `POST /library/files/move` did ([LibraryRepository.moveFiles]).
+typedef FileMoveOutcome = ({
+  int moved,
+  int skipped,
+  String? skipCode,
+  String? skipReason,
+});
+
 class LibraryRepository {
   LibraryRepository(this._dio, [this._serverVersion]);
 
@@ -208,20 +216,13 @@ class LibraryRepository {
   /// with a 404, and "this file is not grouped" is the ordinary answer, not a
   /// failure. A 404 from an older server that has no such route reads the same
   /// and is equally harmless.
-  Future<VariantGroup?> variantGroupForFile(int fileId) async {
-    try {
-      final body = await guard(() async {
+  Future<VariantGroup?> variantGroupForFile(int fileId) =>
+      guardAbsent(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.libraryVariantGroupByFile(fileId),
         );
-        return res.data ?? const <String, dynamic>{};
-      });
-      return VariantGroup.fromJson(body);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+        return VariantGroup.fromJson(res.data ?? const <String, dynamic>{});
+      }, null);
 
   /// GET /library/files/{id}/plates — the plates of a multi-plate 3MF.
   ///
@@ -318,6 +319,15 @@ class LibraryRepository {
     ),
   );
 
+  /// PUT /library/folders/{id} — move folder into [parentId] (null = root).
+  /// The root is `0` on the wire; a null would leave the parent as it is.
+  Future<void> moveFolder(int folderId, {int? parentId}) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFolder(folderId),
+      data: <String, dynamic>{'parent_id': parentId ?? 0},
+    ),
+  );
+
   /// DELETE /library/folders/{id} — delete folder and contents.
   Future<void> deleteFolder(int folderId) =>
       guard(() => _dio.delete<dynamic>(Endpoints.libraryFolder(folderId)));
@@ -380,12 +390,34 @@ class LibraryRepository {
   );
 
   /// POST /library/files/move — move files to folder [folderId] (null = root).
-  Future<void> moveFiles(List<int> fileIds, {int? folderId}) => guard(
-    () => _dio.post<dynamic>(
+  ///
+  /// A file the server will not move is skipped inside a 200, not refused:
+  /// a name already taken in a mount, a source gone from disk, a file the user
+  /// does not own. The first skip's `code` and English `reason` come back. A
+  /// reply without `moved` (a server older than the counts) moved them all.
+  Future<FileMoveOutcome> moveFiles(
+    List<int> fileIds, {
+    int? folderId,
+  }) => guard(() async {
+    final res = await _dio.post<dynamic>(
       Endpoints.libraryFilesMove,
       data: <String, dynamic>{'file_ids': fileIds, 'folder_id': folderId},
-    ),
-  );
+    );
+    final body = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final reasons = body['skipped_reasons'];
+    final first = reasons is List && reasons.isNotEmpty && reasons.first is Map
+        ? reasons.first as Map
+        : const {};
+    final skipped = toIntOrNull(body['skipped']) ?? 0;
+    return (
+      moved: toIntOrNull(body['moved']) ?? (skipped > 0 ? 0 : fileIds.length),
+      skipped: skipped,
+      skipCode: toStringOrNull(first['code']),
+      skipReason: toStringOrNull(first['reason']),
+    );
+  });
 
   /// DELETE /library/files/{id} — move file to trash.
   Future<void> deleteFile(int fileId) =>

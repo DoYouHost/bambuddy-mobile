@@ -62,13 +62,15 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
   final extruderMap = status.amsExtruderMap;
   final externals = status.vtTray ?? const <AmsTray>[];
   final nozzles = status.nozzles ?? const [];
+  // A rack printer (H3C) has nine external inputs but one extruder.
+  final rackExternals = status.trayLayout.rack;
   // The backend always sends two nozzle entries, so the second one's diameter
   // is the signal, with the extruder map and a second holder as fallbacks.
   final hasDualNozzle =
       (nozzles.length > 1 &&
           (nozzles[1].nozzleDiameter?.isNotEmpty ?? false)) ||
       (extruderMap?.isNotEmpty ?? false) ||
-      externals.length > 1;
+      (externals.length > 1 && !rackExternals);
 
   final out = <LoadedFilament>[];
   final units = status.ams ?? const <AmsUnit>[];
@@ -89,7 +91,11 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
           trayId: trayId,
           isHt: isHt,
           isExternal: false,
-          globalTrayId: globalTrayId(amsId: amsId, trayId: trayId),
+          globalTrayId: globalTrayId(
+            amsId: amsId,
+            trayId: trayId,
+            amsType: unit.amsType,
+          ),
           trayInfoIdx: tray.trayInfoIdx ?? '',
           traySubBrands: tray.traySubBrands ?? '',
           extruderId: extruderMap?[amsId],
@@ -107,10 +113,10 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
         type: type,
         color: normalizeColor(ext.trayColor),
         amsId: -1,
-        trayId: id - externalTrayIdBase,
+        trayId: externalSlotIndex(id),
         isHt: false,
         isExternal: true,
-        // The holder's global id is its tray id, 254 or 255.
+        // The holder's global id is its tray id: 254/255, 247-253 on a rack.
         globalTrayId: id,
         trayInfoIdx: ext.trayInfoIdx ?? '',
         traySubBrands: ext.traySubBrands ?? '',
@@ -120,6 +126,26 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
     );
   }
   return out;
+}
+
+/// The slot [f] sits in as the mapping names it (`useFilamentMapping.ts`):
+/// `A1`, `HT-A`, `3H-7`; on the machine's own letters for an external input —
+/// `Ext-n` by hotend on a rack printer, `Ext-L`/`Ext-R` with two holders. Null
+/// for the one external spool of a single holder, which the caller names in
+/// its own language.
+String? mappingSlotLabel(LoadedFilament f, PrinterStatus? status) {
+  final layout = status?.trayLayout;
+  if (f.isExternal) {
+    if (layout?.rack ?? false) return rackExternalLabel(f.globalTrayId);
+    if ((status?.vtTray?.length ?? 0) <= 1) return null;
+    return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
+  }
+  return formatSlotLabel(
+    f.amsId,
+    f.trayId,
+    isHt: f.isHt,
+    amsType: layout?.amsTypeOf(f.amsId),
+  );
 }
 
 /// `normalizeColor`: `#RRGGBB`, keeping the alpha only below `ff`; grey for

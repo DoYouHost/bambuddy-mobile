@@ -12,6 +12,7 @@ import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
+import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer.dart';
 import '../../../core/models/printer_capabilities.dart';
@@ -19,10 +20,12 @@ import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
 import '../../../core/printers/bed_jog.dart';
 import '../../../core/printers/hms_readback.dart';
+import '../../../core/printers/nozzle_rack.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
+import '../../../core/slicer/loaded_spool_match.dart';
 import '../../../core/settings/server_profile.dart';
 import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
@@ -31,7 +34,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
+import '../../../core/ams/color_names.dart';
 import '../../common/api_failure_snack.dart';
+import '../../common/color_catalog.dart';
 import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
 import '../../common/dash_async.dart';
@@ -44,10 +49,15 @@ import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
+    show
+        SpoolSwatch,
+        assignmentSlotLabel,
+        openSpoolInInventory,
+        parseSpoolColor;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../add_printer_screen.dart';
+import '../ams_slot_config_providers.dart';
 import '../controls_providers.dart';
 import '../print_lifecycle.dart';
 import '../smart_plug_actions.dart';
@@ -239,6 +249,7 @@ class _PrinterCardState extends State<PrinterCard> {
     final readings = buildTempReadings(
       status?.temperatures,
       status?.airductIsHeating,
+      rackPosition: status?.mountedRackPosition,
     );
     final hasDetails = status?.hasDetails ?? false;
     final hasFans =

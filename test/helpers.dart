@@ -9,6 +9,8 @@ import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/api/observed_capability.dart';
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -123,6 +125,17 @@ final _plDelegates = [
   ReportLocalizations.delegate,
   ...GlobalMaterialLocalizations.delegates,
 ];
+
+/// The [MaterialApp.builder] for a run at [scale] text size, the 1.0 / 1.5 /
+/// 2.0 runs a layout test makes (AGENTS.md: tests pass at more than 100 %).
+/// Pass it to [plApp] or [pumpPhone].
+TransitionBuilder textScaled(double scale) =>
+    (context, child) => MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(scale)),
+      child: child!,
+    );
 
 /// Pumps a phone widget inside a `ProviderScope` and [plApp]. Almost every caller
 /// wants [noServerProfileOverride] in [overrides].
@@ -621,6 +634,7 @@ class RecordingNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {
     alerts.add({
       'event': event,
@@ -634,6 +648,7 @@ class RecordingNotifications implements NotificationService {
       'photo': picture?.photoPath,
       'thumb': picture?.thumbnailPath,
       'quiet': quiet,
+      'silent': silent,
     });
     final failure = failWith;
     if (failure != null) throw failure;
@@ -779,6 +794,10 @@ class RecordingCommands implements PrinterCommandsRepository {
     final failure = errors[kind] ?? error;
     if (failure != null) throw failure;
   }
+
+  /// No version behind it, so it answers no, as a server too old to say.
+  @override
+  final amsHtLoadCapability = ObservedCapability(ServerFeature.amsHtLoad, null);
 
   @override
   Future<Object?> fetchOpenApi() async => null;

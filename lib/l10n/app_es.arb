@@ -161,6 +161,7 @@
   "ctrlSet": "Ajustar",
   "ctrlActivate": "Activar",
   "ctrlNozzleActive": "Activa",
+  "amsDryer": "Secador",
   "ctrlDry": "Secar",
   "ctrlDrying": "Secando",
   "ctrlDryNotRunning": "Detenido",
@@ -746,8 +747,15 @@
   "cameraConnecting": "Conectando con la cámara…",
   "cameraError": "No se pudo cargar la transmisión de la cámara",
   "cameraDemoUnavailable": "Esta impresora de demostración está desconectada, así que no hay imagen de cámara.",
+  "nozzleRack": "Soporte de boquillas",
+  "nozzleRackMounted": "en el cabezal",
+  "nozzleRackPosition": "Posición {position}: {diameter} mm",
+  "nozzleRackPositionEmpty": "Posición {position}: vacía",
+  "externalInputs": "Entradas externas",
+  "externalInputsEmpty": "Las {count} entradas externas están vacías",
   "externalSpool": "Bobina externa",
   "traySlotEmpty": "Vacía",
+  "traySlotUnconfigured": "Sin configurar",
   "amsSlotFilament": "Filamento",
   "amsLoad": "Cargar",
   "amsUnload": "Descargar",
@@ -767,6 +775,9 @@
   "amsFeedAlreadyLoaded": "ya cargado",
   "amsSwitchNotReady": "El Filament Track Switch aún no está configurado. Asigna cada AMS a una entrada de la impresora e inténtalo de nuevo.",
   "amsUnloadSlotNotLoaded": "Ninguna boquilla se alimenta desde esta ranura",
+  "amsUnloadAms3h": "Descargando la ranura {slot}. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.",
+  "amsLoadAms3hEmpty": "La ranura {slot} no tiene filamento. Empújalo en la entrada hasta que el AMS 3H lo recoja y vuelve a cargar.",
+  "dryAms3hSlots": "El AMS 3H seca solo las ranuras {a} y {b}",
   "amsActionsWhilePrinting": "No disponible mientras la impresora está imprimiendo",
   "amsSlotConfigure": "Configurar ranura",
   "amsSlotConfigTitle": "Configuración de ranura",
@@ -832,7 +843,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Colores del catálogo",
-  "amsSlotConfigColourCustom": "Color personalizado",
   "amsSlotReset": "Restablecer ranura",
   "amsSlotResetConfirmTitle": "¿Restablecer esta ranura?",
   "amsSlotResetConfirmMessage": "La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.",
@@ -1010,6 +1020,25 @@
   "twoFactorBack": "Usar otra cuenta",
   "twoFactorSessionNote": "La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave API no caduca y omite este paso.",
   "tryDemo": "Probar la demo",
+  "customCaTrusted": "CA de confianza: {name}",
+  "customCaRemove": "Quitar certificado de CA",
+  "certificateImport": "Importar certificado",
+  "certificateInvalid": "Este archivo no contiene ningún certificado",
+  "clientCertInvalid": "Este archivo no contiene un certificado con su clave",
+  "customCaPickFailed": "No se pudo abrir el archivo",
+  "clientCertInUse": "Certificado de cliente: {name}",
+  "clientCertRemove": "Quitar certificado de cliente",
+  "clientCertWrongPassword": "Contraseña del certificado incorrecta",
+  "clientCertPasswordTitle": "Contraseña del certificado",
+  "certificatesTitle": "Certificados",
+  "customCaRemoveTitle": "¿Quitar el certificado de CA?",
+  "customCaRemoveMessage": "La app dejará de confiar en los servidores que firmó.",
+  "clientCertRemoveTitle": "¿Quitar el certificado de cliente?",
+  "clientCertRemoveMessage": "Un servidor que lo pida rechazará la app.",
+  "certificatesRemoveAll": "Quitar todos los certificados",
+  "certificatesRemoveAllTitle": "¿Quitar todos los certificados?",
+  "certificatesRemoveAllMessage": "La app dejará de conectar con los servidores que los necesiten.",
+  "certificateRemoveConfirm": "Quitar",
   "scanApiKeyTitle": "Escanear clave API",
   "scanApiKeyHint": "Apunta la cámara al código QR de la clave API",
   "cameraPermissionTitle": "Se necesita acceso a la cámara",
@@ -1039,9 +1068,11 @@
       }
     }
   },
-  "errBadCertificate": "Certificado TLS no válido (los autofirmados no son compatibles en la v1)",
+  "errBadCertificate": "El certificado del servidor no es de confianza",
+  "errClientCertRefused": "El servidor exige un certificado de cliente válido",
   "errConnection": "Error de conexión",
   "errMalformedResponse": "Respuesta del servidor mal formada",
+  "errNotBambuddy": "Esta dirección no es un servidor Bambuddy — comprueba el puerto y quita la ruta que lo sigue, si la hay.",
   "errInvalidCredentials": "Usuario o contraseña no válidos",
   "errTwoFactorUnsupported": "La cuenta requiere 2FA — no es compatible en esta versión. Usa una clave API (Ajustes → Claves API en el servidor).",
   "errTwoFactorCodeRejected": "Código incorrecto — compruébalo e inténtalo de nuevo.",
@@ -1227,6 +1258,36 @@
   "notifExtrasHeader": "Detalles",
   "notifFinishPhotoTitle": "Foto de la impresión finalizada",
   "notifFinishPhotoDesc": "Añade la foto que toma el servidor al terminar la impresión a la notificación de finalización o fallo, en cuanto esté disponible",
+  "alarmHeader": "Alarma",
+  "alarmTitle": "Despertarme con una alarma",
+  "alarmDesc": "Suena en la pantalla de bloqueo hasta que la detengas",
+  "alarmEvtFinished": "Impresión finalizada",
+  "alarmEvtFinishedDesc": "Una impresión terminó correctamente",
+  "alarmEvtBlocked": "Impresión detenida por un fallo",
+  "alarmEvtBlockedDesc": "Un fallo pausó o detuvo la impresión, o la impresión falló",
+  "alarmEvtDrying": "Secado finalizado",
+  "alarmEvtDryingDesc": "Un ciclo de secado del AMS llegó a su fin",
+  "alarmWindowTitle": "Solo en las horas elegidas",
+  "alarmWindowDesc": "Fuera de este horario la alarma no suena",
+  "alarmWindowFrom": "Desde",
+  "alarmWindowTo": "Hasta",
+  "alarmRingFor": "Suena durante {minutes} min",
+  "alarmRingForDesc": "Después se detiene sola",
+  "alarmMinutes": "{minutes} min",
+  "alarmStop": "Detener",
+  "alarmTest": "Probar alarma",
+  "alarmTestBody": "Así suena la alarma",
+  "alarmTestFailed": "La alarma no pudo sonar. Comprueba que las notificaciones estén activadas.",
+  "alarmFullScreenNeeded": "Sin permiso, la alarma no cubrirá la pantalla de bloqueo",
+  "alarmFullScreenAllow": "Permitir",
+  "alarmHoursHeader": "Horario",
+  "alarmLengthHeader": "Duración",
+  "alarmSettingsSubtitle": "Qué la activa, en qué horario y durante cuánto tiempo",
+  "alarmExcludedLocationsHeader": "Ubicaciones excluidas",
+  "alarmExcludedPrintersHeader": "Impresoras excluidas",
+  "alarmExcludeLocationDesc": "Ninguna impresora de aquí activa la alarma",
+  "alarmExcludePrinterDesc": "Esta impresora nunca activa la alarma",
+  "alarmExcludedWithLocation": "Excluida con la ubicación {location}",
   "notifThresholdsHeader": "Umbrales",
   "notifEvtStarted": "Impresión iniciada",
   "notifEvtStartedDesc": "Cuando comienza una impresión",
@@ -1529,7 +1590,7 @@
   "inventoryExtraColorsHint": "2–8 valores hex, separados por comas",
   "inventoryFieldEffect": "Efecto",
   "inventoryEffectNone": "Ninguno",
-  "inventoryColorCommon": "Colores habituales",
+  "inventoryColorCatalog": "Catálogo de colores",
   "inventoryColorSearchHint": "Buscar colores…",
   "inventoryColorPickTitle": "Elegir un color",
   "inventoryColorSelect": "Seleccionar",
@@ -1574,6 +1635,7 @@
   "inventorySlotAms": "Ranura AMS",
   "inventoryAssignUnit": "Unidad AMS",
   "inventoryAssignSlot": "Ranura",
+  "inventoryAssignInput": "Entrada",
   "inventoryAssignExtruder": "Extrusor",
   "inventoryAssignExternalHint": "Asigna al soporte de bobina externo",
   "inventoryAssignConfirm": "Asignar",
@@ -1819,6 +1881,149 @@
   "@inventoryLabelsStartSlot": {
     "placeholders": {
       "position": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetCustom": "Hoja personalizada",
+  "labelSheetCustomHint": "Tu propia página, tamaño de etiqueta y cuadrícula",
+  "labelSheetSavedTitle": "Plantillas guardadas",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} etiqueta} other{{count} etiquetas}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Página",
+  "labelSheetLabelWidth": "Ancho de la etiqueta, mm",
+  "labelSheetLabelHeight": "Alto de la etiqueta, mm",
+  "labelSheetColumns": "Columnas",
+  "labelSheetRows": "Filas",
+  "labelSheetTopMargin": "Margen superior, mm",
+  "labelSheetLeftMargin": "Margen izquierdo, mm",
+  "labelSheetColumnGap": "Espacio entre columnas, mm",
+  "labelSheetRowGap": "Espacio entre filas, mm",
+  "labelSheetIncomplete": "Escribe un número en cada campo.",
+  "labelSheetTooSmall": "Las etiquetas deben medir al menos {minWidth} mm de ancho y {minHeight} mm de alto.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Los tamaños, márgenes y espacios pueden ser de {max} mm como máximo.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Las columnas deben ser un número entero de 1 a {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Las filas deben ser un número entero de 1 a {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Los márgenes y espacios no pueden ser negativos.",
+  "labelSheetTooWide": "Las etiquetas miden {size} mm de ancho con el margen izquierdo, pero la página mide {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Las etiquetas miden {size} mm de alto con el margen superior, pero la página mide {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Usar esta hoja",
+  "labelSheetName": "Nombre de la plantilla",
+  "labelSheetNameTaken": "Ya existe una plantilla con este nombre.",
+  "labelSheetSaveAs": "Guardar como plantilla",
+  "labelSheetSaveChanges": "Guardar cambios",
+  "labelSheetDelete": "Eliminar plantilla",
+  "labelSheetSaved": "Plantilla “{name}” guardada",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Plantilla “{name}” eliminada",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "¿Eliminar “{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Las etiquetas ya impresas no cambian.",
+  "labelSheetEdit": "Editar plantilla",
+  "labelSheetSaveAsNew": "Guardar como nueva",
+  "labelPngTooLarge": "El PNG se limita a {maxPages} páginas de hoja a {dpi} dpi, y esta impresión necesita {pages}. Usa PDF, una resolución menor o menos bobinas.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
         "type": "int"
       }
     }
@@ -4490,5 +4695,251 @@
   "tipsTrimTitle": "Recortar un timelapse",
   "tipsTrimBody": "Arrastra los tiradores de la tira de fotogramas; toca o arrastra en cualquier otro punto para mover el cabezal.",
   "tipsWallTitle": "Modo pared",
-  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared."
+  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared.",
+  "archiveRunsTitle": "Impresiones",
+  "archiveRunsEmpty": "Este archivo aún no se ha impreso.",
+  "archiveRunsBeforeLog": "Impreso antes de que Bambuddy registrara cada impresión: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Esta placa aún no se ha impreso.",
+  "archiveRunsAllPlates": "Todas las placas",
+  "archiveRunPlate": "Placa {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Impresora eliminada",
+  "archiveRunWithEstimate": "{value} (estimado {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} de {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Inicio / fin",
+  "archiveRunEnergy": "Energía",
+  "archiveRunFailureReason": "Motivo del fallo",
+  "archiveRunStartedBy": "Iniciada por",
+  "archiveRunNote": "Nota sobre esta impresión",
+  "archiveRunVideo": "Vídeo timelapse",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Buenas: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fallidas: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Indicar resultado",
+  "archiveRunChangeOutcome": "Cambiar resultado",
+  "archiveRunAddNote": "Añadir nota",
+  "archiveRunEditNote": "Editar nota",
+  "archiveRunNoteSaved": "Nota guardada",
+  "archivePlatesTitle": "Placas",
+  "archivePlateEstimate": "Estimado {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Última impresión frente al estimado: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimir esta placa",
+  "archiveShowPlatePrints": "Ver sus impresiones",
+  "archiveRunReprint": "Reimprimir esta impresión",
+  "archiveMergeBanner": "{count, plural, =1{1 grupo de archivos duplicados} other{{count} grupos de archivos duplicados}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Fusionar",
+  "archiveMergeDismiss": "Descartar",
+  "archiveMergeMenu": "Fusionar duplicados",
+  "archiveMergeTitle": "Fusionar archivos duplicados",
+  "archiveMergeEffectKeep": "El archivo más antiguo de cada grupo se mantiene y recibe todas las impresiones de los demás, con sus fotos, vídeos y ficheros.",
+  "archiveMergeEffectLinks": "Los demás desaparecen del archivo; sus enlaces antiguos abren el archivo en el que se fusionaron.",
+  "archiveMergeEffectMoney": "Los cargos del monedero y las reservas de presupuesto se quedan donde se registraron.",
+  "archiveMergeNone": "No hay duplicados que fusionar.",
+  "archiveMergeMember": "{name} · creado {date} · {count, plural, =1{1 impresión} other{{count} impresiones}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Se mantiene",
+  "archiveMergeWaiting": "Omitidos por ahora",
+  "archiveMergeLeftOut": "Omitidos al fusionar",
+  "archiveMergeSkipBusy": "En uso: imprimiendo, en cola o recién impreso. Inténtalo más tarde.",
+  "archiveMergeSkipConflicting": "Los archivos tienen ficheros fuente o de diseño distintos, o vídeos. Conserva uno a mano primero.",
+  "archiveMergeSkipFailed": "La fusión falló.",
+  "archiveMergeSkipNotAGroup": "Ya no es un grupo de duplicados.",
+  "archiveMergeAction": "{count, plural, =1{Fusionar 1 grupo} other{Fusionar {count} grupos}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Esto no se puede deshacer en la aplicación.",
+  "archiveMergeDone": "{count, plural, =1{1 grupo fusionado.} other{{count} grupos fusionados.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Fusionados: {count}. Omitidos: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Vista de calendario",
+  "archiveListView": "Vista de lista",
+  "archiveCalendarToday": "Hoy",
+  "archiveCalendarPrevious": "Mes anterior",
+  "archiveCalendarNext": "Mes siguiente",
+  "archiveCalendarPrints": "Impresiones este mes",
+  "archiveCalendarSuccessful": "Correctas",
+  "archiveCalendarFailed": "Fallidas",
+  "archiveCalendarNoPrints": "No hay impresiones este día",
+  "archiveCalendarSelectDay": "Selecciona un día para ver sus impresiones",
+  "archiveCalendarDay": "{date}: {count, plural, =0{sin impresiones} =1{1 impresión} other{{count} impresiones}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "serverSettingsWledSubtitle": "Preajustes de luz según el estado de la impresora",
+  "wledTitle": "WLED",
+  "wledDescription": "Los colores y efectos se configuran en WLED. El servidor solo cambia al preajuste asignado al estado de la impresora.",
+  "wledPrinter": "Impresora",
+  "wledEnabled": "Integración con WLED",
+  "wledEnabledDesc": "Cambia de preajuste cuando cambia el estado de la impresora",
+  "wledUrl": "Dirección de WLED",
+  "wledUrlRequired": "Necesaria mientras la integración esté activa",
+  "wledLoadPresets": "Cargar preajustes",
+  "wledTestConnection": "Probar conexión",
+  "wledConnected": "Conectado a {name}",
+  "wledConnectedVersion": "Conectado a {name}, versión {version}",
+  "wledUnreachable": "WLED no responde",
+  "wledPresetsLoaded": "{count, plural, =0{WLED no tiene preajustes} =1{1 preajuste cargado} other{{count} preajustes cargados}}",
+  "wledPresetsOffline": "WLED no está accesible. Los preajustes guardados se conservan.",
+  "wledMappingHeader": "Preajuste por estado",
+  "wledSegmentHint": "Al crear un preajuste en WLED, selecciona su segmento y activa «Checked segments only».",
+  "wledNoPreset": "Sin preajuste",
+  "wledPresetSaved": "Preajuste guardado {id}",
+  "wledPresetOption": "{name} ({id})",
+  "wledTestPreset": "Probar el preajuste de {state}",
+  "wledPresetTested": "Preajuste activado",
+  "wledPresetTestFailed": "WLED no cambió el preajuste",
+  "wledFinishedTimeout": "Volver a «Inactiva» tras (segundos)",
+  "wledFinishedTimeoutHint": "Segundos tras terminar una impresión antes de pasar al preajuste de «Inactiva». 0 lo desactiva.",
+  "wledFinishedTimeoutInvalid": "Un número entero de 0 a 86400",
+  "wledSave": "Guardar",
+  "wledSaved": "Ajustes de WLED guardados",
+  "wledRefused": "No aceptado: {reason}",
+  "wledNoPrinters": "No hay impresoras que configurar",
+  "wledStateIdle": "Inactiva",
+  "wledStatePrepare": "Preparando",
+  "wledStatePrinting": "Imprimiendo",
+  "wledStatePaused": "En pausa",
+  "wledStateFinished": "Finalizada",
+  "wledStateError": "Error",
+  "wledStateQueueWaiting": "Esperando a que se despeje la placa",
+  "wledStateFilamentProblem": "Problema de filamento",
+  "wledStateHmsError": "Error HMS",
+  "wledStateOffline": "Desconectada",
+  "fmMoveBlockedCurrent": "Ya está aquí",
+  "fmMoveBlockedSelf": "La carpeta que se mueve",
+  "fmMoveBlockedInside": "Dentro de la carpeta que se mueve",
+  "fmMoveBlockedExternal": "Carpeta externa",
+  "fmMoveBlockedNotWritable": "No es tuyo ni está compartido",
+  "fmMoveBlockedReadOnly": "Carpeta de solo lectura",
+  "fmNotMoved": "No se movió el archivo",
+  "fmNotMovedReason": "No se movió el archivo: {reason}"
 }

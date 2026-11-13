@@ -5,6 +5,9 @@ import 'package:dio/dio.dart';
 import '../core/ams/slot_addressing.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
+import '../core/api/server_version_service.dart';
 
 /// Printer control commands — pause/resume/stop, light, speed, temperatures,
 /// airduct, jogs. All `POST` with an empty body and the parameters in the query,
@@ -13,9 +16,17 @@ import '../core/api/endpoints.dart';
 /// A key without `can_control_printer` gets a 403, which maps to
 /// `AuthException(forbidden)` like everywhere else.
 class PrinterCommandsRepository {
-  PrinterCommandsRepository(this._dio);
+  PrinterCommandsRepository(this._dio, [this._serverVersion]);
 
   final Dio _dio;
+  final ServerVersionService? _serverVersion;
+
+  /// Whether load and unload take an AMS-HT's unit id. Never observed: the
+  /// app sends none until this says yes, so no refusal can settle it.
+  late final amsHtLoadCapability = ObservedCapability(
+    ServerFeature.amsHtLoad,
+    _serverVersion,
+  );
 
   Future<void> pause(int printerId) => _post(Endpoints.printPause(printerId));
 
@@ -285,23 +296,36 @@ class PrinterCommandsRepository {
 ///
 /// Ids in are **local**, like every other slot route: an AMS unit and a slot
 /// within it, or [externalHolderUnit] and a holder side. [globalTrayId] does
-/// the encoding; the only thing added here is the route's own acceptance, which
-/// AMS-HT falls outside of — its units are numbered from 128, the server
-/// answers 400, and the caller hides the action rather than offer a button that
-/// cannot work.
-int? amsLoadTrayId({required int amsId, required int trayId}) {
+/// the encoding; the only thing added here is the route's acceptance. An
+/// AMS-HT is numbered by its unit id, which only a server with [amsHt]
+/// (`ServerFeature.amsHtLoad`) takes; elsewhere the caller hides the action.
+int? amsLoadTrayId({
+  required int amsId,
+  required int trayId,
+  bool amsHt = false,
+}) {
   // Guarded before encoding, not after: an out-of-range holder side would
   // otherwise land on a perfectly valid AMS slot number, and the printer would
   // load a different spool with nothing on the way flagging it.
   if (isExternalHolder(amsId) && trayId != 0 && trayId != 1) return null;
   final global = globalTrayId(amsId: amsId, trayId: trayId);
+  // 28..36 only from the AMS 3H: a unit 7 lands there too, and the server
+  // refuses an AMS 3H id on a printer without one (`_refuse_foreign_ams3h_tray`).
+  if (_isAms3hTrayId(global) && amsId != ams3hUnit) return null;
+  if (isAmsHtId(global)) return amsHt ? global : null;
   return _isLoadableTrayId(global) ? global : null;
 }
 
 /// Mirrors the server's own validation (`printers.py` `ams_load`): AMS slots
-/// 0..15, the A2L AMS-Lite's normalised 24..27, and the two external ids.
+/// 0..15, the A2L AMS-Lite's normalised 24..27, the AMS 3H's 28..36 (#3442; an
+/// older server answers 400, and it never knew an H3C's AMS 3H anyway), an
+/// AMS-HT's 128..135 (from 1.3.0) and the two external ids.
 bool _isLoadableTrayId(int trayId) =>
     (trayId >= 0 && trayId <= 15) ||
     (trayId >= 24 && trayId <= 27) ||
+    _isAms3hTrayId(trayId) ||
+    isAmsHtId(trayId) ||
     trayId == 254 ||
     trayId == 255;
+
+bool _isAms3hTrayId(int trayId) => trayId >= 28 && trayId <= 36;

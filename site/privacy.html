@@ -23,7 +23,7 @@
     <div class="container">
       <h1 class="page-title">Privacy Policy</h1>
       <div class="card">
-        <p class="updated">Last updated: 26 October 2026</p>
+        <p class="updated">Last updated: 8 November 2026</p>
 
         <p>Bambuddy mobile is an unofficial, open-source Android companion app for a <strong>self-hosted bambuddy server</strong> that manages Bambu Lab 3D printers. It is <strong>not affiliated with, endorsed by, or connected to Bambu Lab.</strong></p>
         <p>This policy explains what data the app handles. In short: the app has <strong>no analytics, no advertising and no account you create with the developer</strong>, and everything it does while you use it stays between your device and the bambuddy server address <strong>you</strong> configure.</p>
@@ -38,6 +38,7 @@
         <h2 id="data-stored-on-your-device">Data stored on your device</h2>
         <ul>
           <li><strong>Server address and login credentials</strong> (API key or username/password/token for your bambuddy server). Credentials are stored in the Android <strong>Keystore-backed encrypted storage</strong> on your device and are never sent anywhere except to your own server, over the connection you configure.</li>
+          <li><strong>Certificates you import</strong> for your server. A CA certificate is public and is kept in local app storage. A client certificate, with its private key and password, is kept in the same Keystore-backed encrypted storage as your credentials and is shown only to a server that asks for one when the app connects.</li>
           <li><strong>App settings and notification preferences</strong>, stored in local app storage.</li>
           <li><strong>A random installation identifier</strong> — a UUID the app makes up for itself the first time you open the report form. It is not a device identifier and is not derived from one; its only job is to pace bug reports, so that whoever keeps sending them waits longer each time. Reinstalling the app replaces it.</li>
           <li><strong>A diagnostic log</strong>, while a recording is running or waiting for you to decide what to do with it.</li>

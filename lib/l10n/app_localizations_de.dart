@@ -440,6 +440,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlNozzleActive => 'Aktiv';
 
   @override
+  String get amsDryer => 'Trockner';
+
+  @override
   String get ctrlDry => 'Trocknen';
 
   @override
@@ -1623,10 +1626,37 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.';
 
   @override
+  String get nozzleRack => 'Düsenhalter';
+
+  @override
+  String get nozzleRackMounted => 'am Werkzeugkopf';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Position $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Position $position: leer';
+  }
+
+  @override
+  String get externalInputs => 'Externe Eingänge';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'Alle $count externen Eingänge sind leer';
+  }
+
+  @override
   String get externalSpool => 'Externe Spule';
 
   @override
   String get traySlotEmpty => 'Leer';
+
+  @override
+  String get traySlotUnconfigured => 'Nicht konfiguriert';
 
   @override
   String get amsSlotFilament => 'Filament';
@@ -1668,6 +1698,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get amsUnloadSlotNotLoaded =>
       'Aus diesem Slot wird keine Düse versorgt';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Slot $slot wird entladen. Sobald der Drucker dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'In Slot $slot ist kein Filament. Schieb es in den Einlass, bis der AMS 3H es einzieht, und lade dann erneut.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'Der AMS 3H trocknet nur die Slots $a und $b';
+  }
 
   @override
   String get amsActionsWhilePrinting =>
@@ -1765,9 +1810,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get amsSlotConfigColourCatalogue => 'Katalogfarben';
-
-  @override
-  String get amsSlotConfigColourCustom => 'Benutzerdefinierte Farbe';
 
   @override
   String get amsSlotReset => 'Slot zurücksetzen';
@@ -2068,6 +2110,71 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tryDemo => 'Demo ausprobieren';
 
   @override
+  String customCaTrusted(String name) {
+    return 'Vertrauenswürdige CA: $name';
+  }
+
+  @override
+  String get customCaRemove => 'CA-Zertifikat entfernen';
+
+  @override
+  String get certificateImport => 'Zertifikat importieren';
+
+  @override
+  String get certificateInvalid => 'Diese Datei enthält kein Zertifikat';
+
+  @override
+  String get clientCertInvalid =>
+      'Diese Datei enthält kein Zertifikat mit Schlüssel';
+
+  @override
+  String get customCaPickFailed => 'Die Datei konnte nicht geöffnet werden';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Client-Zertifikat: $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Client-Zertifikat entfernen';
+
+  @override
+  String get clientCertWrongPassword => 'Falsches Zertifikatspasswort';
+
+  @override
+  String get clientCertPasswordTitle => 'Zertifikatspasswort';
+
+  @override
+  String get certificatesTitle => 'Zertifikate';
+
+  @override
+  String get customCaRemoveTitle => 'CA-Zertifikat entfernen?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'Die App vertraut dann keinen Servern mehr, die es signiert hat.';
+
+  @override
+  String get clientCertRemoveTitle => 'Client-Zertifikat entfernen?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'Ein Server, der es verlangt, lehnt die App dann ab.';
+
+  @override
+  String get certificatesRemoveAll => 'Alle Zertifikate entfernen';
+
+  @override
+  String get certificatesRemoveAllTitle => 'Alle Zertifikate entfernen?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'Die App erreicht dann keine Server mehr, die sie brauchen.';
+
+  @override
+  String get certificateRemoveConfirm => 'Entfernen';
+
+  @override
   String get scanApiKeyTitle => 'API-Schlüssel scannen';
 
   @override
@@ -2123,13 +2230,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get errBadCertificate =>
-      'Ungültiges TLS-Zertifikat (selbstsignierte Zertifikate werden in v1 nicht unterstützt)';
+      'Das Zertifikat des Servers ist nicht vertrauenswürdig';
+
+  @override
+  String get errClientCertRefused =>
+      'Der Server verlangt ein gültiges Client-Zertifikat';
 
   @override
   String get errConnection => 'Verbindungsfehler';
 
   @override
   String get errMalformedResponse => 'Ungültige Serverantwort';
+
+  @override
+  String get errNotBambuddy =>
+      'Unter dieser Adresse läuft kein Bambuddy-Server — prüfe den Port und entferne einen eventuellen Pfad dahinter.';
 
   @override
   String get errInvalidCredentials =>
@@ -2313,6 +2428,111 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get notifFinishPhotoDesc =>
       'Fügt der Benachrichtigung über Abschluss oder Fehlschlag das Foto hinzu, das der Server nach dem Druck aufnimmt, sobald es verfügbar ist';
+
+  @override
+  String get alarmHeader => 'Wecker';
+
+  @override
+  String get alarmTitle => 'Mit einem Wecker wecken';
+
+  @override
+  String get alarmDesc =>
+      'Klingelt auf dem Sperrbildschirm, bis du ihn stoppst';
+
+  @override
+  String get alarmEvtFinished => 'Druck abgeschlossen';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Ein Druck wurde erfolgreich beendet';
+
+  @override
+  String get alarmEvtBlocked => 'Druck durch Fehler gestoppt';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Ein Fehler hat den Druck pausiert oder gestoppt, oder der Druck ist fehlgeschlagen';
+
+  @override
+  String get alarmEvtDrying => 'Trocknung abgeschlossen';
+
+  @override
+  String get alarmEvtDryingDesc =>
+      'Ein AMS-Trocknungszyklus ist zu Ende gelaufen';
+
+  @override
+  String get alarmWindowTitle => 'Nur zu bestimmten Zeiten';
+
+  @override
+  String get alarmWindowDesc =>
+      'Außerhalb dieser Zeiten bleibt der Wecker still';
+
+  @override
+  String get alarmWindowFrom => 'Von';
+
+  @override
+  String get alarmWindowTo => 'Bis';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Klingelt $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Danach verstummt er von selbst';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Stopp';
+
+  @override
+  String get alarmTest => 'Wecker testen';
+
+  @override
+  String get alarmTestBody => 'So klingt der Wecker';
+
+  @override
+  String get alarmTestFailed =>
+      'Der Wecker konnte nicht klingeln. Prüfe, ob Benachrichtigungen aktiviert sind.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Ohne Berechtigung überdeckt der Wecker den Sperrbildschirm nicht';
+
+  @override
+  String get alarmFullScreenAllow => 'Erlauben';
+
+  @override
+  String get alarmHoursHeader => 'Uhrzeiten';
+
+  @override
+  String get alarmLengthHeader => 'Wie lange';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Was ihn auslöst, zu welchen Uhrzeiten und wie lange';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Ausgeschlossene Standorte';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Ausgeschlossene Drucker';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Kein Drucker hier löst den Wecker aus';
+
+  @override
+  String get alarmExcludePrinterDesc =>
+      'Dieser Drucker löst den Wecker nie aus';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Mit dem Standort $location ausgeschlossen';
+  }
 
   @override
   String get notifThresholdsHeader => 'Schwellenwerte';
@@ -3029,7 +3249,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryEffectNone => 'Keiner';
 
   @override
-  String get inventoryColorCommon => 'Standardfarben';
+  String get inventoryColorCatalog => 'Farbkatalog';
 
   @override
   String get inventoryColorSearchHint => 'Farben suchen…';
@@ -3113,6 +3333,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Slot';
+
+  @override
+  String get inventoryAssignInput => 'Eingang';
 
   @override
   String get inventoryAssignExtruder => 'Extruder';
@@ -3500,6 +3723,152 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String inventoryLabelsStartSlot(int position) {
     return 'Position $position';
+  }
+
+  @override
+  String get labelSheetCustom => 'Eigener Bogen';
+
+  @override
+  String get labelSheetCustomHint => 'Eigene Seite, Etikettengröße und Raster';
+
+  @override
+  String get labelSheetSavedTitle => 'Gespeicherte Vorlagen';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Etiketten',
+      one: '$count Etikett',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Seite';
+
+  @override
+  String get labelSheetLabelWidth => 'Etikettenbreite, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Etikettenhöhe, mm';
+
+  @override
+  String get labelSheetColumns => 'Spalten';
+
+  @override
+  String get labelSheetRows => 'Zeilen';
+
+  @override
+  String get labelSheetTopMargin => 'Oberer Rand, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Linker Rand, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Spaltenabstand, mm';
+
+  @override
+  String get labelSheetRowGap => 'Zeilenabstand, mm';
+
+  @override
+  String get labelSheetIncomplete => 'In jedes Feld eine Zahl eintragen.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Etiketten müssen mindestens $minWidth mm breit und $minHeight mm hoch sein.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Größen, Ränder und Abstände dürfen höchstens $max mm betragen.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Die Spaltenzahl muss eine ganze Zahl von 1 bis $max sein.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Die Zeilenzahl muss eine ganze Zahl von 1 bis $max sein.';
+  }
+
+  @override
+  String get labelSheetNegative =>
+      'Ränder und Abstände dürfen nicht negativ sein.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'Die Etiketten sind mit dem linken Rand $size mm breit, die Seite aber nur $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'Die Etiketten sind mit dem oberen Rand $size mm hoch, die Seite aber nur $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Diesen Bogen verwenden';
+
+  @override
+  String get labelSheetName => 'Vorlagenname';
+
+  @override
+  String get labelSheetNameTaken =>
+      'Eine Vorlage mit diesem Namen gibt es schon.';
+
+  @override
+  String get labelSheetSaveAs => 'Als Vorlage speichern';
+
+  @override
+  String get labelSheetSaveChanges => 'Änderungen speichern';
+
+  @override
+  String get labelSheetDelete => 'Vorlage löschen';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Vorlage „$name“ gespeichert';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Vorlage „$name“ gelöscht';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return '„$name“ löschen?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Bereits gedruckte Etiketten bleiben unverändert.';
+
+  @override
+  String get labelSheetEdit => 'Vorlage bearbeiten';
+
+  @override
+  String get labelSheetSaveAsNew => 'Als neu speichern';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG ist bei $dpi dpi auf $maxPages Bogenseiten begrenzt, dieser Druck braucht $pages. PDF, eine niedrigere Auflösung oder weniger Spulen wählen.';
   }
 
   @override
@@ -9761,4 +10130,434 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.';
+
+  @override
+  String get archiveRunsTitle => 'Drucke';
+
+  @override
+  String get archiveRunsEmpty => 'Diese Datei wurde noch nicht gedruckt.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Gedruckt, bevor Bambuddy jeden Druck einzeln protokolliert hat: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty =>
+      'Diese Druckplatte wurde noch nicht gedruckt.';
+
+  @override
+  String get archiveRunsAllPlates => 'Alle Druckplatten';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Druckplatte $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Drucker entfernt';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (geschätzt $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value / $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value von $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Begonnen / beendet';
+
+  @override
+  String get archiveRunEnergy => 'Energie';
+
+  @override
+  String get archiveRunFailureReason => 'Fehlergrund';
+
+  @override
+  String get archiveRunStartedBy => 'Gestartet von';
+
+  @override
+  String get archiveRunNote => 'Notiz zu diesem Druck';
+
+  @override
+  String get archiveRunVideo => 'Zeitraffer-Video';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Fotos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Gut: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Fehlgeschlagen: $count';
+  }
+
+  @override
+  String get archiveRunSetOutcome => 'Ergebnis festlegen';
+
+  @override
+  String get archiveRunChangeOutcome => 'Ergebnis ändern';
+
+  @override
+  String get archiveRunAddNote => 'Notiz hinzufügen';
+
+  @override
+  String get archiveRunEditNote => 'Notiz bearbeiten';
+
+  @override
+  String get archiveRunNoteSaved => 'Notiz gespeichert';
+
+  @override
+  String get archivePlatesTitle => 'Druckplatten';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Schätzung $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Letzter Druck zur Schätzung: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Diese Druckplatte drucken';
+
+  @override
+  String get archiveShowPlatePrints => 'Ihre Drucke zeigen';
+
+  @override
+  String get archiveRunReprint => 'Diesen Druck wiederholen';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Gruppen doppelter Archive',
+      one: '1 Gruppe doppelter Archive',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Zusammenführen';
+
+  @override
+  String get archiveMergeDismiss => 'Ausblenden';
+
+  @override
+  String get archiveMergeMenu => 'Duplikate zusammenführen';
+
+  @override
+  String get archiveMergeTitle => 'Doppelte Archive zusammenführen';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'Das älteste Archiv jeder Gruppe bleibt und übernimmt alle Drucke der anderen mit ihren Fotos, Videos und Dateien.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'Die anderen verschwinden aus den Archiven; ihre alten Links öffnen das Archiv, in das sie eingegangen sind.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Wallet-Buchungen und Budget-Reservierungen bleiben, wo sie gebucht wurden.';
+
+  @override
+  String get archiveMergeNone => 'Keine Duplikate zum Zusammenführen.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Drucke',
+      one: '1 Druck',
+    );
+    return '$name · erstellt $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Bleibt';
+
+  @override
+  String get archiveMergeWaiting => 'Vorerst ausgelassen';
+
+  @override
+  String get archiveMergeLeftOut => 'Beim Zusammenführen ausgelassen';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'In Verwendung: druckt, in der Warteschlange oder gerade gedruckt. Später erneut versuchen.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'Die Archive enthalten unterschiedliche Quell- oder Konstruktionsdateien oder Videos. Zuerst von Hand eines behalten.';
+
+  @override
+  String get archiveMergeSkipFailed => 'Das Zusammenführen ist fehlgeschlagen.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'Keine Gruppe von Duplikaten mehr.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Gruppen zusammenführen',
+      one: '1 Gruppe zusammenführen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody =>
+      'Das lässt sich in der App nicht rückgängig machen.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Gruppen zusammengeführt.',
+      one: '1 Gruppe zusammengeführt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Zusammengeführt: $count. Ausgelassen: $left.';
+  }
+
+  @override
+  String get archiveCalendarView => 'Kalenderansicht';
+
+  @override
+  String get archiveListView => 'Listenansicht';
+
+  @override
+  String get archiveCalendarToday => 'Heute';
+
+  @override
+  String get archiveCalendarPrevious => 'Vorheriger Monat';
+
+  @override
+  String get archiveCalendarNext => 'Nächster Monat';
+
+  @override
+  String get archiveCalendarPrints => 'Drucke in diesem Monat';
+
+  @override
+  String get archiveCalendarSuccessful => 'Erfolgreich';
+
+  @override
+  String get archiveCalendarFailed => 'Fehlgeschlagen';
+
+  @override
+  String get archiveCalendarNoPrints => 'Keine Drucke an diesem Tag';
+
+  @override
+  String get archiveCalendarSelectDay =>
+      'Wählen Sie einen Tag, um seine Drucke zu sehen';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Drucke',
+      one: '1 Druck',
+      zero: 'keine Drucke',
+    );
+    return '$date: $_temp0';
+  }
+
+  @override
+  String get serverSettingsWledSubtitle => 'Licht-Presets je Druckerstatus';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Farben und Effekte stellst du in WLED ein. Der Server wechselt nur zum Preset, das dem Druckerstatus zugeordnet ist.';
+
+  @override
+  String get wledPrinter => 'Drucker';
+
+  @override
+  String get wledEnabled => 'WLED-Integration';
+
+  @override
+  String get wledEnabledDesc =>
+      'Presets wechseln, wenn sich der Druckerstatus ändert';
+
+  @override
+  String get wledUrl => 'WLED-Adresse';
+
+  @override
+  String get wledUrlRequired =>
+      'Erforderlich, solange die Integration aktiv ist';
+
+  @override
+  String get wledLoadPresets => 'Presets laden';
+
+  @override
+  String get wledTestConnection => 'Verbindung testen';
+
+  @override
+  String wledConnected(String name) {
+    return 'Verbunden mit $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Verbunden mit $name, Version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED antwortet nicht';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Presets geladen',
+      one: '1 Preset geladen',
+      zero: 'WLED hat keine Presets',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED ist nicht erreichbar. Gespeicherte Presets bleiben erhalten.';
+
+  @override
+  String get wledMappingHeader => 'Preset je Status';
+
+  @override
+  String get wledSegmentHint =>
+      'Wähle beim Anlegen eines Presets in WLED sein Segment und aktiviere „Checked segments only“.';
+
+  @override
+  String get wledNoPreset => 'Kein Preset';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Gespeichertes Preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Preset für $state testen';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset aktiviert';
+
+  @override
+  String get wledPresetTestFailed => 'WLED hat das Preset nicht gewechselt';
+
+  @override
+  String get wledFinishedTimeout => 'Zurück zu „Bereit“ nach (Sekunden)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Sekunden nach einem fertigen Druck, bis das Preset für „Bereit“ übernimmt. 0 schaltet das ab.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'Eine ganze Zahl von 0 bis 86400';
+
+  @override
+  String get wledSave => 'Speichern';
+
+  @override
+  String get wledSaved => 'WLED-Einstellungen gespeichert';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Nicht angenommen: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'Keine Drucker zum Einrichten';
+
+  @override
+  String get wledStateIdle => 'Bereit';
+
+  @override
+  String get wledStatePrepare => 'Vorbereitung';
+
+  @override
+  String get wledStatePrinting => 'Druckt';
+
+  @override
+  String get wledStatePaused => 'Pausiert';
+
+  @override
+  String get wledStateFinished => 'Abgeschlossen';
+
+  @override
+  String get wledStateError => 'Fehler';
+
+  @override
+  String get wledStateQueueWaiting => 'Wartet auf leere Druckplatte';
+
+  @override
+  String get wledStateFilamentProblem => 'Filamentproblem';
+
+  @override
+  String get wledStateHmsError => 'HMS-Fehler';
+
+  @override
+  String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Bereits hier';
+
+  @override
+  String get fmMoveBlockedSelf => 'Der verschobene Ordner';
+
+  @override
+  String get fmMoveBlockedInside => 'Im verschobenen Ordner';
+
+  @override
+  String get fmMoveBlockedExternal => 'Externer Ordner';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Nicht deiner und nicht freigegeben';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Schreibgeschützter Ordner';
+
+  @override
+  String get fmNotMoved => 'Datei nicht verschoben';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Datei nicht verschoben: $reason';
+  }
 }

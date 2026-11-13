@@ -8,13 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/color_names.dart';
 import '../../core/ams/filament_mapping.dart';
-import '../../core/ams/slot_addressing.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/printer.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/printers/gcode_compat.dart';
 import '../../core/settings/print_options.dart';
@@ -29,6 +29,7 @@ import '../queue/job_cost_providers.dart';
 import '../queue/queue_cost_center_state.dart';
 import '../queue/queue_create_service.dart';
 import '../queue/queue_drafts.dart';
+import '../queue/queue_form_parts.dart';
 import '../queue/queue_edit_screen.dart';
 import '../queue/queue_item_view.dart';
 import '../queue/queue_mapping_sheet.dart';
@@ -468,7 +469,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     Widget row(int i) => _FilamentRow(
       comparison: comparison[i],
       catalog: catalog,
-      dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
+      status: status.value,
       onTap: () => _editMapping(),
     );
     final caption = Text(
@@ -1090,11 +1091,7 @@ class _TopBar extends StatelessWidget {
             // A minimum, centred: a larger font makes the name and the icon taller.
             constraints: const BoxConstraints(minHeight: _lockHeight),
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(DashSpace.md),
-              border: Border.all(color: t.subCardBorder),
-            ),
+            decoration: t.subCardBox(DashSpace.md),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1265,13 +1262,15 @@ class _FilamentRow extends StatelessWidget {
   const _FilamentRow({
     required this.comparison,
     required this.catalog,
-    required this.dualExternal,
+    required this.status,
     required this.onTap,
   });
 
   final FilamentComparison comparison;
   final ColorCatalog catalog;
-  final bool dualExternal;
+
+  /// The printer the file maps onto, which names its external inputs.
+  final PrinterStatus? status;
   final VoidCallback onTap;
 
   @override
@@ -1351,13 +1350,8 @@ class _FilamentRow extends StatelessWidget {
     );
   }
 
-  String _slotName(AppLocalizations l10n, LoadedFilament f) {
-    if (f.isExternal) {
-      if (!dualExternal) return l10n.mappingExternalSpool;
-      return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
-    }
-    return formatSlotLabel(f.amsId, f.trayId, isHt: f.isHt);
-  }
+  String _slotName(AppLocalizations l10n, LoadedFilament f) =>
+      mappingSlotLabel(f, status) ?? l10n.mappingExternalSpool;
 }
 
 class _Slot extends StatelessWidget {

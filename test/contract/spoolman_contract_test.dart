@@ -351,6 +351,22 @@ void main() {
       },
     );
 
+    // No print runs on the seeded stack, so no charge is ever recorded; what
+    // this pins is the route's reachability and our reading of its absence.
+    test('a spool never printed with has an empty usage history', () async {
+      final spool = await newSpool();
+
+      expect(await source.fetchUsage(spool.id), isEmpty);
+
+      // Older servers answer 404 for the route, newer ones 200 with a list;
+      // `fetchUsage` must not turn either into an error.
+      final raw = await dio.get<dynamic>(
+        '/api/v1/spoolman/inventory/spools/${spool.id}/usage',
+        options: Options(validateStatus: (_) => true),
+      );
+      expect(raw.statusCode, anyOf(200, 404));
+    });
+
     test('switched off, the server is the built-in inventory again', () async {
       // Last on purpose: nothing after it needs Spoolman, and tearDownAll puts
       // back whatever the server had.

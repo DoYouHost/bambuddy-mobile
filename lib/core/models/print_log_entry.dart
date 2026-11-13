@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 
+import 'archive.dart';
 import 'json_utils.dart';
 import 'print_run.dart';
 
@@ -47,6 +48,17 @@ class PrintLogEntry with PrintRun {
     this.thumbnailPath,
     this.createdById,
     this.createdByUsername,
+    this.plateId,
+    this.userVerdict,
+    this.userVerdictSource,
+    this.confirmRequested = false,
+    this.durationUnmeasured = false,
+    this.notes,
+    this.photos,
+    this.timelapsePath,
+    this.estimateSeconds,
+    this.estimateGrams,
+    this.ownMediaReported = false,
   });
 
   factory PrintLogEntry.fromJson(Map<String, dynamic> json) => PrintLogEntry(
@@ -73,6 +85,17 @@ class PrintLogEntry with PrintRun {
     thumbnailPath: toStringOrNull(json['thumbnail_path']),
     createdById: toIntOrNull(json['created_by_id']),
     createdByUsername: toStringOrNull(json['created_by_username']),
+    plateId: toIntOrNull(json['plate_id']),
+    userVerdict: PrintVerdict.fromWire(json['user_verdict']),
+    userVerdictSource: toStringOrNull(json['user_verdict_source']),
+    confirmRequested: json['confirm_requested'] == true,
+    durationUnmeasured: json['duration_unmeasured'] == true,
+    notes: toStringOrNull(json['notes']),
+    photos: json['photos'] is List ? toStringList(json['photos']) : null,
+    timelapsePath: toStringOrNull(json['timelapse_path']),
+    estimateSeconds: toIntOrNull(json['estimate_seconds']),
+    estimateGrams: toDoubleOrNull(json['estimate_grams']),
+    ownMediaReported: json.containsKey('photos'),
   );
 
   final int id;
@@ -136,6 +159,49 @@ class PrintLogEntry with PrintRun {
 
   @override
   final DateTime createdAt;
+
+  /// Which plate of a multi-plate file this print ran; null for a single-plate
+  /// file and on servers before the archive redesign (1.3.0).
+  final int? plateId;
+
+  /// This print's verdict (#1898). On an archive's runs list each print has its
+  /// own; the archive's `user_verdict` is only the latest print's.
+  final PrintVerdict? userVerdict;
+
+  /// See `Archive.userVerdictSource`.
+  final String? userVerdictSource;
+
+  final bool confirmRequested;
+
+  /// The time is a guess (the start was not seen), so the web shows it with a
+  /// `~` and compares it with no estimate.
+  final bool durationUnmeasured;
+
+  /// The print's own note, beside the archive's (the file's) note.
+  final String? notes;
+
+  /// This print's own finish photos, served by `Endpoints.archivePhoto`. Null
+  /// is a print logged before prints kept their own: it shares the archive's
+  /// photos that no other print holds (`ArchiveDetailModal.tsx::mediaOf`).
+  final List<String>? photos;
+
+  /// Presence flag for `Endpoints.archiveRunTimelapse`.
+  final String? timelapsePath;
+
+  /// The slicer's figures for the plate this print ran (#3375). Only on an
+  /// archive's runs list, and only when the plate is known or it is the
+  /// archive's one print.
+  final int? estimateSeconds;
+  final double? estimateGrams;
+
+  /// The row came from a server that keeps each print's own note and media
+  /// (the `photos` key exists, null or not): what
+  /// `ArchiveRepository.runsCapability` observes.
+  final bool ownMediaReported;
+
+  /// The question is still open — `Archive.awaitsVerdict`, for one print.
+  bool get awaitsVerdict =>
+      status == 'completed' && confirmRequested && userVerdict == null;
 
   /// The run's own archive is gone (or it never had one — a queue-skipped run).
   bool get isOrphan => archiveId == null;

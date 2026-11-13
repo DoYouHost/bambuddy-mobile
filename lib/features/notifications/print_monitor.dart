@@ -13,6 +13,7 @@ import '../../core/models/queue_settings.dart';
 import '../../core/notifications/background_api.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
+import '../../core/notifications/alarm_ringer.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/ongoing_text.dart';
 import '../../core/printers/offline_debounce.dart';
@@ -45,6 +46,22 @@ const int _bedCooledAlertBase = 11 * alertBandWidth;
 // 12–16 belong to maintenance, the outcome prompt and billing alerts.
 const int _pauseAlertBase = 17 * alertBandWidth;
 
+/// One alarm per printer: a later one for the same printer replaces it and
+/// restarts its clock.
+const int _alarmBase = 18 * alertBandWidth;
+
+/// A drying cycle that ends with more than this many minutes still on the clock
+/// was cut short, by the user or the firmware, rather than run to term. The
+/// server's `_EARLY_DRY_END_MINUTES` (`services/bambu_mqtt.py`), which also
+/// absorbs a last reading taken between two AMS pushes.
+const int _dryEndedEarlyMinutes = 5;
+
+/// `dry_status` phases of a cycle still running (`utils/ams_drying.py`,
+/// `ACTIVE_DRY_STATUSES`): Checking, Drying, Cooling. A `dry_time` of 0 in one
+/// of them is a firmware blip, not the end.
+const Set<int> _activeDryStatuses = {1, 2, 3};
+const int _dryCooling = 3;
+
 /// Progress milestone thresholds (%).
 const List<int> _milestones = [25, 50, 75];
 
@@ -66,6 +83,11 @@ const Set<String> _hmsUserActionCodes = {
   '0300_400C', // "The task was canceled."
   '0500_400E', // "Printing was cancelled."
 };
+
+/// `stg_cur` stages of a pause somebody asked for, not one a fault forced
+/// (bambuddy `bambu_mqtt.py`, `STAGE_NAMES`): 5 M400, 16 the user, 30 a pause
+/// G-code in the file. A fault standing through one of those does not ring.
+const Set<int> _requestedPauseStages = {5, 16, 30};
 
 /// How far AMS humidity has to fall back below the threshold before its alert
 /// re-arms (docs/notification-rules.md, "AMS humidity").
@@ -116,6 +138,20 @@ class _PrinterMemo {
 
   bool printing = false;
 
+  /// Whether the last frame had the print paused: the edge rings the alarm for
+  /// a fault whose hold ended before the pause ([PrintMonitor._ringOnPause]).
+  bool paused = false;
+
+  /// Until when the alarm rung for this printer may still sound, so a later
+  /// alert does not post a sound of its own over it. Cleared when the print
+  /// starts or resumes: the user has dealt with it.
+  DateTime? alarmUntil;
+
+  /// `stgCur` of the last frame that was printing and not paused. A pause
+  /// stage equal to it may be the server's leftover, not news
+  /// ([PrintMonitor._pausedByFault]).
+  int? runningStage;
+
   /// See [PrintOnce]; read through [once].
   final Map<PrintOnce, OncePerPrint> _once = {
     for (final event in PrintOnce.values) event: OncePerPrint(),
@@ -164,6 +200,9 @@ class _PrinterMemo {
   final Map<int, DateTime> humidAlertedAt = {};
   bool awaitingBedCool = false;
 
+  /// Last `dry_time` seen per AMS unit, for the end of a drying cycle.
+  final Map<int, int> dryMinutes = {};
+
   /// What the frame that started this print said about the job — which, in the
   /// case that matters, is the job that had just ended. Null once a frame has
   /// brought something of its own. See [PrintMonitor._describesThisPrint].
@@ -178,6 +217,8 @@ class _PrinterMemo {
     pauseWarnedLayers.clear();
     awaitingBedCool = false;
     previousJob = null;
+    alarmUntil = null;
+    runningStage = null;
   }
 
   void dispose() {
@@ -261,6 +302,8 @@ class PrintMonitor {
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
     int Function()? pauseLeadMinutes,
+    this._alarm,
+    this._alarmLocationOf,
   }) : _pauseLeadMinutes =
            pauseLeadMinutes ??
            (() => QueueSetting.pauseWarningMinutes.serverDefault),
@@ -276,6 +319,13 @@ class PrintMonitor {
   /// button tapped after a switch is not sent to another server's printer.
   final String _serverUrl;
   final NotificationPrefs _prefs;
+
+  /// Null rings nothing: the UI isolate and most tests have no alarm.
+  final AlarmRinger? _alarm;
+
+  /// A printer's location for the alarm's exclusions; null when unknown, which
+  /// excludes nothing. Frames do not carry it, so the service looks it up.
+  final String? Function(int printerId)? _alarmLocationOf;
 
   /// How many minutes before a pause to warn, read per frame: the setting is the
   /// server's, and the isolate refreshes it while this monitor lives.
@@ -335,6 +385,67 @@ class PrintMonitor {
   /// would send the user to the wrong screen.
   NotifSkip get _offReason =>
       _prefs.alertsEnabled ? NotifSkip.typeOff : NotifSkip.alertsOff;
+
+  /// Whether the alarm is set to ring for [event] at all, hours aside.
+  bool _alarmWants(AlarmEvent event) =>
+      _alarm != null && _prefs.alarm.wants(event);
+
+  /// Rings the alarm for [event] if the user asked for it at this hour. Apart
+  /// from the notification switches: an alarm with its notification off is a
+  /// choice the settings allow. True when it asked to ring, so the event's
+  /// notification goes out silent: Android mutes an app's second noisy post
+  /// within a second, and the notification would take the alarm's sound.
+  bool _ringAlarm(
+    int id,
+    PrinterStatus status,
+    AlarmEvent event,
+    String title,
+    String body,
+  ) {
+    final ringer = _alarm;
+    final prefs = _prefs.alarm;
+    if (ringer == null || !prefs.enabled) return false;
+    bool skip(String outcome) {
+      NotifProbe.alarm(id, event: event, outcome: outcome);
+      return false;
+    }
+
+    if (!prefs.events.contains(event)) return skip('type_off');
+    switch (prefs.exclusionOf(id, _alarmLocationOf?.call(id))) {
+      case AlarmExclusion.printer:
+        return skip('printer_excluded');
+      case AlarmExclusion.location:
+        return skip('location_excluded');
+      case null:
+    }
+    if (!prefs.inWindow(clock.now())) return skip('outside_window');
+    NotifProbe.alarm(id, event: event, outcome: 'ringing');
+    _memo[id]?.alarmUntil = clock.now().add(
+      Duration(minutes: prefs.ringMinutes),
+    );
+    final l = _l10n();
+    unawaited(
+      ringer
+          .ring(
+            id: _alarmBase + id,
+            title: title,
+            body: body,
+            stopLabel: l.alarmStop,
+            minutes: prefs.ringMinutes,
+            printer: printerLabel(status, l),
+          )
+          .then((sound) {
+            if (sound == null) _memo[id]?.alarmUntil = null;
+            NotifProbe.alarm(
+              id,
+              event: event,
+              outcome: sound == null ? 'refused' : 'rang',
+              fields: {'sound': ?sound?.name},
+            );
+          }),
+    );
+    return true;
+  }
 
   /// The code as the WebSocket lane spells it, so a suppression record and the
   /// frame that carried the fault can be matched on sight.
@@ -401,6 +512,10 @@ class PrintMonitor {
   /// [id] is the map key, not `status.id`.
   void _prime(int id, _PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
+    memo.paused = status.isPaused;
+    if (status.isPrinting && !status.isPaused) {
+      memo.runningStage = status.stgCur;
+    }
     // Nothing job-scoped is read off a frame that does not describe the job; it is
     // recorded as the one to beat instead (docs/notification-rules.md, "Baseline").
     if (!status.jobUnderway) {
@@ -436,6 +551,7 @@ class PrintMonitor {
     _trayRemains(status).forEach((key, remain) {
       if (remain < _prefs.lowFilamentThreshold) memo.lowFilamentTrays.add(key);
     });
+    _processDrying(id, status, memo, baseline: true);
     final units = status.ams;
     if (units != null) {
       for (var i = 0; i < units.length; i++) {
@@ -491,19 +607,35 @@ class PrintMonitor {
         case 'FINISH':
         case 'FINISHED':
           memo.awaitingBedCool = true;
+          final l = _l10n();
+          final ringing = _ringAlarm(
+            id,
+            status,
+            AlarmEvent.printFinished,
+            l.printFinishedTitle,
+            l.printFinishedBody(jobLabel(status, l)),
+          );
           _alertOrRecordOff(
             id,
             NotifEvent.printFinished,
-            () => _alertFinished(id, status),
+            () => _alertFinished(id, status, silent: ringing),
           );
           // Maintenance reminder independent of print finish prefs.
           _onPrintEnded?.call(id);
         case 'FAILED':
           memo.awaitingBedCool = true;
+          final l = _l10n();
+          final ringing = _ringAlarm(
+            id,
+            status,
+            AlarmEvent.printBlocked,
+            l.printFailedTitle,
+            l.printFailedBody(jobLabel(status, l)),
+          );
           _alertOrRecordOff(
             id,
             NotifEvent.printFailed,
-            () => _alertFailed(id, status),
+            () => _alertFailed(id, status, silent: ringing),
           );
           _onPrintEnded?.call(id);
         // Other/unknown final state → no false alert.
@@ -585,6 +717,14 @@ class PrintMonitor {
 
     // 7) HMS errors (new code = alert; dedup by known code set).
     _processHms(id, status, memo);
+    // After the HMS pass: a fault that arrives with the pause is still in its
+    // hold here, and rings when the hold ends instead.
+    if (!memo.paused && status.isPaused) _ringOnPause(id, status, memo);
+    if (status.isPrinting && !status.isPaused) {
+      if (memo.paused) memo.alarmUntil = null;
+      memo.runningStage = status.stgCur;
+    }
+    memo.paused = status.isPaused;
 
     // 8) Low filament (hysteresis per tray).
     _processLowFilament(id, status, memo);
@@ -594,6 +734,62 @@ class PrintMonitor {
 
     // 10) Bed cooled (only after print ends).
     _processBedCooled(id, status, memo);
+
+    // 11) An AMS drying cycle ran to its end (alarm only).
+    _processDrying(id, status, memo);
+  }
+
+  /// The falling edge of `dry_time` from above zero to zero, the server's own
+  /// "drying complete" (`services/bambu_mqtt.py`, `on_drying_complete`), with
+  /// its guard against the transient 0 of a cycle still live. Rings only for a
+  /// cycle that ran to term: one stopped with time left was stopped by somebody.
+  void _processDrying(
+    int id,
+    PrinterStatus status,
+    _PrinterMemo memo, {
+    bool baseline = false,
+  }) {
+    final units = status.ams;
+    if (units == null) return;
+    for (var i = 0; i < units.length; i++) {
+      final unit = units[i];
+      final minutes = unit.dryTime;
+      // Absent: no news. A 0 mid-cycle: keep the last real reading, so the
+      // frame that ends the cycle for real still sees it.
+      if (minutes == null) continue;
+      final key = unit.id ?? i;
+      if (minutes == 0 && _activeDryStatuses.contains(unit.dryStatus)) {
+        // Cooling only follows a countdown that ran out, so it overrides any
+        // reading before it: none, the idle 0, or the last one a gap in the
+        // feed (Doze, a reconnect) left behind.
+        if (unit.dryStatus == _dryCooling) memo.dryMinutes[key] = 1;
+        continue;
+      }
+      final previous = memo.dryMinutes[key];
+      memo.dryMinutes[key] = minutes;
+      if (baseline || previous == null || previous == 0 || minutes != 0) {
+        continue;
+      }
+      if (previous > _dryEndedEarlyMinutes) {
+        if (_alarmWants(AlarmEvent.dryingFinished)) {
+          NotifProbe.alarm(
+            id,
+            event: AlarmEvent.dryingFinished,
+            outcome: 'ended_early',
+            fields: {'unit': key, 'left': previous},
+          );
+        }
+        continue;
+      }
+      final l = _l10n();
+      _ringAlarm(
+        id,
+        status,
+        AlarmEvent.dryingFinished,
+        l.alarmEvtDrying,
+        l.alarmEvtDryingDesc,
+      );
+    }
   }
 
   /// The next pause when it is within the lead time, null otherwise — and null
@@ -776,15 +972,18 @@ class PrintMonitor {
         // fault first seen while offline gets. It holds again from the frame
         // that brings the printer back with it.
         memo.hmsLastSeen.remove(key);
-        NotifProbe.suppressed(
-          NotifSkip.offline,
-          printerId: id,
-          event: NotifEvent.printerError,
-          fields: {'code': key},
-        );
+        // A hold the alarm alone asked for says nothing about the alert.
+        if (_on(NotifEvent.printerError)) {
+          NotifProbe.suppressed(
+            NotifSkip.offline,
+            printerId: id,
+            event: NotifEvent.printerError,
+            fields: {'code': key},
+          );
+        }
         return;
       }
-      _alertError(id, status, hold.fault);
+      _faultStood(id, status, hold.fault);
     });
   }
 
@@ -804,6 +1003,7 @@ class PrintMonitor {
     final hold = memo.hmsHeld.remove(key);
     if (hold == null) return;
     hold.pause();
+    if (!_on(NotifEvent.printerError)) return;
     NotifProbe.suppressed(
       NotifSkip.transient,
       printerId: id,
@@ -815,7 +1015,9 @@ class PrintMonitor {
   /// Why this HMS code produces no alert, or null when it produces one: off, a
   /// user-action code, or undocumented (docs/notification-rules.md, "HMS faults").
   NotifSkip? _hmsSkipReason(HmsError e) {
-    if (!_on(NotifEvent.printerError)) return _offReason;
+    if (!_on(NotifEvent.printerError) && !_faultMayRing(e)) {
+      return _offReason;
+    }
     if (_hmsSuppressed(e)) return NotifSkip.userAction;
     // Notify only on a real, documented fault (parity with bambuddy) — drops
     // the undocumented/phantom codes the firmware emits alongside one event.
@@ -823,6 +1025,83 @@ class PrintMonitor {
       return NotifSkip.undocumented;
     }
     return null;
+  }
+
+  /// HMS levels 1 and 2 ([HmsError.level]), the only ones that can stop or
+  /// pause the task. Not proof that they did: an `hms[]` level 2 is a warning
+  /// the print often runs on through, so the alarm also asks [_pausedByFault].
+  static bool _stopsThePrint(HmsError e) => e.level == 1 || e.level == 2;
+
+  /// Not gated on printing: this is asked once per code, at first sight, and a
+  /// fault seen on an idle printer that is still standing when a print starts
+  /// would never be asked again. [_faultStood] checks the pause when it ends,
+  /// and [_ringOnPause] when the pause comes later.
+  bool _faultMayRing(HmsError e) =>
+      _stopsThePrint(e) && _alarmWants(AlarmEvent.printBlocked);
+
+  /// Paused, and not by the user or the file ([_requestedPauseStages]). The
+  /// server keeps `stg_cur` until the printer sends a new one, so a requested
+  /// stage that the print already ran under is a leftover and does not count.
+  static bool _pausedByFault(PrinterStatus status, _PrinterMemo memo) {
+    if (!status.isPaused) return false;
+    final stage = status.stgCur;
+    return !_requestedPauseStages.contains(stage) || stage == memo.runningStage;
+  }
+
+  /// A fault stood out its hold: the notification if that is on, and the
+  /// alarm if the print is paused under it ([_pausedByFault]) — one the fault
+  /// ended rang its own alarm on the `FAILED` edge. The notification is silent
+  /// while any alarm for the printer may still ring, that one included.
+  void _faultStood(int id, PrinterStatus status, HmsError fault) {
+    final memo = _memo[id];
+    if (memo == null) return;
+    if (_stopsThePrint(fault) && _pausedByFault(status, memo)) {
+      _ringForFault(id, status, fault);
+    }
+    final alarmOn = memo.alarmUntil?.isAfter(clock.now()) ?? false;
+    _alertOrRecordOff(
+      id,
+      NotifEvent.printerError,
+      () => _alertError(id, status, fault, silent: alarmOn),
+      fields: {
+        'code': _hmsCode(fault),
+        'sev': fault.severity,
+        'lvl': fault.level,
+      },
+    );
+  }
+
+  /// The print paused under a fault that had already stood out its hold, while
+  /// printing or before the print started: the hold asked once and will not
+  /// ask again. Its notification went out when the hold ended.
+  void _ringOnPause(int id, PrinterStatus status, _PrinterMemo memo) {
+    if (!_alarmWants(AlarmEvent.printBlocked) ||
+        !_pausedByFault(status, memo)) {
+      return;
+    }
+    for (final e in status.hmsErrors ?? const <HmsError>[]) {
+      final key = _hmsKey(e);
+      if (key == null ||
+          !_stopsThePrint(e) ||
+          !memo.hmsLastSeen.containsKey(key) ||
+          memo.hmsHeld.containsKey(key) ||
+          _hmsSkipReason(e) != null) {
+        continue;
+      }
+      _ringForFault(id, status, e);
+      return;
+    }
+  }
+
+  void _ringForFault(int id, PrinterStatus status, HmsError fault) {
+    _ringAlarm(
+      id,
+      status,
+      AlarmEvent.printBlocked,
+      _l10n().notifErrorTitle,
+      // The printer has a line of its own on the alarm.
+      hmsHumanText(fault, description: _hmsDescribe?.call(fault)),
+    );
   }
 
   /// Stable dedup key for an HMS error: full 16-hex `ecode` when available,
@@ -1003,10 +1282,11 @@ class PrintMonitor {
     );
   }
 
-  void _alertFinished(int id, PrinterStatus status) {
+  void _alertFinished(int id, PrinterStatus status, {bool silent = false}) {
     final l = _l10n();
     _notifications.showAlert(
       event: NotifEvent.printFinished,
+      silent: silent,
       printerId: id,
       id: _finishedAlertBase + id,
       title: l.printFinishedTitle,
@@ -1015,10 +1295,11 @@ class PrintMonitor {
     );
   }
 
-  void _alertFailed(int id, PrinterStatus status) {
+  void _alertFailed(int id, PrinterStatus status, {bool silent = false}) {
     final l = _l10n();
     _notifications.showAlert(
       event: NotifEvent.printFailed,
+      silent: silent,
       printerId: id,
       id: _failedAlertBase + id,
       title: l.printFailedTitle,
@@ -1094,12 +1375,18 @@ class PrintMonitor {
     );
   }
 
-  void _alertError(int id, PrinterStatus status, HmsError err) {
+  void _alertError(
+    int id,
+    PrinterStatus status,
+    HmsError err, {
+    bool silent = false,
+  }) {
     final l = _l10n();
     final detail = hmsHumanText(err, description: _hmsDescribe?.call(err));
     final fullCode = err.fullCode;
     _notifications.showAlert(
       event: NotifEvent.printerError,
+      silent: silent,
       printerId: id,
       id: _errorAlertId(id, err),
       title: l.notifErrorTitle,
@@ -1190,7 +1477,12 @@ class PrintMonitor {
       for (final AmsTray t in units[u].trays ?? const []) {
         final int? remain = t.remain;
         if (remain != null && remain >= 0 && !t.isEmpty) {
-          out[globalTrayId(amsId: unitId, trayId: t.id ?? 0)] = remain;
+          out[globalTrayId(
+                amsId: unitId,
+                trayId: t.id ?? 0,
+                amsType: units[u].amsType,
+              )] =
+              remain;
         }
       }
     }

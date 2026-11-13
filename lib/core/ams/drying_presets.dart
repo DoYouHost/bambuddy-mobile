@@ -91,3 +91,26 @@ AutoDrying autoDryingFrom(Map<String, dynamic> settings) => (
   whenIdle: settings.settingBool('ambient_drying_enabled'),
   whilePrinting: settings.settingBool('print_drying_enabled'),
 );
+
+/// `FILAMENT_KEY_ALIASES` (`print_scheduler.py`), as the web's drying popover
+/// copies it: AMS spellings of a material the table files under another key.
+const _dryingAliases = {
+  'NYLON': 'PA',
+  'PA6': 'PA',
+  'PA11': 'PA',
+  'PA12': 'PA',
+  'PAHT': 'PA',
+  'PPA': 'PA',
+};
+
+/// The [presets] row a tray of [trayType] dries by: `dryingPresets.ts`
+/// `resolveDryingPresetKey`. The first word, then without its suffix (PLA-S,
+/// PETG-CF dry as their base), and PLA, the coolest row, for anything else.
+String dryingPresetKey(String? trayType, Map<String, DryPreset> presets) {
+  final raw = (trayType ?? '').split(' ').first.toUpperCase();
+  for (final candidate in [raw, raw.split('-').first]) {
+    final key = _dryingAliases[candidate] ?? candidate;
+    if (presets.containsKey(key)) return key;
+  }
+  return 'PLA';
+}

@@ -12,7 +12,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/web_link.dart';
-import 'archive_providers.dart';
 
 /// The printer a print ran on, by name, as the web card's `printerMap` lookup —
 /// or the model it was sliced for when that printer is gone or was never set.
@@ -21,8 +20,7 @@ String? archivePrinterLabel(Archive archive, Map<int, String> names) =>
 
 final archivePrinterNamesProvider = Provider.autoDispose<Map<int, String>>(
   (ref) => {
-    for (final p in ref.watch(printersForPickerProvider).value ?? [])
-      p.id: p.name,
+    for (final p in ref.watch(printerListProvider).value ?? []) p.id: p.name,
   },
 );
 
@@ -184,6 +182,18 @@ class ArchiveHeaderChips extends ConsumerWidget {
             text: l10n.archiveRunCount(archive.runCount),
             ink: t.accentOrangeInk,
           ),
+        // How the prints ended, as the web's archive header counts them:
+        // whenever there is one to count, a single print included.
+        if (archive.successfulRunCount > 0)
+          _Chip(
+            text: l10n.archiveGoodCount(archive.successfulRunCount),
+            ink: t.accentGreenInk,
+          ),
+        if (archive.failedRunCount > 0)
+          _Chip(
+            text: l10n.archiveFailedCount(archive.failedRunCount),
+            ink: t.dangerInk,
+          ),
       ],
     );
   }
@@ -255,11 +265,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       padding: const EdgeInsets.all(DashSpace.md),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: DashSpace.sm,

@@ -72,7 +72,7 @@ known_words = [
   "AMS", "HMS", "FTP", "FTPS", "API", "QR", "JWT", "LDAP", "MQTT", "OIDC",
   "REST", "CIDR", "PDF", "BOM", "°C", "Wi-Fi", "G-code", "Orca", "Avery",
   # Units and file extensions as they appear mid-sentence: "6 h", ".gcode.3mf".
-  "h", "gcode",
+  "h", "gcode", "dpi",
   # Brands and licences the copy names outright, and the US paper size.
   "Dymo", "Affero", "Keystore", "Letter", "Handy",
   # Additional brands, products, technical terms and UI acronyms.
@@ -92,6 +92,8 @@ known_words = [
   # Labels of other products the copy quotes, so the reader can find them
   # there: bambuddy's own web UI, Home Assistant, the server's group names.
   "Settings", "Assistant", "Workflow", "Administrators",
+  # WLED's own preset option, which its web UI shows in English only.
+  "Checked", "segments", "only",
   # Plural of the app's own coinage, and two ordinary Polish words the
   # dictionary wants to split: "Podprojekty", "Szac. koszt".
   "timelapses", "podprojekty", "szac",

@@ -7,20 +7,30 @@ import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
+import '../core/format/system_clock_sync.dart';
 import '../core/models/archive.dart';
 import '../core/models/archive_media.dart';
+import '../core/models/archive_merge.dart';
 import '../core/models/archive_purge.dart';
 import '../core/models/no_3mf_warning.dart';
 import '../core/models/plate_list.dart';
+import '../core/models/print_log_entry.dart';
 
 /// REST data source for print archive (M5).
 ///
 /// Auth adds [AuthInterceptor] to the shared Dio.
 /// Each method maps [DioException] to [AppApiException].
 class ArchiveRepository {
-  ArchiveRepository(this._dio, [this._serverVersion]);
+  ArchiveRepository(
+    this._dio, [
+    this._serverVersion,
+    this._clock = const SystemClockQuery(),
+  ]);
 
   final Dio _dio;
+
+  /// Where the device's zone comes from for a day range: Android, or a test.
+  final SystemClockQuery _clock;
 
   /// Answers [printerMediaCapability] until a `printer-media` request has.
   final ServerVersionService? _serverVersion;
@@ -41,6 +51,33 @@ class ArchiveRepository {
   /// hidden, because `ArchiveUpdate` drops `user_verdict` without a word.
   late final outcomeCapability = ObservedCapability(
     ServerFeature.printOutcome,
+    _serverVersion,
+  );
+
+  /// Whether each print of an archive keeps its own note and verdict (archive
+  /// redesign). Observed on the runs listing: `PrintLogEntrySchema` sends a
+  /// `photos` key on every row from the redesign on. Unknown → not offered,
+  /// because both writes are silent drops below it: an older `PATCH
+  /// /print-log/{id}` ignores `notes`, and an older `PATCH /archives/{id}`
+  /// ignores `run_id` and gives the verdict to the latest print instead.
+  late final runsCapability = ObservedCapability(
+    ServerFeature.archiveRuns,
+    _serverVersion,
+  );
+
+  /// Whether this server merges duplicate archives. Settled by the count: a
+  /// 403 is a session without both archive rights, and an older server answers
+  /// **422**, not 404 — `/archives/{archive_id}` takes the path and fails to
+  /// parse `merge-count` as an id (measured on 1.2.5.7).
+  late final mergeCapability = ObservedCapability(
+    ServerFeature.archiveMerge,
+    _serverVersion,
+  );
+
+  /// Whether this server lists prints by the day they ended (the calendar's
+  /// source). Settled like [mergeCapability]: an older server's 422.
+  late final printsCapability = ObservedCapability(
+    ServerFeature.archiveCalendar,
     _serverVersion,
   );
 
@@ -97,9 +134,14 @@ class ArchiveRepository {
   /// GET /archives/{id} — one archive, re-read rather than reused from the
   /// list: the finish photo is attached in the background after the print
   /// ends, so a list loaded before that still shows the print without it.
-  Future<Archive> byId(int archiveId) => guard(() async {
+  ///
+  /// [runId] answers the archive as that print of it printed: its outcome,
+  /// plate, photos and video instead of the latest print's. Archive redesign
+  /// only; an older server ignores it and answers the latest.
+  Future<Archive> byId(int archiveId, {int? runId}) => guard(() async {
     final res = await _dio.get<Map<String, dynamic>>(
       Endpoints.archive(archiveId),
+      queryParameters: {'run_id': ?runId},
     );
     _observeOutcome(res.data);
     return Archive.fromJson(res.data ?? const {});
@@ -123,15 +165,23 @@ class ArchiveRepository {
   /// answers 200 and drops both keys. The verdict alone cannot say so for a
   /// clear — an older server's row has no verdict either — so the row must
   /// also be one that carries the fields.
+  ///
+  /// [runId] names the print the verdict is for; without it the server gives it
+  /// to the archive's latest print. Send it only behind [runsCapability]. The
+  /// answer is still the archive as its latest print shows it, so for an
+  /// earlier print the verdict cannot be read back from it; the gate is what
+  /// says the server took `run_id`.
   Future<({Archive archive, bool applied})> setVerdict(
     int archiveId,
     PrintVerdict? verdict, {
     String? reason,
     bool clearReason = false,
+    int? runId,
   }) => guard(() async {
     final res = await _dio.patch<Map<String, dynamic>>(
       Endpoints.archive(archiveId),
       data: <String, dynamic>{
+        'run_id': ?runId,
         'user_verdict': verdict?.wire,
         if (verdict != null) 'user_verdict_source': 'dialog',
         if (clearReason) 'failure_reason': null else 'failure_reason': ?reason,
@@ -141,7 +191,8 @@ class ArchiveRepository {
     final archive = Archive.fromJson(res.data ?? const {});
     return (
       archive: archive,
-      applied: carriesFields && archive.userVerdict == verdict,
+      applied:
+          carriesFields && (runId != null || archive.userVerdict == verdict),
     );
   });
 
@@ -234,6 +285,113 @@ class ArchiveRepository {
       return res.data;
     });
     return data == null ? PlateList.none : PlateList.fromJson(data);
+  }
+
+  /// GET /archives/{id}/runs — every print of the archive the caller may see,
+  /// newest first.
+  Future<List<PrintLogEntry>> runs(int archiveId) async {
+    final body = await guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.archiveRuns(archiveId),
+      );
+      return res.data ?? const {};
+    });
+    final items = body['items'];
+    final rows = parseJsonList(
+      items is List ? items : const [],
+      PrintLogEntry.fromJson,
+    );
+    runsCapability.observeFirst(rows, (r) => r.ownMediaReported);
+    return rows;
+  }
+
+  /// GET /archives/merge-count — groups of duplicates there are to merge; 0
+  /// where the server has no merge or the session may not use it.
+  ///
+  /// Not asked again once the latch has seen the routes missing: the banner
+  /// reads this on every visit to the archive list.
+  Future<int> mergeCount() async {
+    if (mergeCapability.observedAnswer == false) return 0;
+    return mergeCapability.watching(
+      () async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.archivesMergeCount,
+        );
+        return toIntOrNull(res.data?['groups']) ?? 0;
+      },
+      absent: () => 0,
+      absentOn: treatPathCaptureAsAbsent,
+      observing: treatPathCaptureAsAbsent,
+    );
+  }
+
+  /// GET /archives/merge-preview — the groups, mergeable first as the server
+  /// orders them (by survivor id).
+  Future<List<ArchiveMergeGroup>> mergePreview() => guard(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.archivesMergePreview,
+    );
+    return [
+      if (res.data?['groups'] case final List rows)
+        for (final row in rows) ?ArchiveMergeGroup.tryParse(row),
+    ];
+  });
+
+  /// POST /archives/merge — merges the groups of [survivorIds].
+  Future<ArchiveMergeResult> merge(List<int> survivorIds) => guard(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.archivesMerge,
+      data: {'survivor_ids': survivorIds},
+    );
+    return ArchiveMergeResult.fromJson(res.data ?? const {});
+  });
+
+  /// Every print that ended between [from] and [to] (calendar days in the
+  /// device's zone), all pages of `GET /archives/prints`. Null when the server
+  /// has no such route: the calendar then shows each archive as its one print.
+  Future<List<PrintLogEntry>?> printsBetween(
+    DateTime from,
+    DateTime to, {
+    int? printerId,
+  }) async {
+    if (printsCapability.observedAnswer == false) return null;
+    String day(DateTime d) =>
+        '${d.year}-${'${d.month}'.padLeft(2, '0')}-${'${d.day}'.padLeft(2, '0')}';
+    const page = 500;
+    final rows = <PrintLogEntry>[];
+    try {
+      for (var offset = 0; ; offset += page) {
+        final query = await withDayZone({
+          'date_from': day(from),
+          'date_to': day(to),
+          'printer_id': ?printerId,
+          'limit': page,
+          'offset': offset,
+        }, clock: _clock);
+        final body = await printsCapability.watching(
+          () async =>
+              (await _dio.get<Map<String, dynamic>>(
+                Endpoints.archivePrints,
+                queryParameters: query,
+              )).data ??
+              const <String, dynamic>{},
+          observing: treatPathCaptureAsAbsent,
+        );
+        final items = body['items'];
+        final got = parseJsonList(
+          items is List ? items : const [],
+          PrintLogEntry.fromJson,
+        );
+        rows.addAll(got);
+        final total = toIntOrNull(body['total']) ?? 0;
+        if ((items is List ? items.length : 0) < page || rows.length >= total) {
+          return rows;
+        }
+      }
+    } on AppApiException catch (e) {
+      if (e.statusCode != 422 && e.statusCode != 404) rethrow;
+      return null;
+    }
   }
 
   /// GET /archives/no-3mf-warning — whether any print in the last 30 days

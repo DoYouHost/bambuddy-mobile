@@ -12,6 +12,7 @@ import '../../core/api/api_exceptions.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../../core/app_context.dart';
+import 'archive_providers.dart';
 import 'outcome_sheet.dart';
 
 /// Whether this server records a user's verdict on a printed part (#1898).
@@ -33,6 +34,29 @@ String verdictLabel(AppLocalizations l10n, PrintVerdict verdict) =>
       PrintVerdict.good => l10n.outcomeGoodPart,
       PrintVerdict.reject => l10n.outcomeRejected,
     };
+
+/// A verdict as the card's mark and a run's pill both draw it. Each says
+/// "awaiting" its own way, so that case stays with them.
+typedef VerdictLook = ({String label, IconData icon, Color tone, Color ink});
+
+VerdictLook verdictLook(
+  DashTokens t,
+  AppLocalizations l10n,
+  PrintVerdict verdict,
+) => switch (verdict) {
+  PrintVerdict.good => (
+    label: verdictLabel(l10n, verdict),
+    icon: Icons.thumb_up_alt,
+    tone: t.accentGreen,
+    ink: t.accentGreenInk,
+  ),
+  PrintVerdict.reject => (
+    label: verdictLabel(l10n, verdict),
+    icon: Icons.thumb_down_alt,
+    tone: t.danger,
+    ink: t.dangerInk,
+  ),
+};
 
 /// How a verdict arrived, as a sentence — the plate-clear default answers
 /// prompts on its own, and without this a verdict nobody remembers giving
@@ -66,29 +90,18 @@ class ArchiveVerdictMark extends StatelessWidget {
     if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final mark = switch (archive.userVerdict) {
-      PrintVerdict.good => (
-        l10n.outcomeGoodPart,
-        Icons.thumb_up_alt,
-        t.accentGreen,
-        t.accentGreenInk,
-      ),
-      PrintVerdict.reject => (
-        l10n.outcomeRejected,
-        Icons.thumb_down_alt,
-        t.danger,
-        t.dangerInk,
-      ),
+    final VerdictLook? mark = switch (archive.userVerdict) {
+      final verdict? => verdictLook(t, l10n, verdict),
       null when archive.awaitsVerdict => (
-        l10n.outcomeAwaiting,
-        Icons.hourglass_top,
-        t.accentOrange,
-        t.accentOrangeInk,
+        label: l10n.outcomeAwaiting,
+        icon: Icons.hourglass_top,
+        tone: t.accentOrange,
+        ink: t.accentOrangeInk,
       ),
       null => null,
     };
     if (mark == null) return const SizedBox.shrink();
-    final (label, icon, tone, ink) = mark;
+    final (:label, :icon, :tone, :ink) = mark;
     return Semantics(
       label: label,
       excludeSemantics: true,
@@ -141,6 +154,18 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
   Widget build(BuildContext context) {
     final archive = widget.archive;
     if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
+    // Where each print takes its own verdict, the latest print's sits on its
+    // row in the print history; this line would only say it a second time.
+    // While that history loads, `runCount` says whether rows are coming (it
+    // counts the same table), so the line does not flash up and away; a failed
+    // or empty history leaves it the one place the verdict can be given.
+    if (ref.watch(archiveRunsSupportedProvider).orFalse) {
+      final runs = ref.watch(archiveRunsProvider(archive.id));
+      final rowsShown = runs.hasValue
+          ? runs.value!.isNotEmpty
+          : !runs.hasError && archive.runCount > 0;
+      if (rowsShown) return const SizedBox.shrink();
+    }
     // A verdict the archive carries proves the server keeps them; only the
     // question of a missing one waits for the gate.
     final supported = ref.watch(printOutcomeSupportedProvider).orFalse;

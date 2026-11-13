@@ -251,11 +251,7 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(DashSpace.md),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(DashRadius.md),
-              border: Border.all(color: t.subCardBorder),
-            ),
+            decoration: t.subCardBox(DashRadius.md),
             // Read out as one label: the selectable text's own node is a tappable
             // line under 48 dp, and the Copy button below is the way to take the key.
             child: Semantics(

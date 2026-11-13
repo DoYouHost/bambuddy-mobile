@@ -132,22 +132,25 @@ The traps that shaped them are written next to the code they bit:
 ## Contract tests locally
 
 `test/contract/` runs against a real bambuddy and is skipped everywhere
-`BAMBUDDY_CONTRACT_URL` is unset. Mirror
-[contract-tests.yml](../.github/workflows/contract-tests.yml) with containers of
-your own names (other sessions' may be running):
+`BAMBUDDY_CONTRACT_URL` is unset. `just contract-up <tag>`
+([contract_stack.sh](../tool/contract_stack.sh)) mirrors
+[contract-tests.yml](../.github/workflows/contract-tests.yml): a broker standing in
+for a printer, `ghcr.io/maziggy/bambuddy:<tag>` published on the docker bridge's
+gateway, the [fake WLED](../tool/ci/fake_wled.py) and Spoolman as containers, all
+seeded, under names that carry your user so another session's stack survives. The
+server gets `/srv/external/{rw,ro}` and `BAMBUDDY_EXTERNAL_ROOTS` for the
+external-folder tests.
+`just contract-test <tag> [files]` runs the suite against it, `just contract-down
+<tag>` removes it. The label printer and Manyfold are left out; their tests skip.
 
-1. A broker standing in for a printer: `eclipse-mosquitto:2` with
-   [mosquitto.conf](../tool/ci/mosquitto.conf) and a self-signed certificate.
-2. `docker run -d -p 127.0.0.1:<port>:8000 -e TZ=Europe/Warsaw
-   ghcr.io/maziggy/bambuddy:<tag>`. The workflow's matrix is `latest` (last
-   release), `daily` (development branch, newest features) and a pinned older
-   release. A new field is asserted on `daily`; the older tags prove the silent drop,
-   so write each test to pass on all of them (detect the feature from the payload,
-   `markTestSkipped` where an old server has nothing to check).
-3. [seed_bambuddy.sh](../tool/ci/seed_bambuddy.sh) with the server URL, the broker's
-   container IP and name.
-4. `BAMBUDDY_CONTRACT_URL`, `_USER`, `_PASS`, `_BROKER` (container name) and
-   `_BROKER_IP` set, then `flutter test test/contract --concurrency=1`.
+The workflow's matrix is `latest` (last release), `daily` (development branch, newest
+features) and a pinned older release. A new field is asserted on `daily`; the older
+tags prove the silent drop, so write each test to pass on all of them (detect the
+feature from the payload, `markTestSkipped` where an old server has nothing to check).
+
+A stand-in is never a process on the host: on a host whose firewall drops
+container-to-host traffic (NixOS by default) the server cannot reach it, and a WLED
+call, for one, ends in a 502 after the 2 s connect timeout.
 
 Why the flags: `--concurrency=1` because every file writes to the same server and
 SQLite reuses a deleted row's id, so one file's "id is gone" check can read
@@ -160,14 +163,9 @@ seeded printer and are named to run last. `flutter test test/contract` takes the
 directory's own listing order, which on one laptop was not alphabetical, and then
 `seeded_state_contract_test.dart` failed with `FINISH` where it expected `RUNNING`
 and `outcome-probe.3mf` where it expected `contract-probe.3mf` (alone, on a fresh
-server, it passes). Hand over the sorted list instead:
+server, it passes). `just contract-test` hands over the sorted list; by hand it is
 `flutter test $(ls test/contract/*_test.dart | LC_ALL=C sort) --concurrency=1`. A red
 pair like that after a green CI run is this, not a regression.
-
-A host without `openssl` (NixOS) can make the broker's certificate in a throwaway
-container: `docker run --rm --user "$(id -u):$(id -g)" -v "$certs:/certs"
-alpine/openssl req -x509 -newkey rsa:2048 -nodes -days 2 -keyout /certs/server.key
--out /certs/server.crt -subj /CN=fake-bambu`.
 
 The write-then-read guarantee (maziggy/bambuddy#3320, fixed in 1.3.1) has its own file,
 `commit_before_response_contract_test.dart`, skipped unless `BAMBUDDY_CONTRACT_COMMIT_DELAY`
@@ -197,6 +195,10 @@ something else fails its widget test until the file is rewritten and replayed.
 `.git/info/exclude` so the tracked `.gitignore` stays untouched. It answers contract
 questions (see AGENTS.md); these are the ways it misleads.
 
+- **Keep it current: `just reference-pull`** clones it if missing, otherwise fetches
+  `dev` by name and fast-forwards, refusing local changes. `server_citations_test`
+  checks every `file.py::symbol` comment against this clone, so a stale one fails
+  `just test` (and `ship`) on a machine whose clone lags the code.
 - **Know what it stands on.** `git -C reference/bambuddy log -1 --format='%h %cs'`
   — the checkout moves between a tag, `dev` and a detached commit. Read an older
   state with `git show <tag>:<file>`. `git log A..B` does not cross the shallow

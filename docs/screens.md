@@ -43,6 +43,41 @@ first frame after the line to the server came up (`inTouchSince`), where nothing
 could contradict it. A frame with `connected == null` says nothing about
 reachability and is never read as offline.
 
+### A filament slot row (#64)
+
+The material alone cannot tell slots apart: most users load one material, and three
+white PLAs all read `PLA`. A row (`_FilamentRow`) therefore leads with the slot's
+name and puts its colour on the line below. The slot number sits inside the
+swatch, inked black or white by whichever has the higher contrast (`_inkOn`):
+`ThemeData.estimateBrightnessForColor` switches to black only above luminance
+0.34, while contrast flips near 0.18, and of 26 typical filament colours it left 9
+under 4.5:1, green and orange at 2.9:1.
+
+- **Name**: the preset bambuddy saved when the slot was configured
+  (`GET /printers/{id}/slot-presets`, one request per card, present on 1.2.5),
+  as the web's slot card leads with it, but only while `slotPresetDescribesTray`
+  says it still describes the tray; else the spool assigned to the slot
+  (`AssignedSpools.spoolOf`, the chain of `fillOf` without its weight conditions,
+  so a spool with no label weight still names it), else `tray_sub_brands`, else
+  `tray_type`. A spool the preset pushed out of the name gets a third line in the
+  colour's style, so "Generic PLA" in a slot holding an eSun spool shows both.
+- **Saving a preset** sends the slot's `tray_info_idx` with it. Without it the
+  server records none, and a slot reconfigured on the printer keeps a name that
+  no longer describes it.
+- **Colour**: the spool's `color_name`, else the catalogue's name for the hex. The
+  web's hover card uses the catalogue only; the spool's own name comes first here
+  because it is what the user wrote to tell those spools apart, and the queue's
+  mapping sheet already does the same.
+
+A slot is its tray id, not its place in the report (`AmsUnit.slotAt`, the web's
+`trayForSlot`): an AMS can report only some trays or report them out of order, and
+the row's number, fill, name, preset and every slot action follow the id. Only ids
+that do not tell the trays apart fall back to the position.
+
+The name is one line by decision: wrapped, a row at 200 % text turned into a block
+of text with no hierarchy. A material chip was tried and dropped: the name already
+carries the material.
+
 ### Smart plugs (`/api/v1/smart-plugs/`)
 
 - `GET /smart-plugs/` lists the plugs with `printer_id` (the plug-to-printer map in

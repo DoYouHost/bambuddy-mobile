@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_failure.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/auth/two_factor.dart';
@@ -138,6 +139,10 @@ class SetupController extends Notifier<SetupState> {
     state = const SetupState(busy: true);
     try {
       final probe = await ref.read(authServiceProvider).probeAuthStatus(url);
+      AuthProbe.serverProbed(
+        authEnabled: probe.authEnabled,
+        requiresSetup: probe.requiresSetup,
+      );
       if (!ref.mounted) return;
       // Only a server that has neither finished setup NOR got auth turned on is
       // genuinely unusable — that's also the sole case the web UI redirects to
@@ -158,6 +163,13 @@ class SetupController extends Notifier<SetupState> {
       }
       state = SetupState(probe: probe, baseUrl: effectiveUrl);
     } on AppApiException catch (e) {
+      // A 200 the client could not parse (an HTML page) has no `http` error
+      // record of its own; this is the only line that says the probe failed.
+      recordActionFailure(
+        e,
+        action: 'setup.test_connection',
+        shown: ref.mounted,
+      );
       if (!ref.mounted) return;
       state = SetupState(error: e);
     }
@@ -178,9 +190,9 @@ class SetupController extends Notifier<SetupState> {
         await _saveDemoProfile();
         if (!ref.mounted) return;
       } else {
-        state = state.copyWith(
-          busy: false,
-          error: const AuthException(AppErrorCode.apiKeyRejected),
+        _failed(
+          const AuthException(AppErrorCode.apiKeyRejected),
+          action: 'setup.connect_api_key',
         );
       }
       return;
@@ -191,8 +203,7 @@ class SetupController extends Notifier<SetupState> {
           .verifyAndStoreApiKey(baseUrl: url, apiKey: apiKey.trim());
       await _saveProfile(url, AuthMode.apiKey);
     } on AppApiException catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(busy: false, error: e);
+      _failed(e, action: 'setup.connect_api_key');
     }
   }
 
@@ -213,9 +224,9 @@ class SetupController extends Notifier<SetupState> {
         await _saveDemoProfile();
         if (!ref.mounted) return;
       } else {
-        state = state.copyWith(
-          busy: false,
-          error: const AuthException(AppErrorCode.invalidCredentials),
+        _failed(
+          const AuthException(AppErrorCode.invalidCredentials),
+          action: 'setup.connect_login',
         );
       }
       return;
@@ -248,8 +259,7 @@ class SetupController extends Notifier<SetupState> {
           }
       }
     } on AppApiException catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(busy: false, error: e);
+      _failed(e, action: 'setup.connect_login');
     }
   }
 
@@ -273,8 +283,7 @@ class SetupController extends Notifier<SetupState> {
       // The server issued a new token with it, so the clock starts over.
       _armTwoFactorExpiry();
     } on AppApiException catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(busy: false, error: e);
+      _failed(e, action: 'setup.two_factor_send_email');
     }
   }
 
@@ -308,11 +317,24 @@ class SetupController extends Notifier<SetupState> {
       _cancelTwoFactorExpiry();
       await _saveProfile(url, AuthMode.jwt);
     } on AppApiException catch (e) {
+      recordActionFailure(
+        e,
+        action: 'setup.two_factor_verify',
+        shown: ref.mounted,
+      );
       if (!ref.mounted) return;
       final expired = e.code == AppErrorCode.twoFactorChallengeExpired;
       if (expired) _cancelTwoFactorExpiry();
       state = state.copyWith(busy: false, error: e, clearTwoFactor: expired);
     }
+  }
+
+  /// Every refusal after the probe: recorded with the control that met it,
+  /// then shown — unless the screen is already gone.
+  void _failed(AppApiException e, {required String action}) {
+    recordActionFailure(e, action: action, shown: ref.mounted);
+    if (!ref.mounted) return;
+    state = state.copyWith(busy: false, error: e);
   }
 
   /// Back to the password form — "wrong account", or the authenticator is on

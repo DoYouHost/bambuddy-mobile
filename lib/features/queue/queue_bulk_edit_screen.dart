@@ -147,7 +147,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   }
 
   Widget _printerSection(AppLocalizations l10n) {
-    final printers = ref.watch(allPrintersProvider).value ?? const [];
+    final printers = ref.watch(printerListProvider).value ?? const [];
     return QueueSectionCard(
       tone: QueueSectionTone.target,
       title: l10n.queueEditPrinter,
@@ -234,7 +234,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   Widget _printOptionsSection(AppLocalizations l10n) {
     final triState = ref.watch(triStateCalibrationProvider).orFalse;
     // The web shows the nozzle offset when any printer has two nozzles.
-    final hasDualNozzle = (ref.watch(allPrintersProvider).value ?? []).any(
+    final hasDualNozzle = (ref.watch(printerListProvider).value ?? []).any(
       (p) => p.nozzleCount == 2,
     );
     return QueueSectionCard(
@@ -405,12 +405,7 @@ class _CalibrationChoice extends StatelessWidget {
       value: value,
       onChanged: onChanged,
       // The single edit's order, so the same setting reads the same on both.
-      segments: [
-        if (triState)
-          (value: CalibrationOption.auto, label: l10n.commonAuto, icon: null),
-        (value: CalibrationOption.on, label: l10n.commonOn, icon: null),
-        (value: CalibrationOption.off, label: l10n.commonOff, icon: null),
-      ],
+      segments: calibrationSegments(l10n, triState: triState),
     );
   }
 }

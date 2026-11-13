@@ -6,6 +6,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/trash_file.dart';
 import '../../core/theme/dash_theme.dart';
+import '../../data/library_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
@@ -97,48 +98,54 @@ class TrashScreen extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
     TrashFile file,
-  ) async {
-    final ok = await confirmDialog(
-      context,
-      id: 'trash.hard_delete_confirm',
-      title: l10n.fmHardDelete,
-      message: l10n.fmHardDeleteConfirm(file.filename),
-      confirmLabel: l10n.fmHardDelete,
-      destructive: true,
-    );
-    if (!ok) return;
-    try {
-      await ref.read(libraryRepositoryProvider).hardDelete(file.id);
-      ref.invalidate(libraryTrashProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
-      }
-    } on AppApiException catch (e) {
-      showApiFailure(
-        context.mounted ? ScaffoldMessenger.of(context) : null,
-        e,
-        l10n,
-        action: 'trash.delete',
-      );
-    }
-  }
+  ) => _purge(
+    context,
+    ref,
+    l10n,
+    id: 'trash.hard_delete_confirm',
+    title: l10n.fmHardDelete,
+    message: l10n.fmHardDeleteConfirm(file.filename),
+    action: 'trash.delete',
+    write: (repo) => repo.hardDelete(file.id),
+  );
 
   Future<void> _emptyTrash(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-  ) async {
+  ) => _purge(
+    context,
+    ref,
+    l10n,
+    id: 'trash.purge_confirm',
+    title: l10n.fmEmptyTrash,
+    message: l10n.fmEmptyTrashConfirm,
+    action: 'trash.purge',
+    write: (repo) => repo.emptyTrash(),
+  );
+
+  /// Asks, deletes for good through [write], and says so; the trash reloads.
+  Future<void> _purge(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n, {
+    required String id,
+    required String title,
+    required String message,
+    required String action,
+    required Future<void> Function(LibraryRepository repo) write,
+  }) async {
     final ok = await confirmDialog(
       context,
-      id: 'trash.purge_confirm',
-      title: l10n.fmEmptyTrash,
-      message: l10n.fmEmptyTrashConfirm,
+      id: id,
+      title: title,
+      message: message,
       confirmLabel: l10n.fmHardDelete,
       destructive: true,
     );
     if (!ok) return;
     try {
-      await ref.read(libraryRepositoryProvider).emptyTrash();
+      await write(ref.read(libraryRepositoryProvider));
       ref.invalidate(libraryTrashProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
@@ -148,7 +155,7 @@ class TrashScreen extends ConsumerWidget {
         context.mounted ? ScaffoldMessenger.of(context) : null,
         e,
         l10n,
-        action: 'trash.purge',
+        action: action,
       );
     }
   }
@@ -185,11 +192,7 @@ class _TrashTile extends StatelessWidget {
           horizontal: DashSpace.md,
           vertical: DashSpace.sm,
         ),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashRadius.xl),
-          border: Border.all(color: t.subCardBorder),
-        ),
+        decoration: t.subCardBox(DashRadius.xl),
         child: ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(

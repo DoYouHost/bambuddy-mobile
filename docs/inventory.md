@@ -32,7 +32,8 @@ someone who has not met the history. Do not "restore" them:
 
 - `amsLoadTrayId` takes **local** ids like every other slot route (`amsId: 255,
   trayId: 0` becomes 254). It answers null where the server's `ams_load` has no
-  encoding (AMS-HT), and the caller hides the action.
+  encoding (an AMS-HT before 1.3.0, `ServerFeature.amsHtLoad`), and the caller
+  hides the action.
 - `PrinterStatus.activeTray` skips a tray that reports no id. Reading it as `-1`
   collided with the neighbouring unit's slot 3.
 
@@ -42,6 +43,32 @@ against live assignments of a dual-nozzle machine). This is not the MQTT `vt_tra
 254/255 of the dashboard, which is why `SpoolAssignment.extruder` goes through
 `extruderForExternalSide`. Keying the extruder on `ams_id` put both spools on "left".
 The UI shows the extruder, never "AMS255".
+
+### The H3C: the AMS 3H and nine external inputs
+
+Server #3442 numbers a slot by its unit's **AMS type** (`ams_type`, bits 0-3 of
+`info`), not by `unit * 4`: `TrayLayout` in `slot_addressing.dart` is the port of
+`utils/tray_ids.py` / `trayIds.ts`, and one `PrinterStatus.trayLayout` serves a
+whole printer.
+
+- The **AMS 3H** is unit 32 with nine slots, global **28-36** (28 + slot), stored
+  as (32, 0-8). `POST /ams/load` takes 28-36 only from that unit: a unit 7 lands
+  on 28 too, and the server refuses an AMS 3H id on a printer without one. Its
+  dryer dries two slots (`dryer_slots`), which the card, the controller and the
+  drying sheet name.
+- A printer with a direct-connected rack (a **rack printer**: an AMS 3H reported,
+  an input 247-253 seen, or the model H3C/N10 when the status lists no unit) has
+  nine external inputs, **247-255**, one per hotend: input `v` feeds hotend
+  `255 - v`, named **`Ext-n` = hotend + 1** (255 is Ext-1). They are stored as
+  (255, `externalSlotIndex`): 254 → 0, 255 → 1, 247-253 → 2-8, so the two ids every
+  other printer uses keep their trays. A tray past 1 under unit 255 names nothing
+  on another printer, which is why the assign sheet takes it back to 0 when the
+  printer changes.
+- On a rack printer **254 and 255 are inputs, not holder sides**: no Ext-L/Ext-R,
+  no extruder, and no load or unload on any input (the web offers none). Only a
+  loaded input is listed; `tray_now` 255 means nothing is loaded.
+- An assignment carries `printer_model` (#3442), which is how a label reads
+  `Ext-n` where no live status is at hand.
 
 ## Two backends behind one interface
 
@@ -76,6 +103,10 @@ From the bambuddy and Spoolman source:
   charged to the tag first and to the slot row as the fallback.
 - The web reads the slot row first and, on any RFID tray, disables Assign and hides
   Unassign (`isBambuLabSpool`).
+- The spool sheet's usage list reads `GET /spoolman/inventory/spools/{id}/usage`
+  (#3407, 1.3.1). Older servers 404 it and keep no per-print record, so
+  `SpoolmanInventorySource.fetchUsage` reads that 404 as an empty list. The app has
+  no clear-history action, so the route's `DELETE` is not wired.
 
 **One deliberate deviation.** For an RFID tag that no spool carries (auto-add off)
 the app keeps the picker enabled, where the web disables Assign and offers Link.
@@ -192,3 +223,46 @@ screen.
   (`q5.c`, `a6.n`) and an `r8-map-id`. **Any new dependency that loads classes
   reflectively needs its own rule**, and per [AGENTS.md](../AGENTS.md) broadening
   keep rules is a security-stop decision for the maintainer.
+
+## Label sheets of the user's own measures (server #3296)
+
+The stock picker lists the built-in labels, the sheets saved on the server and a
+"Custom sheet" entry. Gate: [labelTemplates](server-gates.md#labeltemplates--130-server-3296-pr-3385-commit-9a92f7d).
+
+- **A saved sheet and a one-off one print the same way**: `template: "custom"` with the
+  `layout` in the request. The saved list is never read to print, which is why anyone who
+  may print may use it, and why a template deleted a second ago still prints from a
+  picker that has not refetched.
+- **`SpoolLabelTemplate.custom` has no grid of its own**, so nothing asks the enum how many
+  labels a sheet holds. The picker hands on a `LabelStock` (template plus layout), whose
+  `capacity` is the layout's; the starting-position sheet and the request read it there.
+  The lines a label carries are kept once for `custom`, not per template.
+- **`SheetLayout.problem` mirrors the server's `SheetLayout.problem()`**, condition by
+  condition and in its order, with the same 0.01 mm tolerance on the page fit. The form
+  names a problem while it is typed instead of after a 422;
+  `label_templates_contract_test.dart` posts one layout per condition and fails when the
+  two disagree.
+- **The saved list is fetched every time the picker opens** (`autoDispose`): someone else
+  may have saved or deleted one. It is also the request that settles the gate, so it is
+  made whatever the gate says. A row with a page this app does not know is left out of the
+  list rather than failing it.
+- **The form opens on the sheet last used** (`LabelPrintPrefs.customLayout`, an additive
+  key), else the web form's starting point, a 3 × 7 A4 grid.
+- **Saving is part of the form, not a step after it.** With `inventory:update` the form has a
+  name field and "Save as template"; once saved, the form *is* the editor of that template
+  ("Save changes" replaces it as a whole, `PUT` has no merge; "Delete template" asks first).
+  It stays open so the sheet can be used right after. The edit button on a saved card opens
+  the same form. A 409 is said on the name field (names clash ignoring case and Unicode
+  composition); every other refusal goes through `showApiFailure`, and anything that is not
+  an `AppApiException` is rethrown with the busy flag lowered. The list behind the form is
+  refetched after every write, refusals included: a 404 is a template someone deleted.
+- **"Save as new"** sits below "Save changes" in the editor: the same `POST` as a first
+  save, from the name and layout on screen, so a template becomes a copy without retyping
+  it. Under the same name it is a 409, said on the name field.
+- **The PNG cap is said before "Print"** (`pngSheetOverCap`, `spool_label.dart`): the server
+  refuses a PNG of sheets with pages × dpi over 15 000 (`MAX_PNG_SHEET_PAGES_X_DPI`,
+  `labels.py`), and the web modal does the arithmetic first too. The built-in sheets always
+  fit; a custom one-label-per-page sheet does not at 26 spools and 600 dpi. Pages count the
+  blank slots before the first label. A roll has no cap, and a PDF none either.
+- What each button sends is recorded in `test/fixtures/sent/label_template_*.json` by the
+  widget test and replayed on a live server by `label_templates_contract_test.dart`.

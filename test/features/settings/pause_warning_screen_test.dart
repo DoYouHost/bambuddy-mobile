@@ -51,12 +51,7 @@ void main() {
     await pumpPhone(
       tester,
       const PauseWarningScreen(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
-      ),
+      builder: textScaled(textScale),
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         currentUserOverride(user),

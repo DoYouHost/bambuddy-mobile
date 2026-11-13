@@ -1,3 +1,5 @@
+import 'dart:io' show HandshakeException;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
@@ -14,8 +16,17 @@ enum AppErrorCode {
   forbidden,
   badResponse,
   badCertificate,
+
+  /// A proxy with mutual TLS refused the app: no client certificate, or one it
+  /// does not accept (#65). The remedy is the certificate, not the address.
+  clientCertRefused,
   connectionError,
   malformedResponse,
+
+  /// The address answers, but not as bambuddy — usually the web page the SPA
+  /// catch-all serves for an address pasted with a path after
+  /// the port (`host:8000/printers`). Not [connectionError]: the host answered.
+  notBambuddy,
   invalidCredentials,
 
   /// A second factor is needed and the caller cannot ask for one — silent
@@ -258,6 +269,36 @@ String? serverDetailOf(Object? data) {
   return null;
 }
 
+/// What a proxy says when it refuses the client certificate. In TLS, the alert
+/// it sends, as BoringSSL names it on receipt — so it is about our certificate,
+/// never the server's (recorded against `openssl s_server -Verify`: TLS 1.3
+/// without one gives `CERTIFICATE_REQUIRED`, an untrusted one `UNKNOWN_CA`).
+/// TLS 1.2 without one gives only `HANDSHAKE_FAILURE`, which a cipher mismatch
+/// gives too, so it is left a connection error. Over HTTP, nginx's own 400
+/// pages for `ssl_verify_client on`.
+const _clientCertAlerts = [
+  'ALERT_CERTIFICATE_REQUIRED',
+  'ALERT_UNKNOWN_CA',
+  'ALERT_BAD_CERTIFICATE',
+  'ALERT_CERTIFICATE_EXPIRED',
+  'ALERT_CERTIFICATE_REVOKED',
+  'ALERT_CERTIFICATE_UNKNOWN',
+  'ALERT_UNSUPPORTED_CERTIFICATE',
+];
+const _nginxClientCertPages = [
+  'No required SSL certificate was sent',
+  'The SSL certificate error',
+];
+
+bool _clientCertRefused(DioException e) {
+  final error = '${e.error}';
+  if (_clientCertAlerts.any(error.contains)) return true;
+  final body = e.response?.data;
+  return e.response?.statusCode == 400 &&
+      body is String &&
+      _nginxClientCertPages.any(body.contains);
+}
+
 /// Maps [DioException] to a typed application exception.
 AppApiException mapDioException(DioException e) {
   if (e.error is AppApiException) {
@@ -267,7 +308,24 @@ AppApiException mapDioException(DioException e) {
   // The same reduction `HttpProbe` records with: no host, no query, and no
   // segment the user named.
   final path = loggablePath(e.requestOptions.uri.path);
-  return switch (classifyDioException(e)) {
+  // Dio files an untrusted certificate under a connection error (it names one
+  // only for its own `validateCertificate`), and the remedy is not the address
+  // but the CA (#62). Other handshake failures — plain http on an https port —
+  // stay connection errors.
+  final error = e.error;
+  if (_clientCertRefused(e)) {
+    return NetworkException(
+      AppErrorCode.clientCertRefused,
+      method: method,
+      path: path,
+    );
+  }
+  final untrusted =
+      error is HandshakeException &&
+      (error.osError?.message.contains('CERTIFICATE_VERIFY_FAILED') ?? false);
+  return switch (untrusted
+      ? DioFailure.badCertificate
+      : classifyDioException(e)) {
     DioFailure.unreachable => NetworkException(
       AppErrorCode.serverUnreachable,
       detail: e.message,

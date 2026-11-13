@@ -4,6 +4,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart' show Color, DynamicSchemeVariant;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../api/custom_ca.dart';
 import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
@@ -34,6 +35,7 @@ class SettingsRepository {
   static const _wearRelayClaimKey = 'wear_relay_claim';
   static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
+  static const _mergeDismissedAtKey = 'archive_merge_dismissed_at';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
   static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
   static const _wallPanelExpandedKey = 'wall_panel_expanded';
@@ -51,6 +53,8 @@ class SettingsRepository {
   static const _wearFaceColoursKey = 'wear_face_colours';
   static const _wearPhoneAccentKey = 'wear_phone_accent';
   static const _tourSeenKey = 'tour_seen';
+  static const _customCaKey = 'custom_ca';
+  static const _hasClientCertKey = 'has_client_cert';
 
   final SharedPreferences _prefs;
 
@@ -109,6 +113,23 @@ class SettingsRepository {
       _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
 
   Future<void> clearProfile() => _prefs.remove(_profileKey);
+
+  /// Not a secret: a CA certificate is public by design. Kept across "change
+  /// server" — the setup screen shows it and offers to remove it.
+  CustomCa? loadCustomCa() =>
+      _loadJson<CustomCa?>(_customCaKey, null, CustomCa.fromJson);
+
+  Future<void> saveCustomCa(CustomCa? ca) =>
+      _setOrRemove(_customCaKey, ca == null ? null : jsonEncode(ca.toJson()));
+
+  /// Whether `ClientCertStore` holds a certificate. The certificate itself is a
+  /// secret and lives there; this flag spares an install without one the
+  /// secure-storage read at start (`loadClientCert`).
+  bool loadHasClientCert() => _prefs.getBool(_hasClientCertKey) ?? false;
+
+  Future<void> saveHasClientCert(bool has) => has
+      ? _prefs.setBool(_hasClientCertKey, true)
+      : _prefs.remove(_hasClientCertKey);
 
   /// Whether the guided tour still has to run on its own. Absent on an install
   /// that has not met it either way; see [markTourDue] and
@@ -193,6 +214,13 @@ class SettingsRepository {
   bool loadNo3mfDismissed() => _prefs.getBool(_no3mfDismissedKey) ?? false;
 
   Future<void> saveNo3mfDismissed() => _prefs.setBool(_no3mfDismissedKey, true);
+
+  /// How many duplicate groups there were when the merge banner was dismissed;
+  /// it comes back once there are more (as the web's `archiveMergeBannerDismissed`).
+  int? loadMergeDismissedAt() => _prefs.getInt(_mergeDismissedAtKey);
+
+  Future<void> saveMergeDismissedAt(int groups) =>
+      _prefs.setInt(_mergeDismissedAtKey, groups);
 
   /// Whether dashboard printer cards open collapsed. Absent reads as expanded,
   /// the only look installs had before the setting existed.

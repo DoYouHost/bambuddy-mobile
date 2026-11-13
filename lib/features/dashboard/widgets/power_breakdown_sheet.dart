@@ -153,11 +153,7 @@ class PowerBreakdownSheet extends ConsumerWidget {
     Widget tile(PowerGroup g, Color color) => Container(
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       padding: const EdgeInsets.all(DashSpace.md),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

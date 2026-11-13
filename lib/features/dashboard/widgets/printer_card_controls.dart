@@ -525,11 +525,7 @@ class _SpeedControl extends StatelessWidget {
           horizontal: DashSpace.md,
           vertical: DashSpace.md,
         ),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashRadius.lg),
-          border: Border.all(color: t.subCardBorder),
-        ),
+        decoration: t.subCardBox(DashRadius.lg),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -537,7 +533,7 @@ class _SpeedControl extends StatelessWidget {
                 ? _btnSpinner
                 : Icon(Icons.speed, size: DashIcon.md, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
-            Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
+            Text(label, style: t.bodyBoldPrimary),
             Icon(
               Icons.arrow_drop_down,
               size: DashIcon.md,

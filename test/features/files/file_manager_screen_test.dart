@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 import '../queue/queue_form_harness.dart';
 
@@ -40,8 +41,10 @@ LibraryFile _file({
   int variantCount = 0,
   int photoCount = 0,
   String? externalUrl,
+  int? folderId,
 }) => LibraryFile(
   id: id,
+  folderId: folderId,
   filename: filename,
   fileType: fileType,
   fileSize: 1024,
@@ -1076,7 +1079,10 @@ void main() {
       expect(actionsOf('Mine'), findsOneWidget);
     });
 
-    testWidgets('only writable folders are move targets', (tester) async {
+    testWidgets('a file is moved into a folder the user may write; one '
+        'they may not stays in the tree, dimmed, with the reason', (
+      tester,
+    ) async {
       await pumpAt(tester);
       await tester.tap(find.text(file.displayName));
       await tester.pumpAndSettle();
@@ -1088,15 +1094,18 @@ void main() {
       await tester.tap(byLogId('file_actions.move'));
       await tester.pumpAndSettle();
 
-      expect(byLogId('files.move_target'), findsOneWidget);
+      expect(_moveRow(tester, 'Mine').enabled, isTrue);
+      expect(_moveRow(tester, 'Theirs').enabled, isFalse);
+      expect(find.text(pl.fmMoveBlockedNotWritable), findsOneWidget);
+      // The file is at the root already.
       expect(
-        find.descendant(
-          of: byLogId('files.move_target'),
-          matching: find.text('Mine'),
-        ),
-        findsOneWidget,
+        _moveRow(tester, pl.fmRoot, id: 'files.move_target_root').enabled,
+        isFalse,
       );
-      expect(find.text(pl.fmRoot), findsWidgets);
+      expect(find.text(pl.fmMoveBlockedCurrent), findsOneWidget);
+      // A read-only mount answers 403 (`library.py::move_files`).
+      expect(_moveRow(tester, 'NAS').enabled, isFalse);
+      expect(find.text(pl.fmMoveBlockedReadOnly), findsOneWidget);
     });
 
     testWidgets('nothing can be added inside a folder that is not writable', (
@@ -1125,4 +1134,373 @@ void main() {
       expect(find.byTooltip(pl.fmAddFiles), findsOneWidget);
     });
   });
+
+  group('moving a file into a mount', () {
+    const nas = LibraryFolder(id: 4, name: 'NAS', isExternal: true);
+
+    Future<RequestLog> pumpWithMount(
+      WidgetTester tester,
+      Map<String, dynamic> moveReply, {
+      LibraryFile? listed,
+    }) async {
+      final file = listed ?? _file(id: 7, filename: 'cube.3mf');
+      usePhoneWindow(tester, dp: 2400);
+      final dio = testDio();
+      mockServer(dio)
+        ..onPost(
+          '/api/v1/library/files/move',
+          (s) => s.reply(200, moveReply),
+          data: {
+            'file_ids': [7],
+            'folder_id': 4,
+          },
+        )
+        ..onGet('/api/v1/library/folders', (s) => s.reply(200, <Object>[]))
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, <Object>[]),
+          queryParameters: {'include_root': true},
+        );
+      final log = captureRequests(dio);
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(allFolders: const [nas], files: [file]),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          slicerEnabledProvider.overrideWithValue(const AsyncData(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(true)),
+          libraryFileExtrasProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(file.displayName));
+      await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        byLogId('file_actions.move'),
+        find.byType(BottomSheet),
+        const Offset(0, -60),
+      );
+      await tester.tap(byLogId('file_actions.move'));
+      await tester.pumpAndSettle();
+      return log;
+    }
+
+    testWidgets('a writable mount takes the file', (tester) async {
+      final log = await pumpWithMount(tester, {
+        'status': 'success',
+        'moved': 1,
+        'skipped': 0,
+        'skipped_reasons': <Object>[],
+      });
+
+      expect(_moveRow(tester, 'NAS').enabled, isTrue);
+      await tester.tap(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('NAS'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(log.requests.where((r) => r.method == 'POST').map((r) => r.path), [
+        '/api/v1/library/files/move',
+      ]);
+      expect(find.text(pl.fmMoved), findsOneWidget);
+    });
+
+    testWidgets('a file the server skips is not called moved, and the reason '
+        'is said', (tester) async {
+      const reason = "a file named 'cube.3mf' already exists in target";
+      final log = await pumpWithMount(tester, {
+        'status': 'success',
+        'moved': 0,
+        'skipped': 1,
+        'skipped_reasons': [
+          {'file_id': 7, 'code': 'name_collision', 'reason': reason},
+        ],
+      });
+
+      await tester.tap(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('NAS'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.fmNotMovedReason(reason)), findsOneWidget);
+      expect(find.text(pl.fmMoved), findsNothing);
+      expect(log.requests.map((r) => '${r.method} ${r.path}'), [
+        'POST /api/v1/library/files/move',
+      ], reason: 'nothing moved, so nothing to fetch again');
+    });
+
+    testWidgets('a move that moved nothing and skipped nothing is not called '
+        'moved either', (tester) async {
+      await pumpWithMount(tester, {
+        'status': 'success',
+        'moved': 0,
+        'skipped': 0,
+        'skipped_reasons': <Object>[],
+      });
+
+      await tester.tap(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('NAS'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.fmNotMoved), findsOneWidget);
+      expect(find.text(pl.fmMoved), findsNothing);
+    });
+
+    testWidgets('a file found by search is "already here" in its own folder, '
+        'not in the one on screen', (tester) async {
+      // On screen: the root. The file sits in NAS.
+      await pumpWithMount(
+        tester,
+        const {'moved': 1},
+        listed: _file(
+          id: 7,
+          filename: 'cube.3mf',
+          folderId: 4,
+          isExternal: true,
+        ),
+      );
+
+      expect(_moveRow(tester, 'NAS').enabled, isFalse);
+      expect(find.text(pl.fmMoveBlockedCurrent), findsOneWidget);
+      expect(
+        _moveRow(tester, pl.fmRoot, id: 'files.move_target_root').enabled,
+        isTrue,
+      );
+    });
+
+    testWidgets('a file on a read-only mount is not offered a move', (
+      tester,
+    ) async {
+      const archive = LibraryFolder(
+        id: 5,
+        name: 'Archive',
+        isExternal: true,
+        externalReadonly: true,
+      );
+      final onMount = _file(
+        id: 8,
+        filename: 'frozen.3mf',
+        folderId: 5,
+        isExternal: true,
+      );
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(
+                allFolders: const [nas, archive],
+                files: [onMount],
+              ),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          slicerEnabledProvider.overrideWithValue(const AsyncData(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(true)),
+          libraryFileExtrasProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(onMount.displayName));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('file_actions.move'), findsNothing);
+      expect(byLogId('file_actions.rename'), findsNothing);
+    });
+  });
+
+  group('moving a folder', () {
+    const parent = LibraryFolder(id: 1, name: 'Parent');
+    const other = LibraryFolder(id: 3, name: 'Other');
+    const kid = LibraryFolder(id: 2, name: 'Kid', parentId: 1);
+    const mount = LibraryFolder(id: 4, name: 'NAS', isExternal: true);
+
+    /// Parent is open, so Kid is the folder on screen.
+    Future<RequestLog> pumpParent(
+      WidgetTester tester, {
+      List<LibraryFolder> folders = const [parent, other, kid, mount],
+      double textScale = 1,
+    }) async {
+      // Tall enough that the whole picker tree is built, at 200 % too.
+      usePhoneWindow(tester, dp: 2400);
+      final dio = testDio();
+      mockServer(dio)
+        ..onPut(
+          '/api/v1/library/folders/2',
+          (s) => s.reply(200, {'id': 2, 'name': 'Kid'}),
+          data: Matchers.any,
+        )
+        ..onGet('/api/v1/library/folders', (s) => s.reply(200, <Object>[]))
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, <Object>[]),
+          queryParameters: {'folder_id': 1, 'include_root': false},
+        );
+      final log = captureRequests(dio);
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        builder: textScaled(textScale),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(allFolders: folders, currentFolderId: 1),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          slicerEnabledProvider.overrideWithValue(const AsyncData(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(true)),
+          libraryFileExtrasProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+      return log;
+    }
+
+    Future<void> openMove(WidgetTester tester) async {
+      await tester.tap(byLogId('files.folder_actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('files.folder.move'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('what the move sends, recorded for the contract test', (
+      tester,
+    ) async {
+      final log = await pumpParent(tester);
+
+      await openMove(tester);
+      await tester.tap(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('Other'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expectSentAsRecorded('library_folder_move', writesOf(log.requests));
+      expect(find.text(pl.fmMoved), findsOneWidget);
+    });
+
+    testWidgets('the picker draws the tree and refuses, with a reason, the '
+        'folder itself, its parent and a mount', (tester) async {
+      await pumpParent(tester);
+
+      await openMove(tester);
+
+      expect(_moveRow(tester, 'Other').enabled, isTrue);
+      expect(
+        _moveRow(tester, pl.fmRoot, id: 'files.move_target_root').enabled,
+        isTrue,
+      );
+      expect(_moveRow(tester, 'Kid').enabled, isFalse);
+      expect(_moveRow(tester, 'Parent').enabled, isFalse);
+      expect(_moveRow(tester, 'NAS').enabled, isFalse);
+      expect(find.text(pl.fmMoveBlockedSelf), findsOneWidget);
+      expect(find.text(pl.fmMoveBlockedCurrent), findsOneWidget);
+      expect(find.text(pl.fmMoveBlockedExternal), findsOneWidget);
+      // Kid sits one level under Parent.
+      Finder inPicker(String name) => find.descendant(
+        of: byLogId('files.move_target'),
+        matching: find.text(name),
+      );
+      expect(
+        tester.getTopLeft(inPicker('Kid')).dx,
+        greaterThan(tester.getTopLeft(inPicker('Parent')).dx),
+      );
+    });
+
+    testWidgets('a dimmed row does nothing when tapped', (tester) async {
+      final log = await pumpParent(tester);
+
+      await openMove(tester);
+      await tester.tap(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('NAS'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(writesOf(log.requests), isEmpty);
+      expect(byLogId('files.move_target'), findsWidgets, reason: 'still open');
+    });
+
+    for (final scale in const [1.0, 1.5, 2.0]) {
+      testWidgets('a deep tree with long names lays out at ${scale}x text', (
+        tester,
+      ) async {
+        await pumpParent(
+          tester,
+          folders: [
+            for (var i = 0; i < 6; i++)
+              LibraryFolder(
+                id: 10 + i,
+                name: 'A rather long folder name, level $i',
+                parentId: i == 0 ? null : 9 + i,
+              ),
+            parent,
+            kid,
+          ],
+          textScale: scale,
+        );
+
+        await openMove(tester);
+
+        expect(find.textContaining('level 5'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
 }
+
+/// The move picker's row named [name].
+ListTile _moveRow(
+  WidgetTester tester,
+  String name, {
+  String id = 'files.move_target',
+}) => tester.widget<ListTile>(
+  find.ancestor(
+    of: find.descendant(of: byLogId(id), matching: find.text(name)),
+    matching: find.byType(ListTile),
+  ),
+);

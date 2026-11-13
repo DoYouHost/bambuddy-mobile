@@ -20,6 +20,7 @@ void main() {
     AuthMode authMode = AuthMode.none,
     CurrentUser? user,
     AsyncValue<bool> profileDefaults = const AsyncData(false),
+    AsyncValue<bool> wled = const AsyncData(false),
     Map<String, dynamic> serverSettings = const {},
   }) async {
     await pumpPhone(
@@ -29,6 +30,7 @@ void main() {
         fakeServerProfileOverride(authMode: authMode),
         currentUserOverride(user),
         profileDefaultsSupportedProvider.overrideWithValue(profileDefaults),
+        wledSupportedProvider.overrideWithValue(wled),
         serverSettingsRepositoryProvider.overrideWithValue(
           _SettingsRepo(serverSettings),
         ),
@@ -63,6 +65,32 @@ void main() {
       'entry', (tester) async {
     await pumpHub(tester, serverSettings: {'queue_shortest_first': true});
     expect(find.text(pl.pauseWarningTitle), findsNothing);
+  });
+
+  testWidgets('WLED is offered on a server that keeps the mapping', (
+    tester,
+  ) async {
+    await pumpHub(tester, wled: const AsyncData(true));
+    expect(byLogId('server_settings.wled'), findsOneWidget);
+  });
+
+  testWidgets('WLED is not offered on an older server, nor while it has not '
+      'answered', (tester) async {
+    await pumpHub(tester);
+    expect(byLogId('server_settings.wled'), findsNothing);
+
+    await pumpHub(tester, wled: const AsyncLoading());
+    expect(byLogId('server_settings.wled'), findsNothing);
+  });
+
+  testWidgets('WLED is not offered to an API key, which cannot change a '
+      'printer', (tester) async {
+    await pumpHub(
+      tester,
+      authMode: AuthMode.apiKey,
+      wled: const AsyncData(true),
+    );
+    expect(byLogId('server_settings.wled'), findsNothing);
   });
 
   testWidgets('an anonymous session gets the settings entries', (tester) async {

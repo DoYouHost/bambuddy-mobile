@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
@@ -23,6 +26,12 @@ void main() {
   late DioAdapter adapter;
   late ProviderContainer container;
   late InMemoryCredentialsStore credentials;
+  late DiagnosticRecorder recorder;
+  Future<String>? stopped;
+
+  // The recorder attaches the interaction probe on start, which needs a
+  // binding.
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   /// The overrides every container here needs; a group that wants one more
   /// (the 2FA countdown) rebuilds the container on top of these.
@@ -44,6 +53,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
     adapter = mockServer(dio);
+    adapter.onGet(
+      '$_baseUrl/api/v1/updates/version',
+      (s) => s.reply(200, {'version': '1.2.5', 'repo': 'maziggy/bambuddy'}),
+    );
     credentials = InMemoryCredentialsStore();
     overrides = [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -51,7 +64,26 @@ void main() {
       bareDioProvider.overrideWithValue(dio),
     ];
     container = buildContainer();
+    stopped = null;
+    recorder = testRecorder();
+    addTearDown(recorder.discard);
+    await recorder.start();
   });
+
+  // stop() hands the log over once; a test that reads two kinds of row shares
+  // it.
+  Future<String> log() => stopped ??= recorder.stop();
+
+  Future<List<Map<String, dynamic>>> records(String evt) async => [
+    for (final line in const LineSplitter().convert(await log()))
+      if (jsonDecode(line) case final Map<String, dynamic> row
+          when row['evt'] == evt)
+        row,
+  ];
+
+  /// The control named by the one failure the user was shown (#66).
+  Future<String?> failedAction() async =>
+      (await records('action_failed')).single['action'] as String?;
 
   SetupController controller() =>
       container.read(setupControllerProvider.notifier);
@@ -190,6 +222,91 @@ void main() {
     });
   });
 
+  // #66: five 200s from /auth/status and no way to tell from the log which of
+  // three screens followed each one.
+  group('what a probe leaves in a bug report', () {
+    void replyHtml({Duration? delay}) => adapter.onGet(
+      '$_baseUrl/api/v1/auth/status',
+      (server) => server.reply(
+        200,
+        '<!doctype html><html></html>',
+        headers: {
+          Headers.contentTypeHeader: ['text/html'],
+        },
+        delay: delay,
+      ),
+    );
+
+    for (final (fixture, authEnabled, requiresSetup) in [
+      ('auth_status_fresh_server.json', false, true),
+      ('auth_status_enabled.json', true, false),
+    ]) {
+      test('$fixture → both flags, no failure', () async {
+        mockAuthStatus(fixture);
+
+        await controller().probe(_baseUrl);
+
+        final probe = (await records('server_probe')).single;
+        expect(probe['auth_enabled'], authEnabled);
+        expect(probe['requires_setup'], requiresSetup);
+      });
+    }
+
+    test('a probe that ends in an error is an action_failed', () async {
+      adapter.onGet(
+        '$_baseUrl/api/v1/auth/status',
+        (server) => server.reply(500, {'detail': 'boom'}),
+      );
+
+      await controller().probe(_baseUrl);
+
+      final failure = (await records('action_failed')).single;
+      expect(failure['action'], 'setup.test_connection');
+      expect(failure['code'], AppErrorCode.badResponse.name);
+      expect(failure, isNot(contains('shown')));
+    });
+
+    test('a 200 HTML page is a failure, not a probe result', () async {
+      // What a reverse proxy or another web app answers: the `http` lane logs
+      // a plain 200, so without this record the log reads as a success.
+      replyHtml();
+
+      await controller().probe(_baseUrl);
+
+      expect(
+        state().error,
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.notBambuddy,
+        ),
+      );
+      expect(await records('server_probe'), isEmpty);
+      expect(
+        (await records('action_failed')).single['code'],
+        AppErrorCode.notBambuddy.name,
+      );
+    });
+
+    test(
+      'leaving the screen mid-probe records the error as not shown',
+      () async {
+        replyHtml(delay: const Duration(milliseconds: 50));
+        final left = ProviderContainer(retry: neverRetry, overrides: overrides);
+        addTearDown(left.dispose);
+        final keepAlive = left.listen(setupControllerProvider, (_, _) {});
+
+        final probing = left
+            .read(setupControllerProvider.notifier)
+            .probe(_baseUrl);
+        keepAlive.close();
+        await probing;
+
+        expect((await records('action_failed')).single['shown'], isFalse);
+      },
+    );
+  });
+
   group('SetupController.connectWithLogin', () {
     Future<void> probed() async {
       mockAuthStatus('auth_status_enabled.json');
@@ -284,6 +401,7 @@ void main() {
       expect(savedProfile(), isNull);
       expect(credentials.jwt, isNull);
       expect(await credentials.readRememberedLogin(), isNull);
+      expect(await failedAction(), 'setup.connect_login');
     });
 
     test('rate-limited → "too many attempts", not "wrong password"', () async {
@@ -407,6 +525,24 @@ void main() {
       expect(profile?.authMode, AuthMode.none);
       expect(state().error, isNull);
     });
+
+    test('a wrong demo password is recorded like a real one', () async {
+      await controller().probe(DemoConfig.baseUrl);
+      await controller().connectWithLogin(
+        username: DemoConfig.username,
+        password: 'not-it',
+        remember: false,
+      );
+
+      expect(await failedAction(), 'setup.connect_login');
+    });
+
+    test('a wrong demo key is recorded like a real one', () async {
+      await controller().probe(DemoConfig.baseUrl);
+      await controller().connectWithApiKey('not-it');
+
+      expect(await failedAction(), 'setup.connect_api_key');
+    });
   });
 
   group('SetupController.connectWithApiKey', () {
@@ -472,6 +608,7 @@ void main() {
       expect(state().busy, isFalse);
       expect(savedProfile(), isNull);
       expect(credentials.apiKey, isNull);
+      expect(await failedAction(), 'setup.connect_api_key');
     });
 
     test('a key the server knows but refuses says which permission', () async {
@@ -603,6 +740,7 @@ void main() {
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(state().busy, isFalse);
       expect(savedProfile(), isNull);
+      expect(await failedAction(), 'setup.two_factor_verify');
     });
 
     test('an expired challenge drops back to the password form', () async {
@@ -693,6 +831,7 @@ void main() {
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(state().emailCodeSent, isFalse);
       expect(state().busy, isFalse);
+      expect(await failedAction(), 'setup.two_factor_send_email');
     });
 
     test('an untouched step gives way once the token has run out', () async {

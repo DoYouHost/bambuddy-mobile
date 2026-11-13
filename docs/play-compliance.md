@@ -42,6 +42,7 @@ plugin manifests and are compared by hand (step 2 above).
 | `WRITE_EXTERNAL_STORAGE` | manifest | yes | no | Saving a file on Android ≤ 9 (`maxSdkVersion` 29). The `mobile` flavor inherits minSdk 24 and the gallery plugin cannot save a timelapse on API 24–29 without it; approved by the maintainer, do not ask again. |
 | `POST_NOTIFICATIONS` | manifest | yes | yes | Print alerts; the watch's Ongoing Activity. |
 | `POST_PROMOTED_NOTIFICATIONS` | manifest | yes | no | Android 16 Live Update for the print in progress. |
+| `USE_FULL_SCREEN_INTENT` | manifest | yes | no | The print alarm's screen over the lock screen (#61). Play Console declaration: not a calling or alarm app, so no default grant — the user enables it from the alarm settings, and without it the alarm rings as a heads-up notification. |
 | `FOREGROUND_SERVICE` | manifest | yes | yes | Background print monitor; the watch's Ongoing Activity. |
 | `FOREGROUND_SERVICE_CONNECTED_DEVICE` | manifest | yes | yes | The service type; declared in Play Console. |
 | `CHANGE_NETWORK_STATE` | manifest | yes | yes | Qualifies the `connectedDevice` type. |
@@ -113,6 +114,7 @@ asset rows are n/a.
 | Policy | Status | Notes |
 |---|---|---|
 | Foreground service declaration | manual | Play Console declares `connectedDevice` with a video; the watch now runs one too (WO-V4) — the video may need the watch. |
+| Full-screen intent declaration | **open** | Required before the first upload that ships `USE_FULL_SCREEN_INTENT` (the print alarm, #61): answer that the app's core function is not calling or alarms, so the permission is not granted by default. The app asks the user to turn it on and degrades to a heads-up alarm without it. |
 | Battery optimisation exemption | test | Not requested (#53). `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is allowed only for messaging without FCM, safety, task automation or a peripheral companion keeping a device online — a print monitor is none of them. The app opens its own settings page and the user sets battery use to unrestricted; an exemption granted before stays across the update. `compliance_test.dart` refuses the permission in the manifest. |
 | Store screenshots | test + manual | `compliance_test.dart`: 320–3840 px and the long side at most twice the short ([Add preview assets](https://support.google.com/googleplay/android-developer/answer/9866151)); retaken by `tool/store_screenshots.sh` (docs/release.md). At most 8 per device type is picked at upload. |
 | Data safety form | manual | `docs/privacy-policy.md`; the bug report sends a log only on the user's tap. |

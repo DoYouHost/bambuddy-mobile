@@ -35,9 +35,18 @@ import 'timelapse_url.dart';
 /// whether the server refused it, never answered, or handed over a video the
 /// device would not play.
 class TimelapseScreen extends ConsumerStatefulWidget {
-  const TimelapseScreen({super.key, required this.archiveId, this.title});
+  const TimelapseScreen({
+    super.key,
+    required this.archiveId,
+    this.runId,
+    this.title,
+  });
 
   final int archiveId;
+
+  /// One print's own video. The editor re-encodes the archive's file only, so
+  /// it is not offered for one.
+  final int? runId;
 
   /// Title on the bar (the print name); falls back to l10n.
   final String? title;
@@ -114,6 +123,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
       source = await timelapseSource(
         ref,
         widget.archiveId,
+        runId: widget.runId,
         version: _version,
         freshToken: freshToken,
       );
@@ -241,6 +251,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   Future<void> _saveToGallery() => _export(
     (export, auth, name) => export.saveToGallery(
       widget.archiveId,
+      runId: widget.runId,
       auth: auth,
       name: name,
       onProgress: _onExportProgress,
@@ -251,6 +262,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   Future<void> _share() => _export(
     (export, auth, name) => export.share(
       widget.archiveId,
+      runId: widget.runId,
       auth: auth,
       name: name,
       onProgress: _onExportProgress,
@@ -392,14 +404,15 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
                       onPressed: _share,
                     ),
                   ),
-                  logTag(
-                    'timelapse.edit',
-                    IconButton(
-                      icon: const Icon(Icons.content_cut),
-                      tooltip: l10n.timelapseEdit,
-                      onPressed: _edit,
+                  if (widget.runId == null)
+                    logTag(
+                      'timelapse.edit',
+                      IconButton(
+                        icon: const Icon(Icons.content_cut),
+                        tooltip: l10n.timelapseEdit,
+                        onPressed: _edit,
+                      ),
                     ),
-                  ),
                 ]
               : null,
           // While an export runs the bar carries the progress instead of the

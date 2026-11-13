@@ -430,6 +430,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlNozzleActive => 'Active';
 
   @override
+  String get amsDryer => 'Dryer';
+
+  @override
   String get ctrlDry => 'Dry';
 
   @override
@@ -1602,10 +1605,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'This demo printer is offline, so there is no camera picture.';
 
   @override
+  String get nozzleRack => 'Nozzle rack';
+
+  @override
+  String get nozzleRackMounted => 'on the toolhead';
+
+  @override
+  String nozzleRackPosition(int position, String diameter) {
+    return 'Position $position: $diameter mm';
+  }
+
+  @override
+  String nozzleRackPositionEmpty(int position) {
+    return 'Position $position: empty';
+  }
+
+  @override
+  String get externalInputs => 'External inputs';
+
+  @override
+  String externalInputsEmpty(int count) {
+    return 'All $count external inputs are empty';
+  }
+
+  @override
   String get externalSpool => 'External spool';
 
   @override
   String get traySlotEmpty => 'Empty';
+
+  @override
+  String get traySlotUnconfigured => 'Not set up';
 
   @override
   String get amsSlotFilament => 'Filament';
@@ -1646,6 +1676,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amsUnloadSlotNotLoaded => 'No nozzle is fed from this slot';
+
+  @override
+  String amsUnloadAms3h(int slot) {
+    return 'Unloading slot $slot. When the printer asks, pull the filament back out of the AMS 3H by hand.';
+  }
+
+  @override
+  String amsLoadAms3hEmpty(int slot) {
+    return 'Slot $slot holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.';
+  }
+
+  @override
+  String dryAms3hSlots(int a, int b) {
+    return 'The AMS 3H dries slots $a and $b only';
+  }
 
   @override
   String get amsActionsWhilePrinting =>
@@ -1743,9 +1788,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amsSlotConfigColourCatalogue => 'Catalogue colours';
-
-  @override
-  String get amsSlotConfigColourCustom => 'Custom colour';
 
   @override
   String get amsSlotReset => 'Clear slot';
@@ -2045,6 +2087,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryDemo => 'Try the demo';
 
   @override
+  String customCaTrusted(String name) {
+    return 'Trusted CA: $name';
+  }
+
+  @override
+  String get customCaRemove => 'Remove CA certificate';
+
+  @override
+  String get certificateImport => 'Import certificate';
+
+  @override
+  String get certificateInvalid => 'This file holds no certificate';
+
+  @override
+  String get clientCertInvalid => 'This file holds no certificate with its key';
+
+  @override
+  String get customCaPickFailed => 'Could not open the file';
+
+  @override
+  String clientCertInUse(String name) {
+    return 'Client certificate: $name';
+  }
+
+  @override
+  String get clientCertRemove => 'Remove client certificate';
+
+  @override
+  String get clientCertWrongPassword => 'Wrong certificate password';
+
+  @override
+  String get clientCertPasswordTitle => 'Certificate password';
+
+  @override
+  String get certificatesTitle => 'Certificates';
+
+  @override
+  String get customCaRemoveTitle => 'Remove the CA certificate?';
+
+  @override
+  String get customCaRemoveMessage =>
+      'The app will stop trusting servers it signed.';
+
+  @override
+  String get clientCertRemoveTitle => 'Remove the client certificate?';
+
+  @override
+  String get clientCertRemoveMessage =>
+      'A server that asks for it will refuse the app.';
+
+  @override
+  String get certificatesRemoveAll => 'Remove all certificates';
+
+  @override
+  String get certificatesRemoveAllTitle => 'Remove all certificates?';
+
+  @override
+  String get certificatesRemoveAllMessage =>
+      'The app will stop reaching servers that need them.';
+
+  @override
+  String get certificateRemoveConfirm => 'Remove';
+
+  @override
   String get scanApiKeyTitle => 'Scan API key';
 
   @override
@@ -2096,14 +2202,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errBadCertificate =>
-      'Invalid TLS certificate (self-signed not supported in v1)';
+  String get errBadCertificate => 'The server\'s certificate is not trusted';
+
+  @override
+  String get errClientCertRefused =>
+      'The server needs a valid client certificate';
 
   @override
   String get errConnection => 'Connection error';
 
   @override
   String get errMalformedResponse => 'Malformed server response';
+
+  @override
+  String get errNotBambuddy =>
+      'This address is not a Bambuddy server — check the port and remove any path after it.';
 
   @override
   String get errInvalidCredentials => 'Invalid username or password';
@@ -2285,6 +2398,106 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notifFinishPhotoDesc =>
       'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
+
+  @override
+  String get alarmHeader => 'Alarm';
+
+  @override
+  String get alarmTitle => 'Wake me with an alarm';
+
+  @override
+  String get alarmDesc => 'Rings over the lock screen until you stop it';
+
+  @override
+  String get alarmEvtFinished => 'Print finished';
+
+  @override
+  String get alarmEvtFinishedDesc => 'A print ended successfully';
+
+  @override
+  String get alarmEvtBlocked => 'Print stopped by a fault';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'A fault paused or stopped the print, or the print failed';
+
+  @override
+  String get alarmEvtDrying => 'Drying finished';
+
+  @override
+  String get alarmEvtDryingDesc => 'An AMS drying cycle ran to its end';
+
+  @override
+  String get alarmWindowTitle => 'Only between set hours';
+
+  @override
+  String get alarmWindowDesc => 'Outside these hours the alarm stays silent';
+
+  @override
+  String get alarmWindowFrom => 'From';
+
+  @override
+  String get alarmWindowTo => 'To';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Rings for $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Then it stops on its own';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Stop';
+
+  @override
+  String get alarmTest => 'Test alarm';
+
+  @override
+  String get alarmTestBody => 'This is how the alarm sounds';
+
+  @override
+  String get alarmTestFailed =>
+      'The alarm could not ring. Check that notifications are on.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Without permission the alarm will not cover the lock screen';
+
+  @override
+  String get alarmFullScreenAllow => 'Allow';
+
+  @override
+  String get alarmHoursHeader => 'Hours';
+
+  @override
+  String get alarmLengthHeader => 'How long';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'What rings it, at which hours and for how long';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Excluded locations';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Excluded printers';
+
+  @override
+  String get alarmExcludeLocationDesc => 'No printer here rings the alarm';
+
+  @override
+  String get alarmExcludePrinterDesc => 'This printer never rings the alarm';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Excluded with $location';
+  }
 
   @override
   String get notifThresholdsHeader => 'Thresholds';
@@ -2995,7 +3208,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryEffectNone => 'None';
 
   @override
-  String get inventoryColorCommon => 'Common colors';
+  String get inventoryColorCatalog => 'Color catalog';
 
   @override
   String get inventoryColorSearchHint => 'Search colors…';
@@ -3078,6 +3291,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryAssignSlot => 'Slot';
+
+  @override
+  String get inventoryAssignInput => 'Input';
 
   @override
   String get inventoryAssignExtruder => 'Extruder';
@@ -3461,6 +3677,150 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String inventoryLabelsStartSlot(int position) {
     return 'Position $position';
+  }
+
+  @override
+  String get labelSheetCustom => 'Custom sheet';
+
+  @override
+  String get labelSheetCustomHint => 'Your own page, label size and grid';
+
+  @override
+  String get labelSheetSavedTitle => 'Saved templates';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count labels',
+      one: '$count label',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Page';
+
+  @override
+  String get labelSheetLabelWidth => 'Label width, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Label height, mm';
+
+  @override
+  String get labelSheetColumns => 'Columns';
+
+  @override
+  String get labelSheetRows => 'Rows';
+
+  @override
+  String get labelSheetTopMargin => 'Top margin, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Left margin, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Column gap, mm';
+
+  @override
+  String get labelSheetRowGap => 'Row gap, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Fill in every field with a number.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Labels must be at least $minWidth mm wide and $minHeight mm tall.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Sizes, margins and gaps can be at most $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Columns must be a whole number from 1 to $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Rows must be a whole number from 1 to $max.';
+  }
+
+  @override
+  String get labelSheetNegative => 'Margins and gaps must not be negative.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'The labels are $size mm wide with the left margin, but the page is $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'The labels are $size mm tall with the top margin, but the page is $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Use this sheet';
+
+  @override
+  String get labelSheetName => 'Template name';
+
+  @override
+  String get labelSheetNameTaken => 'A template with this name already exists.';
+
+  @override
+  String get labelSheetSaveAs => 'Save as template';
+
+  @override
+  String get labelSheetSaveChanges => 'Save changes';
+
+  @override
+  String get labelSheetDelete => 'Delete template';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Template “$name” saved';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Template “$name” deleted';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Labels already printed with it are unaffected.';
+
+  @override
+  String get labelSheetEdit => 'Edit template';
+
+  @override
+  String get labelSheetSaveAsNew => 'Save as new';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG is limited to $maxPages sheet pages at $dpi dpi, and this needs $pages. Use PDF, a lower resolution or fewer spools.';
   }
 
   @override
@@ -9667,4 +10027,430 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'On the Printers screen, open the ⋮ menu and choose Wall mode.';
+
+  @override
+  String get archiveRunsTitle => 'Print history';
+
+  @override
+  String get archiveRunsEmpty => 'This file has not been printed yet.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Printed before Bambuddy logged each print: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty => 'No prints of this plate yet.';
+
+  @override
+  String get archiveRunsAllPlates => 'All plates';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Printer removed';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (est. $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value vs. $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value of $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Started / ended';
+
+  @override
+  String get archiveRunEnergy => 'Energy';
+
+  @override
+  String get archiveRunFailureReason => 'Failure reason';
+
+  @override
+  String get archiveRunStartedBy => 'Started by';
+
+  @override
+  String get archiveRunNote => 'Note on this print';
+
+  @override
+  String get archiveRunVideo => 'Timelapse video';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Photos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Good: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Failed: $count';
+  }
+
+  @override
+  String get archiveRunSetOutcome => 'Set outcome';
+
+  @override
+  String get archiveRunChangeOutcome => 'Change outcome';
+
+  @override
+  String get archiveRunAddNote => 'Add note';
+
+  @override
+  String get archiveRunEditNote => 'Edit note';
+
+  @override
+  String get archiveRunNoteSaved => 'Note saved';
+
+  @override
+  String get archivePlatesTitle => 'Plates';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Estimate $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Last print vs. estimate: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Print this plate';
+
+  @override
+  String get archiveShowPlatePrints => 'Show its prints';
+
+  @override
+  String get archiveRunReprint => 'Reprint this print';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count groups of duplicate archives',
+      one: '1 group of duplicate archives',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Merge';
+
+  @override
+  String get archiveMergeDismiss => 'Dismiss';
+
+  @override
+  String get archiveMergeMenu => 'Merge duplicates';
+
+  @override
+  String get archiveMergeTitle => 'Merge duplicate archives';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'The others disappear from the archives; their old links open the one they went into.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Wallet charges and budget reservations stay where they were booked.';
+
+  @override
+  String get archiveMergeNone => 'No duplicates to merge.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints',
+      one: '1 print',
+    );
+    return '$name · created $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Stays';
+
+  @override
+  String get archiveMergeWaiting => 'Left out for now';
+
+  @override
+  String get archiveMergeLeftOut => 'Left out by the merge';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'In use: printing, queued or just printed. Try again later.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'The archives carry different source or design files, or videos. Keep one by hand first.';
+
+  @override
+  String get archiveMergeSkipFailed => 'The merge failed.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'No longer a group of duplicates.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Merge $count groups',
+      one: 'Merge 1 group',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody => 'This cannot be undone in the app.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Merged $count groups.',
+      one: 'Merged 1 group.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Merged: $count. Left out: $left.';
+  }
+
+  @override
+  String get archiveCalendarView => 'Calendar view';
+
+  @override
+  String get archiveListView => 'List view';
+
+  @override
+  String get archiveCalendarToday => 'Today';
+
+  @override
+  String get archiveCalendarPrevious => 'Previous month';
+
+  @override
+  String get archiveCalendarNext => 'Next month';
+
+  @override
+  String get archiveCalendarPrints => 'Prints this month';
+
+  @override
+  String get archiveCalendarSuccessful => 'Successful';
+
+  @override
+  String get archiveCalendarFailed => 'Failed';
+
+  @override
+  String get archiveCalendarNoPrints => 'No prints on this day';
+
+  @override
+  String get archiveCalendarSelectDay => 'Select a day to see its prints';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints',
+      one: '1 print',
+      zero: 'no prints',
+    );
+    return '$date: $_temp0';
+  }
+
+  @override
+  String get serverSettingsWledSubtitle => 'Light presets for printer states';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Colours and effects are set in WLED. The server only switches to the preset mapped to the printer\'s state.';
+
+  @override
+  String get wledPrinter => 'Printer';
+
+  @override
+  String get wledEnabled => 'WLED integration';
+
+  @override
+  String get wledEnabledDesc =>
+      'Switch presets as this printer\'s state changes';
+
+  @override
+  String get wledUrl => 'WLED address';
+
+  @override
+  String get wledUrlRequired => 'Needed while the integration is on';
+
+  @override
+  String get wledLoadPresets => 'Load presets';
+
+  @override
+  String get wledTestConnection => 'Test connection';
+
+  @override
+  String wledConnected(String name) {
+    return 'Connected to $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Connected to $name, version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED did not answer';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presets loaded',
+      one: '1 preset loaded',
+      zero: 'WLED has no presets',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED is unreachable. Saved presets are kept.';
+
+  @override
+  String get wledMappingHeader => 'Preset per state';
+
+  @override
+  String get wledSegmentHint =>
+      'When you create a preset in WLED, select its segment and turn on “Checked segments only”.';
+
+  @override
+  String get wledNoPreset => 'No preset';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Saved preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Test preset for $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset switched on';
+
+  @override
+  String get wledPresetTestFailed => 'WLED did not switch the preset';
+
+  @override
+  String get wledFinishedTimeout => 'Back to Idle after (seconds)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Seconds after a print finishes before the Idle preset takes over. 0 turns this off.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'A whole number from 0 to 86400';
+
+  @override
+  String get wledSave => 'Save';
+
+  @override
+  String get wledSaved => 'WLED settings saved';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Not accepted: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'No printers to set up';
+
+  @override
+  String get wledStateIdle => 'Idle';
+
+  @override
+  String get wledStatePrepare => 'Preparing';
+
+  @override
+  String get wledStatePrinting => 'Printing';
+
+  @override
+  String get wledStatePaused => 'Paused';
+
+  @override
+  String get wledStateFinished => 'Finished';
+
+  @override
+  String get wledStateError => 'Failed';
+
+  @override
+  String get wledStateQueueWaiting => 'Waiting for the plate to be cleared';
+
+  @override
+  String get wledStateFilamentProblem => 'Filament problem';
+
+  @override
+  String get wledStateHmsError => 'HMS error';
+
+  @override
+  String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Already here';
+
+  @override
+  String get fmMoveBlockedSelf => 'The folder being moved';
+
+  @override
+  String get fmMoveBlockedInside => 'Inside the folder being moved';
+
+  @override
+  String get fmMoveBlockedExternal => 'External folder';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Not yours and not shared';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Read-only folder';
+
+  @override
+  String get fmNotMoved => 'File not moved';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'File not moved: $reason';
+  }
 }

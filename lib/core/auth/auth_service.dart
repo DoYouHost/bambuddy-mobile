@@ -65,11 +65,11 @@ class AuthService {
   /// `GET /auth/status`, falling back for servers old enough to 404 it: an
   /// unauthenticated `GET /printers` answering 200 means auth is disabled.
   Future<AuthProbeResult> probeAuthStatus(String baseUrl) async {
+    final confirmed = await _confirmBambuddy(baseUrl);
     try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '$baseUrl${Endpoints.authStatus}',
-      );
-      final body = res.data ?? const {};
+      final res = await _dio.get<Object?>('$baseUrl${Endpoints.authStatus}');
+      final body = res.data;
+      if (body is! Map) throw _notBambuddy(Endpoints.authStatus);
       return (
         authEnabled: body['auth_enabled'] == true,
         requiresSetup: body['requires_setup'] == true,
@@ -81,15 +81,21 @@ class AuthService {
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        return _probeViaPrinters(baseUrl);
+        return _probeViaPrinters(baseUrl, confirmed: confirmed);
       }
       throw mapDioException(e);
     }
   }
 
-  Future<AuthProbeResult> _probeViaPrinters(String baseUrl) async {
+  /// A 401 here is only bambuddy's when the version route said so: a router
+  /// behind Basic Auth 404s the other two and refuses this one the same way.
+  Future<AuthProbeResult> _probeViaPrinters(
+    String baseUrl, {
+    required bool confirmed,
+  }) async {
     try {
       final res = await _dio.get<dynamic>('$baseUrl${Endpoints.printers}');
+      if (res.data is! List) throw _notBambuddy(Endpoints.printers);
       return (
         authEnabled: false,
         requiresSetup: false,
@@ -102,6 +108,7 @@ class AuthService {
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) {
+        if (!confirmed) throw _notBambuddy(Endpoints.printers);
         return (
           authEnabled: true,
           requiresSetup: false,
@@ -115,6 +122,38 @@ class AuthService {
       throw mapDioException(e);
     }
   }
+
+  /// Anything else answering JSON at this address (another service, or the
+  /// catch-all's `{"error": "Frontend not built"}` behind a pasted path) would
+  /// otherwise read as a server without sign-in. Every bambuddy since
+  /// 2025-12-01 answers this without a session; the earliest builds named the
+  /// repo `maziggy/bambusy`, and a fork keeps the name after the slash.
+  ///
+  /// Only a 200 is a verdict, and only then is the answer true. An error status
+  /// (a proxy gating the route, a pre-December build) leaves the decision to
+  /// the probe; no answer at all is thrown here, so an unreachable host does
+  /// not time out twice.
+  Future<bool> _confirmBambuddy(String baseUrl) async {
+    final Object? body;
+    try {
+      body = (await _dio.get<Object?>(
+        '$baseUrl${Endpoints.updatesVersion}',
+      )).data;
+    } on DioException catch (e) {
+      if (e.response != null) return false;
+      throw mapDioException(e);
+    }
+    final repo = body is Map ? body['repo'] : null;
+    // GitHub repo names are case-insensitive, so a fork may spell it `Bambuddy`.
+    final name = repo is String ? repo.split('/').last.toLowerCase() : null;
+    if (name != 'bambuddy' && name != 'bambusy') {
+      throw _notBambuddy(Endpoints.updatesVersion);
+    }
+    return true;
+  }
+
+  static ApiException _notBambuddy(String path) =>
+      ApiException(AppErrorCode.notBambuddy, method: 'GET', path: path);
 
   /// Stores the JWT on success, plus username and password when [remember] is
   /// set — that pair is what [silentReLogin] runs on. Without [remember] a pair

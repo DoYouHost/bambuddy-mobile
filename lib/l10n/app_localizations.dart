@@ -884,6 +884,12 @@ abstract class AppLocalizations {
   /// **'Active'**
   String get ctrlNozzleActive;
 
+  /// Screen-reader label of the AMS 3H built-in dryer: its readings chip and the mark on the slots it holds (a noun, the device)
+  ///
+  /// In en, this message translates to:
+  /// **'Dryer'**
+  String get amsDryer;
+
   /// No description provided for @ctrlDry.
   ///
   /// In en, this message translates to:
@@ -2654,6 +2660,42 @@ abstract class AppLocalizations {
   /// **'This demo printer is offline, so there is no camera picture.'**
   String get cameraDemoUnavailable;
 
+  /// No description provided for @nozzleRack.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle rack'**
+  String get nozzleRack;
+
+  /// Screen-reader suffix of the rack position whose nozzle is on the toolhead
+  ///
+  /// In en, this message translates to:
+  /// **'on the toolhead'**
+  String get nozzleRackMounted;
+
+  /// Screen-reader label of one nozzle rack position
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}: {diameter} mm'**
+  String nozzleRackPosition(int position, String diameter);
+
+  /// No description provided for @nozzleRackPositionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}: empty'**
+  String nozzleRackPositionEmpty(int position);
+
+  /// No description provided for @externalInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'External inputs'**
+  String get externalInputs;
+
+  /// A rack printer (H3C) with none of its per-hotend external inputs loaded
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} external inputs are empty'**
+  String externalInputsEmpty(int count);
+
   /// No description provided for @externalSpool.
   ///
   /// In en, this message translates to:
@@ -2665,6 +2707,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Empty'**
   String get traySlotEmpty;
+
+  /// No description provided for @traySlotUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set up'**
+  String get traySlotUnconfigured;
 
   /// No description provided for @amsSlotFilament.
   ///
@@ -2737,6 +2785,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No nozzle is fed from this slot'**
   String get amsUnloadSlotNotLoaded;
+
+  /// No description provided for @amsUnloadAms3h.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading slot {slot}. When the printer asks, pull the filament back out of the AMS 3H by hand.'**
+  String amsUnloadAms3h(int slot);
+
+  /// No description provided for @amsLoadAms3hEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.'**
+  String amsLoadAms3hEmpty(int slot);
+
+  /// No description provided for @dryAms3hSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS 3H dries slots {a} and {b} only'**
+  String dryAms3hSlots(int a, int b);
 
   /// No description provided for @amsActionsWhilePrinting.
   ///
@@ -2899,12 +2965,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Catalogue colours'**
   String get amsSlotConfigColourCatalogue;
-
-  /// No description provided for @amsSlotConfigColourCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom colour'**
-  String get amsSlotConfigColourCustom;
 
   /// No description provided for @amsSlotReset.
   ///
@@ -3428,6 +3488,120 @@ abstract class AppLocalizations {
   /// **'Try the demo'**
   String get tryDemo;
 
+  /// No description provided for @customCaTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted CA: {name}'**
+  String customCaTrusted(String name);
+
+  /// No description provided for @customCaRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove CA certificate'**
+  String get customCaRemove;
+
+  /// No description provided for @certificateImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import certificate'**
+  String get certificateImport;
+
+  /// No description provided for @certificateInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds no certificate'**
+  String get certificateInvalid;
+
+  /// No description provided for @clientCertInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds no certificate with its key'**
+  String get clientCertInvalid;
+
+  /// No description provided for @customCaPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the file'**
+  String get customCaPickFailed;
+
+  /// No description provided for @clientCertInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Client certificate: {name}'**
+  String clientCertInUse(String name);
+
+  /// No description provided for @clientCertRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove client certificate'**
+  String get clientCertRemove;
+
+  /// No description provided for @clientCertWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong certificate password'**
+  String get clientCertWrongPassword;
+
+  /// No description provided for @clientCertPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate password'**
+  String get clientCertPasswordTitle;
+
+  /// No description provided for @certificatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificates'**
+  String get certificatesTitle;
+
+  /// No description provided for @customCaRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the CA certificate?'**
+  String get customCaRemoveTitle;
+
+  /// No description provided for @customCaRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will stop trusting servers it signed.'**
+  String get customCaRemoveMessage;
+
+  /// No description provided for @clientCertRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the client certificate?'**
+  String get clientCertRemoveTitle;
+
+  /// No description provided for @clientCertRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A server that asks for it will refuse the app.'**
+  String get clientCertRemoveMessage;
+
+  /// No description provided for @certificatesRemoveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all certificates'**
+  String get certificatesRemoveAll;
+
+  /// No description provided for @certificatesRemoveAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all certificates?'**
+  String get certificatesRemoveAllTitle;
+
+  /// No description provided for @certificatesRemoveAllMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will stop reaching servers that need them.'**
+  String get certificatesRemoveAllMessage;
+
+  /// No description provided for @certificateRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get certificateRemoveConfirm;
+
   /// No description provided for @scanApiKeyTitle.
   ///
   /// In en, this message translates to:
@@ -3521,8 +3695,14 @@ abstract class AppLocalizations {
   /// No description provided for @errBadCertificate.
   ///
   /// In en, this message translates to:
-  /// **'Invalid TLS certificate (self-signed not supported in v1)'**
+  /// **'The server\'s certificate is not trusted'**
   String get errBadCertificate;
+
+  /// No description provided for @errClientCertRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The server needs a valid client certificate'**
+  String get errClientCertRefused;
 
   /// No description provided for @errConnection.
   ///
@@ -3535,6 +3715,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Malformed server response'**
   String get errMalformedResponse;
+
+  /// No description provided for @errNotBambuddy.
+  ///
+  /// In en, this message translates to:
+  /// **'This address is not a Bambuddy server — check the port and remove any path after it.'**
+  String get errNotBambuddy;
 
   /// No description provided for @errInvalidCredentials.
   ///
@@ -3817,6 +4003,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives'**
   String get notifFinishPhotoDesc;
+
+  /// No description provided for @alarmHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarm'**
+  String get alarmHeader;
+
+  /// No description provided for @alarmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake me with an alarm'**
+  String get alarmTitle;
+
+  /// No description provided for @alarmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Rings over the lock screen until you stop it'**
+  String get alarmDesc;
+
+  /// No description provided for @alarmEvtFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Print finished'**
+  String get alarmEvtFinished;
+
+  /// No description provided for @alarmEvtFinishedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A print ended successfully'**
+  String get alarmEvtFinishedDesc;
+
+  /// No description provided for @alarmEvtBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Print stopped by a fault'**
+  String get alarmEvtBlocked;
+
+  /// No description provided for @alarmEvtBlockedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A fault paused or stopped the print, or the print failed'**
+  String get alarmEvtBlockedDesc;
+
+  /// No description provided for @alarmEvtDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying finished'**
+  String get alarmEvtDrying;
+
+  /// No description provided for @alarmEvtDryingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'An AMS drying cycle ran to its end'**
+  String get alarmEvtDryingDesc;
+
+  /// No description provided for @alarmWindowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only between set hours'**
+  String get alarmWindowTitle;
+
+  /// No description provided for @alarmWindowDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside these hours the alarm stays silent'**
+  String get alarmWindowDesc;
+
+  /// No description provided for @alarmWindowFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get alarmWindowFrom;
+
+  /// No description provided for @alarmWindowTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get alarmWindowTo;
+
+  /// No description provided for @alarmRingFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Rings for {minutes} min'**
+  String alarmRingFor(int minutes);
+
+  /// No description provided for @alarmRingForDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Then it stops on its own'**
+  String get alarmRingForDesc;
+
+  /// No description provided for @alarmMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String alarmMinutes(int minutes);
+
+  /// No description provided for @alarmStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get alarmStop;
+
+  /// No description provided for @alarmTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test alarm'**
+  String get alarmTest;
+
+  /// No description provided for @alarmTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is how the alarm sounds'**
+  String get alarmTestBody;
+
+  /// No description provided for @alarmTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The alarm could not ring. Check that notifications are on.'**
+  String get alarmTestFailed;
+
+  /// No description provided for @alarmFullScreenNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Without permission the alarm will not cover the lock screen'**
+  String get alarmFullScreenNeeded;
+
+  /// No description provided for @alarmFullScreenAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get alarmFullScreenAllow;
+
+  /// No description provided for @alarmHoursHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get alarmHoursHeader;
+
+  /// No description provided for @alarmLengthHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get alarmLengthHeader;
+
+  /// No description provided for @alarmSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What rings it, at which hours and for how long'**
+  String get alarmSettingsSubtitle;
+
+  /// No description provided for @alarmExcludedLocationsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded locations'**
+  String get alarmExcludedLocationsHeader;
+
+  /// No description provided for @alarmExcludedPrintersHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded printers'**
+  String get alarmExcludedPrintersHeader;
+
+  /// No description provided for @alarmExcludeLocationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer here rings the alarm'**
+  String get alarmExcludeLocationDesc;
+
+  /// No description provided for @alarmExcludePrinterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer never rings the alarm'**
+  String get alarmExcludePrinterDesc;
+
+  /// No description provided for @alarmExcludedWithLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded with {location}'**
+  String alarmExcludedWithLocation(String location);
 
   /// No description provided for @notifThresholdsHeader.
   ///
@@ -4988,11 +5354,11 @@ abstract class AppLocalizations {
   /// **'None'**
   String get inventoryEffectNone;
 
-  /// No description provided for @inventoryColorCommon.
+  /// No description provided for @inventoryColorCatalog.
   ///
   /// In en, this message translates to:
-  /// **'Common colors'**
-  String get inventoryColorCommon;
+  /// **'Color catalog'**
+  String get inventoryColorCatalog;
 
   /// No description provided for @inventoryColorSearchHint.
   ///
@@ -5131,6 +5497,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot'**
   String get inventoryAssignSlot;
+
+  /// No description provided for @inventoryAssignInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get inventoryAssignInput;
 
   /// No description provided for @inventoryAssignExtruder.
   ///
@@ -5659,6 +6031,229 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Position {position}'**
   String inventoryLabelsStartSlot(int position);
+
+  /// No description provided for @labelSheetCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sheet'**
+  String get labelSheetCustom;
+
+  /// No description provided for @labelSheetCustomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own page, label size and grid'**
+  String get labelSheetCustomHint;
+
+  /// No description provided for @labelSheetSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved templates'**
+  String get labelSheetSavedTitle;
+
+  /// No description provided for @labelSheetSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{page} · {width} × {height} mm · {count, plural, one{{count} label} other{{count} labels}} ({columns} × {rows})'**
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  );
+
+  /// No description provided for @labelSheetPageA4.
+  ///
+  /// In en, this message translates to:
+  /// **'A4'**
+  String get labelSheetPageA4;
+
+  /// No description provided for @labelSheetPageLetter.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter'**
+  String get labelSheetPageLetter;
+
+  /// No description provided for @labelSheetPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get labelSheetPage;
+
+  /// No description provided for @labelSheetLabelWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Label width, mm'**
+  String get labelSheetLabelWidth;
+
+  /// No description provided for @labelSheetLabelHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Label height, mm'**
+  String get labelSheetLabelHeight;
+
+  /// No description provided for @labelSheetColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get labelSheetColumns;
+
+  /// No description provided for @labelSheetRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get labelSheetRows;
+
+  /// No description provided for @labelSheetTopMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Top margin, mm'**
+  String get labelSheetTopMargin;
+
+  /// No description provided for @labelSheetLeftMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Left margin, mm'**
+  String get labelSheetLeftMargin;
+
+  /// No description provided for @labelSheetColumnGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Column gap, mm'**
+  String get labelSheetColumnGap;
+
+  /// No description provided for @labelSheetRowGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Row gap, mm'**
+  String get labelSheetRowGap;
+
+  /// No description provided for @labelSheetIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in every field with a number.'**
+  String get labelSheetIncomplete;
+
+  /// No description provided for @labelSheetTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels must be at least {minWidth} mm wide and {minHeight} mm tall.'**
+  String labelSheetTooSmall(int minWidth, int minHeight);
+
+  /// No description provided for @labelSheetTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Sizes, margins and gaps can be at most {max} mm.'**
+  String labelSheetTooLong(int max);
+
+  /// No description provided for @labelSheetColumnsRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns must be a whole number from 1 to {max}.'**
+  String labelSheetColumnsRange(int max);
+
+  /// No description provided for @labelSheetRowsRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows must be a whole number from 1 to {max}.'**
+  String labelSheetRowsRange(int max);
+
+  /// No description provided for @labelSheetNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'Margins and gaps must not be negative.'**
+  String get labelSheetNegative;
+
+  /// No description provided for @labelSheetTooWide.
+  ///
+  /// In en, this message translates to:
+  /// **'The labels are {size} mm wide with the left margin, but the page is {page} mm.'**
+  String labelSheetTooWide(String size, String page);
+
+  /// No description provided for @labelSheetTooTall.
+  ///
+  /// In en, this message translates to:
+  /// **'The labels are {size} mm tall with the top margin, but the page is {page} mm.'**
+  String labelSheetTooTall(String size, String page);
+
+  /// No description provided for @labelSheetUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this sheet'**
+  String get labelSheetUse;
+
+  /// No description provided for @labelSheetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get labelSheetName;
+
+  /// No description provided for @labelSheetNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A template with this name already exists.'**
+  String get labelSheetNameTaken;
+
+  /// No description provided for @labelSheetSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get labelSheetSaveAs;
+
+  /// No description provided for @labelSheetSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get labelSheetSaveChanges;
+
+  /// No description provided for @labelSheetDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get labelSheetDelete;
+
+  /// No description provided for @labelSheetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Template “{name}” saved'**
+  String labelSheetSaved(String name);
+
+  /// No description provided for @labelSheetDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Template “{name}” deleted'**
+  String labelSheetDeleted(String name);
+
+  /// No description provided for @labelSheetDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String labelSheetDeleteTitle(String name);
+
+  /// No description provided for @labelSheetDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels already printed with it are unaffected.'**
+  String get labelSheetDeleteBody;
+
+  /// No description provided for @labelSheetEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get labelSheetEdit;
+
+  /// No description provided for @labelSheetSaveAsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new'**
+  String get labelSheetSaveAsNew;
+
+  /// No description provided for @labelPngTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG is limited to {maxPages} sheet pages at {dpi} dpi, and this needs {pages}. Use PDF, a lower resolution or fewer spools.'**
+  String labelPngTooLarge(int maxPages, int dpi, int pages);
 
   /// No description provided for @maintenanceEmpty.
   ///
@@ -16105,6 +16700,666 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On the Printers screen, open the ⋮ menu and choose Wall mode.'**
   String get tipsWallBody;
+
+  /// Archive sheet: heading above the list of every print of this file
+  ///
+  /// In en, this message translates to:
+  /// **'Print history'**
+  String get archiveRunsTitle;
+
+  /// Archive sheet: the file has no logged print
+  ///
+  /// In en, this message translates to:
+  /// **'This file has not been printed yet.'**
+  String get archiveRunsEmpty;
+
+  /// Archive sheet: the archive's one print predates per-print logging; status is the archive's outcome
+  ///
+  /// In en, this message translates to:
+  /// **'Printed before Bambuddy logged each print: {status}.'**
+  String archiveRunsBeforeLog(String status);
+
+  /// Archive sheet: the plate filter matches no print
+  ///
+  /// In en, this message translates to:
+  /// **'No prints of this plate yet.'**
+  String get archiveRunsPlateEmpty;
+
+  /// Archive sheet: plate filter chip that shows every print
+  ///
+  /// In en, this message translates to:
+  /// **'All plates'**
+  String get archiveRunsAllPlates;
+
+  /// Archive sheet: which plate of a multi-plate file one print ran, or a plate filter chip
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archiveRunPlate(int plate);
+
+  /// Archive sheet: a print whose printer was deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Printer removed'**
+  String get archiveRunNoPrinter;
+
+  /// Archive sheet: a measured figure next to the slicer's estimate for the plate
+  ///
+  /// In en, this message translates to:
+  /// **'{value} (est. {estimate})'**
+  String archiveRunWithEstimate(String value, String estimate);
+
+  /// Archive sheet: a finished print's time against the plate estimate; delta is like +4%
+  ///
+  /// In en, this message translates to:
+  /// **'{value} vs. {estimate} ({delta})'**
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta);
+
+  /// Archive sheet: how far a print that stopped got, against the plate estimate
+  ///
+  /// In en, this message translates to:
+  /// **'{value} of {estimate}'**
+  String archiveRunTimeOf(String value, String estimate);
+
+  /// Archive sheet: label of a print's start and end times
+  ///
+  /// In en, this message translates to:
+  /// **'Started / ended'**
+  String get archiveRunStartedEnded;
+
+  /// Archive sheet: label of a print's energy use
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get archiveRunEnergy;
+
+  /// Archive sheet: label of why a print failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failure reason'**
+  String get archiveRunFailureReason;
+
+  /// Archive sheet: label of the user who started a print
+  ///
+  /// In en, this message translates to:
+  /// **'Started by'**
+  String get archiveRunStartedBy;
+
+  /// Archive sheet: label of one print's own note
+  ///
+  /// In en, this message translates to:
+  /// **'Note on this print'**
+  String get archiveRunNote;
+
+  /// Archive sheet: button that plays one print's timelapse
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse video'**
+  String get archiveRunVideo;
+
+  /// Archive sheet: button that opens one print's finish photos
+  ///
+  /// In en, this message translates to:
+  /// **'Photos ({count})'**
+  String archiveRunPhotos(int count);
+
+  /// Archive sheet header chip: how many prints of the file completed
+  ///
+  /// In en, this message translates to:
+  /// **'Good: {count}'**
+  String archiveGoodCount(int count);
+
+  /// Archive sheet header chip: how many prints of the file failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {count}'**
+  String archiveFailedCount(int count);
+
+  /// Archive sheet: button that asks how one print came out
+  ///
+  /// In en, this message translates to:
+  /// **'Set outcome'**
+  String get archiveRunSetOutcome;
+
+  /// Archive sheet: button that changes one print's recorded verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Change outcome'**
+  String get archiveRunChangeOutcome;
+
+  /// Archive sheet: button that writes a note on one print
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get archiveRunAddNote;
+
+  /// Archive sheet: button that edits one print's note
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get archiveRunEditNote;
+
+  /// Snack after one print's note was stored
+  ///
+  /// In en, this message translates to:
+  /// **'Note saved'**
+  String get archiveRunNoteSaved;
+
+  /// Archive sheet: heading above the cards of a multi-plate file's plates
+  ///
+  /// In en, this message translates to:
+  /// **'Plates'**
+  String get archivePlatesTitle;
+
+  /// Archive sheet plate card: the slicer's time and weight for the plate
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate {value}'**
+  String archivePlateEstimate(String value);
+
+  /// Archive sheet plate card: the newest finished print of the plate against its estimate; value is like +4%
+  ///
+  /// In en, this message translates to:
+  /// **'Last print vs. estimate: {value}'**
+  String archivePlateLastVsEstimate(String value);
+
+  /// Archive sheet plate card: button that opens the print form on this plate
+  ///
+  /// In en, this message translates to:
+  /// **'Print this plate'**
+  String get archivePrintThisPlate;
+
+  /// Archive sheet plate card: button that filters the print history to this plate
+  ///
+  /// In en, this message translates to:
+  /// **'Show its prints'**
+  String get archiveShowPlatePrints;
+
+  /// Archive sheet: button that opens the print form on the plate one print ran
+  ///
+  /// In en, this message translates to:
+  /// **'Reprint this print'**
+  String get archiveRunReprint;
+
+  /// Archive list banner: how many groups of archives hold the same file
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 group of duplicate archives} other{{count} groups of duplicate archives}}'**
+  String archiveMergeBanner(int count);
+
+  /// Archive list banner: one-word button that opens the merge sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get archiveMergeButton;
+
+  /// Archive list banner: tooltip of the button that hides the merge banner
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get archiveMergeDismiss;
+
+  /// Archive menu entry that opens the merge sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicates'**
+  String get archiveMergeMenu;
+
+  /// Merge sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicate archives'**
+  String get archiveMergeTitle;
+
+  /// Merge sheet: what a merge does, first point
+  ///
+  /// In en, this message translates to:
+  /// **'The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.'**
+  String get archiveMergeEffectKeep;
+
+  /// Merge sheet: what a merge does, second point
+  ///
+  /// In en, this message translates to:
+  /// **'The others disappear from the archives; their old links open the one they went into.'**
+  String get archiveMergeEffectLinks;
+
+  /// Merge sheet: what a merge does, third point
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet charges and budget reservations stay where they were booked.'**
+  String get archiveMergeEffectMoney;
+
+  /// Merge sheet: the server found no duplicate groups
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicates to merge.'**
+  String get archiveMergeNone;
+
+  /// Merge sheet: one archive of a group, when it was created and how many prints it has
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · created {date} · {count, plural, =1{1 print} other{{count} prints}}'**
+  String archiveMergeMember(String name, String date, int count);
+
+  /// Merge sheet: marks the archive of a group that stays
+  ///
+  /// In en, this message translates to:
+  /// **'Stays'**
+  String get archiveMergeStays;
+
+  /// Merge sheet: heading above the groups the server leaves out for now
+  ///
+  /// In en, this message translates to:
+  /// **'Left out for now'**
+  String get archiveMergeWaiting;
+
+  /// Merge sheet: heading above the groups the merge itself left out
+  ///
+  /// In en, this message translates to:
+  /// **'Left out by the merge'**
+  String get archiveMergeLeftOut;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'In use: printing, queued or just printed. Try again later.'**
+  String get archiveMergeSkipBusy;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'The archives carry different source or design files, or videos. Keep one by hand first.'**
+  String get archiveMergeSkipConflicting;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'The merge failed.'**
+  String get archiveMergeSkipFailed;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'No longer a group of duplicates.'**
+  String get archiveMergeSkipNotAGroup;
+
+  /// Merge sheet: the button that merges the ticked groups
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Merge 1 group} other{Merge {count} groups}}'**
+  String archiveMergeAction(int count);
+
+  /// Merge confirmation dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone in the app.'**
+  String get archiveMergeConfirmBody;
+
+  /// Snack after a merge that merged every ticked group
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Merged 1 group.} other{Merged {count} groups.}}'**
+  String archiveMergeDone(int count);
+
+  /// Snack after a merge that left some groups out
+  ///
+  /// In en, this message translates to:
+  /// **'Merged: {count}. Left out: {left}.'**
+  String archiveMergeDoneSome(int count, int left);
+
+  /// Archive app bar: tooltip of the button that shows the month calendar
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar view'**
+  String get archiveCalendarView;
+
+  /// Archive app bar: tooltip of the button that goes back to the list
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get archiveListView;
+
+  /// Archive calendar: button that jumps to the current month
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get archiveCalendarToday;
+
+  /// Archive calendar: tooltip of the previous-month button
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get archiveCalendarPrevious;
+
+  /// Archive calendar: tooltip of the next-month button
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get archiveCalendarNext;
+
+  /// Archive calendar: label under the month's print count
+  ///
+  /// In en, this message translates to:
+  /// **'Prints this month'**
+  String get archiveCalendarPrints;
+
+  /// Archive calendar: label under the month's successful print count
+  ///
+  /// In en, this message translates to:
+  /// **'Successful'**
+  String get archiveCalendarSuccessful;
+
+  /// Archive calendar: label under the month's failed print count
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get archiveCalendarFailed;
+
+  /// Archive calendar: the selected day has no prints
+  ///
+  /// In en, this message translates to:
+  /// **'No prints on this day'**
+  String get archiveCalendarNoPrints;
+
+  /// Archive calendar: hint before a day is picked
+  ///
+  /// In en, this message translates to:
+  /// **'Select a day to see its prints'**
+  String get archiveCalendarSelectDay;
+
+  /// Archive calendar: screen-reader label of a day cell
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}'**
+  String archiveCalendarDay(String date, int count);
+
+  /// No description provided for @serverSettingsWledSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light presets for printer states'**
+  String get serverSettingsWledSubtitle;
+
+  /// No description provided for @wledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED'**
+  String get wledTitle;
+
+  /// No description provided for @wledDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Colours and effects are set in WLED. The server only switches to the preset mapped to the printer\'s state.'**
+  String get wledDescription;
+
+  /// No description provided for @wledPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get wledPrinter;
+
+  /// No description provided for @wledEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED integration'**
+  String get wledEnabled;
+
+  /// No description provided for @wledEnabledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch presets as this printer\'s state changes'**
+  String get wledEnabledDesc;
+
+  /// No description provided for @wledUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED address'**
+  String get wledUrl;
+
+  /// No description provided for @wledUrlRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed while the integration is on'**
+  String get wledUrlRequired;
+
+  /// No description provided for @wledLoadPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Load presets'**
+  String get wledLoadPresets;
+
+  /// No description provided for @wledTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get wledTestConnection;
+
+  /// No description provided for @wledConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}'**
+  String wledConnected(String name);
+
+  /// No description provided for @wledConnectedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}, version {version}'**
+  String wledConnectedVersion(String name, String version);
+
+  /// No description provided for @wledUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED did not answer'**
+  String get wledUnreachable;
+
+  /// No description provided for @wledPresetsLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{WLED has no presets} =1{1 preset loaded} other{{count} presets loaded}}'**
+  String wledPresetsLoaded(int count);
+
+  /// No description provided for @wledPresetsOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED is unreachable. Saved presets are kept.'**
+  String get wledPresetsOffline;
+
+  /// No description provided for @wledMappingHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset per state'**
+  String get wledMappingHeader;
+
+  /// No description provided for @wledSegmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When you create a preset in WLED, select its segment and turn on “Checked segments only”.'**
+  String get wledSegmentHint;
+
+  /// No description provided for @wledNoPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset'**
+  String get wledNoPreset;
+
+  /// No description provided for @wledPresetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved preset {id}'**
+  String wledPresetSaved(int id);
+
+  /// No description provided for @wledPresetOption.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({id})'**
+  String wledPresetOption(String name, int id);
+
+  /// No description provided for @wledTestPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Test preset for {state}'**
+  String wledTestPreset(String state);
+
+  /// No description provided for @wledPresetTested.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset switched on'**
+  String get wledPresetTested;
+
+  /// No description provided for @wledPresetTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED did not switch the preset'**
+  String get wledPresetTestFailed;
+
+  /// No description provided for @wledFinishedTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Idle after (seconds)'**
+  String get wledFinishedTimeout;
+
+  /// No description provided for @wledFinishedTimeoutHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Seconds after a print finishes before the Idle preset takes over. 0 turns this off.'**
+  String get wledFinishedTimeoutHint;
+
+  /// No description provided for @wledFinishedTimeoutInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'A whole number from 0 to 86400'**
+  String get wledFinishedTimeoutInvalid;
+
+  /// No description provided for @wledSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get wledSave;
+
+  /// No description provided for @wledSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED settings saved'**
+  String get wledSaved;
+
+  /// The server's own English reason for refusing the WLED address.
+  ///
+  /// In en, this message translates to:
+  /// **'Not accepted: {reason}'**
+  String wledRefused(String reason);
+
+  /// No description provided for @wledNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers to set up'**
+  String get wledNoPrinters;
+
+  /// No description provided for @wledStateIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get wledStateIdle;
+
+  /// No description provided for @wledStatePrepare.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get wledStatePrepare;
+
+  /// No description provided for @wledStatePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get wledStatePrinting;
+
+  /// No description provided for @wledStatePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get wledStatePaused;
+
+  /// No description provided for @wledStateFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get wledStateFinished;
+
+  /// No description provided for @wledStateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get wledStateError;
+
+  /// No description provided for @wledStateQueueWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the plate to be cleared'**
+  String get wledStateQueueWaiting;
+
+  /// No description provided for @wledStateFilamentProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament problem'**
+  String get wledStateFilamentProblem;
+
+  /// No description provided for @wledStateHmsError.
+  ///
+  /// In en, this message translates to:
+  /// **'HMS error'**
+  String get wledStateHmsError;
+
+  /// No description provided for @wledStateOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get wledStateOffline;
+
+  /// No description provided for @fmMoveBlockedCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Already here'**
+  String get fmMoveBlockedCurrent;
+
+  /// No description provided for @fmMoveBlockedSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder being moved'**
+  String get fmMoveBlockedSelf;
+
+  /// No description provided for @fmMoveBlockedInside.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside the folder being moved'**
+  String get fmMoveBlockedInside;
+
+  /// No description provided for @fmMoveBlockedExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'External folder'**
+  String get fmMoveBlockedExternal;
+
+  /// No description provided for @fmMoveBlockedNotWritable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yours and not shared'**
+  String get fmMoveBlockedNotWritable;
+
+  /// No description provided for @fmMoveBlockedReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only folder'**
+  String get fmMoveBlockedReadOnly;
+
+  /// No description provided for @fmNotMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved'**
+  String get fmNotMoved;
+
+  /// The server's own English reason for skipping the file.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved: {reason}'**
+  String fmNotMovedReason(String reason);
 }
 
 class _AppLocalizationsDelegate

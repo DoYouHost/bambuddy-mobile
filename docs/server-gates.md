@@ -584,6 +584,92 @@ a single spool answers before any supplier route is asked. Being early costs a
 1.2.6b1 daily older than the commit one 404 on the listing and a supplier entry
 that disappears with it; nothing is written to a server that could drop it.
 
+### assignmentMove — 1.3.1 (server #1574, commit 96c90de)
+
+`move` on `POST /inventory/assignments` and `POST /spoolman/inventory/slot-assignments`:
+the spool leaves every other slot in the same commit as the new one. Without it a
+move is two requests (`DELETE` the old slot, `POST` the new one) with a manual
+put-back when the second fails.
+
+`SpoolAssignmentCreate` and `SpoolSlotAssignmentRequest` forbid no extra fields,
+so an older server takes `move`, says nothing and assigns the spool a second
+time: it ends up in two slots. The reply is the same assignment either way, so
+nothing can be observed and the row decides. The commit landed on `dev` on
+2026-10-27 while `APP_VERSION` still read 1.3.0b1; the bump to 1.3.1b1 came the
+next day, so the row is 1.3.1 and a 1.3.0b1 daily that already has it is merely
+sent the two-request path, which works on every server. Being early is the costly
+side here (a spool in two slots), being late costs nothing, which is why the
+threshold is not 1.3.0.
+
+The 1.3.0 release (2026-11-07) carries `move` as well, and the row still stays at
+1.3.1: `supports` reads every 1.3.0b1 daily as 1.3.0, and one from before the commit
+would take `move` and keep the spool in its old slot too. On the release that costs
+one extra request per move.
+
+### amsHtLoad — 1.3.0 (measured on the images)
+
+`POST /printers/{id}/ams/load` and `/ams/unload` with an AMS-HT's unit id,
+128..135, as `tray_id`. Measured, not read off a commit (the reference clone is
+shallow): 1.2.5 and 1.2.5.7 answer **400** ("tray_id must be 0..15 …"), 1.3.0 and
+1.3.1 load it. A refusal, not a silent drop, but the app sends no AMS-HT id until
+the row says yes, so nothing is ever observed and the row decides. Being early
+costs one 400 shown after a tap; being late hides Load and Unload on an AMS-HT
+slot, as every app version before this one did. A 1.3.0b1 daily older than the
+change is told yes and gets that 400.
+
+### archiveRuns — 1.3.0 (archive redesign, commits 809eaf4 and d43bf57)
+
+Each print of an archive keeps its own note, finish photos, video and verdict.
+`GET /archives/{id}/runs` itself is older (#1378, on 1.2.5) and lists the prints
+on every server; what is new is the keys on each row and two writes: `notes` on
+`PATCH /print-log/{id}` and `run_id` on `PATCH /archives/{id}`.
+
+Both writes are silent drops below it. `PrintLogEntryUpdate` and `ArchiveUpdate`
+forbid no extra fields, so an older server stores no note, and gives a verdict
+sent with `run_id` to the archive, which is its latest print (measured on
+1.2.5.7 by `ws_archive_runs_contract_test.dart`). The runs listing answers it
+first: `PrintLogEntrySchema` sends a `photos` key on every row from the redesign
+on, null or not, so `ArchiveRepository.runsCapability` observes it on the first
+row. An archive with no prints says nothing, and the row decides. Being early
+costs a note that does not stay and a verdict on the wrong print.
+
+The commits came on 1.3.1b1 dailies (2026-10-31) and the 1.3.0 release was cut
+after them, so the row is the release. Every 1.3.0b1 daily predates them and is
+told yes, which costs nothing: both writes start from a row of the runs listing
+(`archive_runs.dart`, `showOutcomeSheet(..., runId:)` and the note), and `runs()`
+settles the latch off on that row's missing `photos` key before returning it.
+
+### archiveMerge — 1.3.0 (archive redesign P2, commit 926957f)
+
+`GET /archives/merge-count`, `GET /archives/merge-preview` and `POST /archives/merge`:
+archives of one file, owner and project merged into the oldest. All three take
+`archives:update_all` and `archives:delete_all` together. The count settles
+`ArchiveRepository.mergeCapability`: a 403 is a session without both rights, and an
+older server answers **422**, not 404, because `/archives/{archive_id}` takes the path
+and fails to parse `merge-count` as an id (measured on 1.2.5.7). Being early costs
+nothing visible: the count reads 0 and no entry is shown.
+
+Below the row the count is never asked (`archiveMergeCountProvider`), so the row
+alone hides merge; at 1.3.1 it hid it from the 1.3.0 release, which serves it. A
+1.3.0b1 daily, older than the commit, is told yes and latches off on its 422.
+
+On a contract stack a group is always held back as `busy`: an upload counts as just
+printed for half an hour (`archive_merge.py::_JUST_PRINTED`). The demo carries one
+mergeable group (a second "Handle" archive) for the merge itself.
+
+### archiveCalendar — 1.3.0 (archive redesign P4, commit d43bf57)
+
+`GET /archives/prints`: every print of the archives the caller sees that ended in a
+range of calendar days (`tz` is the device's zone, as for the statistics). An older
+server answers 422 for the same reason as `merge-count`, and
+`ArchiveRepository.printsBetween` then returns null and records the absence in
+`printsCapability`. That is not a missing feature: the calendar places each printed
+archive as its one print, which is all an older server can say (it logs runs but has
+no route that lists them by day). Being early costs one 422 and that fallback.
+
+In the 1.3.0 release. `printsBetween` asks whatever the row says, so on a live server
+the row changes nothing; the contract tests read it to choose their branch.
+
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a
@@ -624,3 +710,52 @@ spool listing. An empty inventory says nothing and the version row answers,
 which costs nothing: the date is written only to a spool that exists (neither
 create schema takes it), and that spool's own row has already settled the gate.
 Reading needs no gate: an older server never sends a date to show.
+
+### labelTemplates — 1.3.0 (server #3296, PR #3385, commit 9a92f7d)
+
+Custom label sheets: `GET/POST/PUT/DELETE /label-templates` for the saved list, and
+`template: "custom"` with a `layout` on the two label routes. Printing never reads the
+saved list — the layout travels with the request, so a saved sheet and a one-off one print
+the same way and anyone who may print may use either; saving, renaming and deleting need
+`inventory:update`.
+
+Not a silent drop: an older server answers **404** to the list and **422** to `custom`
+(measured on 1.2.5: its `template` is a `Literal` of the built-in names), so the listing
+settles `LabelTemplatesRepository.capability` — `treat404AsAbsent`, since the handler looks
+no row up — and nothing is ever sent to a server that would drop it. The label picker
+fetches that listing every time it opens, so no probe is needed.
+
+The commit landed on 1.3.1b1 dailies (2026-11-02) and is in the 1.3.0 release image, the
+same way the archive redesign is, so the row is 1.3.0: a 1.3.0b1 daily older than the
+commit is told yes and corrected by its 404. Being early costs the "Custom sheet" entry
+for the length of one request.
+
+Two things the 1.3.0 release and the dailies agree on, measured on both images
+(`label_templates_contract_test.dart`): a name clashes ignoring case (409, on create and on
+rename), and saving a template again under its own name is not a clash. The client's
+`SheetLayout.problem` is a mirror of the server's `SheetLayout.problem()`, one case per
+condition; the contract test posts each case and fails when the two disagree.
+
+### wled — 1.3.1 (server #1528, PR #3124, commit 0bf86c2)
+
+`wled_config` on a printer row and on `PATCH /printers/{id}`, and the three
+`POST /printers/{id}/wled/{presets|test-connection|test-preset}` routes: the server
+switches a WLED controller to the preset mapped to the printer's state. Measured on the
+images: 1.3.0 has none of the routes, the 1.3.1 release has them (the commit landed on
+1.3.2b1 dailies on 2026-11-08 and went into the release too).
+
+The write is a silent drop: `PrinterUpdate` forbids no extra fields, so an older server
+answers 200 and stores nothing. What settles `PrintersRepository.wledCapability` is the
+**key on the printer row**: `PrinterResponse` sends `wled_config`, null or not, from the
+commit on, and the dashboard lists printers anyway, so no probe is needed. An empty fleet
+settles nothing, and the version decides; the screen has nothing to offer then either.
+`saveWledConfig` reads the same key off the `PATCH` reply and throws when it is missing,
+so even a server downgraded mid-session cannot report a save that did not happen.
+
+The three routes settle nothing: a 404 there is a printer gone, a 403 a missing
+`printers:update` on that printer, and a 502 a WLED that did not answer. All four need
+`printers:update`, which no API key can hold, so the hub entry also reads
+`canUpdatePrintersProvider`. Being early costs a 1.3.1b1 daily older than the commit
+the hub entry until the first printer listing comes back without the key. On 1.2.5 the
+three routes answer 405, not 404 (a `GET` route takes the path); the app never calls
+them there, so nothing reads that status.

@@ -15,6 +15,9 @@ import '../../helpers.dart';
 
 const baseUrl = 'http://server.local:8000';
 
+/// What `GET /updates/version` answers on every bambuddy the probe accepts.
+const bambuddyVersion = {'version': '1.2.5', 'repo': 'maziggy/bambuddy'};
+
 /// Adapter that counts requests per path and can hold a response open, for the
 /// cases where *how many times* the app called the server is the assertion.
 class _CountingAdapter implements HttpClientAdapter {
@@ -71,6 +74,10 @@ void main() {
   setUp(() {
     dio = Dio();
     adapter = mockServer(dio);
+    adapter.onGet(
+      '$baseUrl/api/v1/updates/version',
+      (s) => s.reply(200, bambuddyVersion),
+    );
     store = InMemoryCredentialsStore();
     service = AuthService(bareDio: dio, credentials: store);
   });
@@ -79,6 +86,23 @@ void main() {
   // the parameter is typed structurally — `dynamic` is assignable to it.
   void onStatus(void Function(dynamic server) reply) =>
       adapter.onGet('$baseUrl/api/v1/auth/status', reply);
+
+  void onVersion(void Function(dynamic server) reply) =>
+      adapter.onGet('$baseUrl/api/v1/updates/version', reply);
+
+  /// What bambuddy's SPA catch-all serves for any path outside `api/`, which is
+  /// where an address pasted with a path after the port lands (#66).
+  void replyHtml(dynamic server) => server.reply(
+    200,
+    '<!doctype html><html></html>',
+    headers: {
+      Headers.contentTypeHeader: ['text/html'],
+    },
+  );
+
+  final notBambuddy = throwsA(
+    isA<ApiException>().having((e) => e.code, 'code', AppErrorCode.notBambuddy),
+  );
 
   group('probeAuthStatus — the two flags', () {
     // `requires_setup` is `not setup_completed` on the server and says nothing
@@ -145,6 +169,90 @@ void main() {
   });
 
   group('probeAuthStatus — failures that are not 404', () {
+    test('a web page instead of JSON → notBambuddy', () async {
+      onStatus(replyHtml);
+      await expectLater(service.probeAuthStatus(baseUrl), notBambuddy);
+    });
+
+    test('the catch-all of a server built without its web page → '
+        'notBambuddy, not auth off', () async {
+      // Any map at /auth/status reads as auth off, so the version route is what
+      // tells this answer apart from a bambuddy without sign-in.
+      onVersion((s) => s.reply(200, {'error': 'Frontend not built'}));
+      onStatus((s) => s.reply(200, {'error': 'Frontend not built'}));
+      await expectLater(service.probeAuthStatus(baseUrl), notBambuddy);
+    });
+
+    test('a version route that answers an error leaves the verdict to '
+        '/auth/status', () async {
+      // A proxy gating the route, or a build older than it: refusing here would
+      // lock out a server the probe always accepted.
+      for (final status in [401, 403, 404, 500]) {
+        onVersion((s) => s.reply(status, {'detail': 'nope'}));
+        onStatus((s) => s.reply(200, readFixture('auth_status_enabled.json')));
+        final probe = await service.probeAuthStatus(baseUrl);
+        expect(probe.authEnabled, isTrue, reason: 'status $status');
+      }
+    });
+
+    test('an unreachable host fails on the first request, not twice', () async {
+      onVersion(
+        (s) => s.throws(
+          0,
+          DioException.connectionTimeout(
+            timeout: const Duration(seconds: 1),
+            requestOptions: RequestOptions(path: '/api/v1/updates/version'),
+          ),
+        ),
+      );
+      onStatus((s) => s.reply(200, readFixture('auth_status_enabled.json')));
+      // A mock handler runs at registration, so the requests are counted here.
+      final asked = <String>[];
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            asked.add(options.uri.path);
+            handler.next(options);
+          },
+        ),
+      );
+      await expectLater(
+        service.probeAuthStatus(baseUrl),
+        throwsA(isA<NetworkException>()),
+      );
+      expect(asked, ['/api/v1/updates/version']);
+    });
+
+    test('another project\'s repo, or none → notBambuddy', () async {
+      for (final body in [
+        {'version': '1.0', 'repo': 'acme/other'},
+        {'version': '1.0', 'repo': 'acme/bambuddy-tools'},
+        {'version': '1.0'},
+        {'version': '1.0', 'repo': 42},
+      ]) {
+        onVersion((s) => s.reply(200, body));
+        onStatus((s) => s.reply(200, readFixture('auth_status_disabled.json')));
+        await expectLater(
+          service.probeAuthStatus(baseUrl),
+          notBambuddy,
+          reason: '$body',
+        );
+      }
+    });
+
+    test('a fork and the earliest builds\' repo name are bambuddy', () async {
+      for (final repo in [
+        'someone/bambuddy',
+        'Someone/Bambuddy',
+        'maziggy/bambusy',
+      ]) {
+        onVersion((s) => s.reply(200, {'version': '1.0', 'repo': repo}));
+        onStatus((s) => s.reply(200, readFixture('auth_status_enabled.json')));
+        final probe = await service.probeAuthStatus(baseUrl);
+        expect(probe.authEnabled, isTrue, reason: repo);
+      }
+    });
+
     test('a proxy that is up with bambuddy down surfaces the status', () async {
       // 502/503 through a reverse proxy is the shape of "wrong port / container
       // not running", and it must not be mistaken for either auth mode.
@@ -152,10 +260,15 @@ void main() {
         final localDio = Dio();
         final localAdapter = mockServer(localDio);
         final localService = AuthService(bareDio: localDio, credentials: store);
-        localAdapter.onGet(
-          '$baseUrl/api/v1/auth/status',
-          (s) => s.reply(status, {'detail': 'nope'}),
-        );
+        localAdapter
+          ..onGet(
+            '$baseUrl/api/v1/updates/version',
+            (s) => s.reply(status, {'detail': 'nope'}),
+          )
+          ..onGet(
+            '$baseUrl/api/v1/auth/status',
+            (s) => s.reply(status, {'detail': 'nope'}),
+          );
         await expectLater(
           localService.probeAuthStatus(baseUrl),
           throwsA(
@@ -224,12 +337,24 @@ void main() {
       expect(probe.requiresSetup, isFalse);
     });
 
+    test('/printers answers a web page → notBambuddy, not auth off', () async {
+      // Read as "auth off" before, which saved a profile for a server that
+      // was never there.
+      onStatus404();
+      adapter.onGet('$baseUrl/api/v1/printers/', replyHtml);
+      await expectLater(service.probeAuthStatus(baseUrl), notBambuddy);
+    });
+
     test('/printers answers 401 or 403 → auth is on', () async {
       for (final status in [401, 403]) {
         final localDio = Dio();
         final localAdapter = mockServer(localDio);
         final localService = AuthService(bareDio: localDio, credentials: store);
         localAdapter
+          ..onGet(
+            '$baseUrl/api/v1/updates/version',
+            (s) => s.reply(200, bambuddyVersion),
+          )
           ..onGet(
             '$baseUrl/api/v1/auth/status',
             (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -240,6 +365,25 @@ void main() {
           );
         final probe = await localService.probeAuthStatus(baseUrl);
         expect(probe.authEnabled, isTrue, reason: 'status $status');
+      }
+    });
+
+    test('/printers answers 401 with nothing saying bambuddy → '
+        'notBambuddy, not a sign-in form', () async {
+      // A router behind Basic Auth: 404 on the version route and on
+      // /auth/status, 401 on everything else.
+      for (final status in [401, 403]) {
+        onVersion((s) => s.reply(404, {'detail': 'Not Found'}));
+        onStatus404();
+        adapter.onGet(
+          '$baseUrl/api/v1/printers/',
+          (s) => s.reply(status, {'detail': 'denied'}),
+        );
+        await expectLater(
+          service.probeAuthStatus(baseUrl),
+          notBambuddy,
+          reason: 'status $status',
+        );
       }
     });
 

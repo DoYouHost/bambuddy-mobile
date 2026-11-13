@@ -13,6 +13,7 @@
 /// these tests SKIP rather than fail, so `just test` on a laptop is unaffected.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -71,6 +72,12 @@ String? get brokerSkipReason =>
 /// their own run and put the setting back after.
 String? get contractSpoolmanUrl =>
     Platform.environment['BAMBUDDY_CONTRACT_SPOOLMAN_URL'];
+
+/// `tool/ci/fake_wled.py` as the server and this process both reach it,
+/// `http://<container ip>`: a process on the host is not reachable from the
+/// server's container wherever the host firewall drops that traffic.
+String? get contractWledUrl =>
+    Platform.environment['BAMBUDDY_CONTRACT_WLED_URL'];
 
 String? get spoolmanSkipReason =>
     contractSkipReason ??
@@ -290,6 +297,68 @@ Future<void> publishReport(String serial, Map<String, Object?> print) async {
   ]);
   if (result.exitCode != 0) {
     throw StateError('mosquitto_pub failed: ${result.stderr}');
+  }
+}
+
+/// The first request the server publishes to the stand-in printer [serial]
+/// while [send] runs that [where] picks, as its `print` object. The server
+/// publishes other requests on the same topic (pushall and the like), hence the
+/// filter.
+///
+/// `-d` makes mosquitto_sub log its SUBACK to the same stdout the messages
+/// arrive on, so one subscription can wait for it before [send] — a request
+/// sent earlier is never delivered. `-W` bounds the process inside the
+/// container.
+Future<Map<String, dynamic>> firstRequest(
+  String serial,
+  Future<void> Function() send, {
+  required bool Function(Map<String, dynamic> print) where,
+}) async {
+  final sub = await Process.start('docker', [
+    'exec',
+    // A TTY, or libc block-buffers the piped debug log and the SUBACK only
+    // shows up when the process exits. The image has no `stdbuf`.
+    '-t',
+    contractBrokerContainer!,
+    'mosquitto_sub',
+    '-d',
+    '-h',
+    'localhost',
+    '-p',
+    '8883',
+    '--insecure',
+    '--cafile',
+    '/mosquitto/certs/server.crt',
+    '-t',
+    'device/$serial/request',
+    '-W',
+    '20',
+  ]);
+  final subscribed = Completer<void>();
+  final found = Completer<Map<String, dynamic>>();
+  final lines = sub.stdout
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .listen((line) {
+        if (line.contains('received SUBACK')) {
+          if (!subscribed.isCompleted) subscribed.complete();
+          return;
+        }
+        if (!line.startsWith('{')) return;
+        final print = (jsonDecode(line) as Map)['print'];
+        if (print is Map<String, dynamic> &&
+            where(print) &&
+            !found.isCompleted) {
+          found.complete(print);
+        }
+      });
+  try {
+    await subscribed.future.timeout(const Duration(seconds: 10));
+    await send();
+    return await found.future.timeout(const Duration(seconds: 15));
+  } finally {
+    await lines.cancel();
+    sub.kill();
   }
 }
 
