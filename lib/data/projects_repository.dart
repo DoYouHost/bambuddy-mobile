@@ -58,20 +58,15 @@ class ProjectsRepository {
   /// 1.2.5.2), the same feature gate [LibraryRepository.listTags] uses: the
   /// sets progress bar stays hidden rather than reading zero on a server that
   /// simply cannot answer. Other failures propagate as real errors.
-  Future<List<ProjectFileProgress>?> fileProgress(int id) async {
-    try {
-      final body = await guard(() async {
-        final res = await _dio.get<List<dynamic>>(
-          Endpoints.projectFileProgress(id),
-        );
-        return res.data ?? const [];
-      });
-      return parseJsonList(body, ProjectFileProgress.fromJson);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+  Future<List<ProjectFileProgress>?> fileProgress(int id) => guardAbsent(
+    () async {
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.projectFileProgress(id),
+      );
+      return parseJsonList(res.data ?? const [], ProjectFileProgress.fromJson);
+    },
+    null,
+  );
 
   /// POST /projects/ — create.
   Future<ProjectResponse> create(ProjectCreate body) => guard(() async {

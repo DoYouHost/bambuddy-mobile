@@ -70,23 +70,17 @@ class BatchRepository {
   ///
   /// The server leaves out batches with neither items nor targets.
   Future<List<PrintBatch>> list({PrintBatchStatus? status}) async {
-    final List<dynamic> body;
-    try {
-      body = await listCapability.watching(
-        observing: treat404AsAbsent,
-        () async {
-          final res = await _dio.get<List<dynamic>>(
-            Endpoints.queueBatches,
-            queryParameters: status == null ? null : {'status': status.name},
-          );
-          return res.data ?? const [];
-        },
-      );
-    } on ApiException catch (e) {
-      // Before v0.2.3: `GET /queue/{item_id}` refusing "batches" as an id.
-      if (e.statusCode == 422) listCapability.observe(present: false);
-      rethrow;
-    }
+    // Before v0.2.3 `GET /queue/{item_id}` refuses "batches" as an id: a 422.
+    final body = await listCapability.watching(
+      observing: treatPathCaptureAsAbsent,
+      () async {
+        final res = await _dio.get<List<dynamic>>(
+          Endpoints.queueBatches,
+          queryParameters: status == null ? null : {'status': status.name},
+        );
+        return res.data ?? const [];
+      },
+    );
     _observe(body.firstOrNull);
     return parseJsonList(body, PrintBatch.fromJson);
   }

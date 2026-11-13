@@ -206,6 +206,35 @@ void main() {
       );
     });
 
+    test('a 422 settles it only where the caller says the route can be '
+        'read as an id', () async {
+      final unmarked = capability('1.2.6b1');
+      await expectLater(
+        unmarked.watching(
+          () => refusing<int>(422),
+          observing: treat404AsAbsent,
+        ),
+        throwsA(isA<ApiException>()),
+      );
+      expect(
+        await unmarked.supported,
+        isTrue,
+        reason: 'a 422 is a refused body on most routes, not a missing one',
+      );
+
+      final pathCapture = capability('1.2.6b1');
+      expect(
+        await pathCapture.watching(
+          () => refusing<int>(422),
+          absent: () => 0,
+          absentOn: treatPathCaptureAsAbsent,
+          observing: treatPathCaptureAsAbsent,
+        ),
+        0,
+      );
+      expect(await pathCapture.supported, isFalse);
+    });
+
     test('absentOn narrows it, so a refusal still reaches the user', () async {
       final cap = capability('1.2.6b1');
 

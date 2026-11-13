@@ -312,22 +312,17 @@ class ArchiveRepository {
   /// reads this on every visit to the archive list.
   Future<int> mergeCount() async {
     if (mergeCapability.observedAnswer == false) return 0;
-    try {
-      return await mergeCapability.watching(
-        () async {
-          final res = await _dio.get<Map<String, dynamic>>(
-            Endpoints.archivesMergeCount,
-          );
-          return toIntOrNull(res.data?['groups']) ?? 0;
-        },
-        absent: () => 0,
-        observing: treat404AsAbsent,
-      );
-    } on AppApiException catch (e) {
-      if (e.statusCode != 422) rethrow;
-      mergeCapability.observe(present: false);
-      return 0;
-    }
+    return mergeCapability.watching(
+      () async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.archivesMergeCount,
+        );
+        return toIntOrNull(res.data?['groups']) ?? 0;
+      },
+      absent: () => 0,
+      absentOn: treatPathCaptureAsAbsent,
+      observing: treatPathCaptureAsAbsent,
+    );
   }
 
   /// GET /archives/merge-preview — the groups, mergeable first as the server
@@ -380,7 +375,7 @@ class ArchiveRepository {
                 queryParameters: query,
               )).data ??
               const <String, dynamic>{},
-          observing: treat404AsAbsent,
+          observing: treatPathCaptureAsAbsent,
         );
         final items = body['items'];
         final got = parseJsonList(
@@ -395,7 +390,6 @@ class ArchiveRepository {
       }
     } on AppApiException catch (e) {
       if (e.statusCode != 422 && e.statusCode != 404) rethrow;
-      printsCapability.observe(present: false);
       return null;
     }
   }
