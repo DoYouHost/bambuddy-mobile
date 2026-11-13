@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'wled_config.dart';
+
 part 'printer.g.dart';
 
 /// Printer configuration from `GET /printers` (PrinterResponse).
@@ -19,6 +21,7 @@ class Printer {
     this.autoArchive,
     this.wearCostPerHour,
     this.servesWearCost = false,
+    this.wledConfig,
   });
 
   factory Printer.fromJson(Map<String, dynamic> json) =>
@@ -48,7 +51,15 @@ class Printer {
   /// and drop it without a word, so the editor offers it only on this answer.
   @JsonKey(readValue: _hasWearCostKey)
   final bool servesWearCost;
+
+  /// Null both for a printer with no WLED mapping and for a server older than
+  /// it; `PrintersRepository.wledCapability` tells the two apart.
+  @JsonKey(fromJson: _wledFromJson)
+  final WledConfig? wledConfig;
 }
+
+WledConfig? _wledFromJson(Object? json) =>
+    json is Map<String, dynamic> ? WledConfig.fromJson(json) : null;
 
 Object? _hasWearCostKey(Map<dynamic, dynamic> json, String _) =>
     json.containsKey('wear_cost_per_hour');

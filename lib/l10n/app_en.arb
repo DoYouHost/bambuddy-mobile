@@ -7633,5 +7633,101 @@
         "type": "int"
       }
     }
-  }
+  },
+  "serverSettingsWledSubtitle": "Light presets for printer states",
+  "wledTitle": "WLED",
+  "wledDescription": "Colours and effects are set in WLED. The server only switches to the preset mapped to the printer's state.",
+  "wledPrinter": "Printer",
+  "wledEnabled": "WLED integration",
+  "wledEnabledDesc": "Switch presets as this printer's state changes",
+  "wledUrl": "WLED address",
+  "wledUrlRequired": "Needed while the integration is on",
+  "wledLoadPresets": "Load presets",
+  "wledTestConnection": "Test connection",
+  "wledConnected": "Connected to {name}",
+  "@wledConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "wledConnectedVersion": "Connected to {name}, version {version}",
+  "@wledConnectedVersion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "wledUnreachable": "WLED did not answer",
+  "wledPresetsLoaded": "{count, plural, =0{WLED has no presets} =1{1 preset loaded} other{{count} presets loaded}}",
+  "@wledPresetsLoaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wledPresetsOffline": "WLED is unreachable. Saved presets are kept.",
+  "wledMappingHeader": "Preset per state",
+  "wledSegmentHint": "When you create a preset in WLED, select its segment and turn on “Checked segments only”.",
+  "wledNoPreset": "No preset",
+  "wledPresetSaved": "Saved preset {id}",
+  "@wledPresetSaved": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "wledPresetOption": "{name} ({id})",
+  "@wledPresetOption": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "wledTestPreset": "Test preset for {state}",
+  "@wledTestPreset": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "wledPresetTested": "Preset switched on",
+  "wledPresetTestFailed": "WLED did not switch the preset",
+  "wledFinishedTimeout": "Back to Idle after (seconds)",
+  "wledFinishedTimeoutHint": "Seconds after a print finishes before the Idle preset takes over. 0 turns this off.",
+  "wledFinishedTimeoutInvalid": "A whole number from 0 to 86400",
+  "wledSave": "Save",
+  "wledSaved": "WLED settings saved",
+  "wledRefused": "Not accepted: {reason}",
+  "@wledRefused": {
+    "description": "The server's own English reason for refusing the WLED address.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "wledNoPrinters": "No printers to set up",
+  "wledStateIdle": "Idle",
+  "wledStatePrepare": "Preparing",
+  "wledStatePrinting": "Printing",
+  "wledStatePaused": "Paused",
+  "wledStateFinished": "Finished",
+  "wledStateError": "Failed",
+  "wledStateQueueWaiting": "Waiting for the plate to be cleared",
+  "wledStateFilamentProblem": "Filament problem",
+  "wledStateHmsError": "HMS error",
+  "wledStateOffline": "Offline"
 }
