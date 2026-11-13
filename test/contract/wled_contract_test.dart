@@ -81,7 +81,6 @@ void main() {
         dio,
         recordedWrites('wled_save'),
         item: printerId,
-        itemIn: RegExp(r'(?<=/printers/)\d+'),
       );
       expect(answer.statusCode, 200, reason: '${answer.data}');
 
