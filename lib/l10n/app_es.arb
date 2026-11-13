@@ -4933,5 +4933,13 @@
   "wledStateQueueWaiting": "Esperando a que se despeje la placa",
   "wledStateFilamentProblem": "Problema de filamento",
   "wledStateHmsError": "Error HMS",
-  "wledStateOffline": "Desconectada"
+  "wledStateOffline": "Desconectada",
+  "fmMoveBlockedCurrent": "Ya está aquí",
+  "fmMoveBlockedSelf": "La carpeta que se mueve",
+  "fmMoveBlockedInside": "Dentro de la carpeta que se mueve",
+  "fmMoveBlockedExternal": "Carpeta externa",
+  "fmMoveBlockedNotWritable": "No es tuyo ni está compartido",
+  "fmMoveBlockedReadOnly": "Carpeta de solo lectura",
+  "fmNotMoved": "No se movió el archivo",
+  "fmNotMovedReason": "No se movió el archivo: {reason}"
 }

@@ -10617,4 +10617,30 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Już tutaj';
+
+  @override
+  String get fmMoveBlockedSelf => 'Przenoszony folder';
+
+  @override
+  String get fmMoveBlockedInside => 'Wewnątrz przenoszonego folderu';
+
+  @override
+  String get fmMoveBlockedExternal => 'Folder zewnętrzny';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Nie twój i nieudostępniony';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Folder tylko do odczytu';
+
+  @override
+  String get fmNotMoved => 'Nie przeniesiono pliku';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Nie przeniesiono pliku: $reason';
+  }
 }

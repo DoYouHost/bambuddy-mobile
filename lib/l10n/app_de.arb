@@ -4933,5 +4933,13 @@
   "wledStateQueueWaiting": "Wartet auf leere Druckplatte",
   "wledStateFilamentProblem": "Filamentproblem",
   "wledStateHmsError": "HMS-Fehler",
-  "wledStateOffline": "Offline"
+  "wledStateOffline": "Offline",
+  "fmMoveBlockedCurrent": "Bereits hier",
+  "fmMoveBlockedSelf": "Der verschobene Ordner",
+  "fmMoveBlockedInside": "Im verschobenen Ordner",
+  "fmMoveBlockedExternal": "Externer Ordner",
+  "fmMoveBlockedNotWritable": "Nicht deiner und nicht freigegeben",
+  "fmMoveBlockedReadOnly": "Schreibgeschützter Ordner",
+  "fmNotMoved": "Datei nicht verschoben",
+  "fmNotMovedReason": "Datei nicht verschoben: {reason}"
 }

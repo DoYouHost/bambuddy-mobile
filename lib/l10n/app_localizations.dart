@@ -17312,6 +17312,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Offline'**
   String get wledStateOffline;
+
+  /// No description provided for @fmMoveBlockedCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Already here'**
+  String get fmMoveBlockedCurrent;
+
+  /// No description provided for @fmMoveBlockedSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder being moved'**
+  String get fmMoveBlockedSelf;
+
+  /// No description provided for @fmMoveBlockedInside.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside the folder being moved'**
+  String get fmMoveBlockedInside;
+
+  /// No description provided for @fmMoveBlockedExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'External folder'**
+  String get fmMoveBlockedExternal;
+
+  /// No description provided for @fmMoveBlockedNotWritable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yours and not shared'**
+  String get fmMoveBlockedNotWritable;
+
+  /// No description provided for @fmMoveBlockedReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only folder'**
+  String get fmMoveBlockedReadOnly;
+
+  /// No description provided for @fmNotMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved'**
+  String get fmNotMoved;
+
+  /// The server's own English reason for skipping the file.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved: {reason}'**
+  String fmNotMovedReason(String reason);
 }
 
 class _AppLocalizationsDelegate

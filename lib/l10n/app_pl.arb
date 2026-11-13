@@ -4244,5 +4244,13 @@
   "wledStateQueueWaiting": "Czeka na zdjęcie wydruku",
   "wledStateFilamentProblem": "Problem z filamentem",
   "wledStateHmsError": "Błąd HMS",
-  "wledStateOffline": "Offline"
+  "wledStateOffline": "Offline",
+  "fmMoveBlockedCurrent": "Już tutaj",
+  "fmMoveBlockedSelf": "Przenoszony folder",
+  "fmMoveBlockedInside": "Wewnątrz przenoszonego folderu",
+  "fmMoveBlockedExternal": "Folder zewnętrzny",
+  "fmMoveBlockedNotWritable": "Nie twój i nieudostępniony",
+  "fmMoveBlockedReadOnly": "Folder tylko do odczytu",
+  "fmNotMoved": "Nie przeniesiono pliku",
+  "fmNotMovedReason": "Nie przeniesiono pliku: {reason}"
 }

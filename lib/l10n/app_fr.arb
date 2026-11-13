@@ -4933,5 +4933,13 @@
   "wledStateQueueWaiting": "Plateau à libérer",
   "wledStateFilamentProblem": "Problème de filament",
   "wledStateHmsError": "Erreur HMS",
-  "wledStateOffline": "Hors ligne"
+  "wledStateOffline": "Hors ligne",
+  "fmMoveBlockedCurrent": "Déjà ici",
+  "fmMoveBlockedSelf": "Le dossier déplacé",
+  "fmMoveBlockedInside": "Dans le dossier déplacé",
+  "fmMoveBlockedExternal": "Dossier externe",
+  "fmMoveBlockedNotWritable": "Ni à vous ni partagé",
+  "fmMoveBlockedReadOnly": "Dossier en lecture seule",
+  "fmNotMoved": "Fichier non déplacé",
+  "fmNotMovedReason": "Fichier non déplacé : {reason}"
 }

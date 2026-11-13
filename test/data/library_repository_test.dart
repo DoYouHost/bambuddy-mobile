@@ -732,4 +732,67 @@ void main() {
       await repo.deleteFilePhoto(1, 'a1b2c3d4.jpg');
     });
   });
+
+  group('moveFiles', () {
+    void reply(Object? body) => adapter.onPost(
+      '/api/v1/library/files/move',
+      (s) => s.reply(200, body),
+      data: {
+        'file_ids': [7],
+        'folder_id': 3,
+      },
+    );
+
+    test('reads what moved and the first skip', () async {
+      reply({
+        'status': 'success',
+        'moved': 0,
+        'skipped': 1,
+        'skipped_reasons': [
+          {
+            'file_id': 7,
+            'code': 'name_collision',
+            'reason': "a file named 'cube.3mf' already exists in target",
+          },
+        ],
+      });
+
+      expect(await repo.moveFiles([7], folderId: 3), (
+        moved: 0,
+        skipped: 1,
+        skipCode: 'name_collision',
+        skipReason: "a file named 'cube.3mf' already exists in target",
+      ));
+    });
+
+    test('skips without a count of moved files moved nothing', () async {
+      reply({
+        'skipped': 1,
+        'skipped_reasons': [
+          {'code': 'name_collision', 'reason': 'exists'},
+        ],
+      });
+
+      expect((await repo.moveFiles([7], folderId: 3)).moved, 0);
+    });
+
+    test(
+      'a reply without skips, or of another shape, skipped nothing',
+      () async {
+        for (final body in <Object?>[
+          {'status': 'success', 'moved': 1},
+          {'moved': 1, 'skipped': 0, 'skipped_reasons': <Object>[]},
+          {'moved': 1, 'skipped_reasons': 'none'},
+          'ok',
+          null,
+        ]) {
+          reply(body);
+          final outcome = await repo.moveFiles([7], folderId: 3);
+          expect(outcome.moved, 1, reason: '$body');
+          expect(outcome.skipped, 0, reason: '$body');
+          expect(outcome.skipReason, isNull, reason: '$body');
+        }
+      },
+    );
+  });
 }
