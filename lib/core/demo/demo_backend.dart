@@ -491,6 +491,17 @@ class DemoBackend {
           return demoOk(const {'success': true});
         }
         if (at(2, 'clear-plate')) return demoOk(const {'ok': true});
+        if (at(2, 'wled') && s.length == 4 && m == 'POST') {
+          return switch (s[3]) {
+            'presets' => demoOk(_wledPresets),
+            'test-connection' => demoOk(const {
+              'name': 'Workshop strip',
+              'version': '0.15.1',
+            }),
+            'test-preset' => demoOk(const {'success': true}),
+            _ => demoNotFound(),
+          };
+        }
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') {
             return demoOk(_printerFiles(q['path'] ?? '/', pid));
@@ -1444,6 +1455,16 @@ class DemoBackend {
   /// service isolate, which has no status poll of its own, not at all.
   List<int> get printerIds => [for (final p in _printers) p['id'] as int];
 
+  /// What the demo's WLED controller answers to `/presets.json`, as the server
+  /// lists it. Preset 4, mapped to Failed on the X1 Carbon, is missing on
+  /// purpose: the screen's "saved preset" row is on show.
+  static const _wledPresets = [
+    {'id': 1, 'name': 'Calm white'},
+    {'id': 2, 'name': 'Progress green'},
+    {'id': 3, 'name': 'Done rainbow'},
+    {'id': 5, 'name': 'Night off'},
+  ];
+
   final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
@@ -1456,6 +1477,12 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 1,
       'wear_cost_per_hour': _demoWearCostPerHour,
+      'wled_config': {
+        'enabled': true,
+        'base_url': 'http://192.168.4.40',
+        'presets': {'idle': 1, 'printing': 2, 'finished': 3, 'error': 4},
+        'finished_timeout_seconds': 300,
+      },
     },
     {
       'id': 2,

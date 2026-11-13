@@ -126,6 +126,17 @@ final _plDelegates = [
   ...GlobalMaterialLocalizations.delegates,
 ];
 
+/// The [MaterialApp.builder] for a run at [scale] text size, the 1.0 / 1.5 /
+/// 2.0 runs a layout test makes (AGENTS.md: tests pass at more than 100 %).
+/// Pass it to [plApp] or [pumpPhone].
+TransitionBuilder textScaled(double scale) =>
+    (context, child) => MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(scale)),
+      child: child!,
+    );
+
 /// Pumps a phone widget inside a `ProviderScope` and [plApp]. Almost every caller
 /// wants [noServerProfileOverride] in [overrides].
 Future<void> pumpPhone(

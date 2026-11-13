@@ -35,6 +35,29 @@ String verdictLabel(AppLocalizations l10n, PrintVerdict verdict) =>
       PrintVerdict.reject => l10n.outcomeRejected,
     };
 
+/// A verdict as the card's mark and a run's pill both draw it. Each says
+/// "awaiting" its own way, so that case stays with them.
+typedef VerdictLook = ({String label, IconData icon, Color tone, Color ink});
+
+VerdictLook verdictLook(
+  DashTokens t,
+  AppLocalizations l10n,
+  PrintVerdict verdict,
+) => switch (verdict) {
+  PrintVerdict.good => (
+    label: verdictLabel(l10n, verdict),
+    icon: Icons.thumb_up_alt,
+    tone: t.accentGreen,
+    ink: t.accentGreenInk,
+  ),
+  PrintVerdict.reject => (
+    label: verdictLabel(l10n, verdict),
+    icon: Icons.thumb_down_alt,
+    tone: t.danger,
+    ink: t.dangerInk,
+  ),
+};
+
 /// How a verdict arrived, as a sentence — the plate-clear default answers
 /// prompts on its own, and without this a verdict nobody remembers giving
 /// looks like it came from nowhere. Null for a source this build does not
@@ -67,29 +90,18 @@ class ArchiveVerdictMark extends StatelessWidget {
     if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final mark = switch (archive.userVerdict) {
-      PrintVerdict.good => (
-        l10n.outcomeGoodPart,
-        Icons.thumb_up_alt,
-        t.accentGreen,
-        t.accentGreenInk,
-      ),
-      PrintVerdict.reject => (
-        l10n.outcomeRejected,
-        Icons.thumb_down_alt,
-        t.danger,
-        t.dangerInk,
-      ),
+    final VerdictLook? mark = switch (archive.userVerdict) {
+      final verdict? => verdictLook(t, l10n, verdict),
       null when archive.awaitsVerdict => (
-        l10n.outcomeAwaiting,
-        Icons.hourglass_top,
-        t.accentOrange,
-        t.accentOrangeInk,
+        label: l10n.outcomeAwaiting,
+        icon: Icons.hourglass_top,
+        tone: t.accentOrange,
+        ink: t.accentOrangeInk,
       ),
       null => null,
     };
     if (mark == null) return const SizedBox.shrink();
-    final (label, icon, tone, ink) = mark;
+    final (:label, :icon, :tone, :ink) = mark;
     return Semantics(
       label: label,
       excludeSemantics: true,

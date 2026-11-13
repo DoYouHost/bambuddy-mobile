@@ -6,7 +6,9 @@ import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
+import 'package:collection/collection.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
+import 'package:bambuddy_mobile/core/models/wled_config.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
@@ -2530,6 +2532,48 @@ void main() {
       for (final f in ServerFeature.values)
         if (!version!.supports(f)) f.name,
     ], isEmpty);
+  });
+
+  group('WLED', () {
+    final repo = PrintersRepository(dio);
+
+    test('every printer row carries the key, so the gate opens off the '
+        'listing', () async {
+      await repo.fetchPrinters();
+      expect(repo.wledCapability.observedAnswer, isTrue);
+    });
+
+    test('the mapped preset WLED no longer has is missing from its list, '
+        'so the screen shows a saved id', () async {
+      final printer = (await repo.fetchPrinters()).first;
+      final config = printer.wledConfig!;
+      final presets = await repo.fetchWledPresets(printer.id, config.baseUrl!);
+      expect(config.enabled, isTrue);
+      expect(
+        config.presets.values.where((id) => presets.none((p) => p.id == id)),
+        [4],
+      );
+    });
+
+    test('a save is kept and read back', () async {
+      const next = WledConfig(
+        enabled: true,
+        baseUrl: 'http://192.168.4.41',
+        presets: {WledState.paused: 5},
+      );
+      final saved = await repo.saveWledConfig(2, next);
+      expect(saved.wledConfig?.baseUrl, 'http://192.168.4.41');
+      final row = (await repo.fetchPrinters()).firstWhere((p) => p.id == 2);
+      expect(row.wledConfig?.presets, {WledState.paused: 5});
+    });
+
+    test('both tests answer', () async {
+      expect(
+        (await repo.testWledConnection(1, 'http://192.168.4.40')).name,
+        isNotNull,
+      );
+      await repo.testWledPreset(1, 'http://192.168.4.40', 1);
+    });
   });
 
   group('material numbers', () {

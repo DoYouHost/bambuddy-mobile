@@ -260,7 +260,6 @@ void main() {
           markTestSkipped('server predates #3296');
           return;
         }
-        final itemIn = RegExp(r'(?<=/label-templates/)\d+');
 
         // "Save as template": the recorded POST, read back from the list.
         final created = (await replayWrites(
@@ -291,7 +290,6 @@ void main() {
           dio,
           recordedWrites('label_template_update'),
           item: id,
-          itemIn: itemIn,
         )).single;
         expect(updated.statusCode, 200, reason: '${updated.data}');
         final stored = (await templates.list()).where((t) => t.id == id).single;
@@ -305,7 +303,6 @@ void main() {
           dio,
           recordedWrites('label_template_delete'),
           item: id,
-          itemIn: itemIn,
         )).single;
         expect(deleted.statusCode, 204, reason: '${deleted.data}');
         expect((await templates.list()).where((t) => t.id == id), isEmpty);

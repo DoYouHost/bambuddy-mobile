@@ -48,7 +48,7 @@ class ArchivePlatesSection extends ConsumerWidget {
         children: [
           Text(
             AppLocalizations.of(context).archivePlatesTitle,
-            style: t.bodyBold.copyWith(color: t.textPrimary),
+            style: t.bodyBoldPrimary,
           ),
           for (final plate in plates)
             _PlateCard(

@@ -10493,4 +10493,177 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$date : $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle =>
+      'Préréglages lumineux selon l\'état de l\'imprimante';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Les couleurs et les effets se règlent dans WLED. Le serveur bascule seulement sur le préréglage associé à l\'état de l\'imprimante.';
+
+  @override
+  String get wledPrinter => 'Imprimante';
+
+  @override
+  String get wledEnabled => 'Intégration WLED';
+
+  @override
+  String get wledEnabledDesc =>
+      'Changer de préréglage quand l\'état de l\'imprimante change';
+
+  @override
+  String get wledUrl => 'Adresse WLED';
+
+  @override
+  String get wledUrlRequired => 'Requise tant que l\'intégration est active';
+
+  @override
+  String get wledLoadPresets => 'Charger les préréglages';
+
+  @override
+  String get wledTestConnection => 'Tester la connexion';
+
+  @override
+  String wledConnected(String name) {
+    return 'Connecté à $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Connecté à $name, version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED ne répond pas';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count préréglages chargés',
+      one: '1 préréglage chargé',
+      zero: 'WLED n\'a aucun préréglage',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED est injoignable. Les préréglages enregistrés sont conservés.';
+
+  @override
+  String get wledMappingHeader => 'Préréglage par état';
+
+  @override
+  String get wledSegmentHint =>
+      'En créant un préréglage dans WLED, sélectionnez son segment et activez « Checked segments only ».';
+
+  @override
+  String get wledNoPreset => 'Aucun préréglage';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Préréglage enregistré $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Tester le préréglage $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Préréglage activé';
+
+  @override
+  String get wledPresetTestFailed => 'WLED n\'a pas changé de préréglage';
+
+  @override
+  String get wledFinishedTimeout => 'Retour à « Inactive » après (secondes)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Secondes après la fin d\'une impression avant le préréglage « Inactive ». 0 le désactive.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'Un nombre entier de 0 à 86400';
+
+  @override
+  String get wledSave => 'Enregistrer';
+
+  @override
+  String get wledSaved => 'Réglages WLED enregistrés';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Refusé : $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'Aucune imprimante à configurer';
+
+  @override
+  String get wledStateIdle => 'Inactive';
+
+  @override
+  String get wledStatePrepare => 'Préparation';
+
+  @override
+  String get wledStatePrinting => 'En impression';
+
+  @override
+  String get wledStatePaused => 'En pause';
+
+  @override
+  String get wledStateFinished => 'Terminée';
+
+  @override
+  String get wledStateError => 'Erreur';
+
+  @override
+  String get wledStateQueueWaiting => 'Plateau à libérer';
+
+  @override
+  String get wledStateFilamentProblem => 'Problème de filament';
+
+  @override
+  String get wledStateHmsError => 'Erreur HMS';
+
+  @override
+  String get wledStateOffline => 'Hors ligne';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Déjà ici';
+
+  @override
+  String get fmMoveBlockedSelf => 'Le dossier déplacé';
+
+  @override
+  String get fmMoveBlockedInside => 'Dans le dossier déplacé';
+
+  @override
+  String get fmMoveBlockedExternal => 'Dossier externe';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Ni à vous ni partagé';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Dossier en lecture seule';
+
+  @override
+  String get fmNotMoved => 'Fichier non déplacé';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Fichier non déplacé : $reason';
+  }
 }

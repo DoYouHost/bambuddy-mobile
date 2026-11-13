@@ -16,11 +16,6 @@ final _fullScreenProvider = FutureProvider.autoDispose<bool>(
   (_) => const AlarmRinger().canFullScreen(),
 );
 
-/// The printers the exclusions are chosen from.
-final _alarmPrintersProvider = FutureProvider.autoDispose<List<Printer>>(
-  (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
-);
-
 /// The alarm's settings (#61): the switch, what rings it, the hours and how
 /// long it rings. A screen of its own under app settings, apart from the
 /// notifications: the alarm has its own switches and does not follow theirs.
@@ -114,7 +109,7 @@ class _AlarmSettingsScreenState extends ConsumerState<AlarmSettingsScreen> {
             ),
             dashAsyncStrip(
               context,
-              ref.watch(_alarmPrintersProvider),
+              ref.watch(printerListProvider),
               data: (printers) => _Exclusions(
                 printers: printers,
                 alarm: alarm,

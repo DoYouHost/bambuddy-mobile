@@ -17072,6 +17072,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}'**
   String archiveCalendarDay(String date, int count);
+
+  /// No description provided for @serverSettingsWledSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light presets for printer states'**
+  String get serverSettingsWledSubtitle;
+
+  /// No description provided for @wledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED'**
+  String get wledTitle;
+
+  /// No description provided for @wledDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Colours and effects are set in WLED. The server only switches to the preset mapped to the printer\'s state.'**
+  String get wledDescription;
+
+  /// No description provided for @wledPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get wledPrinter;
+
+  /// No description provided for @wledEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED integration'**
+  String get wledEnabled;
+
+  /// No description provided for @wledEnabledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch presets as this printer\'s state changes'**
+  String get wledEnabledDesc;
+
+  /// No description provided for @wledUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED address'**
+  String get wledUrl;
+
+  /// No description provided for @wledUrlRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed while the integration is on'**
+  String get wledUrlRequired;
+
+  /// No description provided for @wledLoadPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Load presets'**
+  String get wledLoadPresets;
+
+  /// No description provided for @wledTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get wledTestConnection;
+
+  /// No description provided for @wledConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}'**
+  String wledConnected(String name);
+
+  /// No description provided for @wledConnectedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}, version {version}'**
+  String wledConnectedVersion(String name, String version);
+
+  /// No description provided for @wledUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED did not answer'**
+  String get wledUnreachable;
+
+  /// No description provided for @wledPresetsLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{WLED has no presets} =1{1 preset loaded} other{{count} presets loaded}}'**
+  String wledPresetsLoaded(int count);
+
+  /// No description provided for @wledPresetsOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED is unreachable. Saved presets are kept.'**
+  String get wledPresetsOffline;
+
+  /// No description provided for @wledMappingHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset per state'**
+  String get wledMappingHeader;
+
+  /// No description provided for @wledSegmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When you create a preset in WLED, select its segment and turn on “Checked segments only”.'**
+  String get wledSegmentHint;
+
+  /// No description provided for @wledNoPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset'**
+  String get wledNoPreset;
+
+  /// No description provided for @wledPresetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved preset {id}'**
+  String wledPresetSaved(int id);
+
+  /// No description provided for @wledPresetOption.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({id})'**
+  String wledPresetOption(String name, int id);
+
+  /// No description provided for @wledTestPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Test preset for {state}'**
+  String wledTestPreset(String state);
+
+  /// No description provided for @wledPresetTested.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset switched on'**
+  String get wledPresetTested;
+
+  /// No description provided for @wledPresetTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED did not switch the preset'**
+  String get wledPresetTestFailed;
+
+  /// No description provided for @wledFinishedTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Idle after (seconds)'**
+  String get wledFinishedTimeout;
+
+  /// No description provided for @wledFinishedTimeoutHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Seconds after a print finishes before the Idle preset takes over. 0 turns this off.'**
+  String get wledFinishedTimeoutHint;
+
+  /// No description provided for @wledFinishedTimeoutInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'A whole number from 0 to 86400'**
+  String get wledFinishedTimeoutInvalid;
+
+  /// No description provided for @wledSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get wledSave;
+
+  /// No description provided for @wledSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED settings saved'**
+  String get wledSaved;
+
+  /// The server's own English reason for refusing the WLED address.
+  ///
+  /// In en, this message translates to:
+  /// **'Not accepted: {reason}'**
+  String wledRefused(String reason);
+
+  /// No description provided for @wledNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers to set up'**
+  String get wledNoPrinters;
+
+  /// No description provided for @wledStateIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get wledStateIdle;
+
+  /// No description provided for @wledStatePrepare.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get wledStatePrepare;
+
+  /// No description provided for @wledStatePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get wledStatePrinting;
+
+  /// No description provided for @wledStatePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get wledStatePaused;
+
+  /// No description provided for @wledStateFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get wledStateFinished;
+
+  /// No description provided for @wledStateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get wledStateError;
+
+  /// No description provided for @wledStateQueueWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the plate to be cleared'**
+  String get wledStateQueueWaiting;
+
+  /// No description provided for @wledStateFilamentProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament problem'**
+  String get wledStateFilamentProblem;
+
+  /// No description provided for @wledStateHmsError.
+  ///
+  /// In en, this message translates to:
+  /// **'HMS error'**
+  String get wledStateHmsError;
+
+  /// No description provided for @wledStateOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get wledStateOffline;
+
+  /// No description provided for @fmMoveBlockedCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Already here'**
+  String get fmMoveBlockedCurrent;
+
+  /// No description provided for @fmMoveBlockedSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder being moved'**
+  String get fmMoveBlockedSelf;
+
+  /// No description provided for @fmMoveBlockedInside.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside the folder being moved'**
+  String get fmMoveBlockedInside;
+
+  /// No description provided for @fmMoveBlockedExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'External folder'**
+  String get fmMoveBlockedExternal;
+
+  /// No description provided for @fmMoveBlockedNotWritable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yours and not shared'**
+  String get fmMoveBlockedNotWritable;
+
+  /// No description provided for @fmMoveBlockedReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only folder'**
+  String get fmMoveBlockedReadOnly;
+
+  /// No description provided for @fmNotMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved'**
+  String get fmNotMoved;
+
+  /// The server's own English reason for skipping the file.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved: {reason}'**
+  String fmNotMovedReason(String reason);
 }
 
 class _AppLocalizationsDelegate

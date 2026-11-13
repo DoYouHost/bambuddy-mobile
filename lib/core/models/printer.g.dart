@@ -18,4 +18,5 @@ Printer _$PrinterFromJson(Map<String, dynamic> json) => Printer(
   autoArchive: json['auto_archive'] as bool?,
   wearCostPerHour: (json['wear_cost_per_hour'] as num?)?.toDouble(),
   servesWearCost: _hasWearCostKey(json, 'serves_wear_cost') as bool? ?? false,
+  wledConfig: _wledFromJson(json['wled_config']),
 );

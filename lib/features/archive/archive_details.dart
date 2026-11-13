@@ -12,7 +12,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/web_link.dart';
-import 'archive_providers.dart';
 
 /// The printer a print ran on, by name, as the web card's `printerMap` lookup —
 /// or the model it was sliced for when that printer is gone or was never set.
@@ -21,8 +20,7 @@ String? archivePrinterLabel(Archive archive, Map<int, String> names) =>
 
 final archivePrinterNamesProvider = Provider.autoDispose<Map<int, String>>(
   (ref) => {
-    for (final p in ref.watch(printersForPickerProvider).value ?? [])
-      p.id: p.name,
+    for (final p in ref.watch(printerListProvider).value ?? []) p.id: p.name,
   },
 );
 

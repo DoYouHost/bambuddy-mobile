@@ -260,8 +260,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   String? _resolvedTargetModel({required bool watch}) {
     if (_modelMode) return _targetModel ?? widget.item.slicedForModel;
     final async = watch
-        ? ref.watch(allPrintersProvider)
-        : ref.read(allPrintersProvider);
+        ? ref.watch(printerListProvider)
+        : ref.read(printerListProvider);
     for (final p in async.value ?? const []) {
       if (p.id == _printerId) return p.model;
     }
@@ -382,7 +382,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- Target: Specific Printer / Any <model> ---
   Widget _targetSection(AppLocalizations l10n, DashTokens t) {
-    final printers = ref.watch(allPrintersProvider).value ?? const [];
+    final printers = ref.watch(printerListProvider).value ?? const [];
     final models = distinctPrinterModels(printers);
     final locations = <String>{
       for (final p in printers)
@@ -724,7 +724,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
   String? _selectedPrinterName(int printerId) {
-    for (final p in ref.read(allPrintersProvider).value ?? const []) {
+    for (final p in ref.read(printerListProvider).value ?? const []) {
       if (p.id == printerId) return p.name;
     }
     return null;

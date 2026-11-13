@@ -10387,4 +10387,177 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$date: $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle => 'Licht-Presets je Druckerstatus';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Farben und Effekte stellst du in WLED ein. Der Server wechselt nur zum Preset, das dem Druckerstatus zugeordnet ist.';
+
+  @override
+  String get wledPrinter => 'Drucker';
+
+  @override
+  String get wledEnabled => 'WLED-Integration';
+
+  @override
+  String get wledEnabledDesc =>
+      'Presets wechseln, wenn sich der Druckerstatus ändert';
+
+  @override
+  String get wledUrl => 'WLED-Adresse';
+
+  @override
+  String get wledUrlRequired =>
+      'Erforderlich, solange die Integration aktiv ist';
+
+  @override
+  String get wledLoadPresets => 'Presets laden';
+
+  @override
+  String get wledTestConnection => 'Verbindung testen';
+
+  @override
+  String wledConnected(String name) {
+    return 'Verbunden mit $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Verbunden mit $name, Version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED antwortet nicht';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Presets geladen',
+      one: '1 Preset geladen',
+      zero: 'WLED hat keine Presets',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED ist nicht erreichbar. Gespeicherte Presets bleiben erhalten.';
+
+  @override
+  String get wledMappingHeader => 'Preset je Status';
+
+  @override
+  String get wledSegmentHint =>
+      'Wähle beim Anlegen eines Presets in WLED sein Segment und aktiviere „Checked segments only“.';
+
+  @override
+  String get wledNoPreset => 'Kein Preset';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Gespeichertes Preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Preset für $state testen';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset aktiviert';
+
+  @override
+  String get wledPresetTestFailed => 'WLED hat das Preset nicht gewechselt';
+
+  @override
+  String get wledFinishedTimeout => 'Zurück zu „Bereit“ nach (Sekunden)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Sekunden nach einem fertigen Druck, bis das Preset für „Bereit“ übernimmt. 0 schaltet das ab.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'Eine ganze Zahl von 0 bis 86400';
+
+  @override
+  String get wledSave => 'Speichern';
+
+  @override
+  String get wledSaved => 'WLED-Einstellungen gespeichert';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Nicht angenommen: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'Keine Drucker zum Einrichten';
+
+  @override
+  String get wledStateIdle => 'Bereit';
+
+  @override
+  String get wledStatePrepare => 'Vorbereitung';
+
+  @override
+  String get wledStatePrinting => 'Druckt';
+
+  @override
+  String get wledStatePaused => 'Pausiert';
+
+  @override
+  String get wledStateFinished => 'Abgeschlossen';
+
+  @override
+  String get wledStateError => 'Fehler';
+
+  @override
+  String get wledStateQueueWaiting => 'Wartet auf leere Druckplatte';
+
+  @override
+  String get wledStateFilamentProblem => 'Filamentproblem';
+
+  @override
+  String get wledStateHmsError => 'HMS-Fehler';
+
+  @override
+  String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Bereits hier';
+
+  @override
+  String get fmMoveBlockedSelf => 'Der verschobene Ordner';
+
+  @override
+  String get fmMoveBlockedInside => 'Im verschobenen Ordner';
+
+  @override
+  String get fmMoveBlockedExternal => 'Externer Ordner';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Nicht deiner und nicht freigegeben';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Schreibgeschützter Ordner';
+
+  @override
+  String get fmNotMoved => 'Datei nicht verschoben';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Datei nicht verschoben: $reason';
+  }
 }

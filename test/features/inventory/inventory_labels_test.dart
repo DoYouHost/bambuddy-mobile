@@ -293,12 +293,7 @@ void main() {
             const AsyncData(false),
           ),
         ],
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(scale)),
-          child: child!,
-        ),
+        builder: textScaled(scale),
       );
       await settle(tester);
       await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
@@ -704,12 +699,7 @@ void main() {
             ),
             ...served(),
           ],
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(scale)),
-            child: child!,
-          ),
+          builder: textScaled(scale),
         );
         await settle(tester);
         await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
