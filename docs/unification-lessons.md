@@ -41,6 +41,10 @@ is the map and the decisions.
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
 | `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
+| `treat404AsAbsent`, and `treatPathCaptureAsAbsent` for a route an older server reads as `/<resource>/{id}` and refuses with a 422 (`/archives/merge-count`, `/queue/batches`) | [observed_capability.dart](../lib/core/api/observed_capability.dart) |
+| `printerListProvider`: every printer's configuration, no statuses, for any picker or filter that names printers | [providers.dart](../lib/providers.dart) |
+| `tintBox(accent)`: the washed, outlined box of a banner or notice; `bodyBoldPrimary`: a heading inside a sheet or a row's main line | [dash_theme.dart](../lib/core/theme/dash_theme.dart) (`BambuddyAccent`) |
+| `verdictLook`: a kept or binned print's label, icon and colours, for the card's mark and a run's pill; each keeps its own "awaiting" | [print_outcome.dart](../lib/features/archive/print_outcome.dart) |
 | `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else; `intListFromJson`: a server-sent id list | [json_utils.dart](../lib/core/models/json_utils.dart) |
 | `TrayLayout`, `globalTrayId`, `rackExternalLabel`: a slot's numbers on any printer, the H3C's rack included; `mappingSlotLabel`: a slot as the filament mapping names it, on the phone's form and the controller's | [slot_addressing.dart](../lib/core/ams/slot_addressing.dart), [filament_mapping.dart](../lib/core/ams/filament_mapping.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
@@ -54,7 +58,8 @@ is the map and the decisions.
 | `ProgressRingPainter`: the screen saver's and the statistics' ring, pixel for pixel what each drew | [progress_ring.dart](../lib/features/common/progress_ring.dart) |
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
-| `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
+| `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test, the live id swapped for the first all-digit path segment | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
+| `textScaled(scale)`: the `builder:` for a run at 150 % or 200 % text, for `plApp` and `pumpPhone` | [test/helpers.dart](../test/helpers.dart) |
 | `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test; `firstRequest`: what the server published to the stand-in printer | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
 
 ## Traps that cost real debugging
@@ -150,6 +155,46 @@ more than the lines it saves.
   the owner's key listing, so it does not go through `mintContractApiKey`.
 - **`_goneWithin` (projects contract test) vs `pollUntil`** (`contract_harness.dart`):
   there a timeout is the answer ("it never went away"), not an error.
+
+- **The banner widgets.** `_ResumeBanner` (queue) and `ArchiveMergeBanner` share
+  their geometry, but differ in tone, icon, a dismiss button and a confirm dialog;
+  `_No3mfBanner` has another layout altogether (a title and a body, a docs button).
+  A widget for two users would take an `actions` list and a tone pair. Only the
+  decoration is shared, `tintBox`.
+- **Save and delete handlers with a busy flag** (`_CustomSheetFormState`,
+  `_SupplierFormSheetState`, the finance, location, tag, user and group forms).
+  Each differs in what success does (stay open, pop), which statuses get their own
+  wording (409, a 404 that means "create a new one"), and when to invalidate. Only
+  the three-line `catch (_) { …; rethrow; }` is the same, and that is the rule in
+  AGENTS.md, not a helper. Same reason as the "N of M" runner.
+- **A base class for the small gated repositories** (label templates, suppliers,
+  profile defaults). They share a constructor and one `late final capability`
+  line; the rest is each route's own request. `watching(observing: const {}, …)`
+  on a write stays spelled out: the parameter is the rule ("a write settles
+  nothing"), and a name for it hides that.
+- **The native and Spoolman inventory sources.** Besides the shared private
+  helpers, the twins that differ only by endpoint are one-liners; the rest differ
+  in decoder, body or behaviour (Spoolman unassigns by spool id, parses a 207, has
+  no `skippedKey`), which a record of paths would need an override for.
+- **A registry for capability gates.** Each gate needs the same three facts (the
+  feature, where its latch lives, `whenUnknown`) however it is declared, and the
+  explicit `capabilityGate(...)` lines are what a grep finds.
+- **Demo `PATCH`/`PUT` key copying.** The `containsKey` copies in
+  `demo_backend.dart` each go on to their own transform (a folder's `parent_id` 0
+  becomes null, a supplier's name is trimmed, a queue item's printer name is
+  derived); a helper would save about twenty lines and sit next to the special case
+  anyway.
+- **`_StockCard` and the other option cards** fall under the shared card tile
+  above: radius, fill, border and padding differ per picker.
+- **The archive media routes.** `/timelapse`, `/archive/photos` and
+  `/timelapse/edit` are each built once; two go through `Uri`, and the editor's
+  link encodes its name. Three builder functions would have one caller each.
+- **Five text-scale builders keep their own `builder:`**: they pass a ready
+  `TextScaler` or wrap the child (`TourHost`, `wearShapeBuilder`).
+- **A finder for "the `TextField` under this log id".** It fits 33 of 71
+  `find.descendant` calls, one or two per file, and saves a line at each.
+- **The label picker's test harness** (`_CapturingRepository`, `_MemoryPrefs`,
+  `openTemplatePicker`) has one user, `inventory_labels_test.dart`.
 
 ## What was dropped as history
 
