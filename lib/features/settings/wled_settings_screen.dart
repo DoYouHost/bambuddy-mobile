@@ -98,18 +98,28 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
   void _edit(Printer printer, WledConfig next) =>
       setState(() => _drafts[printer.id] = next);
 
+  /// Moves on to a new printer or URL: what WLED said, and the requests still
+  /// out about it, belonged to the old one. Their answers are dropped, so their
+  /// busy flags are lowered here rather than by them.
+  void _forgetWled() {
+    _context++;
+    _presets = null;
+    _presetsReach = _Reach.unknown;
+    _connection = _Reach.unknown;
+    _info = null;
+    _urlRefusal = null;
+    _loadingPresets = false;
+    _testingConnection = false;
+    _testingPreset = false;
+  }
+
   void _select(Printer printer) {
     final config = _config(printer);
     setState(() {
       _printerId = printer.id;
-      _context++;
+      _forgetWled();
       _url.text = config.baseUrl ?? '';
       _timeout.text = '${config.finishedTimeoutSeconds ?? 0}';
-      _presets = null;
-      _presetsReach = _Reach.unknown;
-      _connection = _Reach.unknown;
-      _info = null;
-      _urlRefusal = null;
     });
     // As on the web: a saved, enabled mapping shows its preset names at once.
     // After the frame, since the first selection can come from `initState`,
@@ -125,12 +135,7 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
 
   void _urlChanged(Printer printer, String text) {
     final config = _config(printer);
-    setState(() {
-      _context++;
-      _connection = _Reach.unknown;
-      _info = null;
-      _urlRefusal = null;
-    });
+    setState(_forgetWled);
     _edit(printer, config.copyWith(baseUrl: () => text.trim()));
   }
 
@@ -168,7 +173,7 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
     } on AppApiException catch (e) {
       showApiFailure(current() ? messenger : null, e, l10n, action: action);
     } finally {
-      if (mounted) setState(() => busy(false));
+      if (current()) setState(() => busy(false));
     }
   }
 
@@ -221,6 +226,16 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final asked = _context;
+    // What the web checks before it reports a success: the same printer and
+    // URL on screen, and nothing edited since. A failure is said while the
+    // printer is still on screen, which the web does not: a draft that stays
+    // unsaved owes the user the reason, and a refused URL still in the field
+    // gets it underneath.
+    bool stillShowing() =>
+        mounted && asked == _context && identical(_config(printer), config);
+    bool samePrinter() => mounted && _printerId == printer.id;
+    bool sameUrl() =>
+        samePrinter() && _url.text.trim() == (config.baseUrl ?? '');
     setState(() {
       _saving = true;
       _urlRefusal = null;
@@ -230,28 +245,38 @@ class _WledSettingsState extends ConsumerState<WledSettingsScreen> {
           .read(printersRepositoryProvider)
           .saveWledConfig(printer.id, config);
       if (!mounted) return;
+      final current = stillShowing();
       setState(() {
         _saved[printer.id] = saved.wledConfig;
         // An edit made while the save was out stays a draft.
         if (identical(_drafts[printer.id], config)) _drafts.remove(printer.id);
       });
+      if (!current) return;
       messenger.snack(l10n.wledSaved);
+      // As on the web, whose saved printer row re-runs its preset load.
+      final url = saved.wledConfig?.baseUrl;
+      if (saved.wledConfig?.enabled == true && url != null) {
+        _loadPresets(printer, url);
+      }
     } on ApiException catch (e) {
       final refusal = e.statusCode == 422 && e.detail != null
           ? l10n.wledRefused(e.detail!)
           : null;
-      if (refusal != null && mounted && asked == _context) {
-        setState(() => _urlRefusal = refusal);
-      }
+      if (refusal != null && sameUrl()) setState(() => _urlRefusal = refusal);
       showApiFailure(
-        mounted ? messenger : null,
+        samePrinter() ? messenger : null,
         e,
         l10n,
         action: 'wled.save',
         message: refusal,
       );
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? messenger : null, e, l10n, action: 'wled.save');
+      showApiFailure(
+        samePrinter() ? messenger : null,
+        e,
+        l10n,
+        action: 'wled.save',
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -52,6 +52,24 @@ void main() {
     {'id': 2, 'name': 'Rainbow'},
   ];
 
+  // What the server stores for the workshop once Paused is mapped to 2.
+  final savedPaused = {
+    'enabled': true,
+    'base_url': url,
+    'presets': {'idle': 1, 'printing': 5, 'paused': 2},
+    'finished_timeout_seconds': 120,
+  };
+
+  Finder field(String id) =>
+      find.descendant(of: byLogId(id), matching: find.byType(TextField));
+
+  VoidCallback? pressable<T extends ButtonStyleButton>(
+    WidgetTester tester,
+    String id,
+  ) => tester
+      .widget<T>(find.descendant(of: byLogId(id), matching: find.byType(T)))
+      .onPressed;
+
   Future<void> pump(
     WidgetTester tester, {
     void Function(DioAdapter server)? routes,
@@ -116,7 +134,7 @@ void main() {
         replyPresets(s);
         s.onPatch(
           Endpoints.printer(1),
-          (r) => r.reply(200, {...workshop, 'wled_config': null}),
+          (r) => r.reply(200, {...workshop, 'wled_config': savedPaused}),
           data: {
             'wled_config': {
               'enabled': true,
@@ -145,6 +163,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(pl.wledSaved), findsOneWidget);
+    // The reply is now the baseline: the edit stays on screen, not a draft.
+    expect(find.text(url), findsOneWidget);
+    expect(find.text(pl.wledPresetOption('Rainbow', 2)), findsOneWidget);
     expectSentAsRecorded(
       'wled_save',
       writesOf(log.requests.where((r) => r.method == 'PATCH')),
@@ -317,6 +338,196 @@ void main() {
       Endpoints.printerWledPresets(1),
       Endpoints.printerWledTestPreset(1),
     ]);
+  });
+
+  testWidgets('presets read at one address are not offered for another', (
+    tester,
+  ) async {
+    await pump(tester, routes: replyPresets);
+    expect(find.text(pl.wledPresetOption('Blue', 1)), findsOneWidget);
+
+    await tester.enterText(field('wled.url'), 'http://192.168.1.60');
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.wledPresetsLoaded(2)), findsNothing);
+    expect(find.text(pl.wledPresetOption('Blue', 1)), findsNothing);
+    expect(find.text(pl.wledPresetSaved(1)), findsOneWidget);
+  });
+
+  testWidgets('a save that lands after switching printers says nothing over '
+      'the other printer', (tester) async {
+    await pump(
+      tester,
+      routes: (s) {
+        replyPresets(s);
+        s.onPatch(
+          Endpoints.printer(1),
+          (r) => r.reply(200, {
+            ...workshop,
+            'wled_config': workshop['wled_config'],
+          }, delay: const Duration(seconds: 5)),
+          data: Matchers.any,
+        );
+      },
+    );
+
+    await tester.tap(byLogId('wled.save'));
+    await tester.pump();
+    await pick(tester, byLogId('wled.printer'), 'Garage A1');
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.wledSaved), findsNothing);
+  });
+
+  testWidgets('a save that lands after another edit does not call that edit '
+      'saved', (tester) async {
+    await pump(
+      tester,
+      routes: (s) {
+        replyPresets(s);
+        s.onPatch(
+          Endpoints.printer(1),
+          (r) => r.reply(200, {
+            ...workshop,
+            'wled_config': workshop['wled_config'],
+          }, delay: const Duration(seconds: 5)),
+          data: Matchers.any,
+        );
+      },
+    );
+
+    await tester.tap(byLogId('wled.save'));
+    await tester.pump();
+    await pick(tester, presetCombo(3), pl.wledPresetOption('Rainbow', 2));
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.wledSaved), findsNothing);
+    expect(
+      find.text(pl.wledPresetOption('Rainbow', 2)),
+      findsOneWidget,
+      reason: 'the newer edit is still the draft',
+    );
+  });
+
+  testWidgets('a refused URL is still said when another field was edited '
+      'while the save was out', (tester) async {
+    const reason = 'WLED URL must not include credentials';
+    await pump(
+      tester,
+      routes: (s) {
+        replyPresets(s);
+        s.onPatch(
+          Endpoints.printer(1),
+          (r) => r.reply(422, {
+            'detail': [
+              {'msg': 'Value error, $reason'},
+            ],
+          }, delay: const Duration(seconds: 5)),
+          data: Matchers.any,
+        );
+      },
+    );
+
+    await tester.tap(byLogId('wled.save'));
+    await tester.pump();
+    await tester.enterText(field('wled.finished_timeout'), '60');
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(field('wled.url')).decoration?.errorText,
+      pl.wledRefused(reason),
+    );
+  });
+
+  testWidgets('an abandoned request does not unlock Load presets while the '
+      'current one is out', (tester) async {
+    const garageUrl = 'http://10.0.0.9';
+    await pump(
+      tester,
+      routes: (s) {
+        replyPresets(s, delay: const Duration(seconds: 5));
+        s.onPost(
+          Endpoints.printerWledPresets(2),
+          (r) => r.reply(200, presets, delay: const Duration(seconds: 20)),
+          data: {'base_url': garageUrl},
+        );
+      },
+    );
+    await pick(tester, byLogId('wled.printer'), 'Garage A1');
+    await tester.tap(byLogId('wled.enabled'));
+    await tester.pump();
+    await tester.enterText(field('wled.url'), garageUrl);
+    await tester.pump();
+    expect(
+      pressable<FilledButton>(tester, 'wled.load_presets'),
+      isNotNull,
+      reason: 'the first printer\'s request no longer holds the button',
+    );
+
+    await tester.tap(byLogId('wled.load_presets'));
+    await tester.pump();
+    // The first printer's answer arrives while the garage's is still out.
+    await tester.pump(const Duration(seconds: 6));
+    expect(pressable<FilledButton>(tester, 'wled.load_presets'), isNull);
+
+    await tester.pump(const Duration(seconds: 20));
+    await tester.pumpAndSettle();
+    expect(find.text(pl.wledPresetsLoaded(2)), findsOneWidget);
+  });
+
+  testWidgets('saving a new address loads its presets', (tester) async {
+    const garageUrl = 'http://10.0.0.9';
+    final stored = {
+      'enabled': true,
+      'base_url': garageUrl,
+      'presets': <String, Object?>{},
+      'finished_timeout_seconds': 0,
+    };
+    await pump(
+      tester,
+      routes: (s) {
+        replyPresets(s);
+        s
+          ..onPatch(
+            Endpoints.printer(2),
+            (r) => r.reply(200, {...garage, 'wled_config': stored}),
+            data: Matchers.any,
+          )
+          ..onPost(
+            Endpoints.printerWledPresets(2),
+            (r) => r.reply(200, presets),
+            data: {'base_url': garageUrl},
+          );
+      },
+    );
+    await pick(tester, byLogId('wled.printer'), 'Garage A1');
+    await tester.tap(byLogId('wled.enabled'));
+    await tester.pump();
+    await tester.enterText(field('wled.url'), garageUrl);
+    await tester.pump();
+
+    await tester.tap(byLogId('wled.save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.wledPresetsLoaded(2)), findsOneWidget);
+  });
+
+  testWidgets('switching away and back while presets load still shows them', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      routes: (s) => replyPresets(s, delay: const Duration(seconds: 5)),
+    );
+    await pick(tester, byLogId('wled.printer'), 'Garage A1');
+    await pick(tester, byLogId('wled.printer'), 'Workshop X1C');
+    await tester.pump(const Duration(seconds: 12));
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.wledPresetsLoaded(2)), findsOneWidget);
   });
 
   for (final scale in const [1.0, 1.5, 2.0]) {
