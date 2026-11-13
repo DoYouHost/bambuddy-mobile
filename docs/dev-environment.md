@@ -146,7 +146,12 @@ your own names (other sessions' may be running):
    `markTestSkipped` where an old server has nothing to check).
 3. [seed_bambuddy.sh](../tool/ci/seed_bambuddy.sh) with the server URL, the broker's
    container IP and name.
-4. `BAMBUDDY_CONTRACT_URL`, `_USER`, `_PASS`, `_BROKER` (container name) and
+4. For the WLED tests, [fake_wled.py](../tool/ci/fake_wled.py) in a
+   `python:3.13-slim` container, addressed by its bridge IP as
+   `BAMBUDDY_CONTRACT_WLED_URL=http://<ip>`. Not a process on the host: on a host
+   whose firewall drops container-to-host traffic (NixOS by default) the server
+   cannot reach it, and every WLED call ends in a 502 after the 2 s connect timeout.
+5. `BAMBUDDY_CONTRACT_URL`, `_USER`, `_PASS`, `_BROKER` (container name) and
    `_BROKER_IP` set, then `flutter test test/contract --concurrency=1`.
 
 Why the flags: `--concurrency=1` because every file writes to the same server and

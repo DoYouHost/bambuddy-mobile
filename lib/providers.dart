@@ -605,7 +605,16 @@ final apiKeyNotificationScopeProvider = capabilityGate(
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
-  (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrintersRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the server maps printer states to WLED presets. The printer
+/// listing settles it, so nothing probes.
+final wledSupportedProvider = capabilityGate(
+  (ref) => ref.watch(printersRepositoryProvider).wledCapability,
 );
 
 /// Whether the server can hold a user's jobs for review (#1620). See

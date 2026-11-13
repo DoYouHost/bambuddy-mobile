@@ -92,6 +92,8 @@ known_words = [
   # Labels of other products the copy quotes, so the reader can find them
   # there: bambuddy's own web UI, Home Assistant, the server's group names.
   "Settings", "Assistant", "Workflow", "Administrators",
+  # WLED's own preset option, which its web UI shows in English only.
+  "Checked", "segments", "only",
   # Plural of the app's own coinage, and two ordinary Polish words the
   # dictionary wants to split: "Podprojekty", "Szac. koszt".
   "timelapses", "podprojekty", "szac",
