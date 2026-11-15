@@ -1459,7 +1459,9 @@ abstract final class Endpoints {
   // Each has a `printer-status` made for the printer cards: no configuration,
   // so `printers:read` (an API key's `can_read_status`) is enough, narrowed to
   // the printers the caller may see. A server from before a provider 404s its
-  // route. The rest of both routers is settings, left to the web.
+  // route: Obico's is there from 1.2.5.2 (1.2.5 has `/obico/status` only, which
+  // wants `settings:read`), OctoEverywhere's from 1.3.0. The rest of both
+  // routers is settings, left to the web.
 
   /// `GET` → `{enabled, monitored_printers, per_printer, last_error}`; an entry
   /// of `per_printer` is `{class, frame_count, score, error}`.
