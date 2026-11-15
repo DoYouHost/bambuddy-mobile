@@ -11,6 +11,7 @@ class PrintMetaItem extends StatelessWidget {
     required this.text,
     this.color,
     this.semanticLabel,
+    this.tooltip,
   });
 
   final IconData icon;
@@ -21,6 +22,11 @@ class PrintMetaItem extends StatelessWidget {
 
   /// What a screen reader says instead of the icon and the text.
   final String? semanticLabel;
+
+  /// Shown on a tap, for an item whose text is one word of a longer answer.
+  /// Kept out of the semantics tree: [semanticLabel] already says it, and a
+  /// 14 px line is no tap target to announce.
+  final String? tooltip;
 
   static const _iconSize = 14.0;
   static const _iconGap = 4.0;
@@ -74,9 +80,18 @@ class PrintMetaItem extends StatelessWidget {
       ],
     );
     final label = semanticLabel;
-    return label == null
+    final labelled = label == null
         ? row
         : Semantics(label: label, excludeSemantics: true, child: row);
+    final tip = tooltip;
+    return tip == null
+        ? labelled
+        : Tooltip(
+            message: tip,
+            triggerMode: TooltipTriggerMode.tap,
+            excludeFromSemantics: true,
+            child: labelled,
+          );
   }
 }
 

@@ -4252,5 +4252,17 @@
   "fmMoveBlockedNotWritable": "Nie twój i nieudostępniony",
   "fmMoveBlockedReadOnly": "Folder tylko do odczytu",
   "fmNotMoved": "Nie przeniesiono pliku",
-  "fmNotMovedReason": "Nie przeniesiono pliku: {reason}"
+  "fmNotMovedReason": "Nie przeniesiono pliku: {reason}",
+  "aiDetectionSafe": "Bezpieczny",
+  "aiDetectionWarning": "Ostrzeżenie",
+  "aiDetectionFailure": "Awaria",
+  "aiDetectionNotChecking": "Nie sprawdza",
+  "aiDetectionStarting": "Uruchamianie",
+  "aiDetectionTipStatus": "Wykrywanie awarii AI: {status}",
+  "aiDetectionTipScore": "Wykrywanie awarii AI: {status} (wynik {score})",
+  "aiDetectionTipQuality": "Wykrywanie awarii AI: {status} (jakość wydruku {quality}/10)",
+  "aiDetectionTipError": "Wykrywanie awarii AI nie sprawdza tego wydruku: {reason}",
+  "aiDetectionTipErrorNoReason": "Wykrywanie awarii AI nie sprawdza tego wydruku",
+  "aiDetectionTipStarting": "Wykrywanie awarii AI: oczekiwanie na pierwszy wynik",
+  "aiDetectionLimitReached": "osiągnięto limit użycia"
 }

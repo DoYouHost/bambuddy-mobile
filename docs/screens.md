@@ -113,6 +113,54 @@ Tests: a provider that polls needs an inert override (`_InertStatuses`,
 `_InertSmartPlugs` in `test/helpers.dart`, applied by the shared harness), or the
 test hangs on the timer.
 
+### AI failure detection (`/obico/printer-status`, `/octoeverywhere/printer-status`)
+
+The server watches a print through the camera with one of two providers, Obico
+(#1546) or OctoEverywhere (#3169), and the web shows the verdict as a badge on the
+printer card. Here it is one item of the print panel's meta row
+([ai_detection_item.dart](../lib/features/dashboard/widgets/ai_detection_item.dart)):
+an eye and one word, in the class's colour. Read only.
+
+- **Which provider answers is the web's rule** (`aiPrinterStatus` in `PrintersPage.tsx`):
+  OctoEverywhere when it is enabled, otherwise Obico. The server refuses to enable
+  both (`routes/settings.py`). A server from before OctoEverywhere (1.2.5.7 and
+  older) 404s that route and Obico answers alone; one from before Obico 404s both
+  and the card shows nothing (`AiDetectionRepository.fetch`).
+- **A feed, not a `capabilityGate`**, for the same reason as the linked apps: the
+  payload is the answer, and a 404 or a 403 on either route reads as "nothing to
+  show". Neither handler looks up a row by id.
+- **`printers:read` is enough**, which a key holds as `can_read_status`. The routes
+  were made for the cards and carry no configuration. Without `settings:read` the
+  server withholds the reason of an error (it can name a configured URL) and still
+  sends the `error` class, so "Not checking" shows either way and only the sentence
+  behind it loses its reason.
+- **An unknown class is "Starting", never "Safe".** Collapsing everything that is
+  not a failure into a green badge is what made a print nothing was looking at read
+  as healthy (server #2952). The same for the measurement: Obico's score and
+  OctoEverywhere's print quality are quoted only beside a verdict.
+- **The two providers are told apart by the `print_quality` key**, as the web does
+  (`'print_quality' in aiDetection`): OctoEverywhere sends it as null before its
+  first result, Obico never sends it.
+- **Polling follows what there is to see** (`aiDetectionProvider`). The print panels
+  are its only watchers, so it exists while something prints. Detection that is off
+  is asked about once, and again on regained contact and pull-to-refresh; detection
+  that is on is re-read every 10 s like the web, while the app is in the foreground
+  and the dashboard is the tab on screen (`dashboardWatchedProvider`, set where the
+  smart plugs are told the same). That flag lives outside the notifier because the
+  notifier comes and goes with the prints, and one born while the user sits on
+  another tab has to start silent.
+- **Deviations from the web.** No grey "Idle" badge between prints: the card is
+  tall already and the item would say nothing. No detail dialog (frames analysed,
+  the settings link): a tap on the item shows the web badge's `title` sentence as a
+  tooltip, which is also what a screen reader says. Configuring a provider, its
+  history and its test-connection are settings and stay in the web UI. The collapsed
+  card, the controller and the watch do not show it.
+- Seen on 1.2.5.7 (Obico only) and on `dev` at 1.3.2b1 (both), each run from
+  source with the seed script: `ai_detection_contract_test.dart` passes on both.
+  No print reached the detection loop there, so an entry of `per_printer` is
+  checked against the shapes `get_per_printer` builds in both services, not
+  against a live one.
+
 ## Edit printer and printer locations
 
 **Edit printer** is the web's form, `AddPrinterScreen(printer:)`, opened by a **long

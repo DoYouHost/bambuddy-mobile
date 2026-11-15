@@ -55,6 +55,7 @@ Future<void> pumpControllerScreen(
         ),
         inertStatusesOverride,
         inertSmartPlugsOverride,
+        aiDetectionOverride(),
       ], overrides),
       child: plApp(const ControllerScreen(printerId: controllerTestPrinterId)),
     ),

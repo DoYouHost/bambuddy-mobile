@@ -45,6 +45,7 @@ import '../../common/plate_clear.dart';
 import '../../common/speed_name.dart';
 import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
+import 'ai_detection_item.dart';
 import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
@@ -65,6 +66,7 @@ import 'pill_switch.dart';
 import '../temp_readings.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
+import '../ai_detection_providers.dart';
 import '../firmware_providers.dart';
 import '../ws_providers.dart';
 import '../skip_objects_screen.dart';
@@ -327,7 +329,7 @@ class _PrinterCardState extends State<PrinterCard> {
           ],
           if (printing) ...[
             const SizedBox(height: DashSpace.md),
-            _PrintPanel(status: status!),
+            _PrintPanel(printerId: printerId, status: status!),
           ],
           if (readings.isNotEmpty) ...[
             const SizedBox(height: DashSpace.lg),

@@ -24,6 +24,8 @@ import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
+import 'package:bambuddy_mobile/data/ai_detection_repository.dart';
 import 'package:bambuddy_mobile/data/external_links_repository.dart';
 import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
@@ -1542,6 +1544,32 @@ void main() {
 
       // A location nobody measures answers with nothing, not a 404.
       expect(await repo.readings(1), isEmpty);
+    });
+  });
+
+  group('AI failure detection', () {
+    test('every running print has an entry, the idle machines none', () async {
+      final status = (await AiDetectionRepository(dio).fetch())!;
+
+      expect(status.enabled, isTrue);
+      expect(status.monitoredPrinters, isNull);
+      // The default: printers 1 and 6 print.
+      expect(status.perPrinter.keys, unorderedEquals([1, 6]));
+      expect(status.detectionFor(1)!.cls, AiDetectionClass.safe);
+      expect(status.detectionFor(1)!.printQuality, 9);
+      expect(status.detectionFor(6)!.cls, AiDetectionClass.warning);
+      expect(status.detectionFor(2), isNull);
+    });
+
+    test('with nobody printing there is nothing to rate', () async {
+      DemoBackend.printingPrinters = 0;
+      addTearDown(
+        () =>
+            DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+      );
+      final status = (await AiDetectionRepository(dio).fetch())!;
+      expect(status.enabled, isTrue);
+      expect(status.perPrinter, isEmpty);
     });
   });
 

@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/announcement.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
 import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
@@ -28,6 +29,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/ai_detection_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
@@ -726,6 +728,20 @@ final inertSmartPlugsOverride = smartPlugsProvider.overrideWith(
 class _InertSmartPlugs extends SmartPlugsNotifier {
   @override
   SmartPlugsState build() => const SmartPlugsState();
+}
+
+/// The server's AI failure detection answering [status] and never asked again:
+/// what a print panel reads without a repository behind it.
+Override aiDetectionOverride([AiDetectionStatus? status]) =>
+    aiDetectionProvider.overrideWith(() => _FixedAiDetection(status));
+
+class _FixedAiDetection extends AiDetectionNotifier {
+  _FixedAiDetection(this._status);
+
+  final AiDetectionStatus? _status;
+
+  @override
+  AiDetectionStatus? build() => _status;
 }
 
 /// An [Archive] row for a test that does not care what it says: a finished print

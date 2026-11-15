@@ -675,4 +675,5 @@ final _faultOverrides = [
   ),
   inertStatusesOverride,
   inertSmartPlugsOverride,
+  aiDetectionOverride(),
 ];

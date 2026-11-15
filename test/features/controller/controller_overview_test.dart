@@ -63,6 +63,7 @@ void main() {
         ),
         inertStatusesOverride,
         inertSmartPlugsOverride,
+        aiDetectionOverride(),
       ],
     );
     await tester.pump();

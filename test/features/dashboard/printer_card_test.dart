@@ -15,6 +15,7 @@ import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/next_pause.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/format/duration_format.dart';
@@ -345,6 +346,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         inertChamberMaxOverride,
         ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(() => stub),
+        aiDetectionOverride(),
       ],
       child: plApp(
         Scaffold(
@@ -401,6 +403,7 @@ Widget _scope(
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
     inertSmartPlugsOverride,
+    aiDetectionOverride(),
   ], extra),
   // On the app, not on the card: a sheet is a route above the card and would
   // otherwise open at 100 %.
@@ -446,6 +449,7 @@ Widget _cardSwap(
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
     inertSmartPlugsOverride,
+    aiDetectionOverride(),
   ],
   child: plApp(
     Scaffold(
@@ -3243,6 +3247,7 @@ void main() {
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
           inertSmartPlugsOverride,
+          aiDetectionOverride(),
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
@@ -4122,6 +4127,7 @@ void main() {
         fakeServerProfileOverride(),
         mediaAuthOverride(),
         inertSmartPlugsOverride,
+        aiDetectionOverride(),
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
       child: plApp(
@@ -4192,6 +4198,7 @@ void main() {
           fakeServerProfileOverride(),
           mediaAuthOverride(),
           inertSmartPlugsOverride,
+          aiDetectionOverride(),
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
@@ -6495,6 +6502,145 @@ void main() {
 
       expect(tick(), findsNothing);
     });
+  });
+
+  group('AI failure detection on the print panel', () {
+    // The widest row the panel has: time left, ETA, layers, a pause and the
+    // detection item.
+    const item = PrinterWithStatus(
+      printer: Printer(id: 1, name: 'X1C'),
+      status: PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'RUNNING',
+        progress: 20,
+        remainingTime: 80,
+        layerNum: 40,
+        totalLayers: 200,
+        nextPause: NextPause(layer: 120, minutes: 40),
+      ),
+    );
+
+    Future<void> pumpCard(
+      WidgetTester tester,
+      AiDetectionStatus? status, {
+      double scale = 1,
+    }) async {
+      await tester.pumpWidget(
+        _scope(
+          const Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          extra: [aiDetectionOverride(status)],
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    AiDetectionStatus one(AiDetection detection, {Set<int>? monitored}) =>
+        AiDetectionStatus(
+          enabled: true,
+          monitoredPrinters: monitored,
+          perPrinter: {1: detection},
+        );
+
+    Finder eye() => find.byIcon(Icons.visibility_outlined);
+    Finder eyeOff() => find.byIcon(Icons.visibility_off_outlined);
+
+    for (final (cls, label) in [
+      (AiDetectionClass.safe, pl.aiDetectionSafe),
+      (AiDetectionClass.warning, pl.aiDetectionWarning),
+      (AiDetectionClass.failure, pl.aiDetectionFailure),
+      (AiDetectionClass.unknown, pl.aiDetectionStarting),
+    ]) {
+      testWidgets('${cls.name} shows its word beside an eye', (tester) async {
+        await pumpCard(tester, one(AiDetection(cls: cls, score: 0.01)));
+
+        expect(find.text(label), findsOneWidget);
+        expect(eye(), findsOneWidget);
+        expect(eyeOff(), findsNothing);
+      });
+    }
+
+    testWidgets('a print that is not being checked says so, eye crossed out', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpCard(
+        tester,
+        one(
+          const AiDetection(
+            cls: AiDetectionClass.error,
+            score: 0,
+            error: 'ML API unreachable',
+          ),
+        ),
+      );
+
+      expect(find.text(pl.aiDetectionNotChecking), findsOneWidget);
+      expect(eye(), findsNothing);
+      expect(
+        tester.getSemantics(eyeOff()).label,
+        contains(pl.aiDetectionTipError('ML API unreachable')),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a tap shows the sentence behind the word', (tester) async {
+      await pumpCard(
+        tester,
+        one(
+          const AiDetection(
+            cls: AiDetectionClass.safe,
+            printQuality: 8,
+            ratesQuality: true,
+          ),
+        ),
+      );
+      final sentence = pl.aiDetectionTipQuality(pl.aiDetectionSafe, 8);
+      expect(find.text(sentence), findsNothing);
+
+      await tester.tap(find.text(pl.aiDetectionSafe));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text(sentence), findsOneWidget);
+      // Let the tooltip's own timer run out before the test ends.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('nothing without an entry, without detection, or outside the '
+        'monitored printers', (tester) async {
+      const safe = AiDetection(cls: AiDetectionClass.safe, score: 0);
+      for (final status in [
+        null,
+        const AiDetectionStatus(enabled: true),
+        const AiDetectionStatus(enabled: false, perPrinter: {1: safe}),
+        one(safe, monitored: {2}),
+      ]) {
+        await pumpCard(tester, status);
+        expect(eye(), findsNothing, reason: '$status');
+        expect(find.text(pl.aiDetectionSafe), findsNothing);
+      }
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the widest row lays out at ${scale}x text', (tester) async {
+        // The longest label of the five, on a 360 dp phone.
+        tester.view.physicalSize = const Size(360, 1600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await pumpCard(
+          tester,
+          one(const AiDetection(cls: AiDetectionClass.error)),
+          scale: scale,
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text(pl.aiDetectionNotChecking), findsOneWidget);
+        expect(find.byIcon(Icons.pause_circle_outline), findsOneWidget);
+      });
+    }
   });
 }
 

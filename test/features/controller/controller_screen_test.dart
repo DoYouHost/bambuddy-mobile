@@ -95,6 +95,7 @@ void main() {
           ),
           inertStatusesOverride,
           inertSmartPlugsOverride,
+          aiDetectionOverride(),
         ],
         child: plRouterApp(router),
       ),
