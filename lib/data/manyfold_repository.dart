@@ -22,7 +22,7 @@ class ManyfoldRepository {
       return _dio.getObject(Endpoints.manyfoldStatus, ManyfoldStatus.fromJson);
     },
     null,
-    statuses: {404, 403},
+    statuses: absentOrRefused,
   );
 
   Future<ManyfoldModelPage> models({String query = '', int page = 1}) =>

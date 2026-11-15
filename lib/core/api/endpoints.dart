@@ -1453,6 +1453,24 @@ abstract final class Endpoints {
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
 
+  // --- AI failure detection (Obico #1546, OctoEverywhere #3169) ---
+  //
+  // Two providers, one at a time (`routes/settings.py` refuses both enabled).
+  // Each has a `printer-status` made for the printer cards: no configuration,
+  // so `printers:read` (an API key's `can_read_status`) is enough, narrowed to
+  // the printers the caller may see. A server from before a provider 404s its
+  // route. The rest of both routers is settings, left to the web.
+
+  /// `GET` → `{enabled, monitored_printers, per_printer, last_error}`; an entry
+  /// of `per_printer` is `{class, frame_count, score, error}`.
+  static const obicoPrinterStatus = '$apiPrefix/obico/printer-status';
+
+  /// `GET` → the same envelope plus `last_error_code`; an entry carries
+  /// `print_quality` (1 to 10, null before the first result) instead of
+  /// `score`, and `error_code`.
+  static const octoEverywherePrinterStatus =
+      '$apiPrefix/octoeverywhere/printer-status';
+
   // --- Manyfold (#1471, server dev from 2026-10-04) ---
   //
   // A self-hosted model library, browsed through the server; nothing is

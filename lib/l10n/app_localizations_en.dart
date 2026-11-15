@@ -10453,4 +10453,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String fmNotMovedReason(String reason) {
     return 'File not moved: $reason';
   }
+
+  @override
+  String get aiDetectionSafe => 'Safe';
+
+  @override
+  String get aiDetectionWarning => 'Warning';
+
+  @override
+  String get aiDetectionFailure => 'Failure';
+
+  @override
+  String get aiDetectionNotChecking => 'Not checking';
+
+  @override
+  String get aiDetectionStarting => 'Starting';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'AI failure detection: $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'AI failure detection: $status (score $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'AI failure detection: $status (print quality $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'AI failure detection is not checking this print: $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'AI failure detection is not checking this print';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'AI failure detection: waiting for the first result';
+
+  @override
+  String get aiDetectionLimitReached => 'usage limit reached';
 }

@@ -7745,5 +7745,79 @@
         "type": "String"
       }
     }
+  },
+  "aiDetectionSafe": "Safe",
+  "@aiDetectionSafe": {
+    "description": "AI failure detection verdict on a printing card: nothing wrong seen."
+  },
+  "aiDetectionWarning": "Warning",
+  "@aiDetectionWarning": {
+    "description": "AI failure detection verdict on a printing card: a possible failure."
+  },
+  "aiDetectionFailure": "Failure",
+  "@aiDetectionFailure": {
+    "description": "AI failure detection verdict on a printing card: the print is failing."
+  },
+  "aiDetectionNotChecking": "Not checking",
+  "@aiDetectionNotChecking": {
+    "description": "AI failure detection state on a printing card: detection is on but its last check failed, so the print is not being watched."
+  },
+  "aiDetectionStarting": "Starting",
+  "@aiDetectionStarting": {
+    "description": "AI failure detection state on a printing card: no result has come back yet."
+  },
+  "aiDetectionTipStatus": "AI failure detection: {status}",
+  "@aiDetectionTipStatus": {
+    "description": "Tooltip and screen reader text of the AI detection item. status is one of the verdict labels.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionTipScore": "AI failure detection: {status} (score {score})",
+  "@aiDetectionTipScore": {
+    "description": "Tooltip and screen reader text of the AI detection item with Obico's failure score, a number like 0.012.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionTipQuality": "AI failure detection: {status} (print quality {quality}/10)",
+  "@aiDetectionTipQuality": {
+    "description": "Tooltip and screen reader text of the AI detection item with OctoEverywhere's print quality, 1 to 10.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "quality": {
+        "type": "int"
+      }
+    }
+  },
+  "aiDetectionTipError": "AI failure detection is not checking this print: {reason}",
+  "@aiDetectionTipError": {
+    "description": "Tooltip and screen reader text when detection's last check failed. reason is the server's own sentence.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionTipErrorNoReason": "AI failure detection is not checking this print",
+  "@aiDetectionTipErrorNoReason": {
+    "description": "Tooltip and screen reader text when detection's last check failed and the server gives this session no reason."
+  },
+  "aiDetectionTipStarting": "AI failure detection: waiting for the first result",
+  "@aiDetectionTipStarting": {
+    "description": "Tooltip and screen reader text before detection's first result for this print."
+  },
+  "aiDetectionLimitReached": "usage limit reached",
+  "@aiDetectionLimitReached": {
+    "description": "The reason inserted into aiDetectionTipError when OctoEverywhere's free plan has run out. Follows a colon, so lower case."
   }
 }

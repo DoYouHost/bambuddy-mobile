@@ -4941,5 +4941,17 @@
   "fmMoveBlockedNotWritable": "Ni à vous ni partagé",
   "fmMoveBlockedReadOnly": "Dossier en lecture seule",
   "fmNotMoved": "Fichier non déplacé",
-  "fmNotMovedReason": "Fichier non déplacé : {reason}"
+  "fmNotMovedReason": "Fichier non déplacé : {reason}",
+  "aiDetectionSafe": "Sûr",
+  "aiDetectionWarning": "Avertissement",
+  "aiDetectionFailure": "Échec",
+  "aiDetectionNotChecking": "Ne vérifie pas",
+  "aiDetectionStarting": "Démarrage",
+  "aiDetectionTipStatus": "Détection d'échec par IA : {status}",
+  "aiDetectionTipScore": "Détection d'échec par IA : {status} (score {score})",
+  "aiDetectionTipQuality": "Détection d'échec par IA : {status} (qualité d'impression {quality}/10)",
+  "aiDetectionTipError": "La détection d'échec par IA ne vérifie pas cette impression : {reason}",
+  "aiDetectionTipErrorNoReason": "La détection d'échec par IA ne vérifie pas cette impression",
+  "aiDetectionTipStarting": "Détection d'échec par IA : en attente du premier résultat",
+  "aiDetectionLimitReached": "limite d'utilisation atteinte"
 }

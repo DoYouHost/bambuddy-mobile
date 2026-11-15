@@ -4941,5 +4941,17 @@
   "fmMoveBlockedNotWritable": "Nicht deiner und nicht freigegeben",
   "fmMoveBlockedReadOnly": "Schreibgeschützter Ordner",
   "fmNotMoved": "Datei nicht verschoben",
-  "fmNotMovedReason": "Datei nicht verschoben: {reason}"
+  "fmNotMovedReason": "Datei nicht verschoben: {reason}",
+  "aiDetectionSafe": "Sicher",
+  "aiDetectionWarning": "Warnung",
+  "aiDetectionFailure": "Fehldruck",
+  "aiDetectionNotChecking": "Prüft nicht",
+  "aiDetectionStarting": "Startet",
+  "aiDetectionTipStatus": "KI-Fehlererkennung: {status}",
+  "aiDetectionTipScore": "KI-Fehlererkennung: {status} (Score {score})",
+  "aiDetectionTipQuality": "KI-Fehlererkennung: {status} (Druckqualität {quality}/10)",
+  "aiDetectionTipError": "KI-Fehlererkennung prüft diesen Druck nicht: {reason}",
+  "aiDetectionTipErrorNoReason": "KI-Fehlererkennung prüft diesen Druck nicht",
+  "aiDetectionTipStarting": "KI-Fehlererkennung: warte auf das erste Ergebnis",
+  "aiDetectionLimitReached": "Nutzungslimit erreicht"
 }

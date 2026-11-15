@@ -161,7 +161,7 @@ List<Override> _overrides(DashboardState state) => [
   fixedDashboardOverride(state),
   fakeServerProfileOverride(),
   inertStatusesOverride,
-  inertSmartPlugsOverride,
+  ...inertDashboardPollOverrides,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
   inertExternalLinksOverride,

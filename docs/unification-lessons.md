@@ -42,6 +42,7 @@ is the map and the decisions.
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
 | `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
 | `treat404AsAbsent`, and `treatPathCaptureAsAbsent` for a route an older server reads as `/<resource>/{id}` and refuses with a 422 (`/archives/merge-count`, `/queue/batches`) | [observed_capability.dart](../lib/core/api/observed_capability.dart) |
+| `dashboardWatchedProvider`: the app in the foreground and the dashboard on screen, what the smart-plug and AI-detection polls run on; `absentOrRefused` (`api_exceptions.dart`): the `guardAbsent` statuses of a feed that shows nothing on a 404 or a 403 | [dashboard/providers.dart](../lib/features/dashboard/providers.dart), [api_exceptions.dart](../lib/core/api/api_exceptions.dart) |
 | `printerListProvider`: every printer's configuration, no statuses, for any picker or filter that names printers | [providers.dart](../lib/providers.dart) |
 | `tintBox(accent)`: the washed, outlined box of a banner or notice; `bodyBoldPrimary`: a heading inside a sheet or a row's main line | [dash_theme.dart](../lib/core/theme/dash_theme.dart) (`BambuddyAccent`) |
 | `verdictLook`: a kept or binned print's label, icon and colours, for the card's mark and a run's pill; each keeps its own "awaiting" | [print_outcome.dart](../lib/features/archive/print_outcome.dart) |
@@ -59,6 +60,7 @@ is the map and the decisions.
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
 | `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test, the live id swapped for the first all-digit path segment | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
+| `inertDashboardPollOverrides`: the dashboard's polls silenced, for any test that puts a printing card on screen | [test/helpers.dart](../test/helpers.dart) |
 | `textScaled(scale)`: the `builder:` for a run at 150 % or 200 % text, for `plApp` and `pumpPhone` | [test/helpers.dart](../test/helpers.dart) |
 | `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test; `firstRequest`: what the server published to the stand-in printer | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
 
@@ -155,6 +157,21 @@ more than the lines it saves.
   the owner's key listing, so it does not go through `mintContractApiKey`.
 - **`_goneWithin` (projects contract test) vs `pollUntil`** (`contract_harness.dart`):
   there a timeout is the answer ("it never went away"), not an error.
+
+- **A base class for the dashboard's three polls** (`DashboardNotifier`,
+  `SmartPlugsNotifier`, `AiDetectionNotifier`). Each has a timer, a generation
+  counter and a `ref.mounted` check, about ten lines, and differs in everything
+  else: the roster poll retunes between two intervals on the socket's state and
+  reports its error, the plugs keep optimistic overrides with timers of their
+  own, detection arms its timer only once the server says it is on. A shared
+  base would take a hook per difference.
+- **`DashboardNotifier`'s pause vs `dashboardWatchedProvider`.** The roster poll
+  stops for the background only, not for another tab: it feeds the statuses
+  every tab and the print monitor read. Pointing it at the shared flag would
+  stop it off screen.
+- **`_cardWithPlugs` in `printer_card_test.dart`** lists `aiDetectionOverride()`
+  by itself instead of `inertDashboardPollOverrides`: that scope stubs the plugs
+  it is about.
 
 - **The banner widgets.** `_ResumeBanner` (queue) and `ArchiveMergeBanner` share
   their geometry, but differ in tone, icon, a dismiss button and a confirm dialog;

@@ -412,7 +412,9 @@ the inventory backend from `/spoolman/status`). Nor the Manyfold tab of Model
 Sources (#1471): the screen needs `/manyfold/status`'s payload anyway — whether
 a connection exists decides the tab too — so that one read, made each time the
 screen opens, answers 404 (older server) and 403 (no `manyfold:view`) as "no
-tab", and no latch would learn anything it does not.
+tab", and no latch would learn anything it does not. The AI failure detection item on
+the print panel is the same kind of read (two routes, 404 and 403 as "nothing to
+show"); see [screens.md](screens.md).
 
 ### Why the path is shaped like this
 

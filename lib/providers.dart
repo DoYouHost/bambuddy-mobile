@@ -45,6 +45,7 @@ import 'core/models/printer.dart';
 import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
+import 'data/ai_detection_repository.dart';
 import 'data/ams_history_repository.dart';
 import 'data/api_keys_repository.dart';
 import 'data/archive_repository.dart';
@@ -1275,6 +1276,11 @@ final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
+
+/// The server's AI failure detection as the printer cards read it.
+final aiDetectionRepositoryProvider = Provider<AiDetectionRepository>(
+  (ref) => AiDetectionRepository(ref.watch(apiClientProvider).dio),
+);
 
 /// The server's sidebar links and their counts, read only.
 final externalLinksRepositoryProvider = Provider<ExternalLinksRepository>(

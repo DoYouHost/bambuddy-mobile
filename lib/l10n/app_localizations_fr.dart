@@ -10666,4 +10666,50 @@ class AppLocalizationsFr extends AppLocalizations {
   String fmNotMovedReason(String reason) {
     return 'Fichier non déplacé : $reason';
   }
+
+  @override
+  String get aiDetectionSafe => 'Sûr';
+
+  @override
+  String get aiDetectionWarning => 'Avertissement';
+
+  @override
+  String get aiDetectionFailure => 'Échec';
+
+  @override
+  String get aiDetectionNotChecking => 'Ne vérifie pas';
+
+  @override
+  String get aiDetectionStarting => 'Démarrage';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'Détection d\'échec par IA : $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'Détection d\'échec par IA : $status (score $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'Détection d\'échec par IA : $status (qualité d\'impression $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'La détection d\'échec par IA ne vérifie pas cette impression : $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'La détection d\'échec par IA ne vérifie pas cette impression';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'Détection d\'échec par IA : en attente du premier résultat';
+
+  @override
+  String get aiDetectionLimitReached => 'limite d\'utilisation atteinte';
 }

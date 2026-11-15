@@ -10583,4 +10583,50 @@ class AppLocalizationsEs extends AppLocalizations {
   String fmNotMovedReason(String reason) {
     return 'No se movió el archivo: $reason';
   }
+
+  @override
+  String get aiDetectionSafe => 'Seguro';
+
+  @override
+  String get aiDetectionWarning => 'Advertencia';
+
+  @override
+  String get aiDetectionFailure => 'Fallo';
+
+  @override
+  String get aiDetectionNotChecking => 'Sin comprobar';
+
+  @override
+  String get aiDetectionStarting => 'Iniciando';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'Detección de fallos por IA: $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'Detección de fallos por IA: $status (puntuación $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'Detección de fallos por IA: $status (calidad de impresión $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'La detección de fallos por IA no está comprobando esta impresión: $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'La detección de fallos por IA no está comprobando esta impresión';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'Detección de fallos por IA: esperando el primer resultado';
+
+  @override
+  String get aiDetectionLimitReached => 'se ha alcanzado el límite de uso';
 }
