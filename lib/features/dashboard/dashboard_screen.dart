@@ -34,6 +34,7 @@ import 'dashboard_filters.dart';
 import 'dashboard_sort.dart';
 import 'dashboard_view_store.dart';
 import 'providers.dart';
+import 'ai_detection_providers.dart';
 import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
@@ -113,6 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
         ref.read(smartPlugsProvider.notifier).pausePolling();
+        ref.read(dashboardWatchedProvider.notifier).setForeground(false);
         // Token refresh in background is handled by FGS isolate — UI is silent.
         ref.read(tokenRefresherProvider)?.stop();
         // No thumbnails render in background; FGS cover fetch re-mints reactively.
@@ -144,6 +146,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
         ref.read(smartPlugsProvider.notifier).resumePolling();
+        ref.read(dashboardWatchedProvider.notifier).setForeground(true);
         ref.read(tokenRefresherProvider)?.start();
         ref.read(cameraTokenRefresherProvider)?.start();
         ref.read(mediaAuthRefresherProvider)?.start();
@@ -730,6 +733,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // added from the web — or one the scheduler has since picked up —
         // reaches the card.
         ref.invalidate(scheduledDryingsProvider);
+        // Detection that was off when the print started is asked about only
+        // here and on regained contact. No print panel, no provider to ask.
+        if (ref.exists(aiDetectionProvider)) {
+          unawaited(ref.read(aiDetectionProvider.notifier).refresh());
+        }
         return ref.read(dashboardProvider.notifier).refresh();
       },
       child: CustomScrollView(
