@@ -17360,6 +17360,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'File not moved: {reason}'**
   String fmNotMovedReason(String reason);
+
+  /// AI failure detection verdict on a printing card: nothing wrong seen.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe'**
+  String get aiDetectionSafe;
+
+  /// AI failure detection verdict on a printing card: a possible failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get aiDetectionWarning;
+
+  /// AI failure detection verdict on a printing card: the print is failing.
+  ///
+  /// In en, this message translates to:
+  /// **'Failure'**
+  String get aiDetectionFailure;
+
+  /// AI failure detection state on a printing card: detection is on but its last check failed, so the print is not being watched.
+  ///
+  /// In en, this message translates to:
+  /// **'Not checking'**
+  String get aiDetectionNotChecking;
+
+  /// AI failure detection state on a printing card: no result has come back yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting'**
+  String get aiDetectionStarting;
+
+  /// Tooltip and screen reader text of the AI detection item. status is one of the verdict labels.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: {status}'**
+  String aiDetectionTipStatus(String status);
+
+  /// Tooltip and screen reader text of the AI detection item with Obico's failure score, a number like 0.012.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: {status} (score {score})'**
+  String aiDetectionTipScore(String status, String score);
+
+  /// Tooltip and screen reader text of the AI detection item with OctoEverywhere's print quality, 1 to 10.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: {status} (print quality {quality}/10)'**
+  String aiDetectionTipQuality(String status, int quality);
+
+  /// Tooltip and screen reader text when detection's last check failed. reason is the server's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection is not checking this print: {reason}'**
+  String aiDetectionTipError(String reason);
+
+  /// Tooltip and screen reader text when detection's last check failed and the server gives this session no reason.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection is not checking this print'**
+  String get aiDetectionTipErrorNoReason;
+
+  /// Tooltip and screen reader text before detection's first result for this print.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: waiting for the first result'**
+  String get aiDetectionTipStarting;
+
+  /// The reason inserted into aiDetectionTipError when OctoEverywhere's free plan has run out. Follows a colon, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'usage limit reached'**
+  String get aiDetectionLimitReached;
 }
 
 class _AppLocalizationsDelegate

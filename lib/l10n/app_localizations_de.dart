@@ -10560,4 +10560,50 @@ class AppLocalizationsDe extends AppLocalizations {
   String fmNotMovedReason(String reason) {
     return 'Datei nicht verschoben: $reason';
   }
+
+  @override
+  String get aiDetectionSafe => 'Sicher';
+
+  @override
+  String get aiDetectionWarning => 'Warnung';
+
+  @override
+  String get aiDetectionFailure => 'Fehldruck';
+
+  @override
+  String get aiDetectionNotChecking => 'Prüft nicht';
+
+  @override
+  String get aiDetectionStarting => 'Startet';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'KI-Fehlererkennung: $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'KI-Fehlererkennung: $status (Score $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'KI-Fehlererkennung: $status (Druckqualität $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'KI-Fehlererkennung prüft diesen Druck nicht: $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'KI-Fehlererkennung prüft diesen Druck nicht';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'KI-Fehlererkennung: warte auf das erste Ergebnis';
+
+  @override
+  String get aiDetectionLimitReached => 'Nutzungslimit erreicht';
 }

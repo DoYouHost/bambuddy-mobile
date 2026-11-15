@@ -10643,4 +10643,50 @@ class AppLocalizationsPl extends AppLocalizations {
   String fmNotMovedReason(String reason) {
     return 'Nie przeniesiono pliku: $reason';
   }
+
+  @override
+  String get aiDetectionSafe => 'Bezpieczny';
+
+  @override
+  String get aiDetectionWarning => 'Ostrzeżenie';
+
+  @override
+  String get aiDetectionFailure => 'Awaria';
+
+  @override
+  String get aiDetectionNotChecking => 'Nie sprawdza';
+
+  @override
+  String get aiDetectionStarting => 'Uruchamianie';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'Wykrywanie awarii AI: $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'Wykrywanie awarii AI: $status (wynik $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'Wykrywanie awarii AI: $status (jakość wydruku $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'Wykrywanie awarii AI nie sprawdza tego wydruku: $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'Wykrywanie awarii AI nie sprawdza tego wydruku';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'Wykrywanie awarii AI: oczekiwanie na pierwszy wynik';
+
+  @override
+  String get aiDetectionLimitReached => 'osiągnięto limit użycia';
 }

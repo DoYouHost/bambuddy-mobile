@@ -94,7 +94,7 @@ void main() {
             ),
           ),
           inertStatusesOverride,
-          inertSmartPlugsOverride,
+          ...inertDashboardPollOverrides,
         ],
         child: plRouterApp(router),
       ),

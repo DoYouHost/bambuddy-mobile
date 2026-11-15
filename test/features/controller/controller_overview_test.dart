@@ -62,7 +62,7 @@ void main() {
           ),
         ),
         inertStatusesOverride,
-        inertSmartPlugsOverride,
+        ...inertDashboardPollOverrides,
       ],
     );
     await tester.pump();

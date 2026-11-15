@@ -137,8 +137,8 @@ recommends a key as the way to connect
 key segment is the default), so a feature whose point needs a permission no key
 can hold is unusable for the most likely session — and the reader has to see
 that before picking a line up, not after writing the code. Each line therefore
-ends in one of four verdicts, before its size, and that is also the order they
-go in:
+ends in one of three verdicts, before its size, and that is also the order they
+go in; the fourth verdict keeps a surface off the checklist:
 
 - **`key: full`** — every route it needs resolves to a scope a key can carry.
 - **`key: read-only`** — a key can call every read and no write. **This is a
@@ -151,9 +151,11 @@ go in:
 - **`key: partial`** — some reads or some writes are out of reach and the rest
   are not. The line names which (`key: partial — the alert thresholds need a
   login`).
-- **`key: no`** — nothing the feature is *for* is reachable. Also gets
-  `(needs a decision)`: building it then means telling users to switch to a
-  password login, which is not a size estimate.
+- **`key: no`** — nothing the feature is *for* is reachable. **Not a checklist
+  line at all**: it goes under `## Watch only`, with the gate that shuts a key
+  out as the evidence. The app recommends a key, so a surface no key can read
+  is not work waiting to be picked up, and a `(needs a decision)` line for it
+  only stands on the list until someone ticks it as "won't do".
 
 `facts.md` has a fifth answer, **`key: unresolved`**, and it is not one of the
 four: it means every route on that surface authorises some other way — a token
@@ -172,7 +174,8 @@ line as the evidence — `` `SMART_PLUGS_CREATE` → no key scope `` — the sam
 `no gate found`.
 
 Two things the verdict is *not*. It is not about whether the feature is worth
-building — a `key: no` feature the maintainer wants is still a feature. And it
+building — that is the maintainer's call, and a `key: no` surface they ask for
+is built from their request, not from this list. And it
 is not a claim about auth being off server-side, where every gate passes and
 there is no identity at all
 ([identifiedPermissionProvider](../../../lib/providers.dart) hides those screens
@@ -209,6 +212,7 @@ Where each kind of finding comes from in `facts.md`:
 | route bodies → permissions named on changed lines | each one already resolved to its API-key scope, or to "no key scope" |
 | added surfaces → the roll-up verdict | the API-key verdict a Feature line ends in, `key: read-only` included |
 | added surfaces → `key: read-only` | a Feature line for the read half, sized as that half — never parked |
+| added surfaces → `key: no` | Watch only, with the gate as the evidence — never a checklist line |
 | routes added → the gate and verdict on each line | the evidence behind that verdict; `no gate found` means read the route |
 | CHANGELOG entries with no footprint above | Watch only or Cheap win — see the rule below |
 

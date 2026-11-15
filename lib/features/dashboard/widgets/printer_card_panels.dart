@@ -174,13 +174,14 @@ Color? parseTrayColor(String? hex) {
 
 /// Active print panel: cover, name, progress bar with %, ETA, and layer count.
 /// Restyled to a dark sub-card in the modernized card.
-class _PrintPanel extends StatelessWidget {
-  const _PrintPanel({required this.status});
+class _PrintPanel extends ConsumerWidget {
+  const _PrintPanel({required this.printerId, required this.status});
 
+  final int printerId;
   final PrinterStatus status;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final progress = status.progress;
@@ -204,6 +205,11 @@ class _PrintPanel extends StatelessWidget {
           text: '${status.layerNum}/${status.totalLayers}',
         ),
       ?pauseMetaItem(context, l10n, status),
+      ?aiDetectionMetaItem(
+        context,
+        l10n,
+        ref.watch(aiDetectionForProvider(printerId)),
+      ),
     ];
 
     final stage = status.preparingStage;

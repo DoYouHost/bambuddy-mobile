@@ -662,6 +662,25 @@ class DemoBackend {
         if (s.length == 1 && m == 'GET') return demoOk(_externalLinks);
         return demoNotFound();
 
+      case 'obico':
+        // One provider at a time, as on the server: the demo runs
+        // OctoEverywhere, so Obico answers that it is off.
+        if (at(1, 'printer-status') && m == 'GET') {
+          return demoOk({
+            'enabled': false,
+            'monitored_printers': null,
+            'per_printer': <String, dynamic>{},
+            'last_error': null,
+          });
+        }
+        return demoNotFound();
+
+      case 'octoeverywhere':
+        if (at(1, 'printer-status') && m == 'GET') {
+          return demoOk(_aiDetectionStatus());
+        }
+        return demoNotFound();
+
       case 'manyfold':
         if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
         return _manyfold.route(m, s, q, body);
@@ -7392,6 +7411,35 @@ class DemoBackend {
       'update_available': false,
     },
   ];
+
+  // --- AI failure detection ---
+
+  /// `GET /octoeverywhere/printer-status`: every printer monitored, an entry
+  /// per running print as the server keeps them. The demo's own print is rated
+  /// well; the second machine carries a warning, so both colours are on screen
+  /// with the default two printers printing.
+  Map<String, dynamic> _aiDetectionStatus() {
+    final running = [
+      for (final id in _printOrder)
+        if (_printsNow(id) && !(id == 1 && _stopped)) id,
+    ];
+    return {
+      'enabled': true,
+      'monitored_printers': null,
+      'per_printer': {
+        for (final (i, id) in running.indexed)
+          '$id': {
+            'class': i == 1 ? 'warning' : 'safe',
+            'print_quality': i == 1 ? 4 : 9,
+            'frame_count': _elapsedSec ~/ 10,
+            'error': null,
+            'error_code': null,
+          },
+      },
+      'last_error': null,
+      'last_error_code': null,
+    };
+  }
 
   // --- Manyfold ---
 

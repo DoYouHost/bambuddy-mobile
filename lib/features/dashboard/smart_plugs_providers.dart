@@ -7,6 +7,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/smart_plug.dart';
 import '../../data/smart_plugs_repository.dart';
 import '../../providers.dart';
+import 'providers.dart';
 
 /// Smart plug polling rate. Status only via REST (not WS), so we maintain
 /// our own fixed interval — independent of printer WS health.
@@ -110,13 +111,9 @@ class SmartPlugsNotifier extends Notifier<SmartPlugsState> {
   static const _optimisticHold = Duration(seconds: 8);
   final Map<int, Timer> _clearTimers = {};
 
-  /// Two independent gates rather than one flag: coming back from the
-  /// background while the user sits on another tab must not quietly restart the
-  /// loop, and neither must switching tabs while the app is in the background.
-  bool _foreground = true;
-  bool _onScreen = true;
-
-  bool get _shouldPoll => _foreground && _onScreen;
+  /// The plug controls and the farm total are on the dashboard and nowhere
+  /// else, so the loop runs only while it is watched.
+  bool get _shouldPoll => ref.read(dashboardWatchedProvider);
 
   @override
   SmartPlugsState build() {
@@ -126,6 +123,11 @@ class SmartPlugsNotifier extends Notifier<SmartPlugsState> {
     ref.watch(smartPlugsRepositoryProvider);
     final generation = ++_generation;
 
+    ref.listen(dashboardWatchedProvider, (_, watched) {
+      _arm(generation);
+      // Back on screen: catch up now rather than five seconds from now.
+      if (watched) _poll(generation);
+    });
     _arm(generation);
     ref.onDispose(() {
       _timer?.cancel();
@@ -143,27 +145,6 @@ class SmartPlugsNotifier extends Notifier<SmartPlugsState> {
     _timer = _shouldPoll
         ? Timer.periodic(smartPlugPollInterval, (_) => _poll(generation))
         : null;
-  }
-
-  /// Background → silence (FGS doesn't need plug data; don't hit server).
-  void pausePolling() => _gate(() => _foreground = false);
-
-  /// Return from background → resume loop and immediately pull state.
-  void resumePolling() => _gate(() => _foreground = true);
-
-  /// Whether the dashboard is the tab on screen. Plug controls and the farm
-  /// total live there and nowhere else, so polling from another tab spends a
-  /// request every five seconds on a number nobody can see — measured at a
-  /// third of every log a user records.
-  void setOnScreen(bool onScreen) => _gate(() => _onScreen = onScreen);
-
-  void _gate(void Function() change) {
-    final was = _shouldPoll;
-    change();
-    if (was == _shouldPoll) return;
-    _arm(_generation);
-    // Back on screen: catch up now rather than five seconds from now.
-    if (_shouldPoll) _poll(_generation);
   }
 
   Future<void> refresh() => _poll(_generation);

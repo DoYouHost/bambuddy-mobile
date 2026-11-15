@@ -4941,5 +4941,17 @@
   "fmMoveBlockedNotWritable": "No es tuyo ni está compartido",
   "fmMoveBlockedReadOnly": "Carpeta de solo lectura",
   "fmNotMoved": "No se movió el archivo",
-  "fmNotMovedReason": "No se movió el archivo: {reason}"
+  "fmNotMovedReason": "No se movió el archivo: {reason}",
+  "aiDetectionSafe": "Seguro",
+  "aiDetectionWarning": "Advertencia",
+  "aiDetectionFailure": "Fallo",
+  "aiDetectionNotChecking": "Sin comprobar",
+  "aiDetectionStarting": "Iniciando",
+  "aiDetectionTipStatus": "Detección de fallos por IA: {status}",
+  "aiDetectionTipScore": "Detección de fallos por IA: {status} (puntuación {score})",
+  "aiDetectionTipQuality": "Detección de fallos por IA: {status} (calidad de impresión {quality}/10)",
+  "aiDetectionTipError": "La detección de fallos por IA no está comprobando esta impresión: {reason}",
+  "aiDetectionTipErrorNoReason": "La detección de fallos por IA no está comprobando esta impresión",
+  "aiDetectionTipStarting": "Detección de fallos por IA: esperando el primer resultado",
+  "aiDetectionLimitReached": "se ha alcanzado el límite de uso"
 }
