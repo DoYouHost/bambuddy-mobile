@@ -124,8 +124,10 @@ an eye and one word, in the class's colour. Read only.
 - **Which provider answers is the web's rule** (`aiPrinterStatus` in `PrintersPage.tsx`):
   OctoEverywhere when it is enabled, otherwise Obico. The server refuses to enable
   both (`routes/settings.py`). A server from before OctoEverywhere (1.2.5.7 and
-  older) 404s that route and Obico answers alone; one from before Obico 404s both
-  and the card shows nothing (`AiDetectionRepository.fetch`).
+  older) 404s that route and Obico answers alone; one from before Obico's
+  `printer-status` (1.2.5 and 1.2.5.1, which have only the `settings:read`
+  `/obico/status`) 404s both and the card shows nothing
+  (`AiDetectionRepository.fetch`).
 - **A feed, not a `capabilityGate`**, for the same reason as the linked apps: the
   payload is the answer, and a 404 or a 403 on either route reads as "nothing to
   show". Neither handler looks up a row by id.
@@ -155,8 +157,9 @@ an eye and one word, in the class's colour. Read only.
   tooltip, which is also what a screen reader says. Configuring a provider, its
   history and its test-connection are settings and stay in the web UI. The collapsed
   card, the controller and the watch do not show it.
-- Seen on 1.2.5.7 (Obico only) and on `dev` at 1.3.2b1 (both), each run from
-  source with the seed script: `ai_detection_contract_test.dart` passes on both.
+- Seen on 1.2.5 (neither route), 1.2.5.7 (Obico only) and `dev` at 1.3.2b1
+  (both): `ai_detection_contract_test.dart` passes on the last two and, on
+  1.2.5, runs only the test that the app reads nothing.
   No print reached the detection loop there, so an entry of `per_printer` is
   checked against the shapes `get_per_printer` builds in both services, not
   against a live one.
