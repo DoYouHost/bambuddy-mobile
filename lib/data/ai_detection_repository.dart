@@ -30,6 +30,6 @@ class AiDetectionRepository {
       guardAbsent<AiDetectionStatus?>(
         () => _dio.getObject(path, AiDetectionStatus.fromJson),
         null,
-        statuses: {404, 403},
+        statuses: absentOrRefused,
       );
 }

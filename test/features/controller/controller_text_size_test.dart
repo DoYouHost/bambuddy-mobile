@@ -158,8 +158,7 @@ void main() {
         overrides: layerOverrides([
           sharedPreferencesProvider.overrideWithValue(sp),
           noServerProfileOverride,
-          inertSmartPlugsOverride,
-          aiDetectionOverride(),
+          ...inertDashboardPollOverrides,
           fixedDashboardOverride(
             DashboardState(
               printers: [

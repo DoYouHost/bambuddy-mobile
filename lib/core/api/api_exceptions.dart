@@ -156,6 +156,12 @@ Future<T> guardAbsent<T>(
   }
 }
 
+/// The [guardAbsent] statuses of a feed that has nothing to show for a server
+/// without its route (404) and for a session the server refuses (403) alike.
+/// Only for a handler that looks up no row by id, where a 404 can only be the
+/// route.
+const absentOrRefused = {404, 403};
+
 /// [guard] for a route that enforces a rule the app does not re-implement, so
 /// the 400 or 422 keeps the sentence explaining it — see
 /// [mapDioExceptionKeepingDetail].

@@ -15,6 +15,48 @@ const pollInterval = Duration(seconds: 5);
 /// only pulls printer roster, which changes rarely.
 const slowPollInterval = Duration(seconds: 60);
 
+/// Whether anyone can see the dashboard: the app in the foreground and the
+/// dashboard the tab on screen. What the dashboard's own polls (smart plugs, AI
+/// detection) run on.
+///
+/// Two independent gates rather than one flag: coming back from the background
+/// while the user sits on another tab must not quietly restart a loop, and
+/// neither must switching tabs while the app is in the background. Kept in a
+/// provider of its own because a poll that comes and goes with what is on the
+/// cards (AI detection lives only while something prints) has to be born
+/// silent when nobody is watching.
+///
+/// [DashboardNotifier] does not read it: the roster poll feeds the statuses
+/// every tab and the print monitor use, so it runs off screen too and stops
+/// only for the background.
+final dashboardWatchedProvider = NotifierProvider<DashboardWatched, bool>(
+  DashboardWatched.new,
+);
+
+class DashboardWatched extends Notifier<bool> {
+  bool _foreground = true;
+  bool _onScreen = true;
+
+  @override
+  bool build() => _foreground && _onScreen;
+
+  /// The background needs none of it: the foreground service keeps the prints
+  /// fresh there, and plug or detection data has no reader.
+  void setForeground(bool foreground) {
+    _foreground = foreground;
+    state = _foreground && _onScreen;
+  }
+
+  /// Whether the dashboard is the tab on screen. Its polls feed controls that
+  /// live there and nowhere else, so polling from another tab spends requests
+  /// on numbers nobody can see — the plugs' loop alone was measured at a third
+  /// of every log a user records.
+  void setOnScreen(bool onScreen) {
+    _onScreen = onScreen;
+    state = _foreground && _onScreen;
+  }
+}
+
 class DashboardState {
   const DashboardState({this.printers, this.error, this.authExpired = false});
 

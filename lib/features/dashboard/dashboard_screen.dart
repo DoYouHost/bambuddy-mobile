@@ -113,7 +113,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
-        ref.read(smartPlugsProvider.notifier).pausePolling();
         ref.read(dashboardWatchedProvider.notifier).setForeground(false);
         // Token refresh in background is handled by FGS isolate — UI is silent.
         ref.read(tokenRefresherProvider)?.stop();
@@ -145,7 +144,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
-        ref.read(smartPlugsProvider.notifier).resumePolling();
         ref.read(dashboardWatchedProvider.notifier).setForeground(true);
         ref.read(tokenRefresherProvider)?.start();
         ref.read(cameraTokenRefresherProvider)?.start();

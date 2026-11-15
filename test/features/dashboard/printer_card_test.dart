@@ -402,8 +402,7 @@ Widget _scope(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    inertSmartPlugsOverride,
-    aiDetectionOverride(),
+    ...inertDashboardPollOverrides,
   ], extra),
   // On the app, not on the card: a sheet is a route above the card and would
   // otherwise open at 100 %.
@@ -448,8 +447,7 @@ Widget _cardSwap(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    inertSmartPlugsOverride,
-    aiDetectionOverride(),
+    ...inertDashboardPollOverrides,
   ],
   child: plApp(
     Scaffold(
@@ -3246,8 +3244,7 @@ void main() {
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
-          inertSmartPlugsOverride,
-          aiDetectionOverride(),
+          ...inertDashboardPollOverrides,
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
@@ -4126,8 +4123,7 @@ void main() {
       overrides: [
         fakeServerProfileOverride(),
         mediaAuthOverride(),
-        inertSmartPlugsOverride,
-        aiDetectionOverride(),
+        ...inertDashboardPollOverrides,
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
       child: plApp(
@@ -4197,8 +4193,7 @@ void main() {
         overrides: layerOverrides([
           fakeServerProfileOverride(),
           mediaAuthOverride(),
-          inertSmartPlugsOverride,
-          aiDetectionOverride(),
+          ...inertDashboardPollOverrides,
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,

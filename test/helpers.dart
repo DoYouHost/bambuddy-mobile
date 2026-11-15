@@ -744,6 +744,14 @@ class _FixedAiDetection extends AiDetectionNotifier {
   AiDetectionStatus? build() => _status;
 }
 
+/// The dashboard's own polls, silenced: no smart plugs and no AI detection.
+/// Whatever puts a printing card on screen needs both, or a request outlives
+/// the test.
+final inertDashboardPollOverrides = [
+  inertSmartPlugsOverride,
+  aiDetectionOverride(),
+];
+
 /// An [Archive] row for a test that does not care what it says: a finished print
 /// with no media. Name only what the test is about.
 Archive testArchive({

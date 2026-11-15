@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/data/ai_detection_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ai_detection_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:fake_async/fake_async.dart';

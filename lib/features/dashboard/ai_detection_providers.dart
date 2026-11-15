@@ -5,35 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ai_detection.dart';
 import '../../providers.dart';
+import 'providers.dart';
 
 /// The web's refetch interval for the same badge (`PrintersPage.tsx`).
 const aiDetectionPollInterval = Duration(seconds: 10);
-
-/// Whether anyone can see the dashboard: the app in the foreground and the
-/// dashboard the tab on screen. Kept outside [aiDetectionProvider] because that
-/// one comes and goes with the prints, and a notifier born while the user sits
-/// on another tab has to start silent.
-final dashboardWatchedProvider = NotifierProvider<DashboardWatched, bool>(
-  DashboardWatched.new,
-);
-
-class DashboardWatched extends Notifier<bool> {
-  bool _foreground = true;
-  bool _onScreen = true;
-
-  @override
-  bool build() => _foreground && _onScreen;
-
-  void setForeground(bool foreground) {
-    _foreground = foreground;
-    state = _foreground && _onScreen;
-  }
-
-  void setOnScreen(bool onScreen) {
-    _onScreen = onScreen;
-    state = _foreground && _onScreen;
-  }
-}
 
 /// What the server's AI failure detection says about the running prints, or
 /// null while there is nothing to show: no answer yet, a server without the

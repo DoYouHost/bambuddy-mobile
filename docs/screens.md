@@ -145,8 +145,8 @@ an eye and one word, in the class's colour. Read only.
   are its only watchers, so it exists while something prints. Detection that is off
   is asked about once, and again on regained contact and pull-to-refresh; detection
   that is on is re-read every 10 s like the web, while the app is in the foreground
-  and the dashboard is the tab on screen (`dashboardWatchedProvider`, set where the
-  smart plugs are told the same). That flag lives outside the notifier because the
+  and the dashboard is the tab on screen (`dashboardWatchedProvider`, which the
+  smart-plug poll runs on too). That flag lives outside the notifier because the
   notifier comes and goes with the prints, and one born while the user sits on
   another tab has to start silent.
 - **Deviations from the web.** No grey "Idle" badge between prints: the card is
