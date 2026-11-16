@@ -433,7 +433,13 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
     await settings.markTourDue();
-    if (ref.mounted) state = profile;
+    if (!ref.mounted) return;
+    // What the last server answered says nothing about this one. Here and not in
+    // a provider's build: forgetting notifies the widgets that listen, and a
+    // build is the one place they may not be told. The same server under
+    // another login keeps what was learnt.
+    if (state?.baseUrl != profile.baseUrl) ServerReachability.instance.forget();
+    state = profile;
   }
 
   /// "Logout / change server": clear profile and all secrets.
@@ -444,7 +450,9 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     final credentials = ref.read(credentialsStoreProvider);
     await settings.clearProfile();
     await credentials.clearAll();
-    if (ref.mounted) state = null;
+    if (!ref.mounted) return;
+    ServerReachability.instance.forget();
+    state = null;
   }
 }
 

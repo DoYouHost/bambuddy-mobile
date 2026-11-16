@@ -17,9 +17,9 @@ import 'api_exceptions.dart';
 /// the chain, so its duration covers reading the credentials in
 /// [AuthInterceptor] and it sees a 401 before the retry hides it.
 Dio createBareDio() {
-  // A new Dio is a new server, or a fresh start: what the last one answered
-  // says nothing about this one.
-  ServerReachability.instance.forget();
+  // Does not touch [ServerReachability]: a notification button tapped with the
+  // app open builds clients here too, and that is no new server. The profile
+  // notifier forgets it when the server changes.
   return Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 8),
