@@ -677,8 +677,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       baseUrl: baseUrl,
       coverPath: cover,
       dio: dio,
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     );
   }
 
@@ -697,8 +696,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     );
   }
 

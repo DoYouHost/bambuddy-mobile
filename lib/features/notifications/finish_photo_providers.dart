@@ -43,8 +43,7 @@ final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     ),
     notifications: ref.watch(notificationServiceProvider),
     memory: FinishAlertMemory(prefs),

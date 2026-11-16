@@ -28,6 +28,31 @@ import '../diagnostics/diagnostics_wiring.dart';
 /// outlives a switch to another server, where the same id is somebody else's.
 String serverTag(String baseUrl) => stableDigest(baseUrl).toRadixString(16);
 
+/// A payload that names things on the server: `<kind>:<field>:…:<serverTag>`.
+/// The one place the tag is appended, so a new kind of payload cannot forget it.
+/// A field must not contain the separator; the ones in use are numbers, hex and a
+/// bare `subtask_id`.
+String taggedPayload(
+  String kind,
+  Iterable<Object> fields, {
+  required String serverUrl,
+}) => [kind, ...fields, serverTag(serverUrl)].join(':');
+
+/// The fields and the server tag of a [kind] payload that has exactly
+/// [fieldCount] fields and a tag, or null for anything else: another kind, a
+/// shape an older build wrote, an empty tag. What a field means is for the
+/// caller to check.
+({List<String> fields, String server})? parseTaggedPayload(
+  String? payload,
+  String kind, {
+  required int fieldCount,
+}) {
+  if (payload == null || !payload.startsWith('$kind:')) return null;
+  final parts = payload.split(':');
+  if (parts.length != fieldCount + 2 || parts.last.isEmpty) return null;
+  return (fields: parts.sublist(1, parts.length - 1), server: parts.last);
+}
+
 /// Action ID for "Mark Done" in maintenance notifications; the items to reset
 /// travel in the payload ([maintenancePayload]).
 const String maintenancePerformActionId = 'maint_perform';
@@ -44,7 +69,11 @@ String hmsPayload({
   required String fullCode,
   required String serverUrl,
   String? jobId,
-}) => 'hms:$printerId:$fullCode:${jobId ?? ''}:${serverTag(serverUrl)}';
+}) => taggedPayload('hms', [
+  printerId,
+  fullCode,
+  jobId ?? '',
+], serverUrl: serverUrl);
 
 /// The fault an HMS notification action refers to, or null when the payload is
 /// not one — including the four-part form builds before the server tag wrote:
@@ -52,16 +81,16 @@ String hmsPayload({
 /// resume sent to the wrong one is worse than a button that does nothing.
 ({int printerId, String fullCode, String? jobId, String server})?
 parseHmsPayload(String? payload) {
-  if (payload == null || !payload.startsWith('hms:')) return null;
-  final parts = payload.split(':');
-  if (parts.length != 5 || parts[4].isEmpty) return null;
-  final printerId = int.tryParse(parts[1]);
-  if (printerId == null || parts[2].isEmpty) return null;
+  final tagged = parseTaggedPayload(payload, 'hms', fieldCount: 3);
+  if (tagged == null) return null;
+  final [id, fullCode, jobId] = tagged.fields;
+  final printerId = int.tryParse(id);
+  if (printerId == null || fullCode.isEmpty) return null;
   return (
     printerId: printerId,
-    fullCode: parts[2],
-    jobId: parts[3].isEmpty ? null : parts[3],
-    server: parts[4],
+    fullCode: fullCode,
+    jobId: jobId.isEmpty ? null : jobId,
+    server: tagged.server,
   );
 }
 
@@ -69,7 +98,7 @@ parseHmsPayload(String? payload) {
 /// autoincrement rows, so the [serverTag] is what keeps "Mark Done" from
 /// resetting another server's counter.
 String maintenancePayload(Iterable<int> itemIds, {required String serverUrl}) =>
-    'maint:${itemIds.join(',')}:${serverTag(serverUrl)}';
+    taggedPayload('maint', [itemIds.join(',')], serverUrl: serverUrl);
 
 /// The items a maintenance payload names. `server` is null for the bare id
 /// list builds before the server tag wrote: such an alert is still on screen
@@ -80,10 +109,10 @@ String maintenancePayload(Iterable<int> itemIds, {required String serverUrl}) =>
   var list = payload;
   String? server;
   if (payload.startsWith('maint:')) {
-    final parts = payload.split(':');
-    if (parts.length != 3 || parts[2].isEmpty) return none;
-    list = parts[1];
-    server = parts[2];
+    final tagged = parseTaggedPayload(payload, 'maint', fieldCount: 1);
+    if (tagged == null) return none;
+    list = tagged.fields.single;
+    server = tagged.server;
   }
   final ids = <int>[];
   for (final part in list.split(',')) {

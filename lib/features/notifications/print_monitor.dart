@@ -3,6 +3,7 @@ import 'package:app_util/app_util.dart';
 
 import 'package:clock/clock.dart';
 
+import '../../core/models/value_equality.dart';
 import 'low_stock.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
@@ -268,7 +269,7 @@ typedef _JobFrame = ({int? layer, int? progress, String? job});
 /// notification actually shows — which printer leads, its whole percent, its ETA
 /// minute and how many are running. Anything else would redraw it on a WS frame
 /// that changes nothing a reader can see.
-class _OngoingKey {
+class _OngoingKey with ValueEquality {
   const _OngoingKey(this.printerId, this.percent, this.etaMinutes, this.count);
   final int printerId;
   final int percent;
@@ -276,15 +277,7 @@ class _OngoingKey {
   final int count;
 
   @override
-  bool operator ==(Object other) =>
-      other is _OngoingKey &&
-      other.printerId == printerId &&
-      other.percent == percent &&
-      other.etaMinutes == etaMinutes &&
-      other.count == count;
-
-  @override
-  int get hashCode => Object.hash(printerId, percent, etaMinutes, count);
+  List<Object?> get props => [printerId, percent, etaMinutes, count];
 }
 
 /// Notification brain: observes latest printer statuses and controls
