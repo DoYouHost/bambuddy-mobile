@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
+import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/print_monitor_task_handler.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -84,6 +87,123 @@ void main() {
     test('one the service has not heard from is no reason to add one', () {
       expect(printersGone({1}, {1, 9}), isEmpty);
       expect(printersGone(<int>{}, {1}), isEmpty);
+    });
+  });
+
+  // The wiring itself, on the demo: its server lives in the process, so the
+  // service can really start, fetch the printer list and publish. The real tick
+  // is half an hour; here it is a few hundred milliseconds.
+  group('a printer deleted while the service runs', () {
+    const channel = MethodChannel(
+      'page.codeberg.morganmlgman.bambuddy/ongoing',
+    );
+
+    late List<MethodCall> posts;
+    late DemoBackend demo;
+    late int printingBefore;
+    PrintMonitorTaskHandler? handler;
+
+    Future<void> until(bool Function() done, {String? what}) async {
+      final end = DateTime.now().add(const Duration(seconds: 8));
+      while (!done()) {
+        if (DateTime.now().isAfter(end)) fail('timed out waiting for $what');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    }
+
+    setUp(() {
+      posts = [];
+      printingBefore = DemoBackend.printingPrinters;
+      demo = DemoBackend.instance;
+      DemoBackend.instance = DemoBackend.fresh();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            posts.add(call);
+            return true;
+          });
+      // The count the service reads at start (it overwrites the static), set
+      // here rather than left to the default.
+      SharedPreferences.setMockInitialValues({
+        'demo_printing_count': 2,
+        'server_profile': jsonEncode(
+          const ServerProfile(
+            baseUrl: DemoConfig.baseUrl,
+            authMode: AuthMode.none,
+          ).toJson(),
+        ),
+      });
+      handler = PrintMonitorTaskHandler(
+        serverRefreshEvery: const Duration(milliseconds: 150),
+      );
+    });
+
+    tearDown(() async {
+      await handler?.onDestroy(DateTime.now(), false);
+      // What `onStart` left running (the widget publishes, the first probes).
+      await pumpEventQueue();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      SharedPreferences.setMockInitialValues({});
+      DemoBackend.instance = demo;
+      DemoBackend.printingPrinters = printingBefore;
+    });
+
+    /// What the ongoing notification says now: the last post, not any earlier
+    /// one, since a stale post says nothing about the state it is in.
+    Map<Object?, Object?>? now() =>
+        posts.isEmpty ? null : posts.last.arguments as Map<Object?, Object?>;
+
+    bool showsTwoPrinting() => now()?['title'] == '2 printing';
+
+    test(
+      'stops being counted on the ongoing notification, and stays gone',
+      () async {
+        await handler!.onStart(DateTime.now(), TaskStarter.developer);
+        await until(showsTwoPrinting, what: 'two printers printing');
+
+        // Printer 1 is one of the two printing machines (`DemoBackend`).
+        DemoBackend.instance.removePrinter(1);
+
+        // Still a print going on, now one printer's: not the notification gone
+        // idle, which would also say something other than "2 printing".
+        await until(
+          () => now()?['printing'] == true && !showsTwoPrinting(),
+          what: 'the notification with the one printer that is left',
+        );
+
+        // A frame from a printer that is still there carries the whole map into
+        // the monitor again; a printer kept in it would come back with that. An
+        // unchanged notification is not posted again, so what is expected here
+        // is silence, and the mutation of not trimming the map is what shows the
+        // test can see the difference.
+        //
+        // Any post, not the last: the next tick of the roster check can undo a
+        // wrong one within the wait, and a wrong one is what is being looked
+        // for.
+        posts.clear();
+        DemoBackend.pokeSockets();
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        expect(
+          posts.any((c) => (c.arguments as Map)['title'] == '2 printing'),
+          isFalse,
+        );
+      },
+    );
+
+    // No frame follows when every printer is gone, so nothing but the roster
+    // check can end the notification.
+    test('with none left, the ongoing notification ends', () async {
+      await handler!.onStart(DateTime.now(), TaskStarter.developer);
+      await until(showsTwoPrinting, what: 'two printers printing');
+
+      for (final id in DemoBackend.instance.printerIds) {
+        DemoBackend.instance.removePrinter(id);
+      }
+
+      await until(
+        () => now()?['printing'] == false,
+        what: 'the monitoring notification back to idle',
+      );
     });
   });
 

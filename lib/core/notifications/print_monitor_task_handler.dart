@@ -86,6 +86,14 @@ void startCallback() {
 /// everything from scratch here: profile from SharedPreferences, secrets from Keystore,
 /// own [WsClient] and [PrintMonitor]. Shares no memory or providers with the UI isolate.
 class PrintMonitorTaskHandler extends TaskHandler {
+  /// [serverRefreshEvery] is for tests: the real interval is half an hour.
+  PrintMonitorTaskHandler({
+    this.serverRefreshEvery = _pauseLeadRefreshInterval,
+  });
+
+  /// How often the server's pause warning lead time and printer list are read.
+  final Duration serverRefreshEvery;
+
   WsClient? _ws;
   StreamSubscription<WsPrinterStatus>? _sub;
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
@@ -547,7 +555,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     }
 
     unawaited(refresh());
-    _pauseLeadTimer = Timer.periodic(_pauseLeadRefreshInterval, (_) {
+    _pauseLeadTimer = Timer.periodic(serverRefreshEvery, (_) {
       unawaited(refresh());
       unawaited(dropRemovedPrinters());
     });
