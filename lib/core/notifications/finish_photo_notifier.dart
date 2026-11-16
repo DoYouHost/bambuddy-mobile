@@ -206,8 +206,12 @@ class FinishPhotoNotifier {
     }
     // Asked again after the download, which can run most of a minute: a swiped-away
     // alert would be brought back and ring a second time. The entry is re-read too, since
-    // the other isolate may have added the outcome buttons meanwhile.
-    final current = await _memory.recall(alert.printerId, clock.now()) ?? alert;
+    // the other isolate may have added the outcome buttons meanwhile. An entry
+    // no longer there was forgotten on purpose (a server change, an answered
+    // alert); falling back to the copy read before the download would write
+    // it back.
+    final current = await _memory.recall(alert.printerId, clock.now());
+    if (current == null) return;
     if (current.id != alert.id || await _gone(archiveId, current)) return;
     await _notifications.showAlert(
       event: current.event,

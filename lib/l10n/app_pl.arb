@@ -4264,5 +4264,10 @@
   "aiDetectionTipError": "Wykrywanie awarii AI nie sprawdza tego wydruku: {reason}",
   "aiDetectionTipErrorNoReason": "Wykrywanie awarii AI nie sprawdza tego wydruku",
   "aiDetectionTipStarting": "Wykrywanie awarii AI: oczekiwanie na pierwszy wynik",
-  "aiDetectionLimitReached": "osiągnięto limit użycia"
+  "aiDetectionLimitReached": "osiągnięto limit użycia",
+  "notifLowStockTitle": "Niski filament poniżej {percent}%",
+  "notifLowStockDesc": "Ustawiane na serwerze dla wszystkich. Własny próg szpuli ma pierwszeństwo.",
+  "notifLowStockEdit": "Zmień próg niskiego filamentu",
+  "notifLowStockInputLabel": "Procent wagi z etykiety",
+  "notifLowStockInvalid": "Podaj liczbę od 0,1 do 99,9."
 }

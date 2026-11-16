@@ -400,14 +400,25 @@ class AuthService {
   Future<String?> silentReLogin(String baseUrl) {
     final pending = _pendingSilentReLogin;
     if (pending != null) return pending;
-    final future = _doSilentReLogin(baseUrl);
-    _pendingSilentReLogin = future;
-    future.whenComplete(() {
-      if (identical(_pendingSilentReLogin, future)) {
-        _pendingSilentReLogin = null;
+    late final Future<String?> attempt;
+    // The latch is cleared inside the attempt, in a `finally`, rather than by a
+    // listener on its future: a listener (`whenComplete`, or `then` with an
+    // `onError`) either passes the error on to a future nobody holds, reporting
+    // a failed keystore write twice, or marks the attempt as handled, so a
+    // caller that never awaits it would no longer see the error at all.
+    Future<String?> run() async {
+      try {
+        return await _doSilentReLogin(baseUrl);
+      } finally {
+        if (identical(_pendingSilentReLogin, attempt)) {
+          _pendingSilentReLogin = null;
+        }
       }
-    });
-    return future;
+    }
+
+    attempt = run();
+    _pendingSilentReLogin = attempt;
+    return attempt;
   }
 
   Future<String?> _doSilentReLogin(String baseUrl) async {

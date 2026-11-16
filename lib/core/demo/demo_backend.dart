@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import 'package:app_util/app_util.dart';
 
 import '../ams/slot_addressing.dart';
@@ -834,6 +836,9 @@ class DemoBackend {
     'queue_keep_warm_max_minutes': 45,
     // Off the server's default of 5, like the rows above it.
     'pause_warning_minutes': 10,
+    // Off the server's default of 20, so the spool list and the notification
+    // settings row visibly read it. The Silk Gold spool (9.5% left) is below it.
+    'low_stock_threshold': 15.0,
   };
 
   Map<String, dynamic> get _demoUser => {
@@ -1473,6 +1478,11 @@ class DemoBackend {
   /// machine reached the dashboard only with the next REST poll — and the
   /// service isolate, which has no status poll of its own, not at all.
   List<int> get printerIds => [for (final p in _printers) p['id'] as int];
+
+  /// A printer deleted on the server, which the app cannot do itself (the web
+  /// UI does): for the test that watches the background service find out.
+  @visibleForTesting
+  void removePrinter(int id) => _printers.removeWhere((p) => p['id'] == id);
 
   /// What the demo's WLED controller answers to `/presets.json`, as the server
   /// lists it. Preset 4, mapped to Failed on the X1 Carbon, is missing on

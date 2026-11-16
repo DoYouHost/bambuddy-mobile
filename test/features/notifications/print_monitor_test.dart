@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
+import 'package:bambuddy_mobile/features/notifications/low_stock.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -560,6 +561,79 @@ void main() {
     expect(fake.clearCount, 0);
     m.update({1: _status(state: 'IDLE', progress: 0, remaining: 0)});
     expect(fake.clearCount, 1);
+  });
+
+  // The socket never says a printer was deleted, so the service learns it from
+  // the server's list and tells the monitor with `forget`.
+  group('forget (printers deleted on the server)', () {
+    testAt('the only printing printer going clears the ongoing notification', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
+      expect(fake.clearCount, 0);
+
+      m.forget({1});
+
+      expect(fake.clearCount, 1);
+    });
+
+    testAt('one of two printing machines going re-posts it for the other', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(state: 'RUNNING', progress: 50, remaining: 30, name: 'A'),
+        2: _status(state: 'RUNNING', progress: 20, remaining: 90, name: 'B'),
+      });
+      expect(fake.lastTitle, '2 printing');
+
+      m.forget({1});
+
+      expect(fake.clearCount, 0);
+      expect(fake.lastTitle, isNot('2 printing'));
+      expect(fake.lastProgress, 20, reason: "the other printer's bar");
+    });
+
+    // Not an event: nothing about the printer's end was seen, so nothing is
+    // announced as one.
+    testAt('says nothing about the print it was in the middle of', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
+
+      m.forget({1});
+
+      expect(fake.alerts, isEmpty);
+    });
+
+    // A printer the server lists again is a new one to the monitor, so its
+    // first frame is a baseline: a print that ended while it was away is not
+    // announced as ending now.
+    testAt('a printer that comes back is primed, not alerted about', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 99, remaining: 1)});
+      m.forget({1});
+
+      m.update({1: _status(state: 'FINISH', progress: 100, remaining: 0)});
+
+      expect(fake.alerts, isEmpty);
+    });
+
+    testAt('forgetting nothing, or what was never there, changes nothing', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
+      final posts = fake.ongoingCount;
+
+      m
+        ..forget({})
+        ..forget({9});
+
+      expect(fake.clearCount, 0);
+      expect(fake.ongoingCount, posts);
+    });
   });
 
   // --- New events (all enabled) ---
@@ -2408,6 +2482,347 @@ void main() {
     m.update({1: _status(state: 'RUNNING', ams: unitFull)}); // reset
     m.update({1: _status(state: 'RUNNING', ams: unitLow)});
     expect(alertById(fake, bandId(9)), isNotNull); // dropped again
+  });
+
+  group('low filament from the spool inventory', () {
+    // One spool in slot 0 of printer 1, at [percent] of its label weight.
+    Map<LowStockKey, LowStockSlot> slots(
+      double percent, {
+      int spoolId = 7,
+      double threshold = 20,
+      int printerId = 1,
+      int trayId = 0,
+    }) => {
+      (printerId: printerId, amsId: 0, trayId: trayId, spoolId: spoolId):
+          LowStockSlot(percent, threshold),
+    };
+
+    final lowTray = [
+      AmsUnit(id: 0, trays: [_tray(remain: 5)]),
+    ];
+
+    PrintMonitor inventoryMonitor(RecordingNotifications fake) {
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.update({1: _status(state: 'RUNNING')});
+      return m;
+    }
+
+    testAt('the first look only records what is already low', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(12));
+      expect(alertById(fake, bandId(9)), isNull);
+      m.updateLowStock(slots(11));
+      expect(alertById(fake, bandId(9)), isNull, reason: 'still low');
+    });
+
+    testAt('a spool that drops below its threshold alerts once', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(19.9));
+      final alert = alertById(fake, bandId(9));
+      expect(alert, isNotNull);
+      expect(
+        alert!['body'],
+        contains('19%'),
+        reason: 'truncated, like the server',
+      );
+      fake.alerts.clear();
+      m.updateLowStock(slots(15));
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('exactly the threshold is not low and re-arms with no margin', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(20));
+      expect(alertById(fake, bandId(9)), isNull);
+      m.updateLowStock(slots(19));
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.updateLowStock(slots(20));
+      m.updateLowStock(slots(19));
+      expect(alertById(fake, bandId(9)), isNotNull, reason: 're-armed at 20');
+    });
+
+    testAt('a low spool swapped for another low one alerts again', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40, spoolId: 7));
+      m.updateLowStock(slots(5, spoolId: 7));
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      // Slot emptied, then another spool that is already at 4%.
+      m.updateLowStock(slots(4, spoolId: 8));
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('an empty answer says nothing and forgets nothing', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(5));
+      fake.alerts.clear();
+      m.updateLowStock(const {});
+      m.updateLowStock(slots(5));
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('two slots of one printer give one alert, naming the emptier', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      Map<LowStockKey, LowStockSlot> two(double a, double b) => {
+        ...slots(a, spoolId: 1, trayId: 0),
+        ...slots(b, spoolId: 2, trayId: 1),
+      };
+      m.updateLowStock(two(50, 50));
+      m.updateLowStock(two(15, 6));
+      expect(fake.alerts.where((a) => a['id'] == bandId(9)), hasLength(1));
+      expect(alertById(fake, bandId(9))!['body'], contains('6%'));
+    });
+
+    testAt('a printer with no frame yet is told about on a later look', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.updateLowStock(slots(40, printerId: 2));
+      m.updateLowStock(slots(5, printerId: 2));
+      expect(
+        alertById(fake, bandId(9, 2)),
+        isNull,
+        reason: 'nothing to name it',
+      );
+      m.update({2: _status(state: 'RUNNING', id: 2)});
+      m.updateLowStock(slots(5, printerId: 2));
+      expect(alertById(fake, bandId(9, 2)), isNotNull);
+    });
+
+    testAt('the event switched off records why and does not alert', (_) {
+      final fake = RecordingNotifications();
+      final m = PrintMonitor(
+        fake,
+        serverUrl: _server,
+        prefs: const NotificationPrefs(enabled: {}),
+        l10n: () => en,
+      )..awaitLowStockInventory();
+      m.update({1: _status(state: 'RUNNING')});
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(5));
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('while the answer is awaited, the phone\'s own rule keeps quiet', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.update({
+        1: _status(
+          state: 'RUNNING',
+          ams: [
+            AmsUnit(id: 0, trays: [_tray(remain: 50)]),
+          ],
+        ),
+      });
+      m.update({1: _status(state: 'RUNNING', ams: lowTray)});
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt(
+      'once the inventory speaks, the AMS reading is no longer consulted',
+      (_) {
+        final fake = RecordingNotifications();
+        final m = inventoryMonitor(fake);
+        m.updateLowStock(slots(40));
+        m.update({
+          1: _status(
+            state: 'RUNNING',
+            ams: [
+              AmsUnit(id: 0, trays: [_tray(remain: 50)]),
+            ],
+          ),
+        });
+        m.update({1: _status(state: 'RUNNING', ams: lowTray)});
+        expect(
+          alertById(fake, bandId(9)),
+          isNull,
+          reason: 'remain is 5, spool is 40',
+        );
+      },
+    );
+
+    testAt('an inventory that cannot be read gives the phone\'s rule back', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.lowStockUnavailable();
+      m.update({
+        1: _status(
+          state: 'RUNNING',
+          ams: [
+            AmsUnit(id: 0, trays: [_tray(remain: 50)]),
+          ],
+        ),
+      });
+      m.update({1: _status(state: 'RUNNING', ams: lowTray)});
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('a printer that is forgotten takes what was said about it', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(5));
+      fake.alerts.clear();
+      m.forget({1});
+      m.update({1: _status(state: 'RUNNING')});
+      m.updateLowStock(slots(5));
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+  });
+
+  group('low filament, the phone\'s own rule: a slot that is emptied', () {
+    // A spool at 5% alerts; the slot is emptied; another spool, already at 4%,
+    // goes in. The latch used to be released only by a reading at or above the
+    // threshold, which an empty tray never gives, so the second spool said
+    // nothing.
+    List<AmsUnit> slot(AmsTray tray) => [
+      AmsUnit(id: 0, trays: [tray]),
+    ];
+    final low = slot(_tray(remain: 5));
+    final emptied = slot(const AmsTray(id: 0, remain: -1, trayType: ''));
+
+    testAt('another low spool in it alerts', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.update({1: _status(state: 'IDLE', ams: emptied)});
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 4)))});
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('a reading that goes unknown with the spool still in is not it', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      fake.alerts.clear();
+      // `remain` -1 on a tray that still holds filament is a transient.
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: -1)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('a frame with no AMS in it is not it either', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      fake.alerts.clear();
+      m.update({1: _status(state: 'IDLE')});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    // Each of these is a slot that reads blank or odd for a moment with a spool
+    // in it, and must not count as emptied: the same spool would alert again.
+    for (final (name, tray) in <(String, AmsTray)>[
+      (
+        'the presence bit says it is occupied',
+        const AmsTray(id: 0, remain: -1, trayType: '', exists: true),
+      ),
+      (
+        'the firmware says it is loaded',
+        const AmsTray(id: 0, remain: -1, trayType: '', state: 11),
+      ),
+      (
+        'a transparent colour with its type still named',
+        const AmsTray(id: 0, remain: 5, trayType: 'PLA', trayColor: 'FFFFFF00'),
+      ),
+      ('a blank tray with no id', const AmsTray(remain: -1, trayType: '')),
+    ]) {
+      testAt('not while $name', (_) {
+        final fake = RecordingNotifications();
+        final m = monitorAll(fake);
+        m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+        m.update({1: _status(state: 'IDLE', ams: low)});
+        fake.alerts.clear();
+        m.update({1: _status(state: 'IDLE', ams: slot(tray))});
+        m.update({1: _status(state: 'IDLE', ams: low)});
+        expect(alertById(fake, bandId(9)), isNull);
+      });
+    }
+
+    testAt('a blank tray with no id beside a latched slot 0 does not free it', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      final both = [
+        AmsUnit(
+          id: 0,
+          trays: [
+            _tray(remain: 5),
+            const AmsTray(remain: -1, trayType: ''),
+          ],
+        ),
+      ];
+      m.update({1: _status(state: 'IDLE', ams: both)});
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.update({1: _status(state: 'IDLE', ams: both)});
+      m.update({1: _status(state: 'IDLE', ams: both)});
+      expect(alertById(fake, bandId(9)), isNull, reason: 'no alert per frame');
+    });
+
+    testAt('but a slot the presence bit says is empty is', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      fake.alerts.clear();
+      m.update({
+        1: _status(
+          state: 'IDLE',
+          ams: slot(
+            const AmsTray(id: 0, remain: -1, trayType: '', exists: false),
+          ),
+        ),
+      });
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 4)))});
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('and the external spool holder too', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({
+        1: _status(state: 'IDLE', vtTray: [_tray(id: 254, remain: 50)]),
+      });
+      m.update({
+        1: _status(state: 'IDLE', vtTray: [_tray(id: 254, remain: 5)]),
+      });
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.update({
+        1: _status(
+          state: 'IDLE',
+          vtTray: [const AmsTray(id: 254, remain: -1, trayType: '')],
+        ),
+      });
+      m.update({
+        1: _status(state: 'IDLE', vtTray: [_tray(id: 254, remain: 4)]),
+      });
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
   });
 
   testAt('high AMS humidity: the edge above the threshold', (_) {

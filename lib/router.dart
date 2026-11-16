@@ -437,7 +437,7 @@ GoRouter buildAppRouter({
         },
       ),
 
-      // Shell with bottom navigation bar — three tabs as branches.
+      // Shell with bottom navigation bar — five tabs as branches.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             RootScaffold(navigationShell: navigationShell),

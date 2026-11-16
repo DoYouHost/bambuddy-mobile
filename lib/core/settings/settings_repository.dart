@@ -28,6 +28,9 @@ class SettingsRepository {
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
+
+  /// `FinishAlertMemory`'s entry; named here because a server change clears it.
+  static const finishAlertKey = 'finish_alert_last';
   static const _demoPrintingKey = 'demo_printing_count';
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
@@ -109,10 +112,26 @@ class SettingsRepository {
     }
   }
 
-  Future<void> saveProfile(ServerProfile profile) =>
-      _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
+  /// Saving the server already saved (a sign-in after the session lapsed)
+  /// keeps what is remembered about it; any other server starts clean.
+  Future<void> saveProfile(ServerProfile profile) async {
+    if (loadProfile()?.baseUrl != profile.baseUrl) await _forgetServerState();
+    await _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
+  }
 
-  Future<void> clearProfile() => _prefs.remove(_profileKey);
+  Future<void> clearProfile() async {
+    await _forgetServerState();
+    await _prefs.remove(_profileKey);
+  }
+
+  /// Drops the notification state that names rows by id: an item or printer id
+  /// means something only on the server that issued it, and the next server
+  /// reuses the numbers. Not the user's own choices keyed the same way (the
+  /// wall's hidden printers), which a sign-out must not cost them.
+  Future<void> _forgetServerState() async {
+    await _prefs.remove(_maintNotifiedKey);
+    await _prefs.remove(finishAlertKey);
+  }
 
   /// Not a secret: a CA certificate is public by design. Kept across "change
   /// server" — the setup screen shows it and offers to remove it.
@@ -402,8 +421,18 @@ class SettingsRepository {
     return {for (final s in raw) int.tryParse(s) ?? -1}..remove(-1);
   }
 
-  Future<void> saveNotifiedMaintenanceDueIds(Set<int> ids) => _prefs
-      .setStringList(_maintNotifiedKey, [for (final id in ids) id.toString()]);
+  /// Refused once [serverUrl] is not the saved server: the caller began on a
+  /// server the app has since left, and its ids would silence the same numbers
+  /// on the new one. Callers reload first; the profile is the other isolate's.
+  Future<void> saveNotifiedMaintenanceDueIds(
+    Set<int> ids, {
+    required String serverUrl,
+  }) async {
+    if (loadProfile()?.baseUrl != serverUrl) return;
+    await _prefs.setStringList(_maintNotifiedKey, [
+      for (final id in ids) id.toString(),
+    ]);
+  }
 
   /// Whether maintenance state changed outside the UI (action "Mark Done" from notification,
   /// handled in background isolate) and needs screen refresh. Signal between callback isolate

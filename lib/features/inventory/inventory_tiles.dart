@@ -48,7 +48,7 @@ class _ListHeader extends StatelessWidget {
   }
 }
 
-class _SpoolTile extends StatelessWidget {
+class _SpoolTile extends ConsumerWidget {
   const _SpoolTile({
     required this.spool,
     this.assignment,
@@ -73,11 +73,13 @@ class _SpoolTile extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final frac = spool.remainingFraction;
-    final low = spool.isLowStock && !spool.isArchived;
+    final low =
+        spool.isLowStock(ref.watch(lowStockThresholdProvider)) &&
+        !spool.isArchived;
     final fillColor = low ? t.danger : t.accentGreen;
 
     // The weight line takes the leftover space and the slot label keeps its
@@ -252,7 +254,10 @@ class _SpoolTile extends StatelessWidget {
                               ),
                               const SizedBox(height: DashSpace.sm),
                               DashProgressBar(
-                                value: frac,
+                                // An empty track for a spool with no label
+                                // weight, as the web draws it; a null value
+                                // would animate an indeterminate bar.
+                                value: frac ?? 0,
                                 height: DashSize.d4,
                                 radius: DashRadius.xs,
                                 color: fillColor,
@@ -479,20 +484,27 @@ class _SpoolDetailSheet extends ConsumerWidget {
             _SpoolActions(spool: spool, assignment: assignment),
             const SizedBox(height: DashSpace.lg),
 
+            DashProgressBar(
+              value: spool.remainingFraction ?? 0,
+              height: DashSize.d8,
+              // The tile and this sheet say the same thing: an archived
+              // spool is not stock, so it is never marked low.
+              color:
+                  !spool.isArchived &&
+                      spool.isLowStock(ref.watch(lowStockThresholdProvider))
+                  ? t.danger
+                  : null,
+            ),
+            // No weight line without a label weight: "0 g of 0 g" says nothing.
             if (spool.remainingFraction != null) ...[
-              DashProgressBar(
-                value: spool.remainingFraction,
-                height: DashSize.d8,
-                color: spool.isLowStock ? t.danger : null,
-              ),
               const SizedBox(height: DashSpace.sm),
               Text(
                 '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
                 ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
                 style: t.label.copyWith(color: t.textSecondary),
               ),
-              const SizedBox(height: DashSpace.lg),
             ],
+            const SizedBox(height: DashSpace.lg),
 
             _DetailCard(
               children: [

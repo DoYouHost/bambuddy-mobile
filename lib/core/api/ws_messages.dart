@@ -118,7 +118,8 @@ class WsPipelineRunUpdated extends WsMessage {
 
 /// The spool inventory changed on the server: a spool added, edited, archived
 /// or weighed, or one assigned to an AMS slot (`inventory_changed` and
-/// `spool_assignment_changed`, `routes/inventory.py`).
+/// `spool_assignment_changed`, `routes/inventory.py`), or its grams booked at
+/// the end of a print (`spool_usage_logged`).
 ///
 /// Carries nothing: the frames name no id in a shape worth parsing, and the
 /// screen re-reads the list anyway. It exists so a spool edited on the web
@@ -194,6 +195,9 @@ WsMessage? parseWsMessage(String raw) {
       );
     case 'inventory_changed':
     case 'spool_assignment_changed':
+    // A print's consumption: the server sends this instead of `inventory_changed`
+    // when it books the grams at the end (`main.py`, `usage_on_print_complete`).
+    case 'spool_usage_logged':
       return const WsInventoryChanged();
     case 'print_start':
     case 'print_complete':

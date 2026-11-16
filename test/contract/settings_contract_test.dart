@@ -1,9 +1,11 @@
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
+import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/settings/server_settings.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// The server half of what `test/core/settings/server_settings_test.dart`
 /// assumes.
@@ -183,5 +185,54 @@ void main() {
             'is specified; the server may have stopped validating this field',
       );
     });
+
+    test(
+      'low_stock_threshold: the write the screen sends is stored, taken '
+      'from 0.1 to 99.9, refused outside, and read back as a number',
+      () async {
+        // The notification settings row shows the server's number when GET
+        // carries the key, writes it as the screen recorded it, and the list and
+        // the background alert both measure against it.
+        final before = (await dio.get<Map<String, dynamic>>(
+          Endpoints.appSettings,
+        )).data!;
+        expect(
+          before.containsKey('low_stock_threshold'),
+          isTrue,
+          reason: 'GET /settings no longer carries the key the row is gated on',
+        );
+        expect(lowStockThresholdFrom(before), isNonZero);
+        final original = before['low_stock_threshold'];
+        addTearDown(
+          () => dio.put<dynamic>(
+            Endpoints.appSettingsUpdate,
+            data: {'low_stock_threshold': original},
+          ),
+        );
+
+        final replies = await replayWrites(
+          dio,
+          recordedWrites('low_stock_threshold'),
+        );
+        expect(replies.single.statusCode, 200);
+        final after = (await dio.get<Map<String, dynamic>>(
+          Endpoints.appSettings,
+        )).data!;
+        expect(after['low_stock_threshold'], 15.5);
+        expect(lowStockThresholdFrom(after), 15.5);
+
+        Future<Response<dynamic>> put(num value) => dio.put<dynamic>(
+          Endpoints.appSettingsUpdate,
+          data: {'low_stock_threshold': value},
+          options: Options(validateStatus: (_) => true),
+        );
+        for (final value in [lowStockThresholdMin, lowStockThresholdMax]) {
+          expect((await put(value)).statusCode, 200, reason: '$value');
+        }
+        for (final value in [0, 100]) {
+          expect((await put(value)).statusCode, 422, reason: '$value');
+        }
+      },
+    );
   });
 }

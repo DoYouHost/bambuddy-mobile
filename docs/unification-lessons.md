@@ -49,6 +49,8 @@ is the map and the decisions.
 | `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else; `intListFromJson`: a server-sent id list | [json_utils.dart](../lib/core/models/json_utils.dart) |
 | `TrayLayout`, `globalTrayId`, `rackExternalLabel`: a slot's numbers on any printer, the H3C's rack included; `mappingSlotLabel`: a slot as the filament mapping names it, on the phone's form and the controller's | [slot_addressing.dart](../lib/core/ams/slot_addressing.dart), [filament_mapping.dart](../lib/core/ams/filament_mapping.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
+| `taggedPayload` / `parseTaggedPayload`: a notification payload is `<kind>:<fields>:<serverTag>`, the tag appended in one place so a new kind cannot forget it (HMS, maintenance and outcome use it; what a field means stays with each parser, and maintenance still reads the bare list older builds wrote) | [background_api.dart](../lib/core/notifications/background_api.dart) |
+| `_Feed<T>` in the WebSocket client: one broadcast stream per kind of frame, offered each frame in order. A new kind is a field, a `_feeds` entry and a getter, and `ws_client_test` has one frame per kind | [ws_client.dart](../lib/core/api/ws_client.dart) |
 | `TimerFactory`, the injectable timer | [offline_debounce.dart](../lib/core/printers/offline_debounce.dart) |
 | `startQueueItem`, `removeFromQueue`: a job's Start and Remove, from the queue screen and the controller alike | [queue_actions.dart](../lib/features/queue/queue_actions.dart) |
 | `QueueThumbnail`, `queueStatusLabel`, `queueStagedLabel`, `queueTargetLabel`; `pollQueue` (in `queue_providers.dart`) for a screen that shows the queue outside its tab | [queue_item_view.dart](../lib/features/queue/queue_item_view.dart) |
@@ -212,6 +214,26 @@ more than the lines it saves.
   `find.descendant` calls, one or two per file, and saves a line at each.
 - **The label picker's test harness** (`_CapturingRepository`, `_MemoryPrefs`,
   `openTemplatePicker`) has one user, `inventory_labels_test.dart`.
+
+## The 2026-11 critical-code scan
+
+Five candidates, each measured or read before it was touched:
+
+- **Server-tagged payloads** (done): the three builders and parsers repeated the
+  split, the count and the empty-tag check; `taggedPayload` / `parseTaggedPayload`
+  own them. The fields' meaning and the legacy bare maintenance list stay per kind.
+- **`FinishAlertMemory`'s write path** (already done by the write queue of the same
+  scan): `remember` and `forget` both go through `_write`.
+- **WebSocket frame dispatch** (done): nine of the client's ten controllers (the connection state
+  stays one), nine branches and nine `close()` calls became `_Feed<T>`. Four kinds (plate, print, pipeline run, confirm)
+  could be dropped from the dispatch without a test failing, which the one-frame-per-kind
+  test now catches.
+- **`_OngoingKey`** (done, measured): on `ValueEquality`, 45 ns per `==` against 1 ns
+  by hand, once per frame. `PrinterStatus` stays hand-written, as the backlog says.
+- **The media-auth closure** (done): `media.auth` is already the
+  `Future<MediaAuth> Function({bool forceRefresh})` the fetchers take, so the four
+  wrapping closures are the tear-off. The two service helpers that guard the same
+  three fields stay two: with the closure gone each is five lines.
 
 ## What was dropped as history
 

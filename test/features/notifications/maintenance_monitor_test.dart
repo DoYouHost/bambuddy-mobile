@@ -4,6 +4,8 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/models/maintenance.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart'
@@ -28,12 +30,16 @@ class _FakeRepo extends MaintenanceRepository {
   /// isolate — like tapping "Mark Done" on the notification.
   void Function()? onFetch;
 
+  /// The same, for an event the request has to wait out before it answers.
+  Future<void> Function()? duringFetch;
+
   @override
   Future<List<PrinterMaintenanceOverview>> fetchOverview() async {
     if (failOverview) {
       throw DioException(requestOptions: RequestOptions(path: '/maintenance'));
     }
     onFetch?.call();
+    await duringFetch?.call();
     return overview;
   }
 
@@ -83,6 +89,7 @@ void main() {
     repo: repo,
     prefs:
         prefs ?? const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
+    serverUrl: _server,
     initialNotified: persisted,
     persist: (s) async => persisted = {...s},
     reload: reload,
@@ -104,7 +111,7 @@ void main() {
 
     expect(notifications.alerts, hasLength(1));
     final alert = notifications.alerts.single;
-    expect(alert['payload'], '10');
+    expect(alert['payload'], maintenancePayload([10], serverUrl: _server));
     expect(alert['actionIds'], [maintenancePerformActionId]);
     expect(persisted, {10});
   });
@@ -259,7 +266,10 @@ void main() {
 
       final alert = notifications.alerts.single;
       expect(alert['id'], 13 * alertBandWidth + 1);
-      expect(alert['payload'], '10,12');
+      expect(
+        alert['payload'],
+        maintenancePayload([10, 12], serverUrl: _server),
+      );
       expect(alert['actionIds'], [maintenancePerformActionId]);
     },
   );
@@ -287,7 +297,7 @@ void main() {
       await monitor().remindOnPrintEnd(1);
 
       final alert = notifications.alerts.single;
-      expect(alert['payload'], '12');
+      expect(alert['payload'], maintenancePayload([12], serverUrl: _server));
     },
   );
 
@@ -396,4 +406,56 @@ void main() {
       expect(all, isEmpty);
     });
   });
+
+  // Wired to preferences the way the service wires it: the dedup set is the
+  // saved server's, and a check that began on another server must not write
+  // into it.
+  group('the dedup set across a server change', () {
+    late SettingsRepository settings;
+
+    MaintenanceMonitor wired() => MaintenanceMonitor(
+      notifications,
+      repo: repo,
+      prefs: const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
+      serverUrl: _server,
+      initialNotified: settings.loadNotifiedMaintenanceDueIds(),
+      persist: (ids) =>
+          settings.saveNotifiedMaintenanceDueIds(ids, serverUrl: _server),
+      reload: () async =>
+          (await settings.reloaded()).loadNotifiedMaintenanceDueIds(),
+      l10n: () => en,
+    );
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      settings = SettingsRepository(await SharedPreferences.getInstance());
+      await settings.saveProfile(_profile(_server));
+      repo.overview = [
+        _printer([_item(id: 10, isDue: true)]),
+      ];
+    });
+
+    test(
+      'a check still running when the server changes writes nothing',
+      () async {
+        repo.duringFetch = () => settings.saveProfile(_profile(_otherServer));
+
+        await wired().check();
+
+        expect(settings.loadNotifiedMaintenanceDueIds(), isEmpty);
+      },
+    );
+
+    test('a check on the saved server keeps writing', () async {
+      await wired().check();
+
+      expect(settings.loadNotifiedMaintenanceDueIds(), {10});
+    });
+  });
 }
+
+const _server = 'http://192.168.1.10:8000';
+const _otherServer = 'http://192.168.1.20:8000';
+
+ServerProfile _profile(String url) =>
+    ServerProfile(baseUrl: url, authMode: AuthMode.none);

@@ -10606,4 +10606,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get aiDetectionLimitReached => 'Nutzungslimit erreicht';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Niedriger Filamentstand unter $percent%';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Wird am Server für alle festgelegt. Der eigene Schwellenwert einer Spule hat Vorrang.';
+
+  @override
+  String get notifLowStockEdit =>
+      'Schwellenwert für niedrigen Filamentstand ändern';
+
+  @override
+  String get notifLowStockInputLabel => 'Prozent des Etikettengewichts';
+
+  @override
+  String get notifLowStockInvalid => 'Gib eine Zahl von 0,1 bis 99,9 ein.';
 }
