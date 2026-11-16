@@ -37,7 +37,17 @@ import '../../helpers.dart';
 
 /// Notification onboarding in initState reads these providers; inert in tests.
 class _NoopNotifications implements NotificationService {
-  _NoopNotifications({this.permissionGranted = false});
+  _NoopNotifications({
+    this.permissionGranted = false,
+    this.permissionGate,
+    this.permissionFails = false,
+  });
+
+  /// The platform refusing to answer at all.
+  final bool permissionFails;
+
+  /// Holds the permission request open, as the system's own dialog does.
+  final Completer<void>? permissionGate;
 
   /// What the system answers to the permission request — denial is the default,
   /// because that is what the test host looks like.
@@ -46,7 +56,12 @@ class _NoopNotifications implements NotificationService {
   @override
   Future<void> init() async {}
   @override
-  Future<bool> requestPermission() async => permissionGranted;
+  Future<bool> requestPermission() async {
+    await permissionGate?.future;
+    if (permissionFails) throw StateError('platform gone');
+    return permissionGranted;
+  }
+
   @override
   Future<void> showOngoing({
     required String title,
@@ -998,6 +1013,205 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+    });
+
+    // The prompts of a first run come one after another so they never stack
+    // (tour, notification permission, battery question, then this warning), but
+    // the system's own permission dialog closing is a resume, and a resume
+    // asks for the warning on its own.
+    testWidgets('a resume during the first-run prompts waits for them', (
+      tester,
+    ) async {
+      await _prefs.remove('notif_onboarded');
+      await _prefs.setBool('sign_in_required', true);
+      final permission = Completer<void>();
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            notificationServiceProvider.overrideWithValue(
+              _NoopNotifications(permissionGate: permission),
+            ),
+          ],
+        ),
+      );
+      // Far enough for the permission request to park on the gate.
+      await tester.pump();
+      await tester.pump();
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(pl.signInRequiredTitle),
+        findsNothing,
+        reason: 'the permission prompt is still the one being answered',
+      );
+
+      permission.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(pl.signInRequiredTitle),
+        findsOneWidget,
+        reason: 'and once they are done it is not lost',
+      );
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+    });
+
+    // A first-run prompt that throws is reported, and does not hold the warning
+    // back: it is what tells a user whose login was rejected why nothing loads.
+    testWidgets('a first-run prompt that fails does not hold back the warning', (
+      tester,
+    ) async {
+      await _prefs.remove('notif_onboarded');
+      await _prefs.setBool('sign_in_required', true);
+
+      // The failure goes on to the uncaught handler, as a bug in the app does.
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.pumpWidget(
+          _app(
+            state,
+            extra: [
+              notificationServiceProvider.overrideWithValue(
+                _NoopNotifications(permissionFails: true),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+      }, (error, _) => uncaught.add(error));
+
+      expect(uncaught, [isA<StateError>()]);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      // And a resume with the dialog up does not open a second one.
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pumpAndSettle();
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+    });
+
+    // The flag has to be up after a prompt failed too, or the resume that
+    // follows would never raise a warning that was not yet due at launch.
+    testWidgets('after a failed first-run prompt a later resume still warns', (
+      tester,
+    ) async {
+      await _prefs.remove('notif_onboarded');
+
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.pumpWidget(
+          _app(
+            state,
+            extra: [
+              notificationServiceProvider.overrideWithValue(
+                _NoopNotifications(permissionFails: true),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+      }, (error, _) => uncaught.add(error));
+      expect(uncaught, [isA<StateError>()]);
+      expect(find.text(pl.signInRequiredTitle), findsNothing);
+
+      await _prefs.setBool('sign_in_required', true);
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+    });
+
+    // The check reads the flag, then asks the store, which can take a while. A
+    // background isolate that raises the flag in that gap, and a resume that
+    // arrives with it, must not be answered with "already checking" and then
+    // forgotten once the check decides there was nothing to warn about.
+    testWidgets('a resume that lands mid-check is not forgotten', (
+      tester,
+    ) async {
+      final store = _GatedCredentialsStore()
+        ..username = 'tester'
+        ..password = 'sekret';
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(store),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(store.checks, 1, reason: 'the first check is parked on the store');
+
+      // The other isolate has just heard the rejection, and the user is back.
+      await _prefs.setBool('sign_in_required', true);
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+
+      store.gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
     });
 
     testWidgets('no flag, no dialog', (tester) async {

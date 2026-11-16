@@ -65,9 +65,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// otherwise walk past the guard and open a second dialog.
   bool _signInChecking = false;
 
+  /// A resume asked for the check while one was running, which may have read
+  /// the flag too early to see what that resume came back with.
+  bool _signInRecheck = false;
+
   /// The generic session-expiry listener already sent the user to `/setup`.
   /// Set from the listener, read by the warning, so only one of the two speaks.
   bool _authExpiredHandled = false;
+
+  /// Whether the tour and the notification onboarding of the first frame are
+  /// over, so a resume may raise the sign-in warning without stacking it on
+  /// them.
+  bool _firstRunPromptsDone = false;
 
   static const _onboardingFlag = 'notif_onboarded';
 
@@ -81,7 +90,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // [backgroundHandoverProvider]; this screen only owns the dialog below.
     _lifecycle = AppLifecycleListener(
       // The background isolate may have met the rejection while we were away.
-      onResume: () => unawaited(_maybeWarnSignInRequired()),
+      // Not while the first-run prompts are up: the system's own permission
+      // dialog closing is a resume too, and [_onFirstFrame] asks for the
+      // warning itself once they are done.
+      onResume: () {
+        if (_firstRunPromptsDone) unawaited(_maybeWarnSignInRequired());
+      },
     );
     // After first render: one-time notification onboarding (permission +
     // request to allow "Unrestricted" battery usage), then the sign-in warning.
@@ -92,10 +106,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _onFirstFrame() async {
-    // Before the permission prompt: the tour explains the app the prompt is
-    // asking about.
-    await _maybeRunTour();
-    await _maybeOnboardNotifications();
+    if (!mounted) return;
+    try {
+      // Before the permission prompt: the tour explains the app the prompt is
+      // asking about.
+      await _maybeRunTour();
+      if (mounted) await _maybeOnboardNotifications();
+    } catch (error, stack) {
+      // Reported as an uncaught error at once, as the unawaited call would
+      // have, rather than let out: the warning below is the one thing that
+      // tells a user whose login was rejected why nothing loads, and it must
+      // not wait behind a prompt that failed.
+      Zone.current.handleUncaughtError(error, stack);
+    }
+    _firstRunPromptsDone = true;
     await _maybeWarnSignInRequired();
   }
 
@@ -106,6 +130,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final settings = ref.read(settingsRepositoryProvider);
     if (!settings.tourDue || !mounted) return;
     await TourHost.open(context);
+    // Gone while it ran (the session ended under it): not seen to the end.
+    if (!mounted) return;
     await settings.saveTourSeen();
   }
 
@@ -123,14 +149,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // `_signInWarned` cannot stand in for `_signInChecking`: it is only set once
     // the flag turns out to be on, and a check that found it off has to leave
     // the door open for the next resume.
-    if (_signInWarned || _signInChecking || !mounted) return;
+    if (_signInWarned || !mounted) return;
+    if (_signInChecking) {
+      // The check may have read the flag before the rejection was written, and
+      // this resume may be what tells us so: asked again once it is over.
+      _signInRecheck = true;
+      return;
+    }
     _signInChecking = true;
     // Held across the whole check, dialog included. Everything below awaits,
     // and `_signInWarned` only goes up at the very end of it: releasing the
     // latch earlier lets a resume that lands in between open a second copy of
     // a dialog that cannot be dismissed.
     try {
-      await _checkSignInRequired();
+      do {
+        _signInRecheck = false;
+        await _checkSignInRequired();
+      } while (_signInRecheck && !_signInWarned && mounted);
     } finally {
       _signInChecking = false;
     }
@@ -287,7 +322,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       cancelLabel: l10n.batteryOptLater,
       id: 'battery_opt',
     );
-    if (open) await battery.openSettings();
+    if (open && mounted) await battery.openSettings();
     return true;
   }
 
