@@ -29,6 +29,7 @@ class MaintenanceMonitor {
     this._notifications, {
     required this._repo,
     required this._prefs,
+    required this._serverUrl,
     Set<int>? initialNotified,
     this.persist,
     this.reload,
@@ -39,6 +40,9 @@ class MaintenanceMonitor {
   final NotificationService _notifications;
   final MaintenanceRepository _repo;
   final NotificationPrefs _prefs;
+
+  /// Tagged into the payload, so "Mark Done" is not sent to another server.
+  final String _serverUrl;
   final Set<int> _notified;
 
   /// Persistence callback for dedup set (e.g., to SharedPreferences). `null` in tests.
@@ -153,7 +157,9 @@ class MaintenanceMonitor {
       id: _maintenanceReminderAlertBase + printerId,
       title: l.maintenanceReminderTitle,
       body: l.maintenanceReminderBody(printer.printerName, due.length),
-      payload: maintenancePayload([for (final i in due) i.id]),
+      payload: maintenancePayload([
+        for (final i in due) i.id,
+      ], serverUrl: _serverUrl),
       actions: [_resetAction(l)],
     );
   }
@@ -172,7 +178,7 @@ class MaintenanceMonitor {
         item.printerName ?? printer.printerName,
         item.maintenanceTypeName,
       ),
-      payload: maintenancePayload([item.id]),
+      payload: maintenancePayload([item.id], serverUrl: _serverUrl),
       actions: [_resetAction(l)],
     );
   }

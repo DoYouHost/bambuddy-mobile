@@ -1857,7 +1857,7 @@
   },
   "inventoryEmpty": "No spools in inventory",
   "inventoryNoMatches": "No filaments match your search",
-  "inventorySearchHint": "Search material, brand, color…",
+  "inventorySearchHint": "Search ID, material, brand, color…",
   "inventoryLowStock": "Low",
   "inventoryFilters": "Filters",
   "inventoryFilterStatus": "Status",
@@ -7819,5 +7819,17 @@
   "aiDetectionLimitReached": "usage limit reached",
   "@aiDetectionLimitReached": {
     "description": "The reason inserted into aiDetectionTipError when OctoEverywhere's free plan has run out. Follows a colon, so lower case."
-  }
+  },
+  "notifLowStockTitle": "Low filament below {percent}%",
+  "@notifLowStockTitle": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "notifLowStockDesc": "Set on the server for everyone. A spool's own threshold wins.",
+  "notifLowStockEdit": "Change the low filament threshold",
+  "notifLowStockInputLabel": "Percent of the label weight",
+  "notifLowStockInvalid": "Enter a number from 0.1 to 99.9."
 }

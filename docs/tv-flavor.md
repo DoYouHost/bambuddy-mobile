@@ -422,10 +422,11 @@ user is already signed in to, with the credentials it already has.
   with Back or the exit button in the panel settings (D19) — never by
   accident, never trapping the user.
 - **Pushed on top of the dashboard (`context.push`), never `go`.** The
-  dashboard owns the FGS start/stop and the three token refreshers
-  (`dashboard_screen.dart`, its `AppLifecycleListener`); replacing it would
-  silently stop background monitoring and token renewal. A test asserts the
-  dashboard is still mounted under the wall.
+  dashboard's `build` is what starts the three token refreshers, so replacing
+  it would end token renewal for the session. Background monitoring no longer
+  depends on it: the service start and stop belong to the app
+  (`background_handover.dart`). A test asserts the dashboard is still mounted
+  under the wall.
 - **Keeps the screen on only while wall mode is visible and "Keep screen
   awake" is on** (`FLAG_KEEP_SCREEN_ON` on the activity — needs no
   permission): set on enter, cleared on exit and when the setting is turned

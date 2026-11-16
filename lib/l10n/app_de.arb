@@ -1417,7 +1417,7 @@
   "navFilaments": "Filamente",
   "inventoryEmpty": "Keine Spulen im Bestand",
   "inventoryNoMatches": "Keine Filamente entsprechen deiner Suche",
-  "inventorySearchHint": "Material, Marke, Farbe suchen…",
+  "inventorySearchHint": "ID, Material, Marke, Farbe suchen…",
   "inventoryLowStock": "Niedrig",
   "inventoryFilters": "Filter",
   "inventoryFilterStatus": "Status",
@@ -4953,5 +4953,10 @@
   "aiDetectionTipError": "KI-Fehlererkennung prüft diesen Druck nicht: {reason}",
   "aiDetectionTipErrorNoReason": "KI-Fehlererkennung prüft diesen Druck nicht",
   "aiDetectionTipStarting": "KI-Fehlererkennung: warte auf das erste Ergebnis",
-  "aiDetectionLimitReached": "Nutzungslimit erreicht"
+  "aiDetectionLimitReached": "Nutzungslimit erreicht",
+  "notifLowStockTitle": "Niedriger Filamentstand unter {percent}%",
+  "notifLowStockDesc": "Wird am Server für alle festgelegt. Der eigene Schwellenwert einer Spule hat Vorrang.",
+  "notifLowStockEdit": "Schwellenwert für niedrigen Filamentstand ändern",
+  "notifLowStockInputLabel": "Prozent des Etikettengewichts",
+  "notifLowStockInvalid": "Gib eine Zahl von 0,1 bis 99,9 ein."
 }

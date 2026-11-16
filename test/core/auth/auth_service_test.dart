@@ -57,6 +57,17 @@ class _WriteCountingStore extends InMemoryCredentialsStore {
   }
 }
 
+/// A keystore whose JWT write throws until told otherwise.
+class _FailingJwtStore extends InMemoryCredentialsStore {
+  bool failWrites = true;
+
+  @override
+  Future<void> writeJwt(String token) {
+    if (failWrites) throw StateError('keystore unavailable');
+    return super.writeJwt(token);
+  }
+}
+
 ResponseBody _json(Object body, int status) => ResponseBody.fromString(
   jsonEncode(body),
   status,
@@ -998,6 +1009,90 @@ void main() {
       expect(writes.jwt, isNotNull);
       expect(writes.loginWrites, 0);
       expect(await writes.readRememberedLogin(), isNotNull);
+    });
+
+    // A keystore write throws on purpose (a dropped write would pretend a
+    // sign-in happened), and `silentReLogin` lets that out to its caller. It
+    // has to be the *caller's* error once, not also an uncaught one from
+    // whatever clears the single-flight latch afterwards.
+    test(
+      'a failed keystore write reaches the caller once, and only there',
+      () async {
+        final failing = _FailingJwtStore()
+          ..username = 'tester'
+          ..password = 'sekret';
+        final localDio = Dio();
+        mockServer(localDio).onPost(
+          '$baseUrl/api/v1/auth/login',
+          (s) => s.reply(200, readFixture('login_response_ok.json')),
+          data: {'username': 'tester', 'password': 'sekret'},
+        );
+        final localService = AuthService(
+          bareDio: localDio,
+          credentials: failing,
+        );
+        var caught = 0;
+        final uncaught = <Object>[];
+
+        await runZonedGuarded(() async {
+          try {
+            await localService.silentReLogin(baseUrl);
+          } on StateError {
+            caught++;
+          }
+          // Long enough for an unhandled error on a dropped future to surface.
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        }, (error, _) => uncaught.add(error));
+
+        expect(caught, 1);
+        expect(uncaught, isEmpty);
+      },
+    );
+
+    test('and the next attempt is not stuck behind the failed one', () async {
+      final failing = _FailingJwtStore()
+        ..username = 'tester'
+        ..password = 'sekret';
+      final localDio = Dio();
+      mockServer(localDio).onPost(
+        '$baseUrl/api/v1/auth/login',
+        (s) => s.reply(200, readFixture('login_response_ok.json')),
+        data: {'username': 'tester', 'password': 'sekret'},
+      );
+      final localService = AuthService(bareDio: localDio, credentials: failing);
+
+      await expectLater(
+        localService.silentReLogin(baseUrl),
+        throwsA(isA<StateError>()),
+      );
+      failing.failWrites = false;
+
+      expect(await localService.silentReLogin(baseUrl), isNotNull);
+    });
+
+    // The attempt's own future is what the caller holds, so a caller that does
+    // not await it hears about the failure once, as a bug in that caller
+    // should be reported (`err/uncaught`), not swallowed by a listener.
+    test('a caller that never awaits still sees the failure, once', () async {
+      final failing = _FailingJwtStore()
+        ..username = 'tester'
+        ..password = 'sekret';
+      final localDio = Dio();
+      mockServer(localDio).onPost(
+        '$baseUrl/api/v1/auth/login',
+        (s) => s.reply(200, readFixture('login_response_ok.json')),
+        data: {'username': 'tester', 'password': 'sekret'},
+      );
+      final localService = AuthService(bareDio: localDio, credentials: failing);
+      final uncaught = <Object>[];
+
+      await runZonedGuarded(() async {
+        unawaited(localService.silentReLogin(baseUrl));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }, (error, _) => uncaught.add(error));
+
+      expect(uncaught, hasLength(1));
+      expect(uncaught.single, isA<StateError>());
     });
 
     test('null instead of throwing when the server refuses', () async {

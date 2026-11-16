@@ -4751,7 +4751,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventorySearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search material, brand, color…'**
+  /// **'Search ID, material, brand, color…'**
   String get inventorySearchHint;
 
   /// No description provided for @inventoryLowStock.
@@ -17432,6 +17432,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'usage limit reached'**
   String get aiDetectionLimitReached;
+
+  /// No description provided for @notifLowStockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low filament below {percent}%'**
+  String notifLowStockTitle(String percent);
+
+  /// No description provided for @notifLowStockDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set on the server for everyone. A spool\'s own threshold wins.'**
+  String get notifLowStockDesc;
+
+  /// No description provided for @notifLowStockEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the low filament threshold'**
+  String get notifLowStockEdit;
+
+  /// No description provided for @notifLowStockInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Percent of the label weight'**
+  String get notifLowStockInputLabel;
+
+  /// No description provided for @notifLowStockInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from 0.1 to 99.9.'**
+  String get notifLowStockInvalid;
 }
 
 class _AppLocalizationsDelegate

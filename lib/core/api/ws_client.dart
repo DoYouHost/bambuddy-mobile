@@ -64,6 +64,23 @@ class _IoWsConnection implements WsConnection {
 WsConnection _defaultConnect(Uri url, Map<String, String> headers) =>
     _IoWsConnection(IOWebSocketChannel.connect(url, headers: headers));
 
+/// One kind of frame and the broadcast stream its listeners hear it on.
+class _Feed<T extends WsMessage> {
+  final _controller = StreamController<T>.broadcast();
+
+  Stream<T> get stream => _controller.stream;
+
+  /// Hands [msg] to the listeners when it is this kind of frame and the feed is
+  /// still open; whether it did is the answer, so the next feed is not asked.
+  bool offer(WsMessage? msg) {
+    if (msg is! T || _controller.isClosed) return false;
+    _controller.add(msg);
+    return true;
+  }
+
+  Future<void> close() => _controller.close();
+}
+
 /// One multiplexing connection to `/api/v1/ws`, streaming every printer's
 /// frames. Resilience is three things: jittered backoff ([JitterBackoff]), a
 /// heartbeat ping with an idle watchdog behind it, and explicit
@@ -143,18 +160,29 @@ class WsClient {
   final Duration stableThreshold;
 
   final _stateController = StreamController<WsConnectionState>.broadcast();
-  final _statusController = StreamController<WsPrinterStatus>.broadcast();
-  final _plateController = StreamController<WsPlateNotEmpty>.broadcast();
-  final _printController = StreamController<WsPrintEvent>.broadcast();
-  final _archiveController = StreamController<WsArchiveUpdated>.broadcast();
-  final _pipelineRunController =
-      StreamController<WsPipelineRunUpdated>.broadcast();
-  final _inventoryController = StreamController<WsInventoryChanged>.broadcast();
-  final _announcementsController =
-      StreamController<WsAnnouncementsChanged>.broadcast();
-  final _confirmController =
-      StreamController<WsPrintConfirmRequest>.broadcast();
-  final _billingController = StreamController<WsBillingAlert>.broadcast();
+  // One feed per kind of frame, in the order a frame is offered to them. A new kind
+  // is a field here, an entry in [_feeds] (which routes its frames and closes it) and
+  // its getter below.
+  final _status = _Feed<WsPrinterStatus>();
+  final _plate = _Feed<WsPlateNotEmpty>();
+  final _print = _Feed<WsPrintEvent>();
+  final _archive = _Feed<WsArchiveUpdated>();
+  final _pipelineRun = _Feed<WsPipelineRunUpdated>();
+  final _inventory = _Feed<WsInventoryChanged>();
+  final _announcements = _Feed<WsAnnouncementsChanged>();
+  final _confirm = _Feed<WsPrintConfirmRequest>();
+  final _billing = _Feed<WsBillingAlert>();
+  late final List<_Feed<WsMessage>> _feeds = [
+    _status,
+    _plate,
+    _print,
+    _archive,
+    _pipelineRun,
+    _inventory,
+    _announcements,
+    _confirm,
+    _billing,
+  ];
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -173,41 +201,37 @@ class WsClient {
 
   WsConnectionState get state => _state;
   Stream<WsConnectionState> get connectionStates => _stateController.stream;
-  Stream<PrinterStatus> get statuses =>
-      _statusController.stream.map((f) => f.status);
+  Stream<PrinterStatus> get statuses => _status.stream.map((f) => f.status);
 
   /// Carries the raw server JSON too, for the watch relay, which forwards
   /// server-shaped data rather than re-serializing.
-  Stream<WsPrinterStatus> get statusFrames => _statusController.stream;
+  Stream<WsPrinterStatus> get statusFrames => _status.stream;
 
   /// Its own stream rather than part of [statuses]: an event frame, not state.
-  Stream<WsPlateNotEmpty> get plateAlerts => _plateController.stream;
+  Stream<WsPlateNotEmpty> get plateAlerts => _plate.stream;
 
-  Stream<WsPrintEvent> get printEvents => _printController.stream;
+  Stream<WsPrintEvent> get printEvents => _print.stream;
 
   /// Archive changes that arrive after the print itself is over — the finish
   /// photo landing in the archive is the one this app listens for.
-  Stream<WsArchiveUpdated> get archiveUpdates => _archiveController.stream;
+  Stream<WsArchiveUpdated> get archiveUpdates => _archive.stream;
 
   /// Pipeline runs the server routed to this session. Only the runs it started
   /// itself, unless authentication is off — see [WsPipelineRunUpdated].
-  Stream<WsPipelineRunUpdated> get pipelineRunUpdates =>
-      _pipelineRunController.stream;
+  Stream<WsPipelineRunUpdated> get pipelineRunUpdates => _pipelineRun.stream;
 
   /// The spool inventory changed somewhere — another client, a SpoolBuddy
   /// scale, the printer loading a tray.
-  Stream<WsInventoryChanged> get inventoryChanges =>
-      _inventoryController.stream;
+  Stream<WsInventoryChanged> get inventoryChanges => _inventory.stream;
 
   Stream<WsAnnouncementsChanged> get announcementChanges =>
-      _announcementsController.stream;
+      _announcements.stream;
 
   /// A finished print asking how it came out.
-  Stream<WsPrintConfirmRequest> get confirmRequests =>
-      _confirmController.stream;
+  Stream<WsPrintConfirmRequest> get confirmRequests => _confirm.stream;
 
   /// A print the kill switch stopped, or one that could not be charged.
-  Stream<WsBillingAlert> get billingAlerts => _billingController.stream;
+  Stream<WsBillingAlert> get billingAlerts => _billing.stream;
 
   /// Idempotent. After [suspend] the way back is [resume].
   void start() {
@@ -244,15 +268,9 @@ class WsClient {
     _probe.dispose();
     _teardownConnection();
     await _stateController.close();
-    await _statusController.close();
-    await _plateController.close();
-    await _printController.close();
-    await _inventoryController.close();
-    await _announcementsController.close();
-    await _archiveController.close();
-    await _pipelineRunController.close();
-    await _confirmController.close();
-    await _billingController.close();
+    for (final feed in _feeds) {
+      await feed.close();
+    }
   }
 
   Future<void> _openConnection() async {
@@ -343,26 +361,8 @@ class WsClient {
     }
     final msg = parseWsMessage(data);
     _probe.frame(msg);
-    if (msg is WsPrinterStatus && !_statusController.isClosed) {
-      _statusController.add(msg);
-    } else if (msg is WsPlateNotEmpty && !_plateController.isClosed) {
-      _plateController.add(msg);
-    } else if (msg is WsPrintEvent && !_printController.isClosed) {
-      _printController.add(msg);
-    } else if (msg is WsArchiveUpdated && !_archiveController.isClosed) {
-      _archiveController.add(msg);
-    } else if (msg is WsPipelineRunUpdated &&
-        !_pipelineRunController.isClosed) {
-      _pipelineRunController.add(msg);
-    } else if (msg is WsInventoryChanged && !_inventoryController.isClosed) {
-      _inventoryController.add(msg);
-    } else if (msg is WsAnnouncementsChanged &&
-        !_announcementsController.isClosed) {
-      _announcementsController.add(msg);
-    } else if (msg is WsPrintConfirmRequest && !_confirmController.isClosed) {
-      _confirmController.add(msg);
-    } else if (msg is WsBillingAlert && !_billingController.isClosed) {
-      _billingController.add(msg);
+    for (final feed in _feeds) {
+      if (feed.offer(msg)) break;
     }
     // A pong, an unknown type or unparseable text needs nothing beyond the
     // watchdog reset above.

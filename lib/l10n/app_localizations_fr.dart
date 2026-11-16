@@ -2883,7 +2883,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventorySearchHint =>
-      'Rechercher un matériau, une marque, une couleur…';
+      'Rechercher un ID, un matériau, une marque, une couleur…';
 
   @override
   String get inventoryLowStock => 'Faible';
@@ -10712,4 +10712,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aiDetectionLimitReached => 'limite d\'utilisation atteinte';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Filament bas en dessous de $percent %';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Défini sur le serveur pour tous. Le seuil propre à une bobine prévaut.';
+
+  @override
+  String get notifLowStockEdit => 'Modifier le seuil de filament bas';
+
+  @override
+  String get notifLowStockInputLabel => 'Pourcentage du poids de l\'étiquette';
+
+  @override
+  String get notifLowStockInvalid => 'Saisissez un nombre de 0,1 à 99,9.';
 }

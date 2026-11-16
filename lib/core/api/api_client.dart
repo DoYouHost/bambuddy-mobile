@@ -17,9 +17,9 @@ import 'api_exceptions.dart';
 /// the chain, so its duration covers reading the credentials in
 /// [AuthInterceptor] and it sees a 401 before the retry hides it.
 Dio createBareDio() {
-  // A new Dio is a new server, or a fresh start: what the last one answered
-  // says nothing about this one.
-  ServerReachability.instance.forget();
+  // Does not touch [ServerReachability]: a notification button tapped with the
+  // app open builds clients here too, and that is no new server. The profile
+  // notifier forgets it when the server changes.
   return Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 8),
@@ -89,7 +89,12 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    options.headers.addAll(await authHeaders(authMode, credentials));
+    // A retry already carries the token [refreshAuth] returned; reading the
+    // store again would put back whatever it holds, which is the same token
+    // only when the refresh stored it before answering.
+    if (options.extra[_retriedFlag] != true) {
+      options.headers.addAll(await authHeaders(authMode, credentials));
+    }
     handler.next(options);
   }
 
@@ -110,6 +115,11 @@ class AuthInterceptor extends Interceptor {
         final opts = err.requestOptions
           ..headers['Authorization'] = 'Bearer $newToken'
           ..extra[_retriedFlag] = true;
+        // Dio sends a FormData once and the first attempt already did; without
+        // a copy the retry of an upload dies on "already been finalized" after
+        // the re-login has succeeded.
+        final body = opts.data;
+        if (body is FormData) opts.data = body.clone();
         try {
           handler.resolve(await retryDio.fetch<dynamic>(opts));
         } on DioException catch (retryErr) {

@@ -211,7 +211,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final climateAlerting = climates.values.any((c) => c.alerting);
     final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
     final visible = sortSpools(
-      _filter(async.value?.spools ?? const [], query, filters),
+      _filter(
+        async.value?.spools ?? const [],
+        query,
+        filters,
+        ref.watch(lowStockThresholdProvider),
+      ),
       filters.sort,
       descending: filters.descending,
     );
@@ -621,11 +626,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     List<Spool> spools,
     String query,
     InventoryFilters filters,
+    double lowStockThreshold,
   ) {
     return [
       for (final s in spools)
         if (filters.showArchived ? s.isArchived : !s.isArchived)
-          if (!filters.lowStockOnly || s.isLowStock)
+          if (!filters.lowStockOnly || s.isLowStock(lowStockThreshold))
             if (filters.materials.isEmpty ||
                 filters.materials.contains(s.material))
               if (filters.brands.isEmpty ||

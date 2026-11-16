@@ -2833,7 +2833,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryNoMatches => 'No filaments match your search';
 
   @override
-  String get inventorySearchHint => 'Search material, brand, color…';
+  String get inventorySearchHint => 'Search ID, material, brand, color…';
 
   @override
   String get inventoryLowStock => 'Low';
@@ -10499,4 +10499,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiDetectionLimitReached => 'usage limit reached';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Low filament below $percent%';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Set on the server for everyone. A spool\'s own threshold wins.';
+
+  @override
+  String get notifLowStockEdit => 'Change the low filament threshold';
+
+  @override
+  String get notifLowStockInputLabel => 'Percent of the label weight';
+
+  @override
+  String get notifLowStockInvalid => 'Enter a number from 0.1 to 99.9.';
 }

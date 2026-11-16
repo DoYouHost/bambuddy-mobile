@@ -2897,7 +2897,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryNoMatches => 'Brak filamentów pasujących do wyszukiwania';
 
   @override
-  String get inventorySearchHint => 'Szukaj: materiał, marka, kolor…';
+  String get inventorySearchHint => 'Szukaj: ID, materiał, marka, kolor…';
 
   @override
   String get inventoryLowStock => 'Mało';
@@ -10689,4 +10689,22 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get aiDetectionLimitReached => 'osiągnięto limit użycia';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Niski filament poniżej $percent%';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Ustawiane na serwerze dla wszystkich. Własny próg szpuli ma pierwszeństwo.';
+
+  @override
+  String get notifLowStockEdit => 'Zmień próg niskiego filamentu';
+
+  @override
+  String get notifLowStockInputLabel => 'Procent wagi z etykiety';
+
+  @override
+  String get notifLowStockInvalid => 'Podaj liczbę od 0,1 do 99,9.';
 }

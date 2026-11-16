@@ -92,6 +92,16 @@ failed, each ends quietly and leaves the text-only one as is.
   answers whether it did (false: the caller asks with a notification of its own).
   It goes through the *same queue* as the photo: both re-post one notification
   and each has to carry what the other added.
+- **Known gap: the frame path does not match the photo to the run.**
+  `_handleFrame` attaches the frame's photo to whatever alert the printer holds,
+  where `poll` matches by `completed_at` (`runForAlert`). Two runs of one file on
+  one printer share the archive id (a reprint reuses the row), and the frame
+  carries only `{id, photo_added}`, so the server's later "upgraded" shot of run 1
+  can land on run 2's alert when both end within the photo window. No id on the
+  wire tells them apart; waiting on upstream, which was asked to add `run_id` to
+  `print_complete` and `archive_updated`
+  (https://github.com/maziggy/bambuddy/issues/3578). A time tolerance would only
+  narrow it, and its value is a decision, not a default.
 - **`dispose` is bounded** (2 s): it is awaited inside
   `PrintMonitorTaskHandler.onDestroy` ahead of the socket's dispose and the
   recording's flush, and a poll against an unreachable server sits on Dio's
@@ -129,14 +139,58 @@ Riverpod or the UI.
 - **HMS actions** (`handleHmsAction`): stopping a print never runs from a
   notification. A tap that abandons hours of printing has to be confirmed and a
   notification has nowhere to ask, so that button brings the app up and the
-  request is parked in `hmsStopRequests` for the shell. **Known gap:** an HMS action
-  answered after the user switched servers sends its command to the *new* server's
-  printer with the same id, because the action payload carries no server tag (the
-  print-outcome notification has one).
+  request is parked in `hmsStopRequests` for the shell. The payload carries a
+  server tag, so an action answered after the user switched servers sends
+  nothing and takes the alert away: the same printer id there is another
+  machine. A payload without the tag, from a build before it, is ignored.
 - **Maintenance "Mark Done"** rebuilds everything from scratch (prefs, client,
   repository), resets the item counter, removes the items from the dedup set
   (re-arm for future alerts) and dismisses the notification. All errors are
-  swallowed: the callback must not throw.
+  swallowed: the callback must not throw. The payload is
+  `maint:<ids>:<server tag>`: item ids are autoincrement rows, so a tap after a
+  switch to another server resets nothing and only takes the alert away. A bare
+  id list is an alert posted by a build before the tag; it is still accepted, so
+  a button already on screen keeps working across the update.
+- **A server change forgets what is remembered by row id**
+  (`SettingsRepository._forgetServerState`): the maintenance dedup set and the
+  finish-alert memory. The next server reuses the numbers, so an id announced
+  on the old one would silence a due item on the new one for as long as it
+  stays due. Saving the same server again (a sign-in after the session lapsed)
+  keeps both; signing out does not, and the overdue items are announced once
+  more after the next sign-in.
+  A write that began on the old server is refused instead of landing in the
+  new one's set: `saveNotifiedMaintenanceDueIds` takes the server it is for,
+  and a maintenance check or a "Mark Done" still in flight across the change
+  writes nothing.
+- **`FinishAlertMemory` writes go one at a time per isolate.** Each is a read
+  of the whole map, a change and a write of the whole map; eight prints ending
+  together used to keep one entry. The queue is static because one isolate
+  holds several instances over the same key. It does not reach across
+  isolates, which is why only one finish-photo notifier may run: the UI's is
+  built stopped and `BackgroundHandover` starts it once the service is down.
+  The queue gives up on one write after 10 s, so a platform call that never
+  answers costs that entry and not every one after it.
+- **Who watches is decided in one place, owned by the app**
+  (`BackgroundHandover`, `lib/features/dashboard/background_handover.dart`,
+  started from `app.dart`). In the foreground this isolate holds the socket,
+  the watch relay and the finish-photo hunt; in the background the service
+  does; never both. It lived in the dashboard's state until a mounted
+  dashboard turned out to be a condition of background monitoring (a `go` to a
+  route outside the tabs backgrounded with no service), and the cold-start
+  order was split over two files: the relay started in `app.dart` before the
+  dashboard's first frame had stopped a service left over from the last
+  launch. Now the survivor is stopped first, then the relay and the hunt are
+  taken.
+- **Service starts and stops are queued** (`BackgroundHandover._serviceTurn`).
+  Each is a platform call that takes time: a stop that overtook the start it
+  followed found nothing to stop and left the service running under a
+  foreground app, and a stop that landed after the next pause started the UI's
+  relay and photo hunt in the background. The second is what the epoch check
+  in `_takeBack` refuses.
+- **Providers a screen may never have built are not built by a pause**
+  (`ref.exists`): the dashboard's poll and the status feed are paused only
+  where they exist. The token refreshers are still started by the dashboard's
+  `build`; the hand-over only pauses and resumes them.
 
 ## Which HMS faults count (`hms_catalog.dart`)
 

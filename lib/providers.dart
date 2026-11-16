@@ -41,6 +41,8 @@ import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
+import 'core/models/inventory.dart'
+    show lowStockThresholdFrom, lowStockThresholdKey;
 import 'core/models/printer.dart';
 import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
@@ -431,7 +433,13 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
     await settings.markTourDue();
-    if (ref.mounted) state = profile;
+    if (!ref.mounted) return;
+    // What the last server answered says nothing about this one. Here and not in
+    // a provider's build: forgetting notifies the widgets that listen, and a
+    // build is the one place they may not be told. The same server under
+    // another login keeps what was learnt.
+    if (state?.baseUrl != profile.baseUrl) ServerReachability.instance.forget();
+    state = profile;
   }
 
   /// "Logout / change server": clear profile and all secrets.
@@ -442,7 +450,9 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     final credentials = ref.read(credentialsStoreProvider);
     await settings.clearProfile();
     await credentials.clearAll();
-    if (ref.mounted) state = null;
+    if (!ref.mounted) return;
+    ServerReachability.instance.forget();
+    state = null;
   }
 }
 
@@ -1215,6 +1225,34 @@ final pipelineMaxCopiesProvider = serverValue<int>((settings) {
   final parsed = settings.settingDouble('pipeline_max_copies', 50).toInt();
   return parsed > 0 ? parsed : 50;
 });
+
+/// Where the low-stock threshold is read from: `GET /settings`, or for a session
+/// that may not read that (`settings:read` is more than this number is worth,
+/// and a 403 there left it at the default) the flags every signed-in user can
+/// see (`GET /settings/ui-flags`, which carries `low_stock_threshold` on a
+/// server that has the route). Asked only when the first has no answer.
+final _lowStockSourceProvider = Provider<Map<String, dynamic>>((ref) {
+  final asked = ref.watch(serverSettingsProvider);
+  final settings = asked.value ?? const {};
+  if (settings.containsKey(lowStockThresholdKey)) return settings;
+  // Still on its way: the flags are for an answer without the key, not for the
+  // wait, or every session would make both requests on a cold start.
+  if (asked.isLoading && !asked.hasValue) return const {};
+  return ref.watch(serverUiFlagsProvider).value ?? const {};
+});
+
+/// The server-wide low-stock percentage (`low_stock_threshold`, 20 unless set):
+/// what a spool without a threshold of its own is measured against, in the
+/// list and in the background alert alike.
+final lowStockThresholdProvider = Provider<double>(
+  (ref) => lowStockThresholdFrom(ref.watch(_lowStockSourceProvider)),
+);
+
+/// Whether the server states a low-stock threshold at all. An older one does
+/// not, and the alert is then the phone's own.
+final serverHasLowStockProvider = Provider<bool>(
+  (ref) => ref.watch(_lowStockSourceProvider).containsKey(lowStockThresholdKey),
+);
 
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.

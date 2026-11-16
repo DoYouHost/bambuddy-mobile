@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/data/streamed_download.dart' show postFile;
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -102,6 +105,95 @@ void main() {
     expect(res.statusCode, 200);
     expect(refreshCalls, 1);
     expect(adapter.requests, hasLength(2));
+    expect(adapter.requests[1].headers['Authorization'], 'Bearer swiezy');
+  });
+
+  // Dio lets a FormData be sent once, and the retry sends the same request
+  // again. The three uploads in the app are these three shapes.
+  group('401 on JWT → refresh → retry of a multipart upload', () {
+    final shapes = <String, FormData Function()>{
+      'fields only (timelapse process)': () =>
+          FormData.fromMap({'trim_start': 0.0, 'speed': 2.0}),
+      'a file from bytes (label printer)': () => FormData.fromMap({
+        'files': MultipartFile.fromBytes([1, 2, 3], filename: 'label.pdf'),
+      }),
+    };
+
+    for (final MapEntry(key: name, value: form) in shapes.entries) {
+      test(name, () async {
+        store.jwt = 'wygasly';
+        final adapter = ScriptedAdapter.script([
+          (_) => _json('{"detail":"expired"}', 401),
+          (_) => _json('{}', 200),
+        ]);
+        final client = _client(
+          mode: AuthMode.jwt,
+          store: store,
+          adapter: adapter,
+          refreshAuth: () async {
+            store.jwt = 'swiezy';
+            return 'swiezy';
+          },
+        );
+
+        final res = await client.dio.post<dynamic>(
+          '/api/v1/upload',
+          data: form(),
+        );
+
+        expect(res.statusCode, 200);
+        expect(adapter.requests, hasLength(2));
+        expect(adapter.requests[1].headers['Authorization'], 'Bearer swiezy');
+      });
+    }
+
+    test('a file from disk (archive and library uploads)', () async {
+      final dir = Directory.systemTemp.createTempSync('upload');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/a.3mf')..writeAsBytesSync([1, 2, 3]);
+      store.jwt = 'wygasly';
+      final adapter = ScriptedAdapter.script([
+        (_) => _json('{"detail":"expired"}', 401),
+        (_) => _json('{}', 200),
+      ]);
+      final client = _client(
+        mode: AuthMode.jwt,
+        store: store,
+        adapter: adapter,
+        refreshAuth: () async => 'swiezy',
+      );
+
+      final res = await postFile<dynamic>(
+        client.dio,
+        '/api/v1/upload',
+        filePath: file.path,
+        filename: 'a.3mf',
+      );
+
+      expect(res.statusCode, 200);
+      expect(adapter.requests, hasLength(2));
+      expect(adapter.requests[1].headers['Authorization'], 'Bearer swiezy');
+    });
+  });
+
+  // The retry carries the token the refresh returned, not whatever the store
+  // holds: here the store is never updated, so reading it again would send the
+  // expired one.
+  test('the retry uses the token refreshAuth returned', () async {
+    store.jwt = 'wygasly';
+    final adapter = ScriptedAdapter.script([
+      (_) => _json('{"detail":"expired"}', 401),
+      (_) => _json('[]', 200),
+    ]);
+    final client = _client(
+      mode: AuthMode.jwt,
+      store: store,
+      adapter: adapter,
+      refreshAuth: () async => 'swiezy',
+    );
+
+    await client.dio.get<dynamic>('/api/v1/printers');
+
     expect(adapter.requests[1].headers['Authorization'], 'Bearer swiezy');
   });
 

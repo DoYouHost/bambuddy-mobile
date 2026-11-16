@@ -1417,7 +1417,7 @@
   "navFilaments": "Filaments",
   "inventoryEmpty": "Aucune bobine dans l'inventaire",
   "inventoryNoMatches": "Aucun filament ne correspond à votre recherche",
-  "inventorySearchHint": "Rechercher un matériau, une marque, une couleur…",
+  "inventorySearchHint": "Rechercher un ID, un matériau, une marque, une couleur…",
   "inventoryLowStock": "Faible",
   "inventoryFilters": "Filtres",
   "inventoryFilterStatus": "Statut",
@@ -4953,5 +4953,10 @@
   "aiDetectionTipError": "La détection d'échec par IA ne vérifie pas cette impression : {reason}",
   "aiDetectionTipErrorNoReason": "La détection d'échec par IA ne vérifie pas cette impression",
   "aiDetectionTipStarting": "Détection d'échec par IA : en attente du premier résultat",
-  "aiDetectionLimitReached": "limite d'utilisation atteinte"
+  "aiDetectionLimitReached": "limite d'utilisation atteinte",
+  "notifLowStockTitle": "Filament bas en dessous de {percent} %",
+  "notifLowStockDesc": "Défini sur le serveur pour tous. Le seuil propre à une bobine prévaut.",
+  "notifLowStockEdit": "Modifier le seuil de filament bas",
+  "notifLowStockInputLabel": "Pourcentage du poids de l'étiquette",
+  "notifLowStockInvalid": "Saisissez un nombre de 0,1 à 99,9."
 }
