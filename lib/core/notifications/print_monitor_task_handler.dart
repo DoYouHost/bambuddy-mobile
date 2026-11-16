@@ -265,7 +265,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Maintenance: REST monitor (if enabled) + reminder after print.
     // Set up before [PrintMonitor] to wire the `onPrintEnded` callback.
-    _setUpMaintenance(api, notify, prefs, notifPrefs);
+    _setUpMaintenance(api, notify, prefs, notifPrefs, profile.baseUrl);
     _setUpPauseLead(api);
 
     // Fetched only when a location is excluded: nothing else needs the list here.
@@ -507,6 +507,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     NotificationService notify,
     SharedPreferences prefs,
     NotificationPrefs notifPrefs,
+    String serverUrl,
   ) {
     // The one place `maintenanceDue` being off is decided: the monitor is never
     // built, so its own gates can never report it. The session snapshot in
@@ -518,6 +519,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       notify,
       repo: MaintenanceRepository(api.dio),
       prefs: notifPrefs,
+      serverUrl: serverUrl,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
       persist: settings.saveNotifiedMaintenanceDueIds,
       // The point of this callback: "Mark Done" runs in another isolate, so its

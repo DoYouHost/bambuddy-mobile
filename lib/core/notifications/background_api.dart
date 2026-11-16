@@ -28,8 +28,8 @@ import '../diagnostics/diagnostics_wiring.dart';
 /// outlives a switch to another server, where the same id is somebody else's.
 String serverTag(String baseUrl) => stableDigest(baseUrl).toRadixString(16);
 
-/// Action ID for "Mark Done" in maintenance notifications.
-/// The notification payload carries a comma-separated list of item IDs to reset.
+/// Action ID for "Mark Done" in maintenance notifications; the items to reset
+/// travel in the payload ([maintenancePayload]).
 const String maintenancePerformActionId = 'maint_perform';
 
 /// Action IDs on an HMS alert are `hms:<HMSAction>`; the fault they apply to
@@ -65,16 +65,32 @@ parseHmsPayload(String? payload) {
   );
 }
 
-String maintenancePayload(Iterable<int> itemIds) => itemIds.join(',');
+/// Payload of a maintenance alert: `maint:<id,id,…>:<server>`. Item ids are
+/// autoincrement rows, so the [serverTag] is what keeps "Mark Done" from
+/// resetting another server's counter.
+String maintenancePayload(Iterable<int> itemIds, {required String serverUrl}) =>
+    'maint:${itemIds.join(',')}:${serverTag(serverUrl)}';
 
-List<int> parseMaintenancePayload(String? payload) {
-  if (payload == null || payload.isEmpty) return const [];
+/// The items a maintenance payload names. `server` is null for the bare id
+/// list builds before the server tag wrote: such an alert is still on screen
+/// after the update, and its button keeps working as it did.
+({List<int> itemIds, String? server}) parseMaintenancePayload(String? payload) {
+  const none = (itemIds: <int>[], server: null);
+  if (payload == null || payload.isEmpty) return none;
+  var list = payload;
+  String? server;
+  if (payload.startsWith('maint:')) {
+    final parts = payload.split(':');
+    if (parts.length != 3 || parts[2].isEmpty) return none;
+    list = parts[1];
+    server = parts[2];
+  }
   final ids = <int>[];
-  for (final part in payload.split(',')) {
+  for (final part in list.split(',')) {
     final id = int.tryParse(part.trim());
     if (id != null) ids.add(id);
   }
-  return ids;
+  return (itemIds: ids, server: server);
 }
 
 /// The [AuthService] the isolates without Riverpod build; both leave the same mark in
@@ -336,13 +352,18 @@ Future<void> handleHmsAction(NotificationResponse response) async {
 /// set, dismisses. Errors are swallowed (docs/notification-delivery.md, "Button taps").
 Future<void> handleMaintenanceAction(NotificationResponse response) async {
   if (response.actionId != maintenancePerformActionId) return;
-  final itemIds = parseMaintenancePayload(response.payload);
+  final (:itemIds, :server) = parseMaintenancePayload(response.payload);
   if (itemIds.isEmpty) return;
 
   await _runAction(
     maintenancePerformActionId,
     items: itemIds.length,
     run: (prefs, api) async {
+      if (server != null && !_isServer(prefs, server)) {
+        NotifProbe.actionFailed(const ServerChanged(), items: itemIds.length);
+        await _cancel(response.id);
+        return;
+      }
       final repo = MaintenanceRepository(api.dio);
       var anyPerformed = false;
       for (final id in itemIds) {

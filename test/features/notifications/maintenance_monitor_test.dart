@@ -83,6 +83,7 @@ void main() {
     repo: repo,
     prefs:
         prefs ?? const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
+    serverUrl: _server,
     initialNotified: persisted,
     persist: (s) async => persisted = {...s},
     reload: reload,
@@ -104,7 +105,7 @@ void main() {
 
     expect(notifications.alerts, hasLength(1));
     final alert = notifications.alerts.single;
-    expect(alert['payload'], '10');
+    expect(alert['payload'], maintenancePayload([10], serverUrl: _server));
     expect(alert['actionIds'], [maintenancePerformActionId]);
     expect(persisted, {10});
   });
@@ -259,7 +260,10 @@ void main() {
 
       final alert = notifications.alerts.single;
       expect(alert['id'], 13 * alertBandWidth + 1);
-      expect(alert['payload'], '10,12');
+      expect(
+        alert['payload'],
+        maintenancePayload([10, 12], serverUrl: _server),
+      );
       expect(alert['actionIds'], [maintenancePerformActionId]);
     },
   );
@@ -287,7 +291,7 @@ void main() {
       await monitor().remindOnPrintEnd(1);
 
       final alert = notifications.alerts.single;
-      expect(alert['payload'], '12');
+      expect(alert['payload'], maintenancePayload([12], serverUrl: _server));
     },
   );
 
@@ -397,3 +401,5 @@ void main() {
     });
   });
 }
+
+const _server = 'http://192.168.1.10:8000';

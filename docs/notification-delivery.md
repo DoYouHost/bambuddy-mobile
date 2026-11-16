@@ -129,14 +129,18 @@ Riverpod or the UI.
 - **HMS actions** (`handleHmsAction`): stopping a print never runs from a
   notification. A tap that abandons hours of printing has to be confirmed and a
   notification has nowhere to ask, so that button brings the app up and the
-  request is parked in `hmsStopRequests` for the shell. **Known gap:** an HMS action
-  answered after the user switched servers sends its command to the *new* server's
-  printer with the same id, because the action payload carries no server tag (the
-  print-outcome notification has one).
+  request is parked in `hmsStopRequests` for the shell. The payload carries a
+  server tag, so an action answered after the user switched servers sends
+  nothing and takes the alert away: the same printer id there is another
+  machine. A payload without the tag, from a build before it, is ignored.
 - **Maintenance "Mark Done"** rebuilds everything from scratch (prefs, client,
   repository), resets the item counter, removes the items from the dedup set
   (re-arm for future alerts) and dismisses the notification. All errors are
-  swallowed: the callback must not throw.
+  swallowed: the callback must not throw. The payload is
+  `maint:<ids>:<server tag>`: item ids are autoincrement rows, so a tap after a
+  switch to another server resets nothing and only takes the alert away. A bare
+  id list is an alert posted by a build before the tag; it is still accepted, so
+  a button already on screen keeps working across the update.
 
 ## Which HMS faults count (`hms_catalog.dart`)
 
