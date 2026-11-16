@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../settings/settings_repository.dart';
 import 'notification_prefs.dart';
 import 'notification_service.dart';
 
@@ -137,21 +139,47 @@ class FinishAlertMemory {
   /// that a photo arriving now belongs to a different print.
   final Duration window;
 
-  static const _key = 'finish_alert_last';
+  static const _key = SettingsRepository.finishAlertKey;
 
   /// The events a finish photo can be attached to. A failed print is the one
   /// where the photo is worth the most — it shows what went wrong.
   static const events = {NotifEvent.printFinished, NotifEvent.printFailed};
 
+  /// Every write in this isolate, in turn. A write is a read of the whole map,
+  /// a change and a write of the whole map, and two that interleave drop one
+  /// entry — measured: eight prints ending together kept one. Static because
+  /// one isolate holds several instances over the same key.
+  static Future<void> _writes = Future.value();
+
+  /// How long the queue waits on one write. Far above a preferences round
+  /// trip, which is milliseconds; short enough to still catch the photo.
+  @visibleForTesting
+  static Duration writeTimeout = const Duration(seconds: 10);
+
+  /// A write that failed or never answered must not hold up the ones behind
+  /// it: the queue is the isolate's, and one hung platform call would end
+  /// every later write for as long as it lives. The clock starts with the
+  /// write's turn, not when it was queued, or the ones waiting behind a slow
+  /// write would all time out together and run into each other.
+  Future<void> _inTurn(Future<void> Function() write) {
+    final done = _writes.then((_) => write().timeout(writeTimeout));
+    _writes = done.catchError((Object _) {});
+    return done;
+  }
+
+  Future<void> _write(Map<String, PostedAlert> all) => _prefs.setString(
+    _key,
+    jsonEncode({for (final e in all.entries) e.key: e.value.toJson()}),
+  );
+
   Future<void> remember(PostedAlert alert) async {
     if (!events.contains(alert.event)) return;
-    final all = await _read();
-    all.removeWhere((_, a) => _expired(a, alert.postedAt));
-    all['${alert.printerId}'] = alert;
-    await _prefs.setString(
-      _key,
-      jsonEncode({for (final e in all.entries) e.key: e.value.toJson()}),
-    );
+    await _inTurn(() async {
+      final all = await _read();
+      all.removeWhere((_, a) => _expired(a, alert.postedAt));
+      all['${alert.printerId}'] = alert;
+      await _write(all);
+    });
   }
 
   /// The alert still worth updating for [printerId] at [now], or null.
@@ -176,14 +204,11 @@ class FinishAlertMemory {
   ];
 
   /// Drops the entry once its notification is gone — swiped away or answered.
-  Future<void> forget(int printerId) async {
+  Future<void> forget(int printerId) => _inTurn(() async {
     final all = await _read();
     if (all.remove('$printerId') == null) return;
-    await _prefs.setString(
-      _key,
-      jsonEncode({for (final e in all.entries) e.key: e.value.toJson()}),
-    );
-  }
+    await _write(all);
+  });
 
   bool _expired(PostedAlert alert, DateTime now) =>
       now.difference(alert.postedAt) > window;

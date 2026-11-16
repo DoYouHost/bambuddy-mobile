@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -60,7 +62,9 @@ void main() {
           authMode: AuthMode.none,
         ),
       );
-      await settings.saveNotifiedMaintenanceDueIds({10});
+      await settings.saveNotifiedMaintenanceDueIds({
+        10,
+      }, serverUrl: DemoConfig.baseUrl);
     });
 
     NotificationResponse tap(String payload) => NotificationResponse(
@@ -95,6 +99,57 @@ void main() {
       await handleMaintenanceAction(tap('10'));
 
       expect(settings.maintenanceDirty(), isTrue);
+    });
+  });
+
+  // The reset is a request, and the app can be switched to another server
+  // while it is in the air. What the handler does to the dedup set afterwards
+  // would be done to the new server's set.
+  group('a server change while Mark Done is in flight', () {
+    late HttpServer server;
+    late SettingsRepository settings;
+    late String url;
+
+    setUp(() async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      // The binding answers every request with a 400 of its own.
+      HttpOverrides.global = null;
+      SharedPreferences.setMockInitialValues({});
+      settings = SettingsRepository(await SharedPreferences.getInstance());
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      url = 'http://127.0.0.1:${server.port}';
+      await settings.saveProfile(
+        ServerProfile(baseUrl: url, authMode: AuthMode.none),
+      );
+      server.listen((request) async {
+        // The other server's own announced items, written as the UI would.
+        await settings.saveProfile(
+          const ServerProfile(baseUrl: _other, authMode: AuthMode.none),
+        );
+        await settings.saveNotifiedMaintenanceDueIds({
+          10,
+          12,
+        }, serverUrl: _other);
+        request.response.headers.contentType = ContentType.json;
+        request.response.write('{}');
+        await request.response.close();
+      });
+    });
+
+    tearDown(() => server.close(force: true));
+
+    test('leaves the new server\'s dedup set alone', () async {
+      await handleMaintenanceAction(
+        NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotificationAction,
+          id: 1,
+          actionId: maintenancePerformActionId,
+          payload: maintenancePayload([10], serverUrl: url),
+        ),
+      );
+
+      expect(settings.loadNotifiedMaintenanceDueIds(), {10, 12});
     });
   });
 }

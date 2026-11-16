@@ -62,9 +62,11 @@ void main() {
   AlertPicture? picture;
   bool enabled = true;
 
-  /// Fires during the picture fetch — where the test slips in whatever the user
-  /// might do over those dozen-odd seconds.
-  void Function()? duringPictureFetch;
+  /// Runs during the picture fetch — where the test slips in whatever the user
+  /// might do over those dozen-odd seconds. Awaited: the download takes long
+  /// enough for it to have finished, and a write still in the air would only
+  /// test which microtask runs first.
+  FutureOr<void> Function()? duringPictureFetch;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -101,7 +103,7 @@ void main() {
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
-        duringPictureFetch?.call();
+        await duringPictureFetch?.call();
         return picture;
       },
       notifications: notifications,
@@ -132,7 +134,7 @@ void main() {
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
-        duringPictureFetch?.call();
+        await duringPictureFetch?.call();
         return picture;
       },
       notifications: notifications,
@@ -344,10 +346,8 @@ void main() {
     // photo; re-posting what it read before the download would take them off.
     testAt('buttons added during the photo download survive it', (_) async {
       await memory.remember(_alert());
-      duringPictureFetch = () => unawaited(
-        memory.remember(
-          _alert().copyWith(payload: 'outcome:82:ab', actions: buttons),
-        ),
+      duringPictureFetch = () => memory.remember(
+        _alert().copyWith(payload: 'outcome:82:ab', actions: buttons),
       );
 
       await send(photoFrame);
@@ -500,6 +500,19 @@ void main() {
     await send(photoFrame);
 
     expect(notifications.alerts, isEmpty);
+  });
+
+  // A server change drops the memory while the download is still running; the
+  // copy the notifier read before it must not be written back for the next
+  // server, where printer 3 is another machine.
+  testAt('an entry forgotten DURING the fetch is not written back', (_) async {
+    await memory.remember(_alert());
+    duringPictureFetch = () => memory.forget(3);
+
+    await send(photoFrame);
+
+    expect(notifications.alerts, isEmpty);
+    expect(await memory.entries(), isEmpty);
   });
 
   testAt('a notification dismissed DURING the fetch → also not resurrected', (

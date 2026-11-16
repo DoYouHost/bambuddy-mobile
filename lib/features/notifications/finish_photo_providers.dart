@@ -18,6 +18,10 @@ import '../dashboard/ws_providers.dart';
 /// as the service takes over and start it again only once the service is down.
 /// Overlapping them would fetch every photo twice and let their read-modify-write
 /// on the shared memory drop an entry, stranding a notification without a photo.
+///
+/// Built stopped for that reason: the dashboard starts it, and only once it has
+/// seen the service down. On a cold start it is built a frame before a service
+/// that survived a swipe-away can be stopped.
 final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
@@ -48,7 +52,7 @@ final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
     // Read per frame rather than captured: this provider outlives a trip to the
     // settings screen, and the switch there is meant to take effect at once.
     isEnabled: () => settings.loadNotificationPrefs().finishPhoto,
-  )..start();
+  );
   ref.onDispose(notifier.stop);
   return notifier;
 });

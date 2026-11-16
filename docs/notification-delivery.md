@@ -141,6 +141,31 @@ Riverpod or the UI.
   switch to another server resets nothing and only takes the alert away. A bare
   id list is an alert posted by a build before the tag; it is still accepted, so
   a button already on screen keeps working across the update.
+- **A server change forgets what is remembered by row id**
+  (`SettingsRepository._forgetServerState`): the maintenance dedup set and the
+  finish-alert memory. The next server reuses the numbers, so an id announced
+  on the old one would silence a due item on the new one for as long as it
+  stays due. Saving the same server again (a sign-in after the session lapsed)
+  keeps both; signing out does not, and the overdue items are announced once
+  more after the next sign-in.
+  A write that began on the old server is refused instead of landing in the
+  new one's set: `saveNotifiedMaintenanceDueIds` takes the server it is for,
+  and a maintenance check or a "Mark Done" still in flight across the change
+  writes nothing.
+- **`FinishAlertMemory` writes go one at a time per isolate.** Each is a read
+  of the whole map, a change and a write of the whole map; eight prints ending
+  together used to keep one entry. The queue is static because one isolate
+  holds several instances over the same key. It does not reach across
+  isolates, which is why only one finish-photo notifier may run: the UI's is
+  built stopped and the dashboard starts it once the service is down.
+  The queue gives up on one write after 10 s, so a platform call that never
+  answers costs that entry and not every one after it.
+- **Service starts and stops are queued** (`DashboardScreen._serviceTurn`).
+  Each is a platform call that takes time: a stop that overtook the start it
+  followed found nothing to stop and left the service running under a
+  foreground app, and a stop that landed after the next pause started the UI's
+  relay and photo hunt in the background. The second is what
+  `_lifecycleEpoch` refuses.
 
 ## Which HMS faults count (`hms_catalog.dart`)
 

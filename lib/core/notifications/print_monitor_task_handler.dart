@@ -521,7 +521,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       serverUrl: serverUrl,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
-      persist: settings.saveNotifiedMaintenanceDueIds,
+      persist: (ids) =>
+          settings.saveNotifiedMaintenanceDueIds(ids, serverUrl: serverUrl),
       // The point of this callback: "Mark Done" runs in another isolate, so its
       // removal only exists on disk, and this handle would keep serving the set
       // this isolate started with — the re-arm would be invisible here.

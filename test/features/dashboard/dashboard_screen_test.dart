@@ -85,7 +85,9 @@ late SharedPreferences _prefs;
 /// Background service with no Android underneath — the lifecycle tests check who
 /// the dashboard hands work to and takes it back from, not the service itself.
 class _FakeBackgroundMonitor implements BackgroundMonitor {
-  _FakeBackgroundMonitor({this.running = false});
+  _FakeBackgroundMonitor({this.running = false, this.onStop});
+
+  final void Function()? onStop;
 
   /// Whether Android is keeping the service alive from a previous app launch.
   final bool running;
@@ -96,8 +98,40 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   @override
   Future<bool> stop() async {
     stops++;
+    onStop?.call();
     // What the real one answers: whether there was a service to stop.
     return running;
+  }
+
+  @override
+  Future<bool> isRunning() async => running;
+  @override
+  void sync(BackgroundSync what) {}
+}
+
+/// A service whose start and stop take as long as the test says, and which
+/// answers `stop` as the real one does: by whether one is running right then.
+class _SlowBackgroundMonitor implements BackgroundMonitor {
+  _SlowBackgroundMonitor({this.running = false});
+
+  bool running;
+  Completer<void>? startGate;
+  Completer<void>? stopGate;
+
+  @override
+  Future<bool> start() async {
+    if (running) return false;
+    await startGate?.future;
+    running = true;
+    return true;
+  }
+
+  @override
+  Future<bool> stop() async {
+    if (!running) return false;
+    await stopGate?.future;
+    running = false;
+    return true;
   }
 
   @override
@@ -136,7 +170,7 @@ class _GatedCredentialsStore extends InMemoryCredentialsStore {
 }
 
 class _SpyFinishPhoto extends FinishPhotoNotifier {
-  _SpyFinishPhoto()
+  _SpyFinishPhoto({this.onStart})
     : super(
         updates: const Stream<WsArchiveUpdated>.empty(),
         fetchArchive: (_) async => null,
@@ -147,11 +181,15 @@ class _SpyFinishPhoto extends FinishPhotoNotifier {
         isEnabled: () => true,
       );
 
+  final void Function()? onStart;
   int starts = 0;
   int stops = 0;
 
   @override
-  void start() => starts++;
+  void start() {
+    starts++;
+    onStart?.call();
+  }
 
   @override
   Future<void> stop() async => stops++;
@@ -1081,19 +1119,141 @@ void main() {
       AppLifecycleState.paused,
     ];
 
+    // The provider builds it stopped; the first frame starts it.
+    expect(spy.starts, 1);
+
     await drive(toBackground);
     expect(spy.stops, 1, reason: 'the background service takes over the hunt');
-    expect(spy.starts, 0);
+    expect(spy.starts, 1);
 
     await drive(const [
       AppLifecycleState.hidden,
       AppLifecycleState.inactive,
       AppLifecycleState.resumed,
     ]);
-    expect(spy.starts, 1, reason: 'only once the service is already stopped');
+    expect(spy.starts, 2, reason: 'only once the service is already stopped');
 
     // Returning resumed polling; without this its timers outlive the widget tree.
     await drive(toBackground);
+  });
+
+  testWidgets('a service that survived the last launch is stopped before the '
+      'photo hunt starts', (tester) async {
+    // Both write one read-modify-write memory. The hunt used to start as its
+    // provider was built, a frame before the survivor could be stopped.
+    final order = <String>[];
+    final spy = _SpyFinishPhoto(onStart: () => order.add('hunt'));
+    final monitor = _FakeBackgroundMonitor(
+      running: true,
+      onStop: () => order.add('service stopped'),
+    );
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+        ),
+        extra: [
+          backgroundMonitorProvider.overrideWithValue(monitor),
+          finishPhotoNotifierProvider.overrideWithValue(spy),
+          wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(order, ['service stopped', 'hunt']);
+  });
+
+  // Starting and stopping the service are platform calls that take time, and
+  // the app can change its mind before one lands. Whichever isolate ends up
+  // running, it must be exactly one.
+  group('a lifecycle change before the last one landed', () {
+    const toBackground = [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+    ];
+    const toForeground = [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ];
+
+    late _SpyFinishPhoto spy;
+
+    Future<void> launch(WidgetTester tester, BackgroundMonitor monitor) async {
+      spy = _SpyFinishPhoto();
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(
+            printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+          ),
+          extra: [
+            backgroundMonitorProvider.overrideWithValue(monitor),
+            finishPhotoNotifierProvider.overrideWithValue(spy),
+            wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> drive(
+      WidgetTester tester,
+      List<AppLifecycleState> states,
+    ) async {
+      for (final s in states) {
+        tester.binding.handleAppLifecycleStateChanged(s);
+      }
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('paused again while the stop is in the air', (tester) async {
+      final monitor = _SlowBackgroundMonitor();
+      await launch(tester, monitor);
+      await drive(tester, toBackground);
+      final startsBefore = spy.starts;
+
+      monitor.stopGate = Completer<void>();
+      await drive(tester, toForeground);
+      await drive(tester, toBackground);
+      monitor.stopGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(spy.starts, startsBefore, reason: 'the app is in the background');
+      expect(monitor.running, isTrue, reason: 'and the service has to watch');
+    });
+
+    testWidgets('paused while a surviving service is being stopped', (
+      tester,
+    ) async {
+      final monitor = _SlowBackgroundMonitor(running: true)
+        ..stopGate = Completer<void>();
+      await launch(tester, monitor);
+
+      await drive(tester, toBackground);
+      monitor.stopGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(spy.starts, 0, reason: 'the app is in the background');
+      expect(monitor.running, isTrue, reason: 'and the service has to watch');
+    });
+
+    testWidgets('resumed while the start is in the air', (tester) async {
+      final monitor = _SlowBackgroundMonitor();
+      await launch(tester, monitor);
+
+      monitor.startGate = Completer<void>();
+      await drive(tester, toBackground);
+      await drive(tester, toForeground);
+      monitor.startGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(monitor.running, isFalse, reason: 'the app is in the foreground');
+
+      // Returning resumed polling; without this its timers outlive the tree.
+      await drive(tester, toBackground);
+    });
   });
 
   group('the service lane in the log', () {

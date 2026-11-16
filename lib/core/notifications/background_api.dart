@@ -364,6 +364,8 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
         await _cancel(response.id);
         return;
       }
+      // The server these resets go to; the profile can change while they run.
+      final serverUrl = SettingsRepository(prefs).loadProfile()?.baseUrl ?? '';
       final repo = MaintenanceRepository(api.dio);
       var anyPerformed = false;
       for (final id in itemIds) {
@@ -384,7 +386,10 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
       // learns the counter never reset.
       final notified = settings.loadNotifiedMaintenanceDueIds()
         ..removeAll(itemIds);
-      await settings.saveNotifiedMaintenanceDueIds(notified);
+      await settings.saveNotifiedMaintenanceDueIds(
+        notified,
+        serverUrl: serverUrl,
+      );
       // Signal to UI: server state changed outside the app.
       // Maintenance screen will fetch fresh data on return instead of polling.
       if (anyPerformed) await settings.setMaintenanceDirty(true);

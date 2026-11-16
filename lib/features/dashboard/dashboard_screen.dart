@@ -70,6 +70,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Set from the listener, read by the warning, so only one of the two speaks.
   bool _authExpiredHandled = false;
 
+  /// Whether the background service is known to be stopped, so the UI's
+  /// finish-photo notifier may run. False until the first frame has dealt with
+  /// a service that survived the last launch, and while this one is paused.
+  bool _serviceDown = false;
+
+  /// The tail of [_serviceTurn]'s queue.
+  Future<void> _serviceChanges = Future.value();
+
+  /// Counts pauses and resumes, so a callback that outlived the transition it
+  /// was started for can tell and stand down.
+  int _lifecycleEpoch = 0;
+
   static const _onboardingFlag = 'notif_onboarded';
 
   @override
@@ -87,10 +99,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // - Resume: stop service, REST backfill, reconnect WS UI.
     _lifecycle = AppLifecycleListener(
       onPause: () {
+        _lifecycleEpoch++;
         if (ref.read(bgMonitoringEnabledProvider)) {
           final monitor = ref.read(backgroundMonitorProvider);
           unawaited(
-            monitor.start().then((started) {
+            _serviceTurn(monitor.start).then((started) {
               // Recorded from here, the one isolate that is certainly able to
               // write. The service's own stream gives up silently in several
               // cases (no writable directory, a session past its five minutes, a
@@ -123,14 +136,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // same archives and, worse, both write the shared alert memory — a
         // read-modify-write, so the loser's entry is dropped and its photo never
         // reaches the notification.
+        _serviceDown = false;
         final finishPhoto = ref.read(finishPhotoNotifierProvider);
         if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
         // Take the watch relay and the finish-photo search back only once the
         // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
+        final epoch = ++_lifecycleEpoch;
         unawaited(
-          ref.read(backgroundMonitorProvider).stop().then((stopped) {
+          _serviceTurn(ref.read(backgroundMonitorProvider).stop).then((
+            stopped,
+          ) {
             // Only when there was something to stop. With background
             // monitoring switched off the app still asks on every resume, and
             // logging the asking filed a stop for a service that had never
@@ -138,8 +155,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // resumed at all is already recorded: `lifecycle` in the `app`
             // lane.
             if (stopped) _logBgService('ui_stop');
+            // Paused again before the stop landed: both went back to the
+            // service, and taking them here would run each twice.
+            if (!mounted || epoch != _lifecycleEpoch) return;
             unawaited(ref.read(wearRelayHandlerProvider).start());
-            ref.read(finishPhotoNotifierProvider)?.start();
+            _startPhotoHunt();
           }),
         );
         ref.read(dashboardProvider.notifier).resumePolling();
@@ -161,7 +181,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _onFirstFrame() async {
+    final epoch = _lifecycleEpoch;
     await _takeOverFromSurvivingService();
+    // A pause during the takeover handed the hunt to the service; the resume
+    // that follows starts it here.
+    if (mounted && epoch == _lifecycleEpoch) _startPhotoHunt();
     // Before the permission prompt: the tour explains the app the prompt is
     // asking about.
     await _maybeRunTour();
@@ -179,17 +203,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     await settings.saveTourSeen();
   }
 
+  /// Starts the finish-photo notifier, which its provider builds stopped. Only
+  /// ever called with the service down: the two share one memory.
+  void _startPhotoHunt() {
+    _serviceDown = true;
+    ref.read(finishPhotoNotifierProvider)?.start();
+  }
+
   /// Stops a service that outlived the app it was started from.
   ///
   /// Not `onResume`: that fires on a *transition*, and a cold start is already
   /// resumed. A service Android restarted after a swipe-away runs on whatever
   /// it froze at *its* own start-up, and its watch relay answers alongside this
   /// isolate's.
-  Future<void> _takeOverFromSurvivingService() async {
+  Future<void> _takeOverFromSurvivingService() {
     final monitor = ref.read(backgroundMonitorProvider);
-    if (!await monitor.isRunning()) return;
-    _logBgService('ui_stop_survivor');
-    await monitor.stop();
+    return _serviceTurn(() async {
+      if (!await monitor.isRunning()) return;
+      _logBgService('ui_stop_survivor');
+      await monitor.stop();
+    });
+  }
+
+  /// Runs a service start or stop after the one before it has landed. Each is
+  /// a platform call that takes time, and a stop that overtakes the start it
+  /// follows finds nothing to stop and leaves the service running under an
+  /// app that is back in the foreground.
+  Future<T> _serviceTurn<T>(Future<T> Function() change) {
+    final done = _serviceChanges.then((_) => change());
+    _serviceChanges = done.then((_) {}, onError: (Object _) {});
+    return done;
   }
 
   /// Warns once per app open that the server rejected the remembered login.
@@ -504,10 +547,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ref.watch(cameraTokenRefresherProvider)?.start();
     ref.watch(mediaAuthRefresherProvider)?.start();
 
-    // Not read — watched so it exists while this screen (and with it the UI's
-    // socket) does. It waits for the finish photo the server attaches after a
-    // print, which lands once the print-ended notification is already out.
-    ref.watch(finishPhotoNotifierProvider);
+    // It waits for the finish photo the server attaches after a print, which
+    // lands once the print-ended notification is already out. A rebuilt one (a
+    // new socket, a new profile) comes back stopped, hence the listener.
+    ref.listen(finishPhotoNotifierProvider, (_, next) {
+      if (_serviceDown) next?.start();
+    });
 
     // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
     // gives the seamless "designed screen" look through the app bar.
