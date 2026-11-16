@@ -59,9 +59,19 @@ import '../diagnostics/report_config.dart';
 /// during printing, so infrequent checks suffice and don't burden the server.
 const Duration _maintenanceCheckInterval = Duration(minutes: 30);
 
-/// How often the pause warning lead time is read again. An administrator can
-/// change it on the server while the service runs.
+/// How often the pause warning lead time is read again, and the printer list
+/// checked for deletions. An administrator can change the first on the server
+/// while the service runs.
 const Duration _pauseLeadRefreshInterval = Duration(minutes: 30);
+
+/// The printers in [known] that are not on [roster]. The socket never says a
+/// printer was deleted, so the roster the server lists is the only thing that
+/// can end one here (the UI isolate trims by the same list,
+/// `PrinterStatusesNotifier.ingestPoll`).
+Set<int> printersGone(Iterable<int> known, Set<int> roster) => {
+  for (final id in known)
+    if (!roster.contains(id)) id,
+};
 
 /// Entry point for the background isolate. Must be top-level and marked
 /// with `@pragma('vm:entry-point')` — flutter_foreground_task launches it
@@ -92,6 +102,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// [_pauseLeadRefreshInterval], and the server's own default until it answers.
   var _pauseLeadMinutes = QueueSetting.pauseWarningMinutes.serverDefault;
   Timer? _pauseLeadTimer;
+
+  /// Publishes the current statuses to the widgets. Set once the socket is
+  /// wired and cleared in [onDestroy], which is also what tells a roster check
+  /// still waiting on the server that the service is gone.
+  void Function()? _publishWidgets;
   ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
   // Watch relay (plan 05 M-R4): while the app is backgrounded/swiped away this
@@ -268,7 +283,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _setUpMaintenance(api, notify, prefs, notifPrefs, profile.baseUrl);
     _setUpPauseLead(api);
 
-    // Fetched only when a location is excluded: nothing else needs the list here.
+    // Fetched here only when a location is excluded; the 30-minute tick in
+    // [_setUpPauseLead] fetches it as well, to find deleted printers.
     final alarm = notifPrefs.alarm;
     final locations =
         alarm.enabled && alarm.excludedLocations.isNotEmpty && api != null
@@ -327,26 +343,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
                 : null,
           );
     _ws = ws;
-    _sub = ws.statusFrames.listen((frame) {
-      final status = frame.status;
-      _statuses[status.id] = status;
-      _rawStatuses[status.id] = frame.raw;
-      // Guard against a throw inside update (l10n / plugin call) escaping the
-      // stream callback as an uncaught zone error, which would otherwise drop
-      // processing of this frame's downstream effects (widget publish below).
-      try {
-        _monitor?.update(Map.of(_statuses));
-      } on Object catch (error) {
-        // Swallow-and-continue, consistent with the publish guard below — but no
-        // longer in silence: this frame produced no alerts at all, and from the
-        // outside that is indistinguishable from a frame that warranted none.
-        _recording?.store.add(
-          LogSource.fgs,
-          'frame_dropped',
-          lvl: LogLevel.error,
-          fields: {'type': error.runtimeType.toString()},
-        );
-      }
+    void publishWidgets() {
       // Also feed the native home screen widget — background isolate may be the only
       // live source of status when the app is closed. Errors don't break the stream.
       unawaited(
@@ -365,6 +362,34 @@ class PrintMonitorTaskHandler extends TaskHandler {
           describeHms: _hmsCatalog?.describe,
         ).catchError((_) {}),
       );
+    }
+
+    void feed() {
+      // Guard against a throw inside update (l10n / plugin call) escaping the
+      // stream callback as an uncaught zone error, which would otherwise drop
+      // processing of this frame's downstream effects (widget publish below).
+      try {
+        _monitor?.update(Map.of(_statuses));
+      } on Object catch (error) {
+        // Swallow-and-continue, consistent with the publish guard below — but no
+        // longer in silence: this frame produced no alerts at all, and from the
+        // outside that is indistinguishable from a frame that warranted none.
+        _recording?.store.add(
+          LogSource.fgs,
+          'frame_dropped',
+          lvl: LogLevel.error,
+          fields: {'type': error.runtimeType.toString()},
+        );
+      }
+      publishWidgets();
+    }
+
+    _publishWidgets = publishWidgets;
+    _sub = ws.statusFrames.listen((frame) {
+      final status = frame.status;
+      _statuses[status.id] = status;
+      _rawStatuses[status.id] = frame.raw;
+      feed();
     });
     // "Plate not empty" event arrives as a separate frame (not in status) —
     // a real trigger distinct from `awaiting_plate_clear` in status.
@@ -495,11 +520,37 @@ class PrintMonitorTaskHandler extends TaskHandler {
       }
     }
 
+    // The same tick drops printers deleted on the server: this timer exists
+    // whenever there is a client, which the maintenance one does not.
+    final printers = PrintersRepository(api.dio);
+    Future<void> dropRemovedPrinters() async {
+      // Taken before the request: a printer added on the server while it is in
+      // flight sends its first frame into [_statuses], and the list the server
+      // answered with may not have had it yet.
+      final known = _statuses.keys.toSet();
+      final Set<int> roster;
+      try {
+        roster = {for (final p in await printers.fetchPrinters()) p.id};
+      } on Object {
+        // Unreachable or refused says nothing about the printers. Whatever it
+        // wrongly dropped would return with its next frame anyway.
+        return;
+      }
+      // The service ended while the server was answering.
+      if (_publishWidgets == null) return;
+      final gone = printersGone(known, roster);
+      if (gone.isEmpty) return;
+      _statuses.removeWhere((id, _) => gone.contains(id));
+      _rawStatuses.removeWhere((id, _) => gone.contains(id));
+      _monitor?.forget(gone);
+      _publishWidgets?.call();
+    }
+
     unawaited(refresh());
-    _pauseLeadTimer = Timer.periodic(
-      _pauseLeadRefreshInterval,
-      (_) => unawaited(refresh()),
-    );
+    _pauseLeadTimer = Timer.periodic(_pauseLeadRefreshInterval, (_) {
+      unawaited(refresh());
+      unawaited(dropRemovedPrinters());
+    });
   }
 
   void _setUpMaintenance(
@@ -690,6 +741,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    _publishWidgets = null;
     _maintenanceTimer?.cancel();
     _pauseLeadTimer?.cancel();
     _tokenRefresher?.stop();

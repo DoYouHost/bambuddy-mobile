@@ -68,6 +68,25 @@ void main() {
     DateTimeFormats.rememberSystemClock(null);
   });
 
+  // The socket never says a printer was deleted, so the list the server gives
+  // is what ends one in the service. Without it a printer that was printing
+  // when it was deleted stays on the ongoing notification and the widgets.
+  group('printers deleted on the server', () {
+    test('names the ones the server no longer lists', () {
+      expect(printersGone({1, 2, 3}, {1, 3}), {2});
+    });
+
+    test('an empty roster drops everything, a full one nothing', () {
+      expect(printersGone({1, 2}, <int>{}), {1, 2});
+      expect(printersGone({1, 2}, {1, 2}), isEmpty);
+    });
+
+    test('one the service has not heard from is no reason to add one', () {
+      expect(printersGone({1}, {1, 9}), isEmpty);
+      expect(printersGone(<int>{}, {1}), isEmpty);
+    });
+  });
+
   group('the service never outlives what it has to monitor', () {
     test('a start with no profile stops the service', () async {
       // The profile can be cleared while the app is backgrounded. What must not

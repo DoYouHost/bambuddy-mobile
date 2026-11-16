@@ -562,6 +562,79 @@ void main() {
     expect(fake.clearCount, 1);
   });
 
+  // The socket never says a printer was deleted, so the service learns it from
+  // the server's list and tells the monitor with `forget`.
+  group('forget (printers deleted on the server)', () {
+    testAt('the only printing printer going clears the ongoing notification', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
+      expect(fake.clearCount, 0);
+
+      m.forget({1});
+
+      expect(fake.clearCount, 1);
+    });
+
+    testAt('one of two printing machines going re-posts it for the other', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(state: 'RUNNING', progress: 50, remaining: 30, name: 'A'),
+        2: _status(state: 'RUNNING', progress: 20, remaining: 90, name: 'B'),
+      });
+      expect(fake.lastTitle, '2 printing');
+
+      m.forget({1});
+
+      expect(fake.clearCount, 0);
+      expect(fake.lastTitle, isNot('2 printing'));
+      expect(fake.lastProgress, 20, reason: "the other printer's bar");
+    });
+
+    // Not an event: nothing about the printer's end was seen, so nothing is
+    // announced as one.
+    testAt('says nothing about the print it was in the middle of', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
+
+      m.forget({1});
+
+      expect(fake.alerts, isEmpty);
+    });
+
+    // A printer the server lists again is a new one to the monitor, so its
+    // first frame is a baseline: a print that ended while it was away is not
+    // announced as ending now.
+    testAt('a printer that comes back is primed, not alerted about', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 99, remaining: 1)});
+      m.forget({1});
+
+      m.update({1: _status(state: 'FINISH', progress: 100, remaining: 0)});
+
+      expect(fake.alerts, isEmpty);
+    });
+
+    testAt('forgetting nothing, or what was never there, changes nothing', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
+      final posts = fake.ongoingCount;
+
+      m
+        ..forget({})
+        ..forget({9});
+
+      expect(fake.clearCount, 0);
+      expect(fake.ongoingCount, posts);
+    });
+  });
+
   // --- New events (all enabled) ---
 
   PrintMonitor monitorAll(

@@ -487,6 +487,21 @@ class PrintMonitor {
     }
   }
 
+  /// Printers deleted on the server: their timers and memory go, and the
+  /// ongoing notification is worked out again without them. Not [update]: that
+  /// would run every other printer's last frame through the rules as if it had
+  /// just arrived, and reset the clock the HMS memory measures a feed gap by.
+  void forget(Set<int> printerIds) {
+    for (final id in printerIds) {
+      _memo.remove(id)?.dispose();
+    }
+    _latest = {
+      for (final e in _latest.entries)
+        if (!printerIds.contains(e.key)) e.key: e.value,
+    };
+    _updateOngoing(_latest);
+  }
+
   /// Cancels every pending per-printer timer (offline grace, HMS holds), so none
   /// fires into a notification service the torn-down isolate no longer has.
   void dispose() {
