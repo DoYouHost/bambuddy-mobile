@@ -1057,7 +1057,7 @@
   "navFilaments": "Filamenty",
   "inventoryEmpty": "Brak szpul w magazynie",
   "inventoryNoMatches": "Brak filamentów pasujących do wyszukiwania",
-  "inventorySearchHint": "Szukaj: materiał, marka, kolor…",
+  "inventorySearchHint": "Szukaj: ID, materiał, marka, kolor…",
   "inventoryLowStock": "Mało",
   "inventoryFilters": "Filtry",
   "inventoryFilterStatus": "Status",

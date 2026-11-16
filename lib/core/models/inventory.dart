@@ -346,6 +346,11 @@ class Spool {
   bool matchesSearch(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return true;
+    // Web parity (frontend/src/utils/inventorySearch.ts): "#3" is that one
+    // spool, a bare "3" also finds #13 and #30.
+    final exactId = RegExp(r'^#(\d+)$').firstMatch(q);
+    if (exactId != null) return id == int.tryParse(exactId.group(1)!);
+    if ('$id'.contains(q)) return true;
     for (final field in [
       material,
       subtype,
@@ -354,8 +359,12 @@ class Spool {
       storageLocation,
       category,
       materialNumber,
-      for (final link in suppliers ?? const <SpoolSupplierLink>[])
+      note,
+      slicerFilamentName,
+      for (final link in suppliers ?? const <SpoolSupplierLink>[]) ...[
         link.supplierName,
+        link.articleNumber,
+      ],
     ]) {
       if (field != null && field.toLowerCase().contains(q)) return true;
     }

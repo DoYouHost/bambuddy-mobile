@@ -1417,7 +1417,7 @@
   "navFilaments": "Filamentos",
   "inventoryEmpty": "No hay bobinas en el inventario",
   "inventoryNoMatches": "Ningún filamento coincide con tu búsqueda",
-  "inventorySearchHint": "Buscar material, marca, color…",
+  "inventorySearchHint": "Buscar ID, material, marca, color…",
   "inventoryLowStock": "Bajo",
   "inventoryFilters": "Filtros",
   "inventoryFilterStatus": "Estado",

@@ -1417,7 +1417,7 @@
   "navFilaments": "Filaments",
   "inventoryEmpty": "Aucune bobine dans l'inventaire",
   "inventoryNoMatches": "Aucun filament ne correspond à votre recherche",
-  "inventorySearchHint": "Rechercher un matériau, une marque, une couleur…",
+  "inventorySearchHint": "Rechercher un ID, un matériau, une marque, une couleur…",
   "inventoryLowStock": "Faible",
   "inventoryFilters": "Filtres",
   "inventoryFilterStatus": "Statut",

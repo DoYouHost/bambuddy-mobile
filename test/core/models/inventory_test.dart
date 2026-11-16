@@ -253,4 +253,52 @@ void main() {
       expect(normalizeTagUid('0000000000000000'), '0000000000000000');
     });
   });
+  group('Spool.matchesSearch by id', () {
+    Spool spool(int id) =>
+        Spool.fromNative({'id': id, 'material': 'PLA', 'material_number': '9'});
+
+    test('a bare number matches every id containing it', () {
+      expect(spool(23).matchesSearch('23'), isTrue);
+      expect(spool(123).matchesSearch(' 23 '), isTrue);
+      expect(spool(230).matchesSearch('2'), isTrue);
+      expect(spool(24).matchesSearch('23'), isFalse);
+    });
+
+    test('a hash-prefixed number matches that one spool only', () {
+      expect(spool(23).matchesSearch('#23'), isTrue);
+      expect(spool(123).matchesSearch('#23'), isFalse);
+      expect(spool(230).matchesSearch('#23'), isFalse);
+    });
+
+    test('a lone hash or a hash with text is an ordinary text query', () {
+      expect(spool(23).matchesSearch('#'), isFalse);
+      expect(spool(23).matchesSearch('#pla'), isFalse);
+      expect(spool(23).matchesSearch('#99999999999999999999'), isFalse);
+    });
+
+    test('note, slicer preset name and supplier article number match', () {
+      final s = Spool.fromNative({
+        'id': 1,
+        'material': 'PLA',
+        'note': 'Opened in May',
+        'slicer_filament_name': 'Bambu PLA Basic @BBL X1C',
+        'suppliers': [
+          {
+            'supplier_id': 4,
+            'supplier_name': 'Shop',
+            'supplier_article_number': 'ART-77',
+          },
+        ],
+      });
+      expect(s.matchesSearch('opened'), isTrue);
+      expect(s.matchesSearch('@bbl'), isTrue);
+      expect(s.matchesSearch('art-7'), isTrue);
+      expect(s.matchesSearch('art-8'), isFalse);
+    });
+
+    test('text fields still match alongside the id', () {
+      expect(spool(23).matchesSearch('pla'), isTrue);
+      expect(spool(23).matchesSearch('9'), isTrue);
+    });
+  });
 }

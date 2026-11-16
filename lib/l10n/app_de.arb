@@ -1417,7 +1417,7 @@
   "navFilaments": "Filamente",
   "inventoryEmpty": "Keine Spulen im Bestand",
   "inventoryNoMatches": "Keine Filamente entsprechen deiner Suche",
-  "inventorySearchHint": "Material, Marke, Farbe suchen…",
+  "inventorySearchHint": "ID, Material, Marke, Farbe suchen…",
   "inventoryLowStock": "Niedrig",
   "inventoryFilters": "Filter",
   "inventoryFilterStatus": "Status",

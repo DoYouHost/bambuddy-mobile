@@ -1857,7 +1857,7 @@
   },
   "inventoryEmpty": "No spools in inventory",
   "inventoryNoMatches": "No filaments match your search",
-  "inventorySearchHint": "Search material, brand, color…",
+  "inventorySearchHint": "Search ID, material, brand, color…",
   "inventoryLowStock": "Low",
   "inventoryFilters": "Filters",
   "inventoryFilterStatus": "Status",

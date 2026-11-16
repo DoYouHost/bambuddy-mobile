@@ -2871,7 +2871,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryNoMatches => 'Keine Filamente entsprechen deiner Suche';
 
   @override
-  String get inventorySearchHint => 'Material, Marke, Farbe suchen…';
+  String get inventorySearchHint => 'ID, Material, Marke, Farbe suchen…';
 
   @override
   String get inventoryLowStock => 'Niedrig';

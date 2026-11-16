@@ -2860,7 +2860,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryNoMatches => 'Ningún filamento coincide con tu búsqueda';
 
   @override
-  String get inventorySearchHint => 'Buscar material, marca, color…';
+  String get inventorySearchHint => 'Buscar ID, material, marca, color…';
 
   @override
   String get inventoryLowStock => 'Bajo';

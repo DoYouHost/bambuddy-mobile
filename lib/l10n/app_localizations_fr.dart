@@ -2883,7 +2883,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventorySearchHint =>
-      'Rechercher un matériau, une marque, une couleur…';
+      'Rechercher un ID, un matériau, une marque, une couleur…';
 
   @override
   String get inventoryLowStock => 'Faible';

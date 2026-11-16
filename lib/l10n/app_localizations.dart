@@ -4751,7 +4751,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventorySearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search material, brand, color…'**
+  /// **'Search ID, material, brand, color…'**
   String get inventorySearchHint;
 
   /// No description provided for @inventoryLowStock.
