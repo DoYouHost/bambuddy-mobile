@@ -786,7 +786,8 @@ class PrintMonitor {
     }
     memo.paused = status.isPaused;
 
-    // 8) Low filament (hysteresis per tray).
+    // 8) Low filament: the server's rule from the inventory, or this phone's own
+    // per-tray rule when the inventory cannot be read.
     _processLowFilament(id, status, memo);
 
     // 9) High AMS humidity (hysteresis per unit).
@@ -1185,6 +1186,13 @@ class PrintMonitor {
     if (_lowStockSource != LowStockSource.phone) return;
     final threshold = _prefs.lowFilamentThreshold;
     final remains = _trayRemains(status);
+    // A tray reported empty has lost the spool that was said to be low, so the
+    // next one in it is a new alert. Only a tray the frame reports as empty:
+    // one missing from the frame, or a reading gone unknown with the spool
+    // still in, says nothing about the spool.
+    for (final (key, tray) in _trays(status)) {
+      if (_slotEmptied(tray)) memo.lowFilamentTrays.remove(key);
+    }
     var triggered = false;
     int? triggeredRemain;
     for (final entry in remains.entries) {
@@ -1527,33 +1535,47 @@ class PrintMonitor {
     );
   }
 
-  /// Maps filament trays (AMS + external spools) to remaining amount (%).
-  /// Skip `remain == -1` (unknown — no RFID tag) and empty trays.
-  /// Keyed by [globalTrayId], so the latch survives an AMS being re-seated.
-  Map<int, int> _trayRemains(PrinterStatus status) {
-    final out = <int, int>{};
+  /// Whether the printer says this slot holds no spool at all, which is stricter
+  /// than [AmsTray.isEmpty]: a spool it sees but cannot name has a blank type too
+  /// (`emptyKind` "unconfigured"), and so does a slot between two readings while
+  /// the presence bit says it is still occupied. Letting go of the latch on those
+  /// would alert twice for one spool. A colour with alpha 00 and a type is not
+  /// empty either. A tray with no id cannot be told apart from slot 0.
+  bool _slotEmptied(AmsTray t) =>
+      t.id != null &&
+      (t.trayType?.trim().isEmpty ?? true) &&
+      t.exists != true &&
+      t.state != 11;
+
+  /// Every tray the frame reports, AMS units and external spools, by the id the
+  /// low-filament latch is keyed on: [globalTrayId], so the latch survives an AMS
+  /// being re-seated.
+  Iterable<(int, AmsTray)> _trays(PrinterStatus status) sync* {
     final List<AmsUnit> units = status.ams ?? const [];
     for (var u = 0; u < units.length; u++) {
       final int unitId = units[u].id ?? u;
       for (final AmsTray t in units[u].trays ?? const []) {
-        final int? remain = t.remain;
-        if (remain != null && remain >= 0 && !t.isEmpty) {
-          out[globalTrayId(
-                amsId: unitId,
-                trayId: t.id ?? 0,
-                amsType: units[u].amsType,
-              )] =
-              remain;
-        }
+        yield (
+          globalTrayId(
+            amsId: unitId,
+            trayId: t.id ?? 0,
+            amsType: units[u].amsType,
+          ),
+          t,
+        );
       }
     }
     for (final t in status.externalSpools) {
-      final remain = t.remain;
-      if (remain != null && remain >= 0 && !t.isEmpty) {
-        // `vt_tray` already reports the holder's global id.
-        out[t.id ?? externalTrayIdBase] = remain;
-      }
+      // `vt_tray` already reports the holder's global id.
+      yield (t.id ?? externalTrayIdBase, t);
     }
-    return out;
   }
+
+  /// Maps filament trays to remaining amount (%). Skips `remain == -1` (unknown —
+  /// no RFID tag) and empty trays.
+  Map<int, int> _trayRemains(PrinterStatus status) => {
+    for (final (key, t) in _trays(status))
+      if (t.remain case final remain? when remain >= 0 && !t.isEmpty)
+        key: remain,
+  };
 }

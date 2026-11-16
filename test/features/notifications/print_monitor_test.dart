@@ -2683,6 +2683,148 @@ void main() {
     });
   });
 
+  group('low filament, the phone\'s own rule: a slot that is emptied', () {
+    // A spool at 5% alerts; the slot is emptied; another spool, already at 4%,
+    // goes in. The latch used to be released only by a reading at or above the
+    // threshold, which an empty tray never gives, so the second spool said
+    // nothing.
+    List<AmsUnit> slot(AmsTray tray) => [
+      AmsUnit(id: 0, trays: [tray]),
+    ];
+    final low = slot(_tray(remain: 5));
+    final emptied = slot(const AmsTray(id: 0, remain: -1, trayType: ''));
+
+    testAt('another low spool in it alerts', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.update({1: _status(state: 'IDLE', ams: emptied)});
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 4)))});
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('a reading that goes unknown with the spool still in is not it', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      fake.alerts.clear();
+      // `remain` -1 on a tray that still holds filament is a transient.
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: -1)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('a frame with no AMS in it is not it either', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      fake.alerts.clear();
+      m.update({1: _status(state: 'IDLE')});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    // Each of these is a slot that reads blank or odd for a moment with a spool
+    // in it, and must not count as emptied: the same spool would alert again.
+    for (final (name, tray) in <(String, AmsTray)>[
+      (
+        'the presence bit says it is occupied',
+        const AmsTray(id: 0, remain: -1, trayType: '', exists: true),
+      ),
+      (
+        'the firmware says it is loaded',
+        const AmsTray(id: 0, remain: -1, trayType: '', state: 11),
+      ),
+      (
+        'a transparent colour with its type still named',
+        const AmsTray(id: 0, remain: 5, trayType: 'PLA', trayColor: 'FFFFFF00'),
+      ),
+      ('a blank tray with no id', const AmsTray(remain: -1, trayType: '')),
+    ]) {
+      testAt('not while $name', (_) {
+        final fake = RecordingNotifications();
+        final m = monitorAll(fake);
+        m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+        m.update({1: _status(state: 'IDLE', ams: low)});
+        fake.alerts.clear();
+        m.update({1: _status(state: 'IDLE', ams: slot(tray))});
+        m.update({1: _status(state: 'IDLE', ams: low)});
+        expect(alertById(fake, bandId(9)), isNull);
+      });
+    }
+
+    testAt('a blank tray with no id beside a latched slot 0 does not free it', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      final both = [
+        AmsUnit(
+          id: 0,
+          trays: [
+            _tray(remain: 5),
+            const AmsTray(remain: -1, trayType: ''),
+          ],
+        ),
+      ];
+      m.update({1: _status(state: 'IDLE', ams: both)});
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.update({1: _status(state: 'IDLE', ams: both)});
+      m.update({1: _status(state: 'IDLE', ams: both)});
+      expect(alertById(fake, bandId(9)), isNull, reason: 'no alert per frame');
+    });
+
+    testAt('but a slot the presence bit says is empty is', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 50)))});
+      m.update({1: _status(state: 'IDLE', ams: low)});
+      fake.alerts.clear();
+      m.update({
+        1: _status(
+          state: 'IDLE',
+          ams: slot(
+            const AmsTray(id: 0, remain: -1, trayType: '', exists: false),
+          ),
+        ),
+      });
+      m.update({1: _status(state: 'IDLE', ams: slot(_tray(remain: 4)))});
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('and the external spool holder too', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake);
+      m.update({
+        1: _status(state: 'IDLE', vtTray: [_tray(id: 254, remain: 50)]),
+      });
+      m.update({
+        1: _status(state: 'IDLE', vtTray: [_tray(id: 254, remain: 5)]),
+      });
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.update({
+        1: _status(
+          state: 'IDLE',
+          vtTray: [const AmsTray(id: 254, remain: -1, trayType: '')],
+        ),
+      });
+      m.update({
+        1: _status(state: 'IDLE', vtTray: [_tray(id: 254, remain: 4)]),
+      });
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+  });
+
   testAt('high AMS humidity: the edge above the threshold', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);

@@ -246,7 +246,9 @@ Two rules, and one speaks at a time (`LowStockSource` in `low_stock.dart`).
 - **The phone's own, from the AMS reading** (`_processLowFilament`): `remain` of each
   tray against `lowFilamentThreshold`. Only when the inventory cannot be read in this
   session (403, or no such route on an older server), and quiet while the first answer is
-  awaited, so a start does not say it twice.
+  awaited, so a start does not say it twice. A tray is let go (and the next spool in it
+  alerts) when the frame reports it **empty**, not when its reading merely goes unknown
+  with the spool still in, and not when it is missing from the frame.
 
 What the app adds to the server's rule: the first look only records. A service is built on
 every entry into the background, so a spool that was low when it started has been low for
