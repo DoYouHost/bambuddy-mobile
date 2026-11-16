@@ -13,18 +13,10 @@ import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
-import 'package:bambuddy_mobile/core/api/ws_messages.dart';
-import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
-import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
-import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
-import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
-import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
 import 'package:bambuddy_mobile/features/links/external_links_screen.dart'
     show ExternalLinkBadge;
-import 'package:bambuddy_mobile/features/notifications/finish_photo_providers.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
@@ -82,75 +74,6 @@ class _NoopNotifications implements NotificationService {
 
 late SharedPreferences _prefs;
 
-/// Background service with no Android underneath — the lifecycle tests check who
-/// the dashboard hands work to and takes it back from, not the service itself.
-class _FakeBackgroundMonitor implements BackgroundMonitor {
-  _FakeBackgroundMonitor({this.running = false, this.onStop});
-
-  final void Function()? onStop;
-
-  /// Whether Android is keeping the service alive from a previous app launch.
-  final bool running;
-  int stops = 0;
-
-  @override
-  Future<bool> start() async => true;
-  @override
-  Future<bool> stop() async {
-    stops++;
-    onStop?.call();
-    // What the real one answers: whether there was a service to stop.
-    return running;
-  }
-
-  @override
-  Future<bool> isRunning() async => running;
-  @override
-  void sync(BackgroundSync what) {}
-}
-
-/// A service whose start and stop take as long as the test says, and which
-/// answers `stop` as the real one does: by whether one is running right then.
-class _SlowBackgroundMonitor implements BackgroundMonitor {
-  _SlowBackgroundMonitor({this.running = false});
-
-  bool running;
-  Completer<void>? startGate;
-  Completer<void>? stopGate;
-
-  @override
-  Future<bool> start() async {
-    if (running) return false;
-    await startGate?.future;
-    running = true;
-    return true;
-  }
-
-  @override
-  Future<bool> stop() async {
-    if (!running) return false;
-    await stopGate?.future;
-    running = false;
-    return true;
-  }
-
-  @override
-  Future<bool> isRunning() async => running;
-  @override
-  void sync(BackgroundSync what) {}
-}
-
-/// Watch relay stubbed only so it does not reach for the platform channel.
-class _InertWearRelay extends WearRelayHandler {
-  _InertWearRelay() : super(watch: WatchConnectivity(), dio: () => null);
-  @override
-  Future<void> start() async {}
-  @override
-  Future<void> stop() async {}
-}
-
-/// Counts the hand-off alone; what the notifier does inside is covered by its
-/// own test.
 /// A store whose reads park until the test lets them through — a Keystore
 /// taking its time, which is the window a resume can land in.
 class _GatedCredentialsStore extends InMemoryCredentialsStore {
@@ -169,32 +92,6 @@ class _GatedCredentialsStore extends InMemoryCredentialsStore {
   }
 }
 
-class _SpyFinishPhoto extends FinishPhotoNotifier {
-  _SpyFinishPhoto({this.onStart})
-    : super(
-        updates: const Stream<WsArchiveUpdated>.empty(),
-        fetchArchive: (_) async => null,
-        recentArchives: (_) async => const [],
-        fetchPicture: (_, _) async => null,
-        notifications: _NoopNotifications(),
-        memory: FinishAlertMemory(_prefs),
-        isEnabled: () => true,
-      );
-
-  final void Function()? onStart;
-  int starts = 0;
-  int stops = 0;
-
-  @override
-  void start() {
-    starts++;
-    onStart?.call();
-  }
-
-  @override
-  Future<void> stop() async => stops++;
-}
-
 List<Override> _overrides(DashboardState state) => [
   fixedDashboardOverride(state),
   fakeServerProfileOverride(),
@@ -205,9 +102,8 @@ List<Override> _overrides(DashboardState state) => [
   inertExternalLinksOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),
-  // Touched on the very first frame (taking over from a surviving service), so
-  // without a stub every test here would reach for the platform channel.
-  backgroundMonitorProvider.overrideWithValue(_FakeBackgroundMonitor()),
+  // The monitoring switch stops a running service through it.
+  inertBackgroundMonitorOverride,
   notificationServiceProvider.overrideWithValue(_NoopNotifications()),
   wsConnectionStateProvider.overrideWith(
     (ref) => Stream.value(WsConnectionState.connected),
@@ -1016,27 +912,6 @@ void main() {
     );
   });
 
-  testWidgets('a service that outlived the previous launch is stopped', (
-    tester,
-  ) async {
-    // After a swipe-away Android revives the service and it survives the next
-    // launch. `onResume` does not catch it, because that fires on a transition and
-    // a cold start is already "resumed" — so everything it froze at its own start
-    // (notification switches, server profile) would outlive the whole session.
-    final monitor = _FakeBackgroundMonitor(running: true);
-    await tester.pumpWidget(
-      _app(
-        const DashboardState(
-          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-        ),
-        extra: [backgroundMonitorProvider.overrideWithValue(monitor)],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(monitor.stops, 1);
-  });
-
   testWidgets('a refused permission does not spend the one-time onboarding', (
     tester,
   ) async {
@@ -1084,243 +959,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_prefs.getBool('notif_onboarded'), isTrue);
-  });
-
-  testWidgets('the photo hunt yields to the background service and takes it back '
-      'on return', (tester) async {
-    // Both copies at once would fetch the same photo and trample each other's
-    // writes to the shared alert memory — the losing entry disappears and its
-    // notification stays without a photo forever.
-    final spy = _SpyFinishPhoto();
-    await tester.pumpWidget(
-      _app(
-        const DashboardState(
-          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-        ),
-        extra: [
-          finishPhotoNotifierProvider.overrideWithValue(spy),
-          wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // AppLifecycleListener recognises transitions, not states — hence the full path.
-    Future<void> drive(List<AppLifecycleState> states) async {
-      for (final s in states) {
-        tester.binding.handleAppLifecycleStateChanged(s);
-      }
-      await tester.pumpAndSettle();
-    }
-
-    const toBackground = [
-      AppLifecycleState.inactive,
-      AppLifecycleState.hidden,
-      AppLifecycleState.paused,
-    ];
-
-    // The provider builds it stopped; the first frame starts it.
-    expect(spy.starts, 1);
-
-    await drive(toBackground);
-    expect(spy.stops, 1, reason: 'the background service takes over the hunt');
-    expect(spy.starts, 1);
-
-    await drive(const [
-      AppLifecycleState.hidden,
-      AppLifecycleState.inactive,
-      AppLifecycleState.resumed,
-    ]);
-    expect(spy.starts, 2, reason: 'only once the service is already stopped');
-
-    // Returning resumed polling; without this its timers outlive the widget tree.
-    await drive(toBackground);
-  });
-
-  testWidgets('a service that survived the last launch is stopped before the '
-      'photo hunt starts', (tester) async {
-    // Both write one read-modify-write memory. The hunt used to start as its
-    // provider was built, a frame before the survivor could be stopped.
-    final order = <String>[];
-    final spy = _SpyFinishPhoto(onStart: () => order.add('hunt'));
-    final monitor = _FakeBackgroundMonitor(
-      running: true,
-      onStop: () => order.add('service stopped'),
-    );
-    await tester.pumpWidget(
-      _app(
-        const DashboardState(
-          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-        ),
-        extra: [
-          backgroundMonitorProvider.overrideWithValue(monitor),
-          finishPhotoNotifierProvider.overrideWithValue(spy),
-          wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(order, ['service stopped', 'hunt']);
-  });
-
-  // Starting and stopping the service are platform calls that take time, and
-  // the app can change its mind before one lands. Whichever isolate ends up
-  // running, it must be exactly one.
-  group('a lifecycle change before the last one landed', () {
-    const toBackground = [
-      AppLifecycleState.inactive,
-      AppLifecycleState.hidden,
-      AppLifecycleState.paused,
-    ];
-    const toForeground = [
-      AppLifecycleState.hidden,
-      AppLifecycleState.inactive,
-      AppLifecycleState.resumed,
-    ];
-
-    late _SpyFinishPhoto spy;
-
-    Future<void> launch(WidgetTester tester, BackgroundMonitor monitor) async {
-      spy = _SpyFinishPhoto();
-      await tester.pumpWidget(
-        _app(
-          const DashboardState(
-            printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-          ),
-          extra: [
-            backgroundMonitorProvider.overrideWithValue(monitor),
-            finishPhotoNotifierProvider.overrideWithValue(spy),
-            wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-    }
-
-    Future<void> drive(
-      WidgetTester tester,
-      List<AppLifecycleState> states,
-    ) async {
-      for (final s in states) {
-        tester.binding.handleAppLifecycleStateChanged(s);
-      }
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('paused again while the stop is in the air', (tester) async {
-      final monitor = _SlowBackgroundMonitor();
-      await launch(tester, monitor);
-      await drive(tester, toBackground);
-      final startsBefore = spy.starts;
-
-      monitor.stopGate = Completer<void>();
-      await drive(tester, toForeground);
-      await drive(tester, toBackground);
-      monitor.stopGate!.complete();
-      await tester.pumpAndSettle();
-
-      expect(spy.starts, startsBefore, reason: 'the app is in the background');
-      expect(monitor.running, isTrue, reason: 'and the service has to watch');
-    });
-
-    testWidgets('paused while a surviving service is being stopped', (
-      tester,
-    ) async {
-      final monitor = _SlowBackgroundMonitor(running: true)
-        ..stopGate = Completer<void>();
-      await launch(tester, monitor);
-
-      await drive(tester, toBackground);
-      monitor.stopGate!.complete();
-      await tester.pumpAndSettle();
-
-      expect(spy.starts, 0, reason: 'the app is in the background');
-      expect(monitor.running, isTrue, reason: 'and the service has to watch');
-    });
-
-    testWidgets('resumed while the start is in the air', (tester) async {
-      final monitor = _SlowBackgroundMonitor();
-      await launch(tester, monitor);
-
-      monitor.startGate = Completer<void>();
-      await drive(tester, toBackground);
-      await drive(tester, toForeground);
-      monitor.startGate!.complete();
-      await tester.pumpAndSettle();
-
-      expect(monitor.running, isFalse, reason: 'the app is in the foreground');
-
-      // Returning resumed polling; without this its timers outlive the tree.
-      await drive(tester, toBackground);
-    });
-  });
-
-  group('the service lane in the log', () {
-    /// One record per thing that actually happened to the service. The verb
-    /// `ui_stop` used to be written for having *asked*, and the app asks on
-    /// every resume whether or not monitoring is on — so a user with the
-    /// feature switched off collected a stop per foreground/background cycle
-    /// for a service that had never run.
-    Future<String> resumeWith(WidgetTester tester, bool running) async {
-      final recorder = testRecorder();
-      addTearDown(recorder.discard);
-      await recorder.start();
-
-      await tester.pumpWidget(
-        _app(
-          const DashboardState(
-            printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-          ),
-          extra: [
-            backgroundMonitorProvider.overrideWithValue(
-              _FakeBackgroundMonitor(running: running),
-            ),
-            wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // AppLifecycleListener recognises transitions, not states.
-      Future<void> drive(List<AppLifecycleState> states) async {
-        for (final state in states) {
-          tester.binding.handleAppLifecycleStateChanged(state);
-        }
-        await tester.pumpAndSettle();
-      }
-
-      const toBackground = [
-        AppLifecycleState.inactive,
-        AppLifecycleState.hidden,
-        AppLifecycleState.paused,
-      ];
-
-      await drive(toBackground);
-      await drive(const [
-        AppLifecycleState.hidden,
-        AppLifecycleState.inactive,
-        AppLifecycleState.resumed,
-      ]);
-
-      final raw = await recorder.stop();
-      // Resuming restarted polling; parked again so its timers do not outlive
-      // the widget tree. After the recording, so the second pause adds nothing
-      // to what is asserted.
-      await drive(toBackground);
-      return raw;
-    }
-
-    // The exact field, not the bare word: `ui_stop_survivor` contains it.
-    const stopRecord = '"evt":"ui_stop"';
-
-    testWidgets('a resume that stopped nothing writes no stop', (tester) async {
-      expect(await resumeWith(tester, false), isNot(contains(stopRecord)));
-    });
-
-    testWidgets('a resume that really stopped one writes it', (tester) async {
-      expect(await resumeWith(tester, true), contains(stopRecord));
-    });
   });
 
   group('rejected-password warning', () {
@@ -1515,7 +1153,6 @@ void main() {
             extra: [
               fakeServerProfileOverride(authMode: AuthMode.jwt),
               credentialsStoreProvider.overrideWithValue(store),
-              wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
             ],
           ),
         );

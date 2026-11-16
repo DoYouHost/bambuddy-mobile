@@ -60,8 +60,9 @@ guard and would hit the previous server.
 ## Token refreshers
 
 Proactive, so REST and the WebSocket handshake do not hit a 401 we would only
-retry reactively. None of them runs itself: the UI keeps them alive and drives
-them per lifecycle, and the service isolate takes over in the background.
+retry reactively. None of them runs itself: the dashboard's `build` starts them,
+`BackgroundHandover` pauses and resumes them with the app, and the service
+isolate takes over in the background.
 
 - `tokenRefresherProvider`: silent re-login just before expiry. `null` for the
   other two auth modes (an API key is static, a no-auth server has nothing to

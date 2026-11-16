@@ -15,7 +15,6 @@ import '../../core/format/duration_format.dart';
 import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/external_link.dart' show externalLinksBadgeTotal;
 import '../../core/models/printer_status.dart';
-import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/sign_in_reason.dart';
@@ -26,7 +25,6 @@ import '../links/external_links_providers.dart';
 import '../links/external_links_screen.dart' show ExternalLinkBadge;
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
-import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../../core/app_context.dart';
 import 'card_collapse_providers.dart';
@@ -46,6 +44,7 @@ import '../tour/tour_beacon.dart';
 import '../tour/tour_screen.dart';
 import 'widgets/power_breakdown_sheet.dart';
 import 'widgets/printer_card.dart';
+import 'background_handover.dart';
 import 'ws_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -70,107 +69,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Set from the listener, read by the warning, so only one of the two speaks.
   bool _authExpiredHandled = false;
 
-  /// Whether the background service is known to be stopped, so the UI's
-  /// finish-photo notifier may run. False until the first frame has dealt with
-  /// a service that survived the last launch, and while this one is paused.
-  bool _serviceDown = false;
-
-  /// The tail of [_serviceTurn]'s queue.
-  Future<void> _serviceChanges = Future.value();
-
-  /// Counts pauses and resumes, so a callback that outlived the transition it
-  /// was started for can tell and stand down.
-  int _lifecycleEpoch = 0;
-
   static const _onboardingFlag = 'notif_onboarded';
 
   @override
   void initState() {
     super.initState();
     // The tour's dashboard runs over the demo next to the real one, which keeps
-    // owning the background service, the watch relay and the first-run prompts.
+    // owning the first-run prompts and the sign-in warning.
     if (ref.read(tourBeaconProvider) != null) return;
-    // Lifecycle (Model A: background service takes over during background).
-    // - Background: if background monitoring is enabled, start foreground service —
-    //   its separate isolate is the ONLY notification owner with its own
-    //   WS (also catches print START in background). UI goes silent: closes
-    //   socket and stops polling (FGS keeps process alive, so timer would keep
-    //   ticking and hitting server unnecessarily).
-    // - Resume: stop service, REST backfill, reconnect WS UI.
+    // Who watches the printers across pause and resume is the app's
+    // [backgroundHandoverProvider]; this screen only owns the dialog below.
     _lifecycle = AppLifecycleListener(
-      onPause: () {
-        _lifecycleEpoch++;
-        if (ref.read(bgMonitoringEnabledProvider)) {
-          final monitor = ref.read(backgroundMonitorProvider);
-          unawaited(
-            _serviceTurn(monitor.start).then((started) {
-              // Recorded from here, the one isolate that is certainly able to
-              // write. The service's own stream gives up silently in several
-              // cases (no writable directory, a session past its five minutes, a
-              // platform read that failed), and each of them looks exactly like
-              // an app that was never backgrounded. `started` false is not one
-              // of those: it means the service was already running (see
-              // `BackgroundMonitor.start`), which is the case below.
-              _logBgService('ui_start', started: started);
-              // Already running, so its start-up never ran for this recording and
-              // it has no idea one exists. This is the normal state after the
-              // user has swiped the app away once. (The clock format is synced
-              // from `SystemClockSync`, once its own write has landed.)
-              if (!started) monitor.sync(BackgroundSync.diagnostics);
-            }),
-          );
-          // Hand the watch relay over to the FGS isolate. Exactly one
-          // responder may listen at a time — a request answered twice is a
-          // command executed twice (e.g. double startNext).
-          unawaited(ref.read(wearRelayHandlerProvider).stop());
-        }
-        ref.read(printerStatusesProvider.notifier).suspend();
-        ref.read(dashboardProvider.notifier).pausePolling();
-        ref.read(dashboardWatchedProvider.notifier).setForeground(false);
-        // Token refresh in background is handled by FGS isolate — UI is silent.
-        ref.read(tokenRefresherProvider)?.stop();
-        // No thumbnails render in background; FGS cover fetch re-mints reactively.
-        ref.read(cameraTokenRefresherProvider)?.stop();
-        ref.read(mediaAuthRefresherProvider)?.stop();
-        // The service isolate carries its own from here. Both would poll the
-        // same archives and, worse, both write the shared alert memory — a
-        // read-modify-write, so the loser's entry is dropped and its photo never
-        // reaches the notification.
-        _serviceDown = false;
-        final finishPhoto = ref.read(finishPhotoNotifierProvider);
-        if (finishPhoto != null) unawaited(finishPhoto.stop());
-      },
-      onResume: () {
-        // Take the watch relay and the finish-photo search back only once the
-        // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
-        final epoch = ++_lifecycleEpoch;
-        unawaited(
-          _serviceTurn(ref.read(backgroundMonitorProvider).stop).then((
-            stopped,
-          ) {
-            // Only when there was something to stop. With background
-            // monitoring switched off the app still asks on every resume, and
-            // logging the asking filed a stop for a service that had never
-            // run — once per foreground/background cycle. That the app was
-            // resumed at all is already recorded: `lifecycle` in the `app`
-            // lane.
-            if (stopped) _logBgService('ui_stop');
-            // Paused again before the stop landed: both went back to the
-            // service, and taking them here would run each twice.
-            if (!mounted || epoch != _lifecycleEpoch) return;
-            unawaited(ref.read(wearRelayHandlerProvider).start());
-            _startPhotoHunt();
-          }),
-        );
-        ref.read(dashboardProvider.notifier).resumePolling();
-        ref.read(printerStatusesProvider.notifier).resume();
-        ref.read(dashboardWatchedProvider.notifier).setForeground(true);
-        ref.read(tokenRefresherProvider)?.start();
-        ref.read(cameraTokenRefresherProvider)?.start();
-        ref.read(mediaAuthRefresherProvider)?.start();
-        // The background isolate may have met the rejection while we were away.
-        unawaited(_maybeWarnSignInRequired());
-      },
+      // The background isolate may have met the rejection while we were away.
+      onResume: () => unawaited(_maybeWarnSignInRequired()),
     );
     // After first render: one-time notification onboarding (permission +
     // request to allow "Unrestricted" battery usage), then the sign-in warning.
@@ -181,11 +92,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _onFirstFrame() async {
-    final epoch = _lifecycleEpoch;
-    await _takeOverFromSurvivingService();
-    // A pause during the takeover handed the hunt to the service; the resume
-    // that follows starts it here.
-    if (mounted && epoch == _lifecycleEpoch) _startPhotoHunt();
     // Before the permission prompt: the tour explains the app the prompt is
     // asking about.
     await _maybeRunTour();
@@ -201,38 +107,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!settings.tourDue || !mounted) return;
     await TourHost.open(context);
     await settings.saveTourSeen();
-  }
-
-  /// Starts the finish-photo notifier, which its provider builds stopped. Only
-  /// ever called with the service down: the two share one memory.
-  void _startPhotoHunt() {
-    _serviceDown = true;
-    ref.read(finishPhotoNotifierProvider)?.start();
-  }
-
-  /// Stops a service that outlived the app it was started from.
-  ///
-  /// Not `onResume`: that fires on a *transition*, and a cold start is already
-  /// resumed. A service Android restarted after a swipe-away runs on whatever
-  /// it froze at *its* own start-up, and its watch relay answers alongside this
-  /// isolate's.
-  Future<void> _takeOverFromSurvivingService() {
-    final monitor = ref.read(backgroundMonitorProvider);
-    return _serviceTurn(() async {
-      if (!await monitor.isRunning()) return;
-      _logBgService('ui_stop_survivor');
-      await monitor.stop();
-    });
-  }
-
-  /// Runs a service start or stop after the one before it has landed. Each is
-  /// a platform call that takes time, and a stop that overtakes the start it
-  /// follows finds nothing to stop and leaves the service running under an
-  /// app that is back in the foreground.
-  Future<T> _serviceTurn<T>(Future<T> Function() change) {
-    final done = _serviceChanges.then((_) => change());
-    _serviceChanges = done.then((_) {}, onError: (Object _) {});
-    return done;
   }
 
   /// Warns once per app open that the server rejected the remembered login.
@@ -364,22 +238,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) context.go('/setup');
   }
 
-  /// Hands the background service's lifecycle to the log from the UI side, where
-  /// there is always a buffer to write into.
-  ///
-  /// `LogSource.fgs` even though the UI isolate writes it: the source names the
-  /// **subsystem**, not the writer, and a reader who filters the service's lane
-  /// has to see the half of its lifecycle only this side can report. These used
-  /// to file as `app`/`bg_service` with the verb in a field, which split one
-  /// story across two lanes and two grammars.
-  ///
-  /// The `ui_` verbs stay distinct from the service's own `start` / `destroy`:
-  /// "the UI asked" and "the service's start-up ran" are different moments, and
-  /// a report carrying the first without the second is exactly the interesting
-  /// one.
-  void _logBgService(String event, {bool? started}) => DiagnosticRecorder.active
-      ?.add(LogSource.fgs, event, fields: {'started': started});
-
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool(_onboardingFlag) ?? false) return;
@@ -493,15 +351,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool enabled,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
+    // Read before the await: [ref] is the sheet's, gone once it is dismissed.
+    final handover = ref.read(backgroundHandoverProvider);
     await ref.read(bgMonitoringEnabledProvider.notifier).set(enabled);
-    // Disabling takes effect immediately if service is running; enabling
-    // takes effect at next background transition (FGS not needed in foreground).
-    // Its own verb: a service that ends here ends because the user switched it
-    // off, which is the one explanation the service's own `destroy` cannot
-    // carry.
-    if (!enabled && await ref.read(backgroundMonitorProvider).stop()) {
-      _logBgService('ui_stop_disabled');
-    }
+    // Disabling takes effect at once if the service is running; enabling at
+    // the next background transition (no service is needed in the foreground).
+    if (!enabled) await handover.stopDisabledService();
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
     messenger.snack(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff);
   }
@@ -546,13 +401,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ref.watch(tokenRefresherProvider)?.start();
     ref.watch(cameraTokenRefresherProvider)?.start();
     ref.watch(mediaAuthRefresherProvider)?.start();
-
-    // It waits for the finish photo the server attaches after a print, which
-    // lands once the print-ended notification is already out. A rebuilt one (a
-    // new socket, a new profile) comes back stopped, hence the listener.
-    ref.listen(finishPhotoNotifierProvider, (_, next) {
-      if (_serviceDown) next?.start();
-    });
 
     // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
     // gives the seamless "designed screen" look through the app bar.

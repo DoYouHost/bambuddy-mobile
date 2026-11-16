@@ -157,15 +157,30 @@ Riverpod or the UI.
   together used to keep one entry. The queue is static because one isolate
   holds several instances over the same key. It does not reach across
   isolates, which is why only one finish-photo notifier may run: the UI's is
-  built stopped and the dashboard starts it once the service is down.
+  built stopped and `BackgroundHandover` starts it once the service is down.
   The queue gives up on one write after 10 s, so a platform call that never
   answers costs that entry and not every one after it.
-- **Service starts and stops are queued** (`DashboardScreen._serviceTurn`).
+- **Who watches is decided in one place, owned by the app**
+  (`BackgroundHandover`, `lib/features/dashboard/background_handover.dart`,
+  started from `app.dart`). In the foreground this isolate holds the socket,
+  the watch relay and the finish-photo hunt; in the background the service
+  does; never both. It lived in the dashboard's state until a mounted
+  dashboard turned out to be a condition of background monitoring (a `go` to a
+  route outside the tabs backgrounded with no service), and the cold-start
+  order was split over two files: the relay started in `app.dart` before the
+  dashboard's first frame had stopped a service left over from the last
+  launch. Now the survivor is stopped first, then the relay and the hunt are
+  taken.
+- **Service starts and stops are queued** (`BackgroundHandover._serviceTurn`).
   Each is a platform call that takes time: a stop that overtook the start it
   followed found nothing to stop and left the service running under a
   foreground app, and a stop that landed after the next pause started the UI's
-  relay and photo hunt in the background. The second is what
-  `_lifecycleEpoch` refuses.
+  relay and photo hunt in the background. The second is what the epoch check
+  in `_takeBack` refuses.
+- **Providers a screen may never have built are not built by a pause**
+  (`ref.exists`): the dashboard's poll and the status feed are paused only
+  where they exist. The token refreshers are still started by the dashboard's
+  `build`; the hand-over only pauses and resumes them.
 
 ## Which HMS faults count (`hms_catalog.dart`)
 
