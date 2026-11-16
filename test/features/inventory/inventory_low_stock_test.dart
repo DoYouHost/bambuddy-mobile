@@ -60,6 +60,25 @@ void main() {
     expect(badge, findsNothing);
   });
 
+  testWidgets('a spool with no label weight is low, as on the web', (
+    tester,
+  ) async {
+    final container = await pump(tester, [
+      const Spool(id: 1, material: 'PETG', labelWeight: 0),
+    ]);
+    expect(badge, findsOneWidget);
+    // An empty track, not the indeterminate bar a null value animates.
+    expect(
+      tester.widget<DashProgressBar>(find.byType(DashProgressBar)).value,
+      0,
+    );
+    container.read(inventoryFiltersProvider.notifier).state = container
+        .read(inventoryFiltersProvider)
+        .copyWith(lowStockOnly: true);
+    await settle(tester);
+    expect(find.textContaining('#1 ·'), findsOneWidget);
+  });
+
   testWidgets('the server setting moves the line', (tester) async {
     await pump(tester, [spool(1, 850)], settings: {'low_stock_threshold': 10});
     expect(badge, findsNothing);
@@ -104,6 +123,17 @@ void main() {
 
     testWidgets('colours a low spool red', (tester) async {
       expect(await sheetBarColour(tester, spool(1, 850)), isNotNull);
+    });
+
+    testWidgets('colours one with no label weight red too, on an empty bar', (
+      tester,
+    ) async {
+      final bare = Spool(id: 1, material: 'PETG', labelWeight: 0);
+      expect(await sheetBarColour(tester, bare), isNotNull);
+      final bar = tester
+          .widgetList<DashProgressBar>(find.byType(DashProgressBar))
+          .last;
+      expect(bar.value, 0);
     });
 
     testWidgets('does not colour an archived one, as its tile does not', (

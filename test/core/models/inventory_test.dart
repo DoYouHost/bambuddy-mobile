@@ -130,12 +130,17 @@ void main() {
       );
     });
 
-    test('a spool with no label weight has no percentage and is never low', () {
-      expect(spool(label: 0).remainingPercent, isNull);
-      expect(spool(label: 0).isLowStock(20), isFalse);
-      expect(spool(label: 1000, used: 1500).remainingPercent, 0);
-      expect(spool(label: 1000, used: 1500).isLowStock(20), isTrue);
-    });
+    test(
+      'a spool with no label weight has no percentage, and counts as 0%',
+      () {
+        // The web's `label_weight > 0 ? ... : 0`; the alert skips it instead
+        // (`lowStockSlots`, tested with the latch).
+        expect(spool(label: 0).remainingPercent, isNull);
+        expect(spool(label: 0).isLowStock(20), isTrue);
+        expect(spool(label: 1000, used: 1500).remainingPercent, 0);
+        expect(spool(label: 1000, used: 1500).isLowStock(20), isTrue);
+      },
+    );
 
     group('parseLowStockThresholdInput', () {
       test('takes a number the server takes', () {

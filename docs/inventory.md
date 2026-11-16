@@ -120,8 +120,9 @@ first. It was caught only because a mutation survived.
 
 ## What "low" means
 
-One rule in the list, the detail sheet, the Low stock filter and the background alert
-([notification-rules.md](notification-rules.md#low-filament)), copied from the web
+One rule in the list, the detail sheet and the Low stock filter, and the same one in the
+background alert ([notification-rules.md](notification-rules.md#low-filament)) except for
+a spool with no label weight (below), copied from the web
 (`InventoryPage.tsx`) and the server: `remaining / label × 100`, **strictly below** the
 spool's own `low_stock_threshold_pct` or else the server's `low_stock_threshold` (20 when
 unset; `Spool.isLowStock`, `lowStockThresholdProvider`). The app used to hold its own 10
@@ -134,8 +135,11 @@ would disagree with the server's alert at exactly those boundaries.
   has no answer.
 - A zero own threshold falls through to the server's (`pct or global`); the web's `??`
   would keep it, which `schemas/spool.py` (`ge=1`) never lets be stored.
-- A spool with no label weight is never low here and on the server; the web counts it as
-  0% and low. Not copied: a percentage of nothing says nothing.
+- A spool with no label weight counts as 0% and low in the list, the tile and the filter,
+  as on the web (`InventoryPage.tsx`: `label_weight > 0 ? ... : 0`), with an empty bar
+  rather than an indeterminate one, and the sheet without its weight line. The background alert
+  does not: the server's `_remaining_percent` is None for it and never alerts, and
+  `lowStockSlots` skips it the same way, so one spool can read LOW without a notification.
 - The tile and the detail sheet agree that an archived spool is never marked low; the
   filter does not exclude them, as the web's does not.
 

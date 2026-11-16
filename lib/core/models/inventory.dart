@@ -343,11 +343,13 @@ class Spool {
   /// Whether this spool is below its low-stock threshold. Strictly below, like
   /// the web's Low Stock count (`InventoryPage.tsx`: `pct < threshold`) and the
   /// server's alert (`_emit_filament_low`: re-armed at `pct >= threshold`).
-  /// A spool with no label weight has no percentage and is never low.
-  bool isLowStock(double globalThreshold) {
-    final pct = remainingPercent;
-    return pct != null && pct < lowStockThresholdFor(globalThreshold);
-  }
+  ///
+  /// A spool with no label weight counts as 0% and so as low, which is what the
+  /// web does (`InventoryPage.tsx`: `label_weight > 0 ? ... : 0`). The
+  /// background alert does not follow it: the server never alerts on one
+  /// (`_remaining_percent` is None), and `lowStockSlots` skips it the same way.
+  bool isLowStock(double globalThreshold) =>
+      (remainingPercent ?? 0) < lowStockThresholdFor(globalThreshold);
 
   /// Display name for list: brand + material + (subtype).
   String get displayName {
