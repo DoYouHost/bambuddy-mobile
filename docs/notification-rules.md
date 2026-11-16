@@ -260,7 +260,12 @@ The service reads spools, assignments and the threshold (`GET /settings`, or
 `/settings/ui-flags` for a session that may not read the settings) on start, on
 `inventory_changed`, `spool_assignment_changed` and `spool_usage_logged`, on every socket
 reconnect, and every five minutes while a printer prints (`LowStockFeed`). One look at a
-time, a second one queued behind it. The threshold is not a phone preference any more:
+time, a second one queued behind it. The spools come from the assignments, which carry
+their spool on the built-in inventory (the list of every spool is read only for Spoolman,
+whose assignments do not, and merged with what they carry otherwise). So `inventory:read`
+is not needed there, `inventory:view_assignments` is; and with nothing assigned the look
+reads no list at all, so a Spoolman session without `inventory:read` is only found out
+when something is assigned. The threshold is not a phone preference any more:
 it is shown and, for a session that may write server settings, edited on the notification
 settings screen (`LowStockThresholdRow`); the stored `lowFilamentThreshold` stays where it
 is, used by the fallback and by a server that states no threshold.

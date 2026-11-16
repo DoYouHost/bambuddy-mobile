@@ -53,8 +53,17 @@ class LowStockFeed {
         // in a `ParallelWaitError`, which is not the refusal the caller tells
         // from a bad moment, and the fallback to the phone's rule would never
         // happen.
-        final spools = await source.fetchSpools();
         final assignments = await source.fetchAssignments();
+        // The built-in inventory sends each assignment with its spool inside
+        // (`SpoolAssignmentResponse.spool`), which is all the rule reads, so the
+        // list of every spool the user owns (hundreds, with a growing shelf, on
+        // every look) is only asked for what does not carry them: Spoolman's.
+        final embedded = [for (final a in assignments) ?a.spool];
+        // Merged, not replaced, when some do not carry one: what the list lacks
+        // (a spool it does not hold) is still judged from its assignment.
+        final spools = embedded.length == assignments.length
+            ? embedded
+            : [...embedded, ...await source.fetchSpools()];
         final serverSettings = await settings.fetch();
         return (
           spools: spools,

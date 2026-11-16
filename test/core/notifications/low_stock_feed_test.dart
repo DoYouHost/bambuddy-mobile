@@ -226,6 +226,112 @@ void main() {
       ).refresh();
     });
 
+    group('which spools it asks for', () {
+      // A server that records every path it is asked for.
+      (Dio, List<String>) recorded({required bool embedded}) {
+        final dio = server(settingsStatus: 200);
+        final routes = dio.httpClientAdapter as _Routes;
+        if (embedded) {
+          routes.routes['/api/v1/inventory/assignments'] = (
+            200,
+            [
+              {
+                'spool_id': 7,
+                'printer_id': 1,
+                'ams_id': 0,
+                'tray_id': 2,
+                'spool': {
+                  'id': 7,
+                  'material': 'PLA',
+                  'label_weight': 1000,
+                  'weight_used': 900,
+                },
+              },
+            ],
+          );
+        }
+        return (dio, routes.asked);
+      }
+
+      test(
+        'an assignment that carries its spool needs no list of spools',
+        () async {
+          final (dio, asked) = recorded(embedded: true);
+          double? threshold;
+          await LowStockFeed.overDio(
+            dio,
+            onSlots: (slots) => threshold = slots.values.single.percent,
+            onUnavailable: () => fail('unavailable'),
+          ).refresh();
+          expect(threshold, 10);
+          expect(asked, isNot(contains('/api/v1/inventory/spools')));
+        },
+      );
+
+      test(
+        'one that does not (Spoolman\'s) is read against the list',
+        () async {
+          final (dio, asked) = recorded(embedded: false);
+          double? threshold;
+          await LowStockFeed.overDio(
+            dio,
+            onSlots: (slots) => threshold = slots.values.single.percent,
+            onUnavailable: () => fail('unavailable'),
+          ).refresh();
+          expect(threshold, 10);
+          expect(asked, contains('/api/v1/inventory/spools'));
+        },
+      );
+
+      test('a mix keeps the spools it was given and adds the list', () async {
+        final dio = server(settingsStatus: 200);
+        final routes = dio.httpClientAdapter as _Routes;
+        routes.routes['/api/v1/inventory/assignments'] = (
+          200,
+          [
+            {
+              'spool_id': 7,
+              'printer_id': 1,
+              'ams_id': 0,
+              'tray_id': 2,
+              'spool': {
+                'id': 7,
+                'material': 'PLA',
+                'label_weight': 1000,
+                'weight_used': 900,
+              },
+            },
+            // No spool inside, and not in the list either.
+            {'spool_id': 8, 'printer_id': 1, 'ams_id': 0, 'tray_id': 3},
+          ],
+        );
+        routes.routes['/api/v1/inventory/spools'] = (200, const []);
+        late Map<LowStockKey, LowStockSlot> slots;
+        await LowStockFeed.overDio(
+          dio,
+          onSlots: (s) => slots = s,
+          onUnavailable: () => fail('unavailable'),
+        ).refresh();
+        expect(slots.keys.map((k) => k.spoolId), [7]);
+        expect(routes.asked, contains('/api/v1/inventory/spools'));
+      });
+
+      test(
+        'with nothing assigned there is nothing to read the list for',
+        () async {
+          final dio = server(settingsStatus: 200);
+          final routes = dio.httpClientAdapter as _Routes;
+          routes.routes['/api/v1/inventory/assignments'] = (200, const []);
+          await LowStockFeed.overDio(
+            dio,
+            onSlots: (slots) => expect(slots, isEmpty),
+            onUnavailable: () => fail('unavailable'),
+          ).refresh();
+          expect(routes.asked, isNot(contains('/api/v1/inventory/spools')));
+        },
+      );
+    });
+
     test('and is the server\'s 20 when neither says', () async {
       expect(await thresholdSeen(server(settingsStatus: 403)), 20);
     });
@@ -238,12 +344,16 @@ class _Routes implements HttpClientAdapter {
 
   final Map<String, (int, Object)> routes;
 
+  /// Every path asked for, in order.
+  final asked = <String>[];
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    asked.add(options.path);
     final (status, body) = routes[options.path] ?? (404, const {});
     return ResponseBody.fromString(
       jsonEncode(body),
