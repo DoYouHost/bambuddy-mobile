@@ -73,7 +73,7 @@ class BackgroundHandover {
       _ref.read(backgroundMonitorProvider).stop,
     );
     // Its own verb: the one explanation the service's `destroy` cannot carry.
-    if (stopped) _log('ui_stop_disabled');
+    if (stopped) _logBgService('ui_stop_disabled');
   }
 
   void _onPause() {
@@ -88,7 +88,7 @@ class BackgroundHandover {
           // Recorded from here, the one isolate that is certainly able to
           // write: the service's own stream gives up silently in several cases
           // and each looks like an app that was never backgrounded.
-          _log('ui_start', started: started);
+          _logBgService('ui_start', started: started);
           // Already running, so its start-up never ran for this recording and
           // it has no idea one exists: the normal state after one swipe-away.
           if (!started) monitor.sync(BackgroundSync.diagnostics);
@@ -121,7 +121,7 @@ class BackgroundHandover {
       _serviceTurn(_ref.read(backgroundMonitorProvider).stop).then((stopped) {
         // Only when there was something to stop: with monitoring off the app
         // still asks on every resume.
-        if (stopped) _log('ui_stop');
+        if (stopped) _logBgService('ui_stop');
         // `then`, unlike [start]: a stop that threw may have left the service
         // running, and two relays cost more than none for one session.
         _takeBack(epoch);
@@ -156,7 +156,7 @@ class BackgroundHandover {
     final monitor = _ref.read(backgroundMonitorProvider);
     return _serviceTurn(() async {
       if (!await monitor.isRunning()) return;
-      _log('ui_stop_survivor');
+      _logBgService('ui_stop_survivor');
       await monitor.stop();
     });
   }
@@ -184,9 +184,6 @@ class BackgroundHandover {
   /// "the UI asked" and "the service's start-up ran" are different moments, and
   /// a report carrying the first without the second is exactly the interesting
   /// one.
-  void _log(String event, {bool? started}) => DiagnosticRecorder.active?.add(
-    LogSource.fgs,
-    event,
-    fields: {'started': started},
-  );
+  void _logBgService(String event, {bool? started}) => DiagnosticRecorder.active
+      ?.add(LogSource.fgs, event, fields: {'started': started});
 }
