@@ -3,6 +3,7 @@ import 'package:app_util/app_util.dart';
 
 import 'package:clock/clock.dart';
 
+import 'low_stock.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
@@ -348,6 +349,12 @@ class PrintMonitor {
 
   final Map<int, _PrinterMemo> _memo = {};
 
+  /// Where "low filament" is read from. The phone's own rule until the service
+  /// says it is asking the inventory ([awaitLowStockInventory]); a monitor with
+  /// no inventory to ask (the tests, a server that refuses it) stays on it.
+  LowStockSource _lowStockSource = LowStockSource.phone;
+  final LowStockLatch _lowStock = LowStockLatch();
+
   /// The frames the last [update] brought: a held fault is judged against the
   /// printer as it is when the hold runs out, not as it was when it started.
   Map<int, PrinterStatus> _latest = const {};
@@ -487,6 +494,43 @@ class PrintMonitor {
     }
   }
 
+  /// The service is about to ask the inventory for low spools: the phone's own
+  /// rule keeps quiet until the answer says which one applies.
+  void awaitLowStockInventory() => _lowStockSource = LowStockSource.pending;
+
+  /// The inventory cannot be read in this session (403, or no such route on an
+  /// older server): back to the phone's own rule, which needs nothing from it.
+  void lowStockUnavailable() => _lowStockSource = LowStockSource.phone;
+
+  /// The server's rule (`print_scheduler._check_filament_low`) over the spools
+  /// the inventory says sit in a slot: one alert per printer whose slots newly
+  /// dropped below their threshold, naming the emptiest. See [LowStockLatch]
+  /// for what counts as new.
+  void updateLowStock(Map<LowStockKey, LowStockSlot> slots) {
+    _lowStockSource = LowStockSource.inventory;
+    final crossed = _lowStock.look(
+      slots,
+      onlyIf: (key) => _latest.containsKey(key.printerId),
+    );
+    final emptiest = <int, double>{};
+    for (final key in crossed) {
+      final percent = slots[key]!.percent;
+      emptiest.update(
+        key.printerId,
+        (known) => percent < known ? percent : known,
+        ifAbsent: () => percent,
+      );
+    }
+    for (final MapEntry(key: id, value: percent) in emptiest.entries) {
+      final status = _latest[id]!;
+      _alertOrRecordOff(
+        id,
+        NotifEvent.lowFilament,
+        () => _alertLowFilament(id, status, percent.toInt()),
+      );
+    }
+  }
+
   /// Printers deleted on the server: their timers and memory go, and the
   /// ongoing notification is worked out again without them. Not [update]: that
   /// would run every other printer's last frame through the rules as if it had
@@ -495,6 +539,7 @@ class PrintMonitor {
     for (final id in printerIds) {
       _memo.remove(id)?.dispose();
     }
+    _lowStock.forget(printerIds);
     _latest = {
       for (final e in _latest.entries)
         if (!printerIds.contains(e.key)) e.key: e.value,
@@ -1137,6 +1182,7 @@ class PrintMonitor {
   }
 
   void _processLowFilament(int id, PrinterStatus status, _PrinterMemo memo) {
+    if (_lowStockSource != LowStockSource.phone) return;
     final threshold = _prefs.lowFilamentThreshold;
     final remains = _trayRemains(status);
     var triggered = false;

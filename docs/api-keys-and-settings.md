@@ -15,7 +15,11 @@ their paths because other screens push to them. The line it keeps:
 - **hub** = changed for every user of the server;
 - **Notifications** = changed for this phone, and stays its own drawer entry.
 
-A new server-side setting goes into the hub, not into the drawer.
+A new server-side setting goes into the hub, not into the drawer. **One exception, chosen
+on purpose:** `low_stock_threshold` is shown and edited on the notification settings screen
+(`LowStockThresholdRow`), next to the alert that measures against it. It is written like any
+settings key (`PUT /settings/`, the lock of `queueSettingsLockProvider`, a refusal closes
+the pencil) and read from `/settings/ui-flags` when the session may not read `/settings`.
 
 ### Who may write
 

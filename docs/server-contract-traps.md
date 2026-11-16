@@ -54,9 +54,11 @@ print log takes instants instead and needs no zone.
   [notification-rules.md](notification-rules.md).
 - Handled besides `printer_status`: `print_start/complete`, `plate_not_empty`,
   `archive_updated`, `print_confirm_request`, `pipeline_run_updated`,
-  `inventory_changed` / `spool_assignment_changed`, `announcements_changed`
-  (`ws_messages.dart`). Not handled: `queue_item_uploading`,
-  `queue_item_upload_progress`, `queue_item_acked`, `spool_usage_logged`.
+  `inventory_changed` / `spool_assignment_changed` / `spool_usage_logged` (one
+  message: the shelf changed; the last is what a print's consumption sends *instead of*
+  `inventory_changed`, `main.py` around `usage_on_print_complete`),
+  `announcements_changed` (`ws_messages.dart`). Not handled: `queue_item_uploading`,
+  `queue_item_upload_progress`, `queue_item_acked`.
 - Codes 4000–4008 in the frontend bundle are printer HMS codes, not WebSocket close
   codes.
 - Fixture: `test/fixtures/ws_printer_status.json`.

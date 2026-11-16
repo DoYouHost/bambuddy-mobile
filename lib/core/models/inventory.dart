@@ -323,12 +323,30 @@ class Spool {
 
   bool get isArchived => archivedAt != null && archivedAt!.isNotEmpty;
 
-  /// Whether below low-stock threshold (default 10% if server doesn't provide).
-  bool get isLowStock {
+  /// Remaining filament as a percentage of the label weight; null without a
+  /// label weight. The server's `_remaining_percent`
+  /// (`services/print_scheduler.py`).
+  double? get remainingPercent {
     final frac = remainingFraction;
-    if (frac == null) return false;
-    final thresholdPct = lowStockThresholdPct ?? 10;
-    return frac * 100 <= thresholdPct;
+    return frac == null ? null : frac * 100;
+  }
+
+  /// The percentage this spool alerts below: its own, else the server-wide
+  /// [globalThreshold]. A zero or missing own value falls through, as the
+  /// server's `low_stock_threshold_pct or global_threshold` does. The web's `??`
+  /// would keep a zero, which `schemas/spool.py` (`ge=1`) never lets be stored.
+  double lowStockThresholdFor(double globalThreshold) {
+    final own = lowStockThresholdPct;
+    return own != null && own > 0 ? own.toDouble() : globalThreshold;
+  }
+
+  /// Whether this spool is below its low-stock threshold. Strictly below, like
+  /// the web's Low Stock count (`InventoryPage.tsx`: `pct < threshold`) and the
+  /// server's alert (`_emit_filament_low`: re-armed at `pct >= threshold`).
+  /// A spool with no label weight has no percentage and is never low.
+  bool isLowStock(double globalThreshold) {
+    final pct = remainingPercent;
+    return pct != null && pct < lowStockThresholdFor(globalThreshold);
   }
 
   /// Display name for list: brand + material + (subtype).
@@ -875,3 +893,47 @@ class SpoolKProfile {
   final double? kValue;
   final String? nozzleDiameter;
 }
+
+/// What the server's `low_stock_threshold` setting amounts to: the schema's 20
+/// when it is missing or unreadable, and when it lies outside `0 < v <= 100`
+/// (`print_scheduler.py::_get_low_stock_threshold`).
+const double defaultLowStockThreshold = 20;
+
+/// The key the setting goes by, in `GET /settings` and in `GET /settings/ui-flags`.
+const lowStockThresholdKey = 'low_stock_threshold';
+
+double lowStockThresholdFrom(Map<String, dynamic> settings) {
+  final value = toDoubleOrNull(settings[lowStockThresholdKey]);
+  return value != null && value > 0 && value <= 100
+      ? value
+      : defaultLowStockThreshold;
+}
+
+/// The bounds `PUT /settings/` accepts for `low_stock_threshold`
+/// (`schemas/settings.py`, `ge=0.1, le=99.9`); it answers 422 outside them.
+const double lowStockThresholdMin = 0.1;
+const double lowStockThresholdMax = 99.9;
+
+final _lowStockInput = RegExp(r'^\d{0,2}([.,]\d*)?$');
+
+/// The number a user typed into the threshold field, or null when it is not one
+/// the server takes. A superset of the web's field (`InventoryPage.tsx`:
+/// `^\d{0,2}(\.\d?)?$`, then 0.1 to 99.9): the server takes any decimals, and a
+/// value it holds with two (set through the API) has to survive being edited. A
+/// comma stands in for the point because that is the key a phone keyboard shows
+/// in some locales.
+double? parseLowStockThresholdInput(String text) {
+  final trimmed = text.trim();
+  if (!_lowStockInput.hasMatch(trimmed)) return null;
+  final value = double.tryParse(trimmed.replaceAll(',', '.'));
+  return value != null &&
+          value >= lowStockThresholdMin &&
+          value <= lowStockThresholdMax
+      ? value
+      : null;
+}
+
+/// A threshold as it reads on screen: "20", not "20.0", and the rest as the
+/// server holds it, so "12.04" is not shown as "12.0".
+String formatLowStockThreshold(double value) =>
+    value == value.truncateToDouble() ? value.toInt().toString() : '$value';

@@ -48,7 +48,7 @@ class _ListHeader extends StatelessWidget {
   }
 }
 
-class _SpoolTile extends StatelessWidget {
+class _SpoolTile extends ConsumerWidget {
   const _SpoolTile({
     required this.spool,
     this.assignment,
@@ -73,11 +73,13 @@ class _SpoolTile extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final frac = spool.remainingFraction;
-    final low = spool.isLowStock && !spool.isArchived;
+    final low =
+        spool.isLowStock(ref.watch(lowStockThresholdProvider)) &&
+        !spool.isArchived;
     final fillColor = low ? t.danger : t.accentGreen;
 
     // The weight line takes the leftover space and the slot label keeps its
@@ -483,7 +485,13 @@ class _SpoolDetailSheet extends ConsumerWidget {
               DashProgressBar(
                 value: spool.remainingFraction,
                 height: DashSize.d8,
-                color: spool.isLowStock ? t.danger : null,
+                // The tile and this sheet say the same thing: an archived
+                // spool is not stock, so it is never marked low.
+                color:
+                    !spool.isArchived &&
+                        spool.isLowStock(ref.watch(lowStockThresholdProvider))
+                    ? t.danger
+                    : null,
               ),
               const SizedBox(height: DashSpace.sm),
               Text(

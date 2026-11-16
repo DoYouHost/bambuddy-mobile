@@ -10629,4 +10629,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get aiDetectionLimitReached => 'se ha alcanzado el límite de uso';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Poco filamento por debajo del $percent%';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Se define en el servidor para todos. El umbral propio de una bobina tiene prioridad.';
+
+  @override
+  String get notifLowStockEdit => 'Cambiar el umbral de poco filamento';
+
+  @override
+  String get notifLowStockInputLabel => 'Porcentaje del peso de la etiqueta';
+
+  @override
+  String get notifLowStockInvalid => 'Introduce un número de 0,1 a 99,9.';
 }

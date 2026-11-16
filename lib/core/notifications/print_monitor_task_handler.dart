@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +13,7 @@ import '../../data/server_settings_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
+import 'low_stock_feed.dart';
 import 'alarm_ringer.dart';
 import 'printer_locations.dart';
 import '../../data/printers_repository.dart';
@@ -64,6 +66,11 @@ const Duration _maintenanceCheckInterval = Duration(minutes: 30);
 /// while the service runs.
 const Duration _pauseLeadRefreshInterval = Duration(minutes: 30);
 
+/// The safety net under the inventory frames: a socket that was down for a while
+/// missed them, and a spool used up by a print the server logged afterwards says
+/// nothing until something asks.
+const Duration _lowStockRefreshInterval = Duration(minutes: 5);
+
 /// The printers in [known] that are not on [roster]. The socket never says a
 /// printer was deleted, so the roster the server lists is the only thing that
 /// can end one here (the UI isolate trims by the same list,
@@ -89,10 +96,15 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// [serverRefreshEvery] is for tests: the real interval is half an hour.
   PrintMonitorTaskHandler({
     this.serverRefreshEvery = _pauseLeadRefreshInterval,
+    this.lowStockRefreshEvery = _lowStockRefreshInterval,
   });
 
   /// How often the server's pause warning lead time and printer list are read.
   final Duration serverRefreshEvery;
+
+  /// How often the spool inventory is read while a printer prints, on top of the
+  /// socket frames that announce a change. [lowStockRefreshEvery] is for tests.
+  final Duration lowStockRefreshEvery;
 
   WsClient? _ws;
   StreamSubscription<WsPrinterStatus>? _sub;
@@ -110,6 +122,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// [_pauseLeadRefreshInterval], and the server's own default until it answers.
   var _pauseLeadMinutes = QueueSetting.pauseWarningMinutes.serverDefault;
   Timer? _pauseLeadTimer;
+  Timer? _lowStockTimer;
+  LowStockFeed? _lowStockFeed;
+
+  /// The service's feed, for the teardown test.
+  @visibleForTesting
+  LowStockFeed? get lowStockFeed => _lowStockFeed;
+  StreamSubscription<WsInventoryChanged>? _inventorySub;
+  StreamSubscription<WsConnectionState>? _lowStockConnSub;
 
   /// Publishes the current statuses to the widgets. Set once the socket is
   /// wired and cleared in [onDestroy], which is also what tells a roster check
@@ -476,6 +496,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _connSub = ws.connectionStates.listen((s) {
       _wsUp = s == WsConnectionState.connected;
     });
+    _setUpLowStock(api, ws);
     _wearRelay = WearRelayHandler(
       watch: WatchConnectivity(),
       dio: () => api?.dio,
@@ -489,6 +510,41 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.
     _setUpTokenRefresh(profile, creds, auth);
+  }
+
+  /// Low filament from the spool inventory, the server's rule. The monitor stays
+  /// silent about it until the first answer, and keeps the phone's own rule when
+  /// there is no client or the answer is a refusal.
+  void _setUpLowStock(ApiClient? api, WsClient ws) {
+    final monitor = _monitor;
+    if (api == null || monitor == null) return;
+    monitor.awaitLowStockInventory();
+    final feed = _lowStockFeed = LowStockFeed.overDio(
+      api.dio,
+      onSlots: monitor.updateLowStock,
+      onUnavailable: monitor.lowStockUnavailable,
+    );
+    void look() => unawaited(
+      feed.refresh().catchError((Object error) {
+        // Like a dropped frame: no alert came of this look, and from outside that
+        // reads the same as a look that found nothing.
+        _recording?.store.add(
+          LogSource.fgs,
+          'low_stock_failed',
+          lvl: LogLevel.error,
+          fields: {'type': error.runtimeType.toString()},
+        );
+      }),
+    );
+    _inventorySub = ws.inventoryChanges.listen((_) => look());
+    // Whatever changed while the socket was down was not announced.
+    _lowStockConnSub = ws.connectionStates
+        .where((s) => s == WsConnectionState.connected)
+        .listen((_) => look());
+    _lowStockTimer = Timer.periodic(lowStockRefreshEvery, (_) {
+      if (_statuses.values.any((s) => s.isPrinting)) look();
+    });
+    look();
   }
 
   /// Starts proactive JWT refresh in the background isolate (JWT mode only).
@@ -752,6 +808,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _publishWidgets = null;
     _maintenanceTimer?.cancel();
     _pauseLeadTimer?.cancel();
+    _lowStockTimer?.cancel();
+    _lowStockFeed?.stop();
     _tokenRefresher?.stop();
     _monitor?.dispose();
     // Awaited like the rest: the claim release is a prefs write, and this
@@ -759,6 +817,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // a claim left behind is a request nobody answers.
     await _wearRelay?.stop();
     await _connSub?.cancel();
+    await _inventorySub?.cancel();
+    await _lowStockConnSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();
     await _outcomeSub?.cancel();

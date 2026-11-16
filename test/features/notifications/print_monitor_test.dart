@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
+import 'package:bambuddy_mobile/features/notifications/low_stock.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -2481,6 +2482,205 @@ void main() {
     m.update({1: _status(state: 'RUNNING', ams: unitFull)}); // reset
     m.update({1: _status(state: 'RUNNING', ams: unitLow)});
     expect(alertById(fake, bandId(9)), isNotNull); // dropped again
+  });
+
+  group('low filament from the spool inventory', () {
+    // One spool in slot 0 of printer 1, at [percent] of its label weight.
+    Map<LowStockKey, LowStockSlot> slots(
+      double percent, {
+      int spoolId = 7,
+      double threshold = 20,
+      int printerId = 1,
+      int trayId = 0,
+    }) => {
+      (printerId: printerId, amsId: 0, trayId: trayId, spoolId: spoolId):
+          LowStockSlot(percent, threshold),
+    };
+
+    final lowTray = [
+      AmsUnit(id: 0, trays: [_tray(remain: 5)]),
+    ];
+
+    PrintMonitor inventoryMonitor(RecordingNotifications fake) {
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.update({1: _status(state: 'RUNNING')});
+      return m;
+    }
+
+    testAt('the first look only records what is already low', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(12));
+      expect(alertById(fake, bandId(9)), isNull);
+      m.updateLowStock(slots(11));
+      expect(alertById(fake, bandId(9)), isNull, reason: 'still low');
+    });
+
+    testAt('a spool that drops below its threshold alerts once', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(19.9));
+      final alert = alertById(fake, bandId(9));
+      expect(alert, isNotNull);
+      expect(
+        alert!['body'],
+        contains('19%'),
+        reason: 'truncated, like the server',
+      );
+      fake.alerts.clear();
+      m.updateLowStock(slots(15));
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('exactly the threshold is not low and re-arms with no margin', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(20));
+      expect(alertById(fake, bandId(9)), isNull);
+      m.updateLowStock(slots(19));
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      m.updateLowStock(slots(20));
+      m.updateLowStock(slots(19));
+      expect(alertById(fake, bandId(9)), isNotNull, reason: 're-armed at 20');
+    });
+
+    testAt('a low spool swapped for another low one alerts again', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40, spoolId: 7));
+      m.updateLowStock(slots(5, spoolId: 7));
+      expect(alertById(fake, bandId(9)), isNotNull);
+      fake.alerts.clear();
+      // Slot emptied, then another spool that is already at 4%.
+      m.updateLowStock(slots(4, spoolId: 8));
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('an empty answer says nothing and forgets nothing', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(5));
+      fake.alerts.clear();
+      m.updateLowStock(const {});
+      m.updateLowStock(slots(5));
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('two slots of one printer give one alert, naming the emptier', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      Map<LowStockKey, LowStockSlot> two(double a, double b) => {
+        ...slots(a, spoolId: 1, trayId: 0),
+        ...slots(b, spoolId: 2, trayId: 1),
+      };
+      m.updateLowStock(two(50, 50));
+      m.updateLowStock(two(15, 6));
+      expect(fake.alerts.where((a) => a['id'] == bandId(9)), hasLength(1));
+      expect(alertById(fake, bandId(9))!['body'], contains('6%'));
+    });
+
+    testAt('a printer with no frame yet is told about on a later look', (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.updateLowStock(slots(40, printerId: 2));
+      m.updateLowStock(slots(5, printerId: 2));
+      expect(
+        alertById(fake, bandId(9, 2)),
+        isNull,
+        reason: 'nothing to name it',
+      );
+      m.update({2: _status(state: 'RUNNING', id: 2)});
+      m.updateLowStock(slots(5, printerId: 2));
+      expect(alertById(fake, bandId(9, 2)), isNotNull);
+    });
+
+    testAt('the event switched off records why and does not alert', (_) {
+      final fake = RecordingNotifications();
+      final m = PrintMonitor(
+        fake,
+        serverUrl: _server,
+        prefs: const NotificationPrefs(enabled: {}),
+        l10n: () => en,
+      )..awaitLowStockInventory();
+      m.update({1: _status(state: 'RUNNING')});
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(5));
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt('while the answer is awaited, the phone\'s own rule keeps quiet', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.update({
+        1: _status(
+          state: 'RUNNING',
+          ams: [
+            AmsUnit(id: 0, trays: [_tray(remain: 50)]),
+          ],
+        ),
+      });
+      m.update({1: _status(state: 'RUNNING', ams: lowTray)});
+      expect(alertById(fake, bandId(9)), isNull);
+    });
+
+    testAt(
+      'once the inventory speaks, the AMS reading is no longer consulted',
+      (_) {
+        final fake = RecordingNotifications();
+        final m = inventoryMonitor(fake);
+        m.updateLowStock(slots(40));
+        m.update({
+          1: _status(
+            state: 'RUNNING',
+            ams: [
+              AmsUnit(id: 0, trays: [_tray(remain: 50)]),
+            ],
+          ),
+        });
+        m.update({1: _status(state: 'RUNNING', ams: lowTray)});
+        expect(
+          alertById(fake, bandId(9)),
+          isNull,
+          reason: 'remain is 5, spool is 40',
+        );
+      },
+    );
+
+    testAt('an inventory that cannot be read gives the phone\'s rule back', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake)..awaitLowStockInventory();
+      m.lowStockUnavailable();
+      m.update({
+        1: _status(
+          state: 'RUNNING',
+          ams: [
+            AmsUnit(id: 0, trays: [_tray(remain: 50)]),
+          ],
+        ),
+      });
+      m.update({1: _status(state: 'RUNNING', ams: lowTray)});
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
+
+    testAt('a printer that is forgotten takes what was said about it', (_) {
+      final fake = RecordingNotifications();
+      final m = inventoryMonitor(fake);
+      m.updateLowStock(slots(40));
+      m.updateLowStock(slots(5));
+      fake.alerts.clear();
+      m.forget({1});
+      m.update({1: _status(state: 'RUNNING')});
+      m.updateLowStock(slots(5));
+      expect(alertById(fake, bandId(9)), isNotNull);
+    });
   });
 
   testAt('high AMS humidity: the edge above the threshold', (_) {

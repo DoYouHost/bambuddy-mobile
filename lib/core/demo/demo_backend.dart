@@ -836,6 +836,9 @@ class DemoBackend {
     'queue_keep_warm_max_minutes': 45,
     // Off the server's default of 5, like the rows above it.
     'pause_warning_minutes': 10,
+    // Off the server's default of 20, so the spool list and the notification
+    // settings row visibly read it. The Silk Gold spool (9.5% left) is below it.
+    'low_stock_threshold': 15.0,
   };
 
   Map<String, dynamic> get _demoUser => {
