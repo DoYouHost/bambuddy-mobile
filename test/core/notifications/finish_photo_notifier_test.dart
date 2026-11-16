@@ -268,6 +268,9 @@ void main() {
       isEnabled: () => enabled,
     );
 
+    late FinishPhotoNotifier n;
+    Future<bool>? outcome;
+
     Future<bool> addOutcome() async {
       final n = notifier();
       final added = await n.addOutcome(
@@ -340,6 +343,121 @@ void main() {
 
       expect(notifications.alerts.last['photo'], photo.path);
       expect(notifications.alerts.last['actionIds'], hasLength(2));
+    });
+
+    // Both updaters are a read, a post and a write of one memory entry. The
+    // post is a platform call, so the buttons can be asked for while the
+    // photo's post is still in the air; each would then write back an entry
+    // built from a read that predates the other's write.
+    testAt('buttons asked for while the photo is being posted keep it', (
+      _,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('finish_photo');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final photo = File('${dir.path}/finish.png')..writeAsBytesSync([0]);
+      picture = AlertPicture(photoPath: photo.path);
+      final slow = _SlowPost(() {
+        outcome ??= n.addOutcome(
+          archiveId: 82,
+          printerId: 3,
+          payload: 'outcome:82:ab',
+          actions: buttons,
+        );
+      });
+      n = FinishPhotoNotifier(
+        updates: frames.stream,
+        fetchArchive: (id) async => archive,
+        recentArchives: (printerId) async => const [],
+        fetchPicture: (id, filename) async => picture,
+        notifications: slow,
+        memory: memory,
+        isEnabled: () => enabled,
+      )..start();
+      await memory.remember(_alert());
+
+      frames.add(photoFrame);
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await n.stop();
+
+      expect(await outcome, isTrue);
+      final kept = await memory.recall(3, _now);
+      expect(kept?.picture?.photoPath, photo.path);
+      expect(kept?.actions, hasLength(2));
+      expect(kept?.payload, 'outcome:82:ab');
+    });
+
+    // The same race at every offset, with the download and the post both slow
+    // enough to land the request inside either, before them and after them.
+    testAt('buttons asked for at any moment keep the photo', (_) async {
+      final dir = Directory.systemTemp.createTempSync('finish_photo');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final photo = File('${dir.path}/finish.png')..writeAsBytesSync([0]);
+      final failures = <String>[];
+
+      for (final offset in [
+        0,
+        1,
+        2,
+        4,
+        8,
+        12,
+        16,
+        19,
+        20,
+        21,
+        24,
+        30,
+        38,
+        41,
+        60,
+      ]) {
+        notifications = _SlowPost(() {}, slowAll: true);
+        await memory.forget(3);
+        await memory.remember(_alert());
+        final n = FinishPhotoNotifier(
+          updates: frames.stream,
+          fetchArchive: (id) async => archive,
+          recentArchives: (printerId) async => const [],
+          fetchPicture: (id, filename) async {
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            return AlertPicture(photoPath: photo.path);
+          },
+          notifications: notifications,
+          memory: memory,
+          isEnabled: () => enabled,
+        )..start();
+
+        frames.add(photoFrame);
+        await Future<void>.delayed(Duration(milliseconds: offset));
+        final asked = n.addOutcome(
+          archiveId: 82,
+          printerId: 3,
+          payload: 'outcome:82:ab',
+          actions: buttons,
+        );
+        await asked;
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        await n.stop();
+
+        final kept = await memory.recall(3, _now);
+        final last = notifications.alerts.isEmpty
+            ? null
+            : notifications.alerts.last;
+        final ok =
+            kept?.picture?.photoPath == photo.path &&
+            (kept?.actions.length ?? 0) == 2 &&
+            last?['photo'] == photo.path &&
+            (last?['actionIds'] as List?)?.length == 2;
+        if (!ok) {
+          failures.add(
+            'offset $offset: entry picture=${kept?.picture != null} '
+            'actions=${kept?.actions.length}, last post photo=${last?['photo'] != null} '
+            'actions=${(last?['actionIds'] as List?)?.length}',
+          );
+        }
+      }
+
+      expect(failures, isEmpty);
     });
 
     // The other isolate put the buttons on while this one downloaded the
@@ -619,4 +737,46 @@ void main() {
       expect(notifications.alerts, isEmpty);
     },
   );
+}
+
+/// A platform whose first post takes a moment, with something to do the moment
+/// it begins.
+class _SlowPost extends RecordingNotifications {
+  _SlowPost(this._whileInTheAir, {this.slowAll = false});
+
+  final void Function() _whileInTheAir;
+  final bool slowAll;
+  var _first = true;
+
+  @override
+  Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+    List<NotificationAction>? actions,
+    AlertPicture? picture,
+    bool quiet = false,
+    bool silent = false,
+  }) async {
+    if (_first || slowAll) {
+      _first = false;
+      _whileInTheAir();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    return super.showAlert(
+      event: event,
+      printerId: printerId,
+      id: id,
+      title: title,
+      body: body,
+      payload: payload,
+      actions: actions,
+      picture: picture,
+      quiet: quiet,
+      silent: silent,
+    );
+  }
 }

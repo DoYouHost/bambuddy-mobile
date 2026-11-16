@@ -92,6 +92,16 @@ failed, each ends quietly and leaves the text-only one as is.
   answers whether it did (false: the caller asks with a notification of its own).
   It goes through the *same queue* as the photo: both re-post one notification
   and each has to carry what the other added.
+- **Known gap: the frame path does not match the photo to the run.**
+  `_handleFrame` attaches the frame's photo to whatever alert the printer holds,
+  where `poll` matches by `completed_at` (`runForAlert`). Two runs of one file on
+  one printer share the archive id (a reprint reuses the row), and the frame
+  carries only `{id, photo_added}`, so the server's later "upgraded" shot of run 1
+  can land on run 2's alert when both end within the photo window. No id on the
+  wire tells them apart; waiting on upstream, which was asked to add `run_id` to
+  `print_complete` and `archive_updated`
+  (https://github.com/maziggy/bambuddy/issues/3578). A time tolerance would only
+  narrow it, and its value is a decision, not a default.
 - **`dispose` is bounded** (2 s): it is awaited inside
   `PrintMonitorTaskHandler.onDestroy` ahead of the socket's dispose and the
   recording's flush, and a poll against an unreachable server sits on Dio's
