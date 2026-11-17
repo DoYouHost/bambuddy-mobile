@@ -6,7 +6,8 @@ TempReading _pandaReading(PandaBreathState p) => TempReading(
   kind: TempKind.unknown,
   raw: 'panda_breath',
   actual: p.usable ? p.chamberTemp : null,
-  target: p.workOn == true ? p.targetTemp : null,
+  // The server keeps the last target of a heater it lost; it is not today's.
+  target: p.usable && p.workOn == true ? p.targetTemp : null,
 );
 
 /// The web's tile title (`PandaBreathTile`): the mode, then the drying time
@@ -193,33 +194,41 @@ class _PandaPowerSwitch extends ConsumerWidget {
     return Semantics(
       toggled: on,
       label: l10n.pandaBreath,
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: busy
-            ? null
-            : () async {
-                final messenger = ScaffoldMessenger.of(context);
-                final result = await ref
-                    .read(controlsProvider.notifier)
-                    .setPandaBreathOn(printerId, on: !on);
-                if (!context.mounted) return;
-                snackOutcome(
-                  messenger,
-                  result,
-                  l10n,
-                  fallback: l10n.pandaBreathSent,
-                );
-              },
-        child: SizedBox(
-          width: kMinInteractiveDimension + DashSpace.md,
-          height: kMinInteractiveDimension,
-          child: Center(
-            child: busy
-                ? const DashSpinner(size: DashSize.d20)
-                : PillSwitch(on: on, tokens: t),
+      // While busy the switch is disabled, and this catcher swallows the tap:
+      // without it the tap falls through to the row, which opens the sheet
+      // under a request still in flight.
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: busy ? () {} : null,
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: busy
+              ? null
+              : () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final result = await ref
+                      .read(controlsProvider.notifier)
+                      .setPandaBreathOn(printerId, on: !on);
+                  if (!context.mounted) return;
+                  snackOutcome(
+                    messenger,
+                    result,
+                    l10n,
+                    fallback: l10n.pandaBreathSent,
+                  );
+                },
+          child: SizedBox(
+            width: kMinInteractiveDimension + DashSpace.md,
+            height: kMinInteractiveDimension,
+            child: Center(
+              child: busy
+                  ? const DashSpinner(size: DashSize.d20)
+                  : PillSwitch(on: on, tokens: t),
+            ),
           ),
-        ),
-      ).tagged('panda_breath.power'),
+        ).tagged('panda_breath.power'),
+      ),
     );
   }
 }
@@ -242,7 +251,11 @@ class _PandaBreathSheet extends ConsumerStatefulWidget {
 class _PandaBreathSheetState extends ConsumerState<_PandaBreathSheet> {
   static const _presets = [35, 45, 55, pandaBreathMaxTargetC];
 
+  /// What the user picked, null until they touch the editor.
   int? _target;
+
+  /// The heater's own target, last seen: kept when the heater goes away.
+  int? _heaterTarget;
 
   Future<void> _send(
     Future<ActionOutcome> Function(ControlsNotifier n, int id) command,
@@ -273,9 +286,12 @@ class _PandaBreathSheetState extends ConsumerState<_PandaBreathSheet> {
     );
     // Unbound or unreachable while open: the controls would only be refused.
     final enabled = !busy && panda != null && panda.usable;
-    final target =
-        _target ??
-        (panda?.targetTemp?.round() ?? 0).clamp(0, pandaBreathMaxTargetC);
+    // Follows the heater until the user edits it, and keeps the last value
+    // when the heater goes away instead of dropping to 0.
+    if (panda?.targetTemp case final live?) {
+      _heaterTarget = live.round().clamp(0, pandaBreathMaxTargetC);
+    }
+    final target = _target ?? _heaterTarget ?? 0;
     final reading = panda == null ? null : _pandaReading(panda);
     final status = panda == null ? null : _pandaStatusLine(l10n, panda);
     final on = panda?.workOn ?? false;
@@ -354,61 +370,83 @@ class _PandaBreathSheetState extends ConsumerState<_PandaBreathSheet> {
               ],
             ),
             section(l10n.pandaBreathTarget(pandaBreathMaxTargetC)),
-            Center(
-              child: Text(
-                '$target°',
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: DashFontSize.numeral,
-                  fontWeight: DashWeight.bold,
-                  color: t.textPrimary,
+            // Held still with the buttons: a number nobody can send would
+            // only claim a change. IgnorePointer leaves the keyboard in.
+            Opacity(
+              opacity: enabled ? 1 : 0.35,
+              child: IgnorePointer(
+                ignoring: !enabled,
+                child: ExcludeFocus(
+                  excluding: !enabled,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Center(
+                        child: Text(
+                          '$target°',
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: DashFontSize.numeral,
+                            fontWeight: DashWeight.bold,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: DashSpace.sm),
+                      Row(
+                        children: [
+                          _StepButton(
+                            icon: Icons.remove,
+                            id: 'panda_breath.step_down',
+                            label: '−1°',
+                            onTap: () => setState(
+                              () => _target = (target - 1).clamp(
+                                0,
+                                pandaBreathMaxTargetC,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Slider(
+                              value: target.toDouble(),
+                              max: pandaBreathMaxTargetC.toDouble(),
+                              onChanged: (v) =>
+                                  setState(() => _target = v.round()),
+                            ).tagged('panda_breath.slider'),
+                          ),
+                          _StepButton(
+                            icon: Icons.add,
+                            id: 'panda_breath.step_up',
+                            label: '+1°',
+                            onTap: () => setState(
+                              () => _target = (target + 1).clamp(
+                                0,
+                                pandaBreathMaxTargetC,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: DashSpace.md),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: DashSpace.sm,
+                        runSpacing: DashSpace.sm,
+                        children: [
+                          for (final p in _presets)
+                            _PresetChip(
+                              label: '$p°',
+                              id: 'panda_breath.preset',
+                              selected: target == p,
+                              onTap: () => setState(() => _target = p),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: DashSpace.sm),
-            Row(
-              children: [
-                _StepButton(
-                  icon: Icons.remove,
-                  id: 'panda_breath.step_down',
-                  label: '−1°',
-                  onTap: () => setState(
-                    () =>
-                        _target = (target - 1).clamp(0, pandaBreathMaxTargetC),
-                  ),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: target.toDouble(),
-                    max: pandaBreathMaxTargetC.toDouble(),
-                    onChanged: (v) => setState(() => _target = v.round()),
-                  ).tagged('panda_breath.slider'),
-                ),
-                _StepButton(
-                  icon: Icons.add,
-                  id: 'panda_breath.step_up',
-                  label: '+1°',
-                  onTap: () => setState(
-                    () =>
-                        _target = (target + 1).clamp(0, pandaBreathMaxTargetC),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: DashSpace.md),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: DashSpace.sm,
-              runSpacing: DashSpace.sm,
-              children: [
-                for (final p in _presets)
-                  _PresetChip(
-                    label: '$p°',
-                    id: 'panda_breath.preset',
-                    selected: target == p,
-                    onTap: () => setState(() => _target = p),
-                  ),
-              ],
             ),
             const SizedBox(height: DashSpace.xl),
             _SheetButton(

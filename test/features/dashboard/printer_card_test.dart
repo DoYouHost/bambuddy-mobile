@@ -4370,6 +4370,51 @@ void main() {
         }
       });
 
+      if (scale == 1.0) {
+        testWidgets('a chamber target held by the cooling duct takes no '
+            'keyboard focus', (tester) async {
+          tester.view.physicalSize = const Size(411, 2400);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: PrinterWithStatus(
+                      printer: idle.printer,
+                      status: PrinterStatus(
+                        id: 1,
+                        model: 'H2D',
+                        connected: true,
+                        state: 'IDLE',
+                        airductMode: 0,
+                        temperatures: const {
+                          'chamber': 40,
+                          'chamber_target': 0,
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            byLogId('printer.temperature_chamber'),
+            warnIfMissed: false,
+          );
+          await tester.pumpAndSettle();
+
+          final step = find.descendant(
+            of: byLogId('temperature.step_up'),
+            matching: find.byType(Icon),
+          );
+          expect(Focus.of(tester.element(step)).canRequestFocus, isFalse);
+        });
+      }
+
       testWidgets('the movement sheet rows hold at text $scale', (
         tester,
       ) async {

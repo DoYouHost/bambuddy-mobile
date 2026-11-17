@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -42,10 +44,20 @@ PrinterStatus _status({
 
 /// The live map the sheet reads the heater from, holding one fixed status.
 class _Statuses extends PrinterStatusesNotifier {
-  _Statuses(this.status);
+  _Statuses(this.status, [this.handle]);
   final PrinterStatus status;
+  final _StatusesHandle? handle;
   @override
-  Map<int, PrinterStatus> build() => {status.id: status};
+  Map<int, PrinterStatus> build() {
+    handle?._notifier = this;
+    return {status.id: status};
+  }
+}
+
+/// Lets a test replace the live status while a sheet reads it.
+class _StatusesHandle {
+  _Statuses? _notifier;
+  void set(PrinterStatus status) => _notifier!.state = {status.id: status};
 }
 
 void main() {
@@ -58,6 +70,7 @@ void main() {
     double scale = 1.0,
     bool refused = false,
     PrinterCommandsRepository? repo,
+    _StatusesHandle? statuses,
   }) async {
     // The narrow phone the layout has to fit (docs/dev-environment.md).
     tester.view.physicalSize = const Size(360, 2400);
@@ -80,7 +93,9 @@ void main() {
             printerCommandsRepositoryProvider.overrideWithValue(
               repo ?? commands,
             ),
-            printerStatusesProvider.overrideWith(() => _Statuses(status)),
+            printerStatusesProvider.overrideWith(
+              () => _Statuses(status, statuses),
+            ),
             if (refused)
               controlRefusedProvider(
                 ControlPermission.control,
@@ -254,7 +269,123 @@ void main() {
     });
   });
 
+  testWidgets('an unreachable heater shows no stale target either', (
+    tester,
+  ) async {
+    // The server keeps the last target of a heater it lost (`to_dict`).
+    await pumpCard(
+      tester,
+      _status(
+        panda: const PandaBreathState(
+          deviceId: 'pb-1',
+          online: false,
+          chamberTemp: 41,
+          targetTemp: 45,
+          workOn: true,
+        ),
+      ),
+    );
+
+    expect(find.text('45°'), findsNothing);
+  });
+
+  testWidgets('a second tap on the switch mid-request opens no sheet', (
+    tester,
+  ) async {
+    final held = Completer<void>();
+    commands.holds['pandaOn'] = held;
+    await pumpCard(tester, _status(connected: false));
+
+    await tester.tap(byLogId('panda_breath.power'));
+    await tester.pump();
+    await tester.tap(byLogId('panda_breath.power'));
+    // The spinner runs for as long as the request: fixed pumps.
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(byLogId('panda_breath.set'), findsNothing);
+    expect(commands.calls, ['pandaOn:2:false']);
+    // Nothing for a reader to activate while the request runs.
+    final semantics = tester.ensureSemantics();
+    expect(
+      tester.getSemantics(byLogId('panda_breath.power')),
+      isSemantics(hasTapAction: false),
+    );
+    semantics.dispose();
+    held.complete();
+    await tester.pumpAndSettle();
+  });
+
   group('the sheet', () {
+    testWidgets('follows the heater\'s target until the user edits it', (
+      tester,
+    ) async {
+      final status = _StatusesHandle();
+      await pumpCard(tester, _status(), statuses: status);
+      await openSheet(tester);
+
+      // Changed elsewhere (the web) while the sheet is open.
+      status.set(
+        _status(
+          panda: const PandaBreathState(
+            deviceId: 'pb-1',
+            online: true,
+            targetTemp: 50,
+            workOn: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('50°'), findsOneWidget);
+
+      await tester.tap(byLogId('panda_breath.step_up'));
+      await tester.pump();
+      status.set(
+        _status(
+          panda: const PandaBreathState(
+            deviceId: 'pb-1',
+            online: true,
+            targetTemp: 52,
+            workOn: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // The user's pick is not overwritten under their thumb.
+      expect(find.text('51°'), findsOneWidget);
+    });
+
+    testWidgets('a held editor takes no keyboard focus either', (tester) async {
+      final status = _StatusesHandle();
+      await pumpCard(tester, _status(), statuses: status);
+      await openSheet(tester);
+      status.set(_status(panda: null));
+      await tester.pumpAndSettle();
+
+      final step = find.descendant(
+        of: byLogId('panda_breath.step_up'),
+        matching: find.byType(Icon),
+      );
+      expect(Focus.of(tester.element(step)).canRequestFocus, isFalse);
+    });
+
+    testWidgets('a heater that goes away freezes the target too', (
+      tester,
+    ) async {
+      final status = _StatusesHandle();
+      await pumpCard(tester, _status(), statuses: status);
+      await openSheet(tester);
+
+      status.set(_status(panda: null));
+      await tester.pumpAndSettle();
+      expect(byLogId('panda_breath.set'), findsOneWidget);
+      await tester.tap(byLogId('panda_breath.step_up'), warnIfMissed: false);
+      await tester.pump();
+
+      // Gone, the heater has no target to start from: the editor holds still.
+      expect(find.text('1°'), findsNothing);
+      expect(find.text('46°'), findsNothing);
+    });
+
     testWidgets('sends the mode, closes and says it was sent', (tester) async {
       await pumpCard(tester, _status());
       await openSheet(tester);
