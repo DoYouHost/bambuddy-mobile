@@ -138,7 +138,7 @@ screen that "looks better at 10" gets 12.
 `DashIcon` (`xs 12 · sm 16 · md 20 · lg 24 · xl 32`), corner radii `DashRadius`
 (`sm 8 · md 12 · lg 16 · xl 20`), a progress bar `DashBar` (`thin 4 · thick 8`),
 a tint `DashAlpha` (`wash`, `outline`, `scrim`, `cover`), a line height
-`DashLeading` and an upper-case label's spacing `DashTracking`. Text sizes are
+`DashLeading` and letter spacing `DashTracking` (`tight` for a heading, `label` for a label a little open, `caps` for an upper-case caption, `wide` for a spaced code). **A small heading over a group is a `SectionLabel`** (`lib/features/common/section_label.dart`), never a `Text` with its own spacing, colour or case; `tracking_roles_test.dart` refuses a screen that spells the tracking out. Text sizes are
 the `DashTokens` styles (`micro 11 · label 12 · body 13 · titleSm 14 · titleMd
 16 …`), never a `fontSize:`. A touch target is `kMinInteractiveDimension`, and
 "large text" is `dashLargeText(context)`, one threshold for every screen. All

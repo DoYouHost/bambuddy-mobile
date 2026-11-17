@@ -9,7 +9,7 @@ import '../../core/theme/dash_theme.dart';
 /// One look for the whole app. A screen that wants its section titles to read
 /// differently changes this widget, not its own copy of the style. A card's
 /// title is another role (`titleSm` and `titleMd`), and so is a tile's caption
-/// (`DashTokensX.caption`, kept tight for the temperature grid).
+/// (`BambuddyAccent.caption`, kept tight for the temperature grid).
 ///
 /// Capitals are made here, so a caller passes the string as the translation has
 /// it. A control beside the heading stays outside it, as `SectionHeading` asks:
