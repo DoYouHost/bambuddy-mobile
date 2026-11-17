@@ -990,15 +990,8 @@ class _AmsSection extends ConsumerWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    amsUnitName(
-                      unit.id ?? unitIndex,
-                      amsType: unit.amsType,
-                    ).toUpperCase(),
-                    style: t.bodyBold.copyWith(
-                      color: t.textPrimary,
-                      letterSpacing: DashTracking.label,
-                    ),
+                  SectionLabel(
+                    amsUnitName(unit.id ?? unitIndex, amsType: unit.amsType),
                   ),
                   if (extruder != null) ...[
                     const SizedBox(width: DashSpace.sm),
@@ -1151,18 +1144,11 @@ class _NozzleRackSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.nozzleRack.toUpperCase(),
-          style: t.label.copyWith(
-            color: t.textPrimary,
-            letterSpacing: DashTracking.label,
-          ),
-        ),
+        SectionLabel(l10n.nozzleRack),
         const SizedBox(height: DashSpace.md),
         // Two rows, the longer on top and both centred, so nine sit 5 over 4
         // between each other and six 3 over 3; a flowing wrap left 7 + 2.
@@ -1269,15 +1255,8 @@ class _ExternalTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return Text(
-      (rack ? l10n.externalInputs : l10n.externalSpool).toUpperCase(),
-      style: t.label.copyWith(
-        color: t.textPrimary,
-        letterSpacing: DashTracking.label,
-      ),
-    );
+    return SectionLabel(rack ? l10n.externalInputs : l10n.externalSpool);
   }
 }
 

@@ -40,6 +40,7 @@ import '../../common/api_failure_snack.dart';
 import '../../common/color_catalog.dart';
 import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
+import '../../common/section_label.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';
 import '../../common/plate_clear.dart';

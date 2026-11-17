@@ -33,4 +33,17 @@ extension BambuddyAccent on DashTokens {
   /// [bodyBold] in the primary ink: a section heading inside a sheet, or a
   /// row's main line.
   TextStyle get bodyBoldPrimary => bodyBold.copyWith(color: textPrimary);
+
+  // The small tracked texts of a role that is not a heading. A section's heading
+  // is the `SectionLabel` widget, which owns that style; the case of these two
+  // stays with the caller, because case mapping depends on the locale.
+
+  /// The caption of a tile or of a section in a sheet: `micro` in the secondary
+  /// ink. Written in capitals.
+  TextStyle get caption =>
+      micro.copyWith(color: textSecondary, letterSpacing: DashTracking.label);
+
+  /// The text inside a pill, in the pill's [tone].
+  TextStyle pillText(Color tone) =>
+      micro.copyWith(color: tone, letterSpacing: DashTracking.label);
 }

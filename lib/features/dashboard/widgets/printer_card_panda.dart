@@ -292,13 +292,7 @@ class _PandaBreathSheetState extends ConsumerState<_PandaBreathSheet> {
 
     Widget section(String text) => Padding(
       padding: const EdgeInsets.only(top: DashSpace.lg, bottom: DashSpace.sm),
-      child: Text(
-        text.toUpperCase(),
-        style: t.micro.copyWith(
-          color: t.textSecondary,
-          letterSpacing: DashTracking.label,
-        ),
-      ),
+      child: SectionLabel(text),
     );
 
     return FittedSheetSurface(

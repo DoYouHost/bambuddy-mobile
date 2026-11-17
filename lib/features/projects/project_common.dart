@@ -199,13 +199,7 @@ class ProjectStatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: color.withValues(alpha: DashAlpha.outline)),
       ),
-      child: Text(
-        projectStatusLabel(l10n, status),
-        style: t.micro.copyWith(
-          color: color,
-          letterSpacing: DashTracking.label,
-        ),
-      ),
+      child: Text(projectStatusLabel(l10n, status), style: t.pillText(color)),
     );
   }
 }

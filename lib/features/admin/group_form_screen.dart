@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/group_summary.dart';
@@ -154,12 +155,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                l10n.groupsPermissionsHeader,
-                style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
-              ),
-            ),
+            Expanded(child: SectionLabel(l10n.groupsPermissionsHeader)),
             Text(
               l10n.groupsPermissionsSelected(_permissions.length),
               style: t.monoLabel,

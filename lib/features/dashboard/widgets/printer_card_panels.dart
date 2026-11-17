@@ -462,7 +462,7 @@ class _TempGrid extends StatelessWidget {
             for (final r in readings) r.label(l10n).toUpperCase(),
             if (panda != null) l10n.pandaBreath.toUpperCase(),
           ],
-          label: tokens.micro.copyWith(letterSpacing: DashTracking.label),
+          label: tokens.caption,
           setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
           scaler: MediaQuery.textScalerOf(context),
           textDirection: Directionality.of(context),

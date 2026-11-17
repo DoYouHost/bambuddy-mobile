@@ -198,10 +198,7 @@ class _TempTileFace extends StatelessWidget {
               Expanded(
                 child: Text(
                   label.toUpperCase(),
-                  style: t.micro.copyWith(
-                    color: t.textSecondary,
-                    letterSpacing: DashTracking.label,
-                  ),
+                  style: t.caption,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -317,7 +314,7 @@ class _StateChip extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         overflow: TextOverflow.ellipsis,
-        style: t.micro.copyWith(color: fg, letterSpacing: DashTracking.label),
+        style: t.pillText(fg),
       ),
     );
   }
