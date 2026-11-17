@@ -5,6 +5,7 @@ import 'package:json_annotation/json_annotation.dart';
 import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
 import 'next_pause.dart';
+import 'panda_breath.dart';
 import 'value_equality.dart';
 import 'json_utils.dart';
 
@@ -63,6 +64,7 @@ class PrinterStatus {
     this.trayChangeLog,
     this.extruderSlots,
     this.nextPause,
+    this.pandaBreath,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -264,6 +266,15 @@ class PrinterStatus {
   @JsonKey(fromJson: nextPauseFromJson)
   final NextPause? nextPause;
 
+  /// The BIQU Panda Breath bound to this printer, null without one and on a
+  /// server before #1466. **Not inherited by [mergedWith]**, for the reason
+  /// [nextPause] is not: the server writes the key into every status with null
+  /// for "none bound", so a heater unbound or switched off in bambuddy goes
+  /// away on the next frame. Survives [_clearedIfOffline]: the heater runs
+  /// without the printer, and the server keeps reporting it for an offline one.
+  @JsonKey(fromJson: pandaBreathFromJson)
+  final PandaBreathState? pandaBreath;
+
   /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
   /// main, 1 = left / deputy). Null on servers and printers that do not report
   /// it; [trayNow] is printer-wide and cannot answer the same question, because
@@ -356,6 +367,7 @@ class PrinterStatus {
     amsFilamentBackup,
     trayChangeLog,
     nextPause,
+    pandaBreath,
   ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -445,6 +457,7 @@ class PrinterStatus {
       amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
       trayChangeLog: trayChangeLog ?? previous.trayChangeLog,
       nextPause: nextPause,
+      pandaBreath: pandaBreath,
     )._clearedIfOffline();
   }
 
@@ -504,6 +517,7 @@ class PrinterStatus {
       extruderSlots: extruderSlots,
       hmsErrors: hmsErrors,
       awaitingPlateClear: awaitingPlateClear,
+      pandaBreath: pandaBreath,
     );
   }
 

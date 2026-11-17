@@ -10730,4 +10730,38 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notifLowStockInvalid => 'Saisissez un nombre de 0,1 à 99,9.';
+
+  @override
+  String get pandaBreath => 'Panda Breath';
+
+  @override
+  String get pandaBreathSent => 'Envoyé au Panda Breath';
+
+  @override
+  String get pandaBreathOffline => 'Chauffage hors ligne';
+
+  @override
+  String get pandaBreathTurnOn => 'Allumer';
+
+  @override
+  String get pandaBreathTurnOff => 'Éteindre';
+
+  @override
+  String get pandaBreathMode => 'Mode';
+
+  @override
+  String get pandaBreathModeOn => 'Toujours allumé';
+
+  @override
+  String get pandaBreathModeDrying => 'Séchage';
+
+  @override
+  String pandaBreathDryingLeft(int minutes) {
+    return 'Séchage, encore $minutes min';
+  }
+
+  @override
+  String pandaBreathTarget(int max) {
+    return 'Température cible 0–$max °C';
+  }
 }

@@ -427,9 +427,13 @@ class _TempGrid extends StatelessWidget {
     required this.model,
     required this.activeExtruder,
     required this.printing,
+    this.panda,
   });
 
   final List<TempReading> readings;
+
+  /// The printer's Panda Breath, the grid's last tile when there is one.
+  final PandaBreathState? panda;
   final int printerId;
   final String? model;
   final int? activeExtruder;
@@ -454,8 +458,11 @@ class _TempGrid extends StatelessWidget {
         final columns = tempGridColumns(
           width: constraints.maxWidth,
           digits: digits,
-          labels: [for (final r in readings) r.label(l10n).toUpperCase()],
-          label: tokens.micro.copyWith(letterSpacing: DashTracking.label),
+          labels: [
+            for (final r in readings) r.label(l10n).toUpperCase(),
+            if (panda != null) l10n.pandaBreath.toUpperCase(),
+          ],
+          label: tokens.caption,
           setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
           scaler: MediaQuery.textScalerOf(context),
           textDirection: Directionality.of(context),
@@ -481,6 +488,11 @@ class _TempGrid extends StatelessWidget {
                   activeExtruder: activeExtruder,
                   printing: printing,
                 ),
+              ),
+            if (panda case final panda?)
+              SizedBox(
+                width: tileWidth,
+                child: _PandaBreathTile(printerId: printerId, panda: panda),
               ),
           ],
         );
@@ -675,9 +687,6 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
   late int _speed = widget.initialSpeed.clamp(0, 100);
   bool _busy = false;
 
-  void _bump(int delta) =>
-      setState(() => _speed = (_speed + delta).clamp(0, 100));
-
   Future<void> _apply(int speed) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -718,56 +727,21 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
             children: [
               Text(widget.label, style: t.titleLg),
               const SizedBox(height: DashSpace.lg),
-              Center(
-                child: Text(
-                  _speed == 0 ? l10n.ctrlOff : '$_speed%',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: DashFontSize.numeral,
-                    fontWeight: DashWeight.bold,
-                    color: accent,
-                  ),
-                ),
+              _TargetNumeral(
+                _speed == 0 ? l10n.ctrlOff : '$_speed%',
+                color: accent,
               ),
               const SizedBox(height: DashSpace.sm),
-              Row(
-                children: [
-                  _StepButton(
-                    icon: Icons.remove,
-                    id: 'fan.step_down',
-                    label: '−1%',
-                    onTap: () => _bump(-1),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: _speed.toDouble(),
-                      max: 100,
-                      activeColor: accent,
-                      onChanged: (v) => setState(() => _speed = v.round()),
-                    ).tagged('fan.slider'),
-                  ),
-                  _StepButton(
-                    icon: Icons.add,
-                    id: 'fan.step_up',
-                    label: '+1%',
-                    onTap: () => _bump(1),
-                  ),
-                ],
-              ),
-              const SizedBox(height: DashSpace.md),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: DashSpace.sm,
-                runSpacing: DashSpace.sm,
-                children: [
-                  for (final p in _presets)
-                    _PresetChip(
-                      label: '$p%',
-                      id: 'fan.preset',
-                      selected: _speed == p,
-                      onTap: () => setState(() => _speed = p),
-                    ),
-                ],
+              _StepSlider(
+                value: _speed,
+                max: 100,
+                activeColor: accent,
+                onChanged: (v) => setState(() => _speed = v),
+                presets: _presets,
+                presetLabel: (p) => '$p%',
+                idFor: (part) => 'fan.$part',
+                lessLabel: '−1%',
+                moreLabel: '+1%',
               ),
               const SizedBox(height: DashSpace.xl),
               Row(

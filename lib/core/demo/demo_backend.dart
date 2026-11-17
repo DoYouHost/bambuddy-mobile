@@ -13,6 +13,7 @@ import '../models/print_run.dart';
 import '../models/queue_item.dart'
     show kModelGateWaitReason, kPreviousFailureGate;
 import '../models/label_template.dart';
+import '../models/panda_breath.dart';
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_result.dart';
@@ -178,6 +179,10 @@ class DemoBackend {
   final List<Map<String, dynamic>> _scheduledDryings = [];
   int _nextScheduledDryingId = 1;
   final Map<int, bool> _plugOn = {1: true, 2: false, 3: true};
+  // The P1S's Panda Breath (#1466), the one heater in the fleet.
+  bool _pandaOn = true;
+  String _pandaMode = 'auto mode';
+  int _pandaTarget = 45;
   // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
   // over the generated status so a demo write shows on the card, the way the
   // printer's own push would.
@@ -462,6 +467,7 @@ class DemoBackend {
               return demoOk(const {'ok': true});
           }
         }
+        if (at(2, 'panda-breath')) return _pandaBreathCommand(pid, body);
         if (at(2, 'airduct-mode')) {
           _airductMode[pid] = q['mode'] == 'heating' ? 1 : 0;
           return demoOk(const {'ok': true});
@@ -1605,9 +1611,8 @@ class DemoBackend {
   };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(
-    printerId,
-    switch (printerId) {
+  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(printerId, {
+    ...switch (printerId) {
       1 => _statusPrinting(),
       2 => _maybePrinting(2, _statusIdle(), 'Mop station'),
       4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
@@ -1624,7 +1629,61 @@ class DemoBackend {
         'state': null,
       },
     },
-  );
+    // Written for every printer, null where none is bound, as the server does.
+    'panda_breath': printerId == 2 ? _pandaBreathJson() : null,
+  });
+
+  Map<String, dynamic> _pandaBreathJson() {
+    final drying = _pandaOn && _pandaMode == 'filament drying';
+    return {
+      'device_id': 'pb-demo',
+      'online': true,
+      'chamber_temp': _r1(
+        _pandaOn ? _pandaTarget - 2 + _wiggle(0.8, phase: 45) : 27,
+      ),
+      'target_temp': _pandaTarget.toDouble(),
+      'work_on': _pandaOn,
+      'mode': _pandaMode,
+      'filament_drying_mode': drying ? 'PLA' : null,
+      'drying_running': drying,
+      'drying_remaining_min': drying ? 95.0 : null,
+    };
+  }
+
+  /// Mirrors the route's checks in its order: the body's validation (422),
+  /// exactly one field (400), then a heater on the printer (404).
+  DemoResult _pandaBreathCommand(int pid, Map<String, dynamic> body) {
+    bool valid(String key, Object value) => switch (key) {
+      'work_on' => value is bool,
+      'mode' => PandaBreathMode.values.any((m) => m.wire == value),
+      _ => value is int && value >= 0 && value <= pandaBreathMaxTargetC,
+    };
+    // Unknown keys are dropped and nulls mean "not sent", as in Pydantic.
+    final changes = {
+      for (final MapEntry(:key, :value) in body.entries)
+        if (value != null &&
+            const {'work_on', 'mode', 'target_temp'}.contains(key))
+          key: value as Object,
+    };
+    for (final MapEntry(:key, :value) in changes.entries) {
+      if (!valid(key, value)) return demoRefuse(422, 'Invalid $key');
+    }
+    if (changes.length != 1) {
+      return demoRefuse(400, 'Send exactly one of work_on, mode, target_temp');
+    }
+    if (pid != 2) {
+      return demoRefuse(404, 'No Panda Breath is bound to this printer');
+    }
+    switch (changes.entries.single) {
+      case MapEntry(key: 'work_on', :final bool value):
+        _pandaOn = value;
+      case MapEntry(key: 'mode', :final String value):
+        _pandaMode = value;
+      case MapEntry(key: 'target_temp', :final int value):
+        _pandaTarget = value;
+    }
+    return demoOk(const {'success': true});
+  }
 
   /// Lays whatever the slot sheet wrote over the generated trays.
   ///

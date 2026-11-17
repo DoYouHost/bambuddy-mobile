@@ -107,8 +107,11 @@ void main() {
       archive(timelapsePath: 'archive/1/benchy.mp4', photos: const ['a.jpg']),
     );
 
-    expect(find.text(pl.archiveMediaOnServer), findsOneWidget);
-    expect(find.text(pl.archiveMediaOnPrinter(1)), findsOneWidget);
+    expect(find.text(pl.archiveMediaOnServer.toUpperCase()), findsOneWidget);
+    expect(
+      find.text(pl.archiveMediaOnPrinter(1).toUpperCase()),
+      findsOneWidget,
+    );
 
     // The photos row carries its own count, the way the timelapse row carries
     // its size — a bare digit read as part of the file name beside it.
@@ -196,8 +199,8 @@ void main() {
         .isHeader;
 
     expect(isHeader(pl.archiveMediaAction), isTrue);
-    expect(isHeader(pl.archiveMediaOnServer), isTrue);
-    expect(isHeader(pl.archiveMediaOnPrinter(0)), isTrue);
+    expect(isHeader(pl.archiveMediaOnServer.toUpperCase()), isTrue);
+    expect(isHeader(pl.archiveMediaOnPrinter(0).toUpperCase()), isTrue);
 
     handle.dispose();
   });
@@ -389,8 +392,8 @@ void main() {
       searchable: false,
     );
 
-    expect(find.text(pl.archiveMediaOnServer), findsOneWidget);
-    expect(find.text(pl.archiveMediaOnPrinter(0)), findsNothing);
+    expect(find.text(pl.archiveMediaOnServer.toUpperCase()), findsOneWidget);
+    expect(find.text(pl.archiveMediaOnPrinter(0).toUpperCase()), findsNothing);
     expect(find.text(pl.archiveMediaNothingOnPrinter), findsNothing);
   });
 
@@ -405,8 +408,8 @@ void main() {
       gate: AsyncError(StateError('no profile'), StackTrace.empty),
     );
 
-    expect(find.text(pl.archiveMediaOnServer), findsOneWidget);
-    expect(find.text(pl.archiveMediaOnPrinter(0)), findsNothing);
+    expect(find.text(pl.archiveMediaOnServer.toUpperCase()), findsOneWidget);
+    expect(find.text(pl.archiveMediaOnPrinter(0).toUpperCase()), findsNothing);
   });
 
   testWidgets('a print with no printer is never searched for one', (
@@ -419,7 +422,7 @@ void main() {
       archive(printerId: null, timelapsePath: 'archive/1/benchy.mp4'),
     );
 
-    expect(find.text(pl.archiveMediaOnPrinter(0)), findsNothing);
+    expect(find.text(pl.archiveMediaOnPrinter(0).toUpperCase()), findsNothing);
     expect(find.text('benchy.mp4'), findsOneWidget);
   });
 }

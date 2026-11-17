@@ -556,6 +556,34 @@ void main() {
     expect(find.text(pl.speedStandard), findsOneWidget); // speed (level 2)
   });
 
+  testWidgets('the light row is a washed box with the row radius', (
+    tester,
+  ) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+    await tester.pumpWidget(_cardWithProviders(item));
+
+    final box =
+        tester
+                .widget<Container>(
+                  find
+                      .descendant(
+                        of: byLogId('controls.light'),
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                )
+                .decoration!
+            as BoxDecoration;
+    final t = DashTokens.of(tester.element(byLogId('controls.light')));
+    expect(box.borderRadius, BorderRadius.circular(DashRadius.xl));
+    expect(box.color, t.accentGreen.withValues(alpha: DashAlpha.faint));
+  });
+
   testWidgets('controls bar does not render without control data', (
     tester,
   ) async {
@@ -4370,6 +4398,51 @@ void main() {
         }
       });
 
+      if (scale == 1.0) {
+        testWidgets('a chamber target held by the cooling duct takes no '
+            'keyboard focus', (tester) async {
+          tester.view.physicalSize = const Size(411, 2400);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: PrinterWithStatus(
+                      printer: idle.printer,
+                      status: PrinterStatus(
+                        id: 1,
+                        model: 'H2D',
+                        connected: true,
+                        state: 'IDLE',
+                        airductMode: 0,
+                        temperatures: const {
+                          'chamber': 40,
+                          'chamber_target': 0,
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            byLogId('printer.temperature_chamber'),
+            warnIfMissed: false,
+          );
+          await tester.pumpAndSettle();
+
+          final step = find.descendant(
+            of: byLogId('temperature.step_up'),
+            matching: find.byType(Icon),
+          );
+          expect(Focus.of(tester.element(step)).canRequestFocus, isFalse);
+        });
+      }
+
       testWidgets('the movement sheet rows hold at text $scale', (
         tester,
       ) async {
@@ -5568,6 +5641,37 @@ void main() {
         await openSheet(tester);
 
         expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        handle.dispose();
+      });
+
+      /// The editor's ids are the log's vocabulary for both rows; the drying
+      /// rows spell them with an underscore, the other sheets with a dot.
+      testWidgets('both rows keep their log ids', (tester) async {
+        await openSheet(tester);
+
+        for (final row in ['drying.temp', 'drying.hours']) {
+          expect(byLogId('${row}_step_down'), findsOneWidget);
+          expect(byLogId('${row}_slider'), findsOneWidget);
+          expect(byLogId('${row}_step_up'), findsOneWidget);
+          expect(byLogId('${row}_preset'), findsWidgets);
+        }
+      });
+
+      /// The dryer starts at 45 °C, not at zero: the lower end of the range is
+      /// the row's own, so minus at 45 stays at 45.
+      testWidgets('the temperature step stops at the bottom of its range', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+
+        await tester.tap(byLogId('drying.temp_step_down'));
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        expect(find.text('44°'), findsNothing);
         handle.dispose();
       });
 

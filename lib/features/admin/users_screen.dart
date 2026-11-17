@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
@@ -284,10 +285,7 @@ class _UserDetailSheet extends ConsumerWidget {
                     value: fmt.dateNamedMonthTime(created),
                   ),
                 const SizedBox(height: DashSpace.lg),
-                Text(
-                  l10n.usersOwnedTitle,
-                  style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
-                ),
+                SectionLabel(l10n.usersOwnedTitle),
                 const SizedBox(height: DashSpace.sm),
                 _OwnedCounts(userId: user.id),
                 if (ref.watch(canManageUsersProvider)) ...[

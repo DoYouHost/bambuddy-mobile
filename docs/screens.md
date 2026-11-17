@@ -43,6 +43,24 @@ first frame after the line to the server came up (`inTouchSince`), where nothing
 could contradict it. A frame with `connected == null` says nothing about
 reachability and is never read as offline.
 
+### The Panda Breath (#1466)
+
+A BIQU Panda Breath chamber heater bound to a printer arrives as `panda_breath`
+on its status. The server writes the key into every status, with `null` when no
+heater is bound, so the field is replaced on each frame, never inherited. An older
+server sends no key, so no heater shows and no `ServerFeature` gate is needed; the
+`POST /printers/{id}/panda-breath` route arrived together with the field.
+
+The heater runs without the printer, so it outlives the OFFLINE collapse. On a
+connected card it is the last tile of the temperature grid, as on the web. On the
+collapsed card the grid is gone, so it shows as a row with its own on/off switch.
+It appears in one of the two places at a time, never both. A heater the server
+reports `online: false` shows a dash, not its last reading, and offers no controls.
+The sheet sends one change per request, as the route accepts. Like the web, a
+command that goes through closes the sheet with "Sent", and the new state comes
+with the next frame. The server's `panda_breath_enabled` switch has no screen in
+the app: with it off, the server sends `null` and nothing shows.
+
 ### A filament slot row (#64)
 
 The material alone cannot tell slots apart: most users load one material, and three

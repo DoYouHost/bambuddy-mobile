@@ -17,15 +17,34 @@ extension BambuddyAccent on DashTokens {
   Color get accentGreenInk => accentInk;
 
   /// A box washed in [accent] with a soft outline of it: the banners and
-  /// notices that stand out from a card (merge, resume, no 3MF, locked group).
-  /// Decoration only, like [cardBox]; the layout stays with the caller.
-  BoxDecoration tintBox(Color accent) => BoxDecoration(
-    color: accent.withValues(alpha: DashAlpha.faint),
-    borderRadius: BorderRadius.circular(DashRadius.lg),
-    border: Border.all(color: accent.withValues(alpha: DashAlpha.soft)),
-  );
+  /// notices that stand out from a card (merge, resume, no 3MF, locked group),
+  /// and the card's accent rows. Decoration only, like [cardBox]; the layout
+  /// stays with the caller.
+  ///
+  /// [radius] is `lg` for a banner. A row that is itself the tap target takes
+  /// its own, and so must the `Material` that clips its ripple.
+  BoxDecoration tintBox(Color accent, {double radius = DashRadius.lg}) =>
+      BoxDecoration(
+        color: accent.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: accent.withValues(alpha: DashAlpha.soft)),
+      );
 
   /// [bodyBold] in the primary ink: a section heading inside a sheet, or a
   /// row's main line.
   TextStyle get bodyBoldPrimary => bodyBold.copyWith(color: textPrimary);
+
+  // The small tracked texts of a role that is not a heading. A section's heading
+  // is the `SectionLabel` widget, which owns that style; the case of these two
+  // stays with the caller, because case mapping depends on the locale.
+
+  /// The caption of a temperature tile: `micro` in the secondary ink, written in
+  /// capitals and kept tight because it shares a line with the setpoint. A
+  /// heading is not a caption: use `SectionLabel`.
+  TextStyle get caption =>
+      micro.copyWith(color: textSecondary, letterSpacing: DashTracking.label);
+
+  /// The text inside a pill, in the pill's [tone].
+  TextStyle pillText(Color tone) =>
+      micro.copyWith(color: tone, letterSpacing: DashTracking.label);
 }

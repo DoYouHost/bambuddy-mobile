@@ -69,6 +69,7 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/features/queue/queue_filaments.dart';
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,6 +103,40 @@ void main() {
             if (p.mounted) p.position,
         ],
         [7],
+      );
+    });
+
+    test('the P1S has a Panda Breath, and a command reaches it', () async {
+      final repo = PrintersRepository(dio);
+      final commands = PrinterCommandsRepository(dio);
+      Future<PandaBreathState?> panda(int id) async => (await repo.fetchAll())
+          .firstWhere((p) => p.printer.id == id)
+          .status
+          ?.pandaBreath;
+
+      expect(await panda(1), isNull);
+      final before = (await panda(2))!;
+      expect(before.knownMode, isNotNull);
+      addTearDown(() async {
+        await commands.setPandaBreathOn(2, on: before.workOn!);
+        await commands.setPandaBreathMode(2, before.knownMode!);
+        await commands.setPandaBreathTarget(2, before.targetTemp!.round());
+      });
+
+      await commands.setPandaBreathMode(2, PandaBreathMode.drying);
+      await commands.setPandaBreathTarget(2, 55);
+      final drying = (await panda(2))!;
+      expect(drying.knownMode, PandaBreathMode.drying);
+      expect(drying.targetTemp, 55);
+      expect(drying.dryingRunning, isTrue);
+
+      await commands.setPandaBreathOn(2, on: false);
+      expect((await panda(2))!.workOn, isFalse);
+
+      // A printer without one answers as the server does.
+      await expectLater(
+        commands.setPandaBreathOn(1, on: true),
+        throwsA(isA<ApiException>()),
       );
     });
 

@@ -990,15 +990,8 @@ class _AmsSection extends ConsumerWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    amsUnitName(
-                      unit.id ?? unitIndex,
-                      amsType: unit.amsType,
-                    ).toUpperCase(),
-                    style: t.bodyBold.copyWith(
-                      color: t.textPrimary,
-                      letterSpacing: DashTracking.label,
-                    ),
+                  SectionLabel(
+                    amsUnitName(unit.id ?? unitIndex, amsType: unit.amsType),
                   ),
                   if (extruder != null) ...[
                     const SizedBox(width: DashSpace.sm),
@@ -1151,18 +1144,11 @@ class _NozzleRackSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.nozzleRack.toUpperCase(),
-          style: t.label.copyWith(
-            color: t.textPrimary,
-            letterSpacing: DashTracking.label,
-          ),
-        ),
+        SectionLabel(l10n.nozzleRack),
         const SizedBox(height: DashSpace.md),
         // Two rows, the longer on top and both centred, so nine sit 5 over 4
         // between each other and six 3 over 3; a flowing wrap left 7 + 2.
@@ -1269,15 +1255,8 @@ class _ExternalTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return Text(
-      (rack ? l10n.externalInputs : l10n.externalSpool).toUpperCase(),
-      style: t.label.copyWith(
-        color: t.textPrimary,
-        letterSpacing: DashTracking.label,
-      ),
-    );
+    return SectionLabel(rack ? l10n.externalInputs : l10n.externalSpool);
   }
 }
 
@@ -2298,7 +2277,6 @@ class _DrySlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    int clamp(int v) => v.clamp(min, max);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -2310,49 +2288,22 @@ class _DrySlider extends StatelessWidget {
             Text(valueText, style: t.monoTitle),
           ],
         ),
-        Row(
-          children: [
-            _StepButton(
-              icon: Icons.remove,
-              id: '${id}_step_down',
-              label: '$label −1',
-              onTap: () => onChanged(clamp(value - 1)),
-            ),
-            Expanded(
-              child: Slider(
-                value: value.clamp(min, max).toDouble(),
-                min: min.toDouble(),
-                max: max.toDouble(),
-                activeColor: t.accentOrange,
-                // Without it a reader announces the position as a percentage
-                // ("25%"), which says nothing about a dryer: the same wording
-                // the presets carry is what the value means.
-                semanticFormatterCallback: (v) => presetLabel(v.round()),
-                onChanged: (v) => onChanged(v.round()),
-              ).tagged('${id}_slider'),
-            ),
-            _StepButton(
-              icon: Icons.add,
-              id: '${id}_step_up',
-              label: '$label +1',
-              onTap: () => onChanged(clamp(value + 1)),
-            ),
-          ],
-        ),
-        const SizedBox(height: DashSpace.sm),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [
-            for (final p in presets)
-              _PresetChip(
-                label: presetLabel(p),
-                id: '${id}_preset',
-                selected: value == p,
-                onTap: () => onChanged(p),
-              ),
-          ],
+        _StepSlider(
+          value: value,
+          min: min,
+          max: max,
+          activeColor: t.accentOrange,
+          // Without it a reader announces the position as a percentage
+          // ("25%"), which says nothing about a dryer: the same wording
+          // the presets carry is what the value means.
+          semanticFormatter: (v) => presetLabel(v.round()),
+          onChanged: onChanged,
+          presets: presets,
+          presetLabel: presetLabel,
+          presetGap: DashSpace.sm,
+          idFor: (part) => '${id}_$part',
+          lessLabel: '$label −1',
+          moreLabel: '$label +1',
         ),
       ],
     );
