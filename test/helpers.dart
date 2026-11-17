@@ -4,6 +4,7 @@ import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/announcement.dart';
+import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
 import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
@@ -849,6 +850,15 @@ class RecordingCommands implements PrinterCommandsRepository {
   @override
   Future<void> setAirductMode(int id, {required bool heating}) =>
       _do('airduct:$id:$heating');
+  @override
+  Future<void> setPandaBreathOn(int id, {required bool on}) =>
+      _do('pandaOn:$id:$on');
+  @override
+  Future<void> setPandaBreathMode(int id, PandaBreathMode mode) =>
+      _do('pandaMode:$id:${mode.wire}');
+  @override
+  Future<void> setPandaBreathTarget(int id, int target) =>
+      _do('pandaTarget:$id:$target');
   @override
   Future<void> setFanSpeed(int id, String fan, int speed) =>
       _do('fan:$id:$fan:$speed');
