@@ -38,8 +38,9 @@ extension BambuddyAccent on DashTokens {
   // is the `SectionLabel` widget, which owns that style; the case of these two
   // stays with the caller, because case mapping depends on the locale.
 
-  /// The caption of a tile or of a section in a sheet: `micro` in the secondary
-  /// ink. Written in capitals.
+  /// The caption of a temperature tile: `micro` in the secondary ink, written in
+  /// capitals and kept tight because it shares a line with the setpoint. A
+  /// heading is not a caption: use `SectionLabel`.
   TextStyle get caption =>
       micro.copyWith(color: textSecondary, letterSpacing: DashTracking.label);
 
