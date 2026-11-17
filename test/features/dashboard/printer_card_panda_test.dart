@@ -2,7 +2,9 @@ import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
@@ -11,6 +13,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 
 const _heater = PandaBreathState(
@@ -54,6 +57,7 @@ void main() {
     PrinterStatus status, {
     double scale = 1.0,
     bool refused = false,
+    PrinterCommandsRepository? repo,
   }) async {
     // The narrow phone the layout has to fit (docs/dev-environment.md).
     tester.view.physicalSize = const Size(360, 2400);
@@ -73,7 +77,9 @@ void main() {
             ...inertDashboardPollOverrides,
           ],
           [
-            printerCommandsRepositoryProvider.overrideWithValue(commands),
+            printerCommandsRepositoryProvider.overrideWithValue(
+              repo ?? commands,
+            ),
             printerStatusesProvider.overrideWith(() => _Statuses(status)),
             if (refused)
               controlRefusedProvider(
@@ -340,6 +346,35 @@ void main() {
       );
       expect(commands.calls, hasLength(2));
     });
+  });
+
+  testWidgets('the writes the sheet sends, recorded for the live server', (
+    tester,
+  ) async {
+    final dio = testDio();
+    mockServer(dio).onPost(
+      '/api/v1/printers/2/panda-breath',
+      (server) => server.reply(200, {'success': true}),
+      data: Matchers.any,
+    );
+    final log = captureRequests(dio);
+    await pumpCard(tester, _status(), repo: PrinterCommandsRepository(dio));
+
+    // Each change closes the sheet, as on the web.
+    await openSheet(tester);
+    await tester.tap(find.text(pl.pandaBreathTurnOff));
+    await tester.pumpAndSettle();
+    await openSheet(tester);
+    await tester.tap(find.text(pl.pandaBreathModeDrying));
+    await tester.pumpAndSettle();
+    await openSheet(tester);
+    await tester.tap(byLogId('panda_breath.step_up'));
+    await tester.pump();
+    await tester.tap(byLogId('panda_breath.set'));
+    await tester.pumpAndSettle();
+
+    // Replayed by `panda_breath_contract_test.dart`.
+    expectSentAsRecorded('panda_breath', writesOf(log.requests));
   });
 
   group('at large text', () {
