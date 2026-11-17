@@ -59,6 +59,7 @@
         android:label="Bambuddy"
         android:name=".BambuddyApplication"
         android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
         <activity

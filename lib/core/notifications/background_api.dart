@@ -7,6 +7,7 @@ import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
 import '../api/api_exceptions.dart';
+import '../api/user_ca.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../auth/auth_service.dart';
@@ -102,6 +103,9 @@ Future<ApiClient?> buildBackgroundApiClient(
     (credentials == null) == (auth == null),
     'pass credentials and auth together',
   );
+  // Every background isolate (service, notification buttons, watch relay)
+  // builds its client here before opening any connection.
+  await trustUserCas();
   final settings = SettingsRepository(prefs);
   final profile = settings.loadProfile();
   if (profile == null) return null;

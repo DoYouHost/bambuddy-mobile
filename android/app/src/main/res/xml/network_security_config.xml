@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trust CAs the user installed in Settings, next to the system ones: a
+     self-hosted server often sits behind a home CA (https://bambuddy.home.arpa).
+     This covers the native network stacks (WebView, video player); Dart's own
+     TLS ignores this file and gets the same CAs through UserCaExport.kt.
+     cleartextTrafficPermitted keeps plain-HTTP LAN servers working: with this
+     file present, the manifest's usesCleartextTraffic is ignored. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

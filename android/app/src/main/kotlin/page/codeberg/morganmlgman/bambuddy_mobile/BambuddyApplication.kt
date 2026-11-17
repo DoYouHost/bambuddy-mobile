@@ -4,7 +4,8 @@ import android.app.Application
 import com.pravera.flutter_foreground_task.FlutterForegroundTaskPlugin
 
 /**
- * Exists for one line: registering [OngoingNotificationHost] before anything else runs.
+ * Exists to run two things before anything else: registering [OngoingNotificationHost], and
+ * [UserCaExport].
  *
  * It has to be here rather than in [MainActivity]. The foreground service is `START_STICKY`,
  * so Android restarts it on its own without ever starting an activity — and after such a
@@ -21,6 +22,9 @@ import com.pravera.flutter_foreground_task.FlutterForegroundTaskPlugin
 class BambuddyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Before any engine starts, for the same reason as the listener below:
+        // every isolate reads the export when it opens its first connection.
+        UserCaExport.write(this)
         FlutterForegroundTaskPlugin.addTaskLifecycleListener(OngoingNotificationHost(this))
     }
 }

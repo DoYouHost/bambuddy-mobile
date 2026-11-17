@@ -197,3 +197,28 @@ device, pull and parse: a raster frame is `AcquireNextImageKHR` to
 thread (no `1.ui`), and a second `N.raster` in the process is the foreground
 service's engine. Release builds emit no Flutter trace events, but the
 Android/Vulkan markers are enough.
+
+## User-installed CA certificates
+
+A server behind a home CA (`https://bambuddy.home.arpa`) works once the user
+installs the CA in Android's Settings. Trusting user CAs was a maintainer decision
+(2026-11): Android has refused them by default since 7.0, because any CA put on the
+phone (an MDM profile, malware, someone holding the unlocked phone) can then read
+the app's traffic, the bambuddy token included.
+
+Two stacks need it, and they are wired separately:
+
+- **Native** (WebView, `video_player`): `res/xml/network_security_config.xml` adds
+  `<certificates src="user"/>`. The same file carries `cleartextTrafficPermitted`,
+  because with it present the manifest's `usesCleartextTraffic` is ignored.
+- **Dart** (Dio, the WebSocket, the MJPEG `HttpClient`, `NetworkImage`): BoringSSL in
+  `dart:io` trusts only `/system/etc/security/cacerts` and never reads the config
+  file. `UserCaExport.kt` copies the `user:` aliases of the `AndroidCAStore` KeyStore
+  to `filesDir/user_ca.pem` in `BambuddyApplication.onCreate`, before any engine
+  starts. `trustUserCas()` (`lib/core/api/user_ca.dart`) adds that file to the
+  isolate's `SecurityContext.defaultContext`. `main()` calls it, and so does
+  `buildBackgroundApiClient` for the service, notification and watch-relay isolates.
+  A CA added or removed in Settings takes effect on the next process start.
+
+Not covered: the `wear` flavor uses the stock `Application`, so a watch that talks
+to the server directly does not get the export.
