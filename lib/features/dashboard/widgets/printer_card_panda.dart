@@ -221,8 +221,8 @@ class _PandaPowerSwitch extends ConsumerWidget {
                   : PillSwitch(on: on, tokens: t),
             ),
           ),
-        ).tagged('panda_breath.power'),
-      ),
+        ),
+      ).tagged('panda_breath.power'),
     );
   }
 }
