@@ -5644,6 +5644,37 @@ void main() {
         handle.dispose();
       });
 
+      /// The editor's ids are the log's vocabulary for both rows; the drying
+      /// rows spell them with an underscore, the other sheets with a dot.
+      testWidgets('both rows keep their log ids', (tester) async {
+        await openSheet(tester);
+
+        for (final row in ['drying.temp', 'drying.hours']) {
+          expect(byLogId('${row}_step_down'), findsOneWidget);
+          expect(byLogId('${row}_slider'), findsOneWidget);
+          expect(byLogId('${row}_step_up'), findsOneWidget);
+          expect(byLogId('${row}_preset'), findsWidgets);
+        }
+      });
+
+      /// The dryer starts at 45 °C, not at zero: the lower end of the range is
+      /// the row's own, so minus at 45 stays at 45.
+      testWidgets('the temperature step stops at the bottom of its range', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+
+        await tester.tap(byLogId('drying.temp_step_down'));
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        expect(find.text('44°'), findsNothing);
+        handle.dispose();
+      });
+
       testWidgets('the duration slider reads in hours', (tester) async {
         final handle = tester.ensureSemantics();
         await openSheet(tester);

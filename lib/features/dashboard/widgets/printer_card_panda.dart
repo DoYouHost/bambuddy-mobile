@@ -365,81 +365,26 @@ class _PandaBreathSheetState extends ConsumerState<_PandaBreathSheet> {
             ),
             section(l10n.pandaBreathTarget(pandaBreathMaxTargetC)),
             // Held still with the buttons: a number nobody can send would
-            // only claim a change. IgnorePointer leaves the keyboard in.
-            Opacity(
-              opacity: enabled ? 1 : 0.35,
-              child: IgnorePointer(
-                ignoring: !enabled,
-                child: ExcludeFocus(
-                  excluding: !enabled,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Center(
-                        child: Text(
-                          '$target°',
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: DashFontSize.numeral,
-                            fontWeight: DashWeight.bold,
-                            color: t.textPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: DashSpace.sm),
-                      Row(
-                        children: [
-                          _StepButton(
-                            icon: Icons.remove,
-                            id: 'panda_breath.step_down',
-                            label: '−1°',
-                            onTap: () => setState(
-                              () => _target = (target - 1).clamp(
-                                0,
-                                pandaBreathMaxTargetC,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Slider(
-                              value: target.toDouble(),
-                              max: pandaBreathMaxTargetC.toDouble(),
-                              onChanged: (v) =>
-                                  setState(() => _target = v.round()),
-                            ).tagged('panda_breath.slider'),
-                          ),
-                          _StepButton(
-                            icon: Icons.add,
-                            id: 'panda_breath.step_up',
-                            label: '+1°',
-                            onTap: () => setState(
-                              () => _target = (target + 1).clamp(
-                                0,
-                                pandaBreathMaxTargetC,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: DashSpace.md),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: DashSpace.sm,
-                        runSpacing: DashSpace.sm,
-                        children: [
-                          for (final p in _presets)
-                            _PresetChip(
-                              label: '$p°',
-                              id: 'panda_breath.preset',
-                              selected: target == p,
-                              onTap: () => setState(() => _target = p),
-                            ),
-                        ],
-                      ),
-                    ],
+            // only claim a change.
+            _HeldWhen(
+              held: !enabled,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TargetNumeral('$target°', color: t.textPrimary),
+                  const SizedBox(height: DashSpace.sm),
+                  _StepSlider(
+                    value: target,
+                    max: pandaBreathMaxTargetC,
+                    onChanged: (v) => setState(() => _target = v),
+                    presets: _presets,
+                    presetLabel: (p) => '$p°',
+                    idFor: (part) => 'panda_breath.$part',
+                    lessLabel: '−1°',
+                    moreLabel: '+1°',
                   ),
-                ),
+                ],
               ),
             ),
             const SizedBox(height: DashSpace.xl),

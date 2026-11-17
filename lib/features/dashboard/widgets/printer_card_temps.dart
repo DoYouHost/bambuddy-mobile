@@ -402,12 +402,6 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
     super.dispose();
   }
 
-  void _bump(int delta) => setState(
-    () => _target = (_target + delta)
-        .clamp(0, _reading.maxTarget(ref.read(chamberMaxTargetProvider)))
-        .toInt(),
-  );
-
   Future<void> _apply(int target) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -546,7 +540,6 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final max = _reading.maxTarget(_chamberMax);
-    final step = _reading.targetStep;
     final accent = _reading.gaugeColor(t, target: _target.toDouble());
     final showAirduct =
         _reading.kind == TempKind.chamber && supportsAirduct(widget.model);
@@ -642,84 +635,30 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
               ],
               const SizedBox(height: DashSpace.lg),
               // Dim + block the target editor when a chamber target can't
-              // take effect (airduct not in Heating). IgnorePointer leaves the
-              // keyboard in: a focused button still takes Enter.
-              Opacity(
-                opacity: tempEnabled ? 1 : 0.35,
-                child: IgnorePointer(
-                  ignoring: !tempEnabled,
-                  child: ExcludeFocus(
-                    excluding: !tempEnabled,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Center(
-                          child: Text(
-                            _target == 0 ? l10n.ctrlOff : '$_target°',
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: DashFontSize.numeral,
-                              fontWeight: DashWeight.bold,
-                              color: _reading.gaugeInk(
-                                t,
-                                target: _target.toDouble(),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: DashSpace.sm),
-                        Row(
-                          children: [
-                            _StepButton(
-                              icon: Icons.remove,
-                              id: 'temperature.step_down',
-                              label: '−$step°',
-                              onTap: () => _bump(-step),
-                            ),
-                            Expanded(
-                              // No `divisions`: tick marks would be far denser
-                              // on the wide nozzle range (0–300) than the bed
-                              // (0–120) and look inconsistent. The slider stays
-                              // smooth and the value snaps to `step` here.
-                              child: Slider(
-                                value: _target.clamp(0, max).toDouble(),
-                                max: max.toDouble(),
-                                activeColor: accent,
-                                onChanged: (v) => setState(
-                                  () => _target = ((v / step).round() * step)
-                                      .clamp(0, max),
-                                ),
-                              ).tagged('temperature.slider'),
-                            ),
-                            _StepButton(
-                              icon: Icons.add,
-                              id: 'temperature.step_up',
-                              label: '+$step°',
-                              onTap: () => _bump(step),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: DashSpace.md),
-                        // Quick-pick presets — tapping one moves the slider;
-                        // the change is committed with the Set button below.
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: DashSpace.sm,
-                          runSpacing: DashSpace.sm,
-                          children: [
-                            for (final p in _reading.presets(_chamberMax))
-                              _PresetChip(
-                                label: '$p°',
-                                id: 'temperature.preset',
-                                selected: _target == p,
-                                onTap: () => setState(() => _target = p),
-                              ),
-                          ],
-                        ),
-                      ],
+              // take effect (airduct not in Heating).
+              _HeldWhen(
+                held: !tempEnabled,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _TargetNumeral(
+                      _target == 0 ? l10n.ctrlOff : '$_target°',
+                      color: _reading.gaugeInk(t, target: _target.toDouble()),
                     ),
-                  ),
+                    const SizedBox(height: DashSpace.sm),
+                    _StepSlider(
+                      value: _target,
+                      max: max,
+                      activeColor: accent,
+                      onChanged: (v) => setState(() => _target = v),
+                      presets: _reading.presets(_chamberMax),
+                      presetLabel: (p) => '$p°',
+                      idFor: (part) => 'temperature.$part',
+                      lessLabel: '−1°',
+                      moreLabel: '+1°',
+                    ),
+                  ],
                 ),
               ),
               if (showAirduct) ...[

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
@@ -527,6 +528,89 @@ void main() {
 
     // Replayed by `panda_breath_contract_test.dart`.
     expectSentAsRecorded('panda_breath', writesOf(log.requests));
+  });
+
+  /// The sheet's editor is the one the temperature, fan and drying sheets use
+  /// (`_StepSlider`); these pin what it does for all of them.
+  group('the shared target editor', () {
+    PrinterStatus atTarget(double target) => _status(
+      panda: PandaBreathState(
+        deviceId: 'pb-1',
+        online: true,
+        targetTemp: target,
+        workOn: true,
+      ),
+    );
+
+    testWidgets('its controls keep the ids the log has always carried', (
+      tester,
+    ) async {
+      await pumpCard(tester, _status());
+      await openSheet(tester);
+
+      expect(byLogId('panda_breath.step_down'), findsOneWidget);
+      expect(byLogId('panda_breath.slider'), findsOneWidget);
+      expect(byLogId('panda_breath.step_up'), findsOneWidget);
+      expect(byLogId('panda_breath.preset'), findsNWidgets(4));
+    });
+
+    testWidgets('minus stops at the bottom of the range', (tester) async {
+      await pumpCard(tester, atTarget(0));
+      await openSheet(tester);
+
+      await tester.tap(byLogId('panda_breath.step_down'));
+      await tester.pump();
+      await tester.tap(byLogId('panda_breath.set'));
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, ['pandaTarget:2:0']);
+    });
+
+    testWidgets('plus stops at the top of the range', (tester) async {
+      await pumpCard(tester, atTarget(pandaBreathMaxTargetC.toDouble()));
+      await openSheet(tester);
+
+      await tester.tap(byLogId('panda_breath.step_up'));
+      await tester.pump();
+      await tester.tap(byLogId('panda_breath.set'));
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, ['pandaTarget:2:$pandaBreathMaxTargetC']);
+    });
+
+    testWidgets('a preset is announced as selected while it is current', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpCard(tester, _status());
+      await openSheet(tester);
+      bool? selected(int chip) {
+        final flag = tester
+            .getSemantics(byLogId('panda_breath.preset').at(chip))
+            .flagsCollection
+            .isSelected;
+        return flag == Tristate.isTrue
+            ? true
+            : flag == Tristate.isFalse
+            ? false
+            : null;
+      }
+
+      // The presets are 35, 45, 55 and 60; the heater's target is 45.
+      expect(
+        [for (var i = 0; i < 4; i++) selected(i)],
+        [false, true, false, false],
+      );
+
+      await tester.tap(byLogId('panda_breath.preset').at(2));
+      await tester.pump();
+
+      expect(
+        [for (var i = 0; i < 4; i++) selected(i)],
+        [false, false, true, false],
+      );
+      handle.dispose();
+    });
   });
 
   group('at large text', () {

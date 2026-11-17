@@ -2298,7 +2298,6 @@ class _DrySlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    int clamp(int v) => v.clamp(min, max);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -2310,49 +2309,22 @@ class _DrySlider extends StatelessWidget {
             Text(valueText, style: t.monoTitle),
           ],
         ),
-        Row(
-          children: [
-            _StepButton(
-              icon: Icons.remove,
-              id: '${id}_step_down',
-              label: '$label −1',
-              onTap: () => onChanged(clamp(value - 1)),
-            ),
-            Expanded(
-              child: Slider(
-                value: value.clamp(min, max).toDouble(),
-                min: min.toDouble(),
-                max: max.toDouble(),
-                activeColor: t.accentOrange,
-                // Without it a reader announces the position as a percentage
-                // ("25%"), which says nothing about a dryer: the same wording
-                // the presets carry is what the value means.
-                semanticFormatterCallback: (v) => presetLabel(v.round()),
-                onChanged: (v) => onChanged(v.round()),
-              ).tagged('${id}_slider'),
-            ),
-            _StepButton(
-              icon: Icons.add,
-              id: '${id}_step_up',
-              label: '$label +1',
-              onTap: () => onChanged(clamp(value + 1)),
-            ),
-          ],
-        ),
-        const SizedBox(height: DashSpace.sm),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [
-            for (final p in presets)
-              _PresetChip(
-                label: presetLabel(p),
-                id: '${id}_preset',
-                selected: value == p,
-                onTap: () => onChanged(p),
-              ),
-          ],
+        _StepSlider(
+          value: value,
+          min: min,
+          max: max,
+          activeColor: t.accentOrange,
+          // Without it a reader announces the position as a percentage
+          // ("25%"), which says nothing about a dryer: the same wording
+          // the presets carry is what the value means.
+          semanticFormatter: (v) => presetLabel(v.round()),
+          onChanged: onChanged,
+          presets: presets,
+          presetLabel: presetLabel,
+          presetGap: DashSpace.sm,
+          idFor: (part) => '${id}_$part',
+          lessLabel: '$label −1',
+          moreLabel: '$label +1',
         ),
       ],
     );

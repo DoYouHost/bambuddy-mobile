@@ -85,6 +85,7 @@ part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
 part 'printer_card_panda.dart';
+part 'printer_card_target.dart';
 part 'printer_card_movement.dart';
 part 'printer_card_collapsed.dart';
 

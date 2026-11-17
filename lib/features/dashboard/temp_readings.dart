@@ -109,9 +109,6 @@ class TempReading {
     TempKind.unknown => 300,
   };
 
-  /// Slider/stepper granularity: 1° everywhere for smooth fine control.
-  int get targetStep => 1;
-
   /// Common quick-pick targets shown as chips in the sheet (Off has its own
   /// button, so it's not listed here).
   ///
