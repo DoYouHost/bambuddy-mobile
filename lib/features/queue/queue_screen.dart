@@ -641,13 +641,7 @@ class _Chip extends StatelessWidget {
               : accent.withValues(alpha: DashAlpha.outline),
         ),
       ),
-      child: Text(
-        label,
-        style: t.micro.copyWith(
-          color: accent,
-          letterSpacing: DashTracking.label,
-        ),
-      ),
+      child: Text(label, style: t.pillText(accent)),
     );
   }
 }

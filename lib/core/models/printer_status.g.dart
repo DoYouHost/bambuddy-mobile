@@ -50,6 +50,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       trayChangeLog: _trayChangeLogOrNull(json['tray_change_log']),
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
       nextPause: nextPauseFromJson(json['next_pause']),
+      pandaBreath: pandaBreathFromJson(json['panda_breath']),
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(

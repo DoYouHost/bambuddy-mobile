@@ -38,13 +38,15 @@ is the map and the decisions.
 | `DashPill`, `DashSpace`, the `cardBox` and `subCardBox(radius)` decorations, `buildDashThemeData` | `dash_ui` package |
 | `textWidth` (`text_measure.dart`), `classifyDioException` (`dio_failure.dart`), `ServerReachability` | `app_util` package |
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
+| `SectionLabel`: the small heading over a group, one look (bold, secondary ink, capitals, `DashTracking.caps`) and a heading for a screen reader; a card's title is another role (`titleSm`, `titleMd`) |
+| `_StepSlider`, `_TargetNumeral`, `_HeldWhen` in [printer_card_target.dart](../lib/features/dashboard/widgets/printer_card_target.dart): the −/+ buttons, slider and presets of the temperature, Panda Breath, fan and drying sheets, the big number above them, and the dim-and-block that takes the keyboard with it |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
 | `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
 | `treat404AsAbsent`, and `treatPathCaptureAsAbsent` for a route an older server reads as `/<resource>/{id}` and refuses with a 422 (`/archives/merge-count`, `/queue/batches`) | [observed_capability.dart](../lib/core/api/observed_capability.dart) |
 | `dashboardWatchedProvider`: the app in the foreground and the dashboard on screen, what the smart-plug and AI-detection polls run on; `absentOrRefused` (`api_exceptions.dart`): the `guardAbsent` statuses of a feed that shows nothing on a 404 or a 403 | [dashboard/providers.dart](../lib/features/dashboard/providers.dart), [api_exceptions.dart](../lib/core/api/api_exceptions.dart) |
 | `printerListProvider`: every printer's configuration, no statuses, for any picker or filter that names printers | [providers.dart](../lib/providers.dart) |
-| `tintBox(accent)`: the washed, outlined box of a banner or notice; `bodyBoldPrimary`: a heading inside a sheet or a row's main line | [dash_theme.dart](../lib/core/theme/dash_theme.dart) (`BambuddyAccent`) |
+| `tintBox(accent, {radius})`: the washed, outlined box of a banner or notice, and of an accent row or chip when it passes its own radius; `bodyBoldPrimary`: a heading inside a sheet or a row's main line; `caption` and `pillText(tone)`: the small tracked text of a temperature tile or a sheet's caption, and of a pill | [dash_theme.dart](../lib/core/theme/dash_theme.dart) (`BambuddyAccent`) |
 | `verdictLook`: a kept or binned print's label, icon and colours, for the card's mark and a run's pill; each keeps its own "awaiting" | [print_outcome.dart](../lib/features/archive/print_outcome.dart) |
 | `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else; `intListFromJson`: a server-sent id list | [json_utils.dart](../lib/core/models/json_utils.dart) |
 | `TrayLayout`, `globalTrayId`, `rackExternalLabel`: a slot's numbers on any printer, the H3C's rack included; `mappingSlotLabel`: a slot as the filament mapping names it, on the phone's form and the controller's | [slot_addressing.dart](../lib/core/ams/slot_addressing.dart), [filament_mapping.dart](../lib/core/ams/filament_mapping.dart) |
@@ -99,6 +101,26 @@ is the map and the decisions.
   stopwords. A sentence written without the diacritics passes the first.
 
 ## Deliberately not unified
+
+- **A switch row widget for the light row and the Panda Breath row.** Same box
+  (that is `tintBox(radius: xl)`), but the light row toggles on a tap of the whole
+  row, the Panda row opens a sheet and toggles only on its switch, which is its
+  own 48 dp target, and it carries a second line and a state where no switch is
+  offered. A widget for two would take a subtitle, a tap mode and a no-switch
+  flag.
+- **The tile caption and the pill text stay tight.** A temperature tile's caption
+  shares a line with the setpoint, and `tempGridColumns` measures it; at the
+  heading's `caps` tracking "PANDA BREATH" would turn the two-column grid into one
+  on a 360 dp phone. They are `caption` and `pillText(tone)` in the theme, and
+  `BambuddyAccent.caption` is what the grid measures with, so the measuring and the
+  drawing cannot drift apart.
+- **Three tracked texts are not headings:** the Bambuddy wordmark, the "ID" badge
+  of a skip-objects row and the card titles. `tracking_roles_test.dart` lists the
+  first two by name.
+- **The queue bulk-edit rows' keyboard hole.** `IgnorePointer` alone leaves a
+  focused control answering Enter (measured). `_HeldWhen` closes it for the
+  card's sheets; `queue_bulk_edit_screen.dart` still dims with `Opacity` and
+  `IgnorePointer` at 0.5, a different opacity, and is the maintainer's call.
 
 Each of these was measured; the merge either changes pixels or behaviour, or costs
 more than the lines it saves.

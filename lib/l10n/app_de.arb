@@ -4958,5 +4958,15 @@
   "notifLowStockDesc": "Wird am Server für alle festgelegt. Der eigene Schwellenwert einer Spule hat Vorrang.",
   "notifLowStockEdit": "Schwellenwert für niedrigen Filamentstand ändern",
   "notifLowStockInputLabel": "Prozent des Etikettengewichts",
-  "notifLowStockInvalid": "Gib eine Zahl von 0,1 bis 99,9 ein."
+  "notifLowStockInvalid": "Gib eine Zahl von 0,1 bis 99,9 ein.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "An Panda Breath gesendet",
+  "pandaBreathOffline": "Heizung offline",
+  "pandaBreathTurnOn": "Einschalten",
+  "pandaBreathTurnOff": "Ausschalten",
+  "pandaBreathMode": "Modus",
+  "pandaBreathModeOn": "Immer an",
+  "pandaBreathModeDrying": "Trocknen",
+  "pandaBreathDryingLeft": "Trocknen, noch {minutes} Min.",
+  "pandaBreathTarget": "Zieltemperatur 0–{max} °C"
 }

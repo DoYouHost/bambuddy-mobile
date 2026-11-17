@@ -278,7 +278,16 @@ ProviderContainer contractContainer(Dio dio) {
 }
 
 /// One report from the stand-in printer, as a Bambu printer publishes it.
-Future<void> publishReport(String serial, Map<String, Object?> print) async {
+Future<void> publishReport(String serial, Map<String, Object?> print) =>
+    publishTopic('device/$serial/report', jsonEncode({'print': print}));
+
+/// One message on the stand-in broker. [retain] keeps it for a client that
+/// subscribes later; an empty retained message clears the topic.
+Future<void> publishTopic(
+  String topic,
+  String message, {
+  bool retain = false,
+}) async {
   final result = await Process.run('docker', [
     'exec',
     contractBrokerContainer!,
@@ -291,9 +300,9 @@ Future<void> publishReport(String serial, Map<String, Object?> print) async {
     '--cafile',
     '/mosquitto/certs/server.crt',
     '-t',
-    'device/$serial/report',
-    '-m',
-    jsonEncode({'print': print}),
+    topic,
+    if (retain) '-r',
+    if (message.isEmpty) '-n' else ...['-m', message],
   ]);
   if (result.exitCode != 0) {
     throw StateError('mosquitto_pub failed: ${result.stderr}');
@@ -304,15 +313,30 @@ Future<void> publishReport(String serial, Map<String, Object?> print) async {
 /// while [send] runs that [where] picks, as its `print` object. The server
 /// publishes other requests on the same topic (pushall and the like), hence the
 /// filter.
+Future<Map<String, dynamic>> firstRequest(
+  String serial,
+  Future<void> Function() send, {
+  required bool Function(Map<String, dynamic> print) where,
+}) async {
+  final message = await firstMessage(
+    'device/$serial/request',
+    send,
+    where: (m) => m['print'] is Map<String, dynamic> && where(m['print']),
+  );
+  return message['print'] as Map<String, dynamic>;
+}
+
+/// The first JSON object published on [topic] while [send] runs that [where]
+/// picks.
 ///
 /// `-d` makes mosquitto_sub log its SUBACK to the same stdout the messages
 /// arrive on, so one subscription can wait for it before [send] — a request
 /// sent earlier is never delivered. `-W` bounds the process inside the
 /// container.
-Future<Map<String, dynamic>> firstRequest(
-  String serial,
+Future<Map<String, dynamic>> firstMessage(
+  String topic,
   Future<void> Function() send, {
-  required bool Function(Map<String, dynamic> print) where,
+  required bool Function(Map<String, dynamic> message) where,
 }) async {
   final sub = await Process.start('docker', [
     'exec',
@@ -330,7 +354,7 @@ Future<Map<String, dynamic>> firstRequest(
     '--cafile',
     '/mosquitto/certs/server.crt',
     '-t',
-    'device/$serial/request',
+    topic,
     '-W',
     '20',
   ]);
@@ -345,11 +369,11 @@ Future<Map<String, dynamic>> firstRequest(
           return;
         }
         if (!line.startsWith('{')) return;
-        final print = (jsonDecode(line) as Map)['print'];
-        if (print is Map<String, dynamic> &&
-            where(print) &&
+        final message = jsonDecode(line);
+        if (message is Map<String, dynamic> &&
+            where(message) &&
             !found.isCompleted) {
-          found.complete(print);
+          found.complete(message);
         }
       });
   try {

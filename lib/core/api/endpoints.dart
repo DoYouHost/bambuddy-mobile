@@ -274,6 +274,13 @@ abstract final class Endpoints {
   static String chamberTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/chamber';
 
+  /// The Panda Breath bound to the printer (server #1466). JSON body with
+  /// exactly one of `work_on`, `mode`, `target_temp` (0–60), else 400; 404 when
+  /// no heater is bound, 503 when the server's MQTT broker is down. Offer it
+  /// only for a status that carries `panda_breath`: the route came with it.
+  static String pandaBreath(int printerId) =>
+      '$apiPrefix/printers/$printerId/panda-breath';
+
   /// Airduct flap mode. Query: `mode=cooling|heating`. Supported on
   /// P2S/X2D/H2* — gate via `supportsAirduct` first.
   static String airductMode(int printerId) =>

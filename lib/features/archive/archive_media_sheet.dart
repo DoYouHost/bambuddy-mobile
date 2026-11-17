@@ -4,6 +4,7 @@ import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
@@ -567,7 +568,6 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     return Padding(
       // The trailing button brings its own height, so the gap under the header
       // is only needed on the plain one.
@@ -588,7 +588,7 @@ class _SectionHeader extends StatelessWidget {
         children: [
           // The words are the heading; the control beside them is a button and
           // has to keep reading as one.
-          SectionHeading(title, style: t.label),
+          SectionLabel(title),
           ?trailing,
         ],
       ),

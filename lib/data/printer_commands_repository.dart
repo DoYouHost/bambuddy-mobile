@@ -8,6 +8,7 @@ import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
+import '../core/models/panda_breath.dart';
 
 /// Printer control commands — pause/resume/stop, light, speed, temperatures,
 /// airduct, jogs. All `POST` with an empty body and the parameters in the query,
@@ -91,6 +92,21 @@ class PrinterCommandsRepository {
       query: {'target': target},
     );
   }
+
+  /// The printer's Panda Breath: one change per request, as the route demands.
+  Future<void> setPandaBreathOn(int printerId, {required bool on}) =>
+      _pandaBreath(printerId, {'work_on': on});
+
+  Future<void> setPandaBreathMode(int printerId, PandaBreathMode mode) =>
+      _pandaBreath(printerId, {'mode': mode.wire});
+
+  Future<void> setPandaBreathTarget(int printerId, int target) {
+    assert(target >= 0 && target <= pandaBreathMaxTargetC, 'out of range');
+    return _pandaBreath(printerId, {'target_temp': target});
+  }
+
+  Future<void> _pandaBreath(int printerId, Map<String, dynamic> change) =>
+      _post(Endpoints.pandaBreath(printerId), data: change);
 
   /// Airduct flap mode. Only call for models with an airduct (P2S/X2D/H2*).
   Future<void> setAirductMode(int printerId, {required bool heating}) => _post(

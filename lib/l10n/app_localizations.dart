@@ -17462,6 +17462,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a number from 0.1 to 99.9.'**
   String get notifLowStockInvalid;
+
+  /// BIQU Panda Breath chamber heater, a product name
+  ///
+  /// In en, this message translates to:
+  /// **'Panda Breath'**
+  String get pandaBreath;
+
+  /// No description provided for @pandaBreathSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the Panda Breath'**
+  String get pandaBreathSent;
+
+  /// No description provided for @pandaBreathOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Heater offline'**
+  String get pandaBreathOffline;
+
+  /// No description provided for @pandaBreathTurnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get pandaBreathTurnOn;
+
+  /// No description provided for @pandaBreathTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get pandaBreathTurnOff;
+
+  /// No description provided for @pandaBreathMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get pandaBreathMode;
+
+  /// No description provided for @pandaBreathModeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Always on'**
+  String get pandaBreathModeOn;
+
+  /// No description provided for @pandaBreathModeDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying'**
+  String get pandaBreathModeDrying;
+
+  /// No description provided for @pandaBreathDryingLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying, {minutes} min left'**
+  String pandaBreathDryingLeft(int minutes);
+
+  /// No description provided for @pandaBreathTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target temperature 0–{max} °C'**
+  String pandaBreathTarget(int max);
 }
 
 class _AppLocalizationsDelegate

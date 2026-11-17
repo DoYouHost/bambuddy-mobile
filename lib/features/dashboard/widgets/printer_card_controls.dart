@@ -144,13 +144,7 @@ class _LightSwitchRow extends ConsumerWidget {
                 horizontal: DashSpace.lg,
                 vertical: DashSpace.lg,
               ),
-              decoration: BoxDecoration(
-                color: t.accentGreen.withValues(alpha: DashAlpha.faint),
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(
-                  color: t.accentGreen.withValues(alpha: DashAlpha.soft),
-                ),
-              ),
+              decoration: t.tintBox(t.accentGreen, radius: DashRadius.xl),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
