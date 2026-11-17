@@ -6,7 +6,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [master]
+    branches: [master, dev]
     # No paths-ignore: a workflow that does not run reports no check, and the
     # required status on master would wait forever. The filter is the `changes` job.
   workflow_dispatch:
