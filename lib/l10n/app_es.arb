@@ -4958,5 +4958,15 @@
   "notifLowStockDesc": "Se define en el servidor para todos. El umbral propio de una bobina tiene prioridad.",
   "notifLowStockEdit": "Cambiar el umbral de poco filamento",
   "notifLowStockInputLabel": "Porcentaje del peso de la etiqueta",
-  "notifLowStockInvalid": "Introduce un número de 0,1 a 99,9."
+  "notifLowStockInvalid": "Introduce un número de 0,1 a 99,9.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "Enviado a Panda Breath",
+  "pandaBreathOffline": "Calefactor sin conexión",
+  "pandaBreathTurnOn": "Encender",
+  "pandaBreathTurnOff": "Apagar",
+  "pandaBreathMode": "Modo",
+  "pandaBreathModeOn": "Siempre encendido",
+  "pandaBreathModeDrying": "Secado",
+  "pandaBreathDryingLeft": "Secando, quedan {minutes} min",
+  "pandaBreathTarget": "Temperatura deseada 0–{max} °C"
 }

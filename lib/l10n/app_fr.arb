@@ -4958,5 +4958,15 @@
   "notifLowStockDesc": "Défini sur le serveur pour tous. Le seuil propre à une bobine prévaut.",
   "notifLowStockEdit": "Modifier le seuil de filament bas",
   "notifLowStockInputLabel": "Pourcentage du poids de l'étiquette",
-  "notifLowStockInvalid": "Saisissez un nombre de 0,1 à 99,9."
+  "notifLowStockInvalid": "Saisissez un nombre de 0,1 à 99,9.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "Envoyé au Panda Breath",
+  "pandaBreathOffline": "Chauffage hors ligne",
+  "pandaBreathTurnOn": "Allumer",
+  "pandaBreathTurnOff": "Éteindre",
+  "pandaBreathMode": "Mode",
+  "pandaBreathModeOn": "Toujours allumé",
+  "pandaBreathModeDrying": "Séchage",
+  "pandaBreathDryingLeft": "Séchage, encore {minutes} min",
+  "pandaBreathTarget": "Température cible 0–{max} °C"
 }

@@ -71,7 +71,6 @@ class _GaugeTile extends ConsumerWidget {
     final target = reading.kind == TempKind.unknown
         ? reading.target
         : (pending.tempTarget(reading.raw)?.toDouble() ?? reading.target);
-    final hasTarget = target != null && target > 0;
     // One thermal-state color drives the whole tile — ring, setpoint and the
     // chamber's air-duct glyph all use [accent] (orange = heating/holding,
     // blue = cooling/idle). The ring center shows the setpoint ("-" when unset).
@@ -90,76 +89,14 @@ class _GaugeTile extends ConsumerWidget {
         _heaterHistoryKinds.contains(reading.raw) &&
         ref.watch(heaterHistorySupportedProvider).orFalse;
 
-    final tile = Container(
-      padding: const EdgeInsets.all(DashSpace.md),
-      decoration: t.subCardBox(DashRadius.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Label left, setpoint right on the same line: the digits keep a row
-          // of their own below, and the tile loses a line of height.
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  reading.label(l10n).toUpperCase(),
-                  style: t.micro.copyWith(
-                    color: t.textSecondary,
-                    letterSpacing: DashTracking.label,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: DashSpace.xs),
-              // The setpoint: an arrow and the number, "-" when none is set.
-              Icon(
-                Icons.arrow_forward,
-                size: DashIcon.xs,
-                color: hasTarget ? accent : t.textTertiary,
-              ),
-              const SizedBox(width: DashSpace.xs),
-              Text(
-                hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
-                style: t.micro.copyWith(
-                  color: hasTarget
-                      ? reading.gaugeInk(t, target: target)
-                      : t.textTertiary,
-                  fontFamily: DashTokens.fontMono,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: DashSpace.sm),
-          // The digits own their row: nothing sits beside them, so they keep
-          // their full size at every text size (the grid goes to one column when
-          // they or the label line would not fit, see [tempGridColumns]).
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (airductIcon != null) ...[
-                Icon(airductIcon, size: DashIcon.md, color: accent),
-                const SizedBox(width: DashSpace.xs),
-              ],
-              Text(
-                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                style: t.monoDisplay.copyWith(height: 1.0),
-              ),
-            ],
-          ),
-          const SizedBox(height: DashSpace.sm),
-          ExcludeSemantics(
-            child: DashProgressBar(
-              value: actual == null
-                  ? 0
-                  : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
-              height: DashBar.thin,
-              color: accent,
-            ),
-          ),
-        ],
-      ),
+    final tile = _TempTileFace(
+      label: reading.label(l10n),
+      target: target,
+      accent: accent,
+      targetInk: reading.gaugeInk(t, target: target),
+      glyph: airductIcon,
+      actual: actual,
+      fraction: actual == null ? 0 : actual / reading.gaugeMax(chamberMax),
     );
 
     if (!editable && !hasHistory) return tile;
@@ -205,6 +142,118 @@ class _GaugeTile extends ConsumerWidget {
         printing: printing,
         editable: editable,
         hasHistory: hasHistory,
+      ),
+    );
+  }
+}
+
+/// What a temperature tile shows: the label and the setpoint on one line, the
+/// reading in large digits under them, and a bar. [glyph] goes before the
+/// digits (the chamber's air duct); [fraction] is clamped here.
+class _TempTileFace extends StatelessWidget {
+  const _TempTileFace({
+    required this.label,
+    required this.target,
+    required this.accent,
+    required this.targetInk,
+    required this.actual,
+    required this.fraction,
+    this.glyph,
+    this.glyphColor,
+    this.glyphLabel,
+  });
+
+  final String label;
+  final double? target;
+  final Color accent;
+  final Color targetInk;
+  final double? actual;
+  final double fraction;
+  final IconData? glyph;
+
+  /// [accent] when null.
+  final Color? glyphColor;
+
+  /// The glyph's accessible name, for one that says something the digits do
+  /// not (an offline heater shows a dash).
+  final String? glyphLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final target = this.target;
+    final hasTarget = target != null && target > 0;
+    final actual = this.actual;
+    return Container(
+      padding: const EdgeInsets.all(DashSpace.md),
+      decoration: t.subCardBox(DashRadius.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Label left, setpoint right on the same line: the digits keep a row
+          // of their own below, and the tile loses a line of height.
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  style: t.micro.copyWith(
+                    color: t.textSecondary,
+                    letterSpacing: DashTracking.label,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: DashSpace.xs),
+              // The setpoint: an arrow and the number, "-" when none is set.
+              Icon(
+                Icons.arrow_forward,
+                size: DashIcon.xs,
+                color: hasTarget ? accent : t.textTertiary,
+              ),
+              const SizedBox(width: DashSpace.xs),
+              Text(
+                hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
+                style: t.micro.copyWith(
+                  color: hasTarget ? targetInk : t.textTertiary,
+                  fontFamily: DashTokens.fontMono,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          // The digits own their row: nothing sits beside them, so they keep
+          // their full size at every text size (the grid goes to one column when
+          // they or the label line would not fit, see [tempGridColumns]).
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (glyph != null) ...[
+                Icon(
+                  glyph,
+                  size: DashIcon.md,
+                  color: glyphColor ?? accent,
+                  semanticLabel: glyphLabel,
+                ),
+                const SizedBox(width: DashSpace.xs),
+              ],
+              Text(
+                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
+                style: t.monoDisplay.copyWith(height: 1.0),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          ExcludeSemantics(
+            child: DashProgressBar(
+              value: fraction.clamp(0.0, 1.0),
+              height: DashBar.thin,
+              color: accent,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -716,16 +765,20 @@ class _PresetChip extends StatelessWidget {
     required this.selected,
     required this.id,
     required this.onTap,
+    this.mono = true,
   });
 
   final String label;
+
+  /// Mono for a number; a word (a mode name) takes the body face.
+  final bool mono;
 
   /// Diagnostic identifier — see [_SheetButton.id]. The chips of the
   /// temperature, fan, drying and movement sheets are the same widget.
   final String id;
 
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -758,7 +811,10 @@ class _PresetChip extends StatelessWidget {
               // height is only for the touch target.
               child: Center(
                 widthFactor: 1,
-                child: Text(label, style: t.monoValue.copyWith(color: fg)),
+                child: Text(
+                  label,
+                  style: (mono ? t.monoValue : t.bodyBold).copyWith(color: fg),
+                ),
               ),
             ),
           ),

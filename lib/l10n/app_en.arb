@@ -7831,5 +7831,32 @@
   "notifLowStockDesc": "Set on the server for everyone. A spool's own threshold wins.",
   "notifLowStockEdit": "Change the low filament threshold",
   "notifLowStockInputLabel": "Percent of the label weight",
-  "notifLowStockInvalid": "Enter a number from 0.1 to 99.9."
+  "notifLowStockInvalid": "Enter a number from 0.1 to 99.9.",
+  "pandaBreath": "Panda Breath",
+  "@pandaBreath": {
+    "description": "BIQU Panda Breath chamber heater, a product name"
+  },
+  "pandaBreathSent": "Sent to the Panda Breath",
+  "pandaBreathOffline": "Heater offline",
+  "pandaBreathTurnOn": "Turn on",
+  "pandaBreathTurnOff": "Turn off",
+  "pandaBreathMode": "Mode",
+  "pandaBreathModeOn": "Always on",
+  "pandaBreathModeDrying": "Drying",
+  "pandaBreathDryingLeft": "Drying, {minutes} min left",
+  "@pandaBreathDryingLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "pandaBreathTarget": "Target temperature 0–{max} °C",
+  "@pandaBreathTarget": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  }
 }

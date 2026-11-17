@@ -427,9 +427,13 @@ class _TempGrid extends StatelessWidget {
     required this.model,
     required this.activeExtruder,
     required this.printing,
+    this.panda,
   });
 
   final List<TempReading> readings;
+
+  /// The printer's Panda Breath, the grid's last tile when there is one.
+  final PandaBreathState? panda;
   final int printerId;
   final String? model;
   final int? activeExtruder;
@@ -454,7 +458,10 @@ class _TempGrid extends StatelessWidget {
         final columns = tempGridColumns(
           width: constraints.maxWidth,
           digits: digits,
-          labels: [for (final r in readings) r.label(l10n).toUpperCase()],
+          labels: [
+            for (final r in readings) r.label(l10n).toUpperCase(),
+            if (panda != null) l10n.pandaBreath.toUpperCase(),
+          ],
           label: tokens.micro.copyWith(letterSpacing: DashTracking.label),
           setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
           scaler: MediaQuery.textScalerOf(context),
@@ -481,6 +488,11 @@ class _TempGrid extends StatelessWidget {
                   activeExtruder: activeExtruder,
                   printing: printing,
                 ),
+              ),
+            if (panda case final panda?)
+              SizedBox(
+                width: tileWidth,
+                child: _PandaBreathTile(printerId: printerId, panda: panda),
               ),
           ],
         );

@@ -14,6 +14,7 @@ import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory.dart';
+import '../../../core/models/panda_breath.dart';
 import '../../../core/models/printer.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
@@ -83,6 +84,7 @@ part 'printer_card_scheduled_drying.dart';
 part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
+part 'printer_card_panda.dart';
 part 'printer_card_movement.dart';
 part 'printer_card_collapsed.dart';
 
@@ -242,6 +244,8 @@ class _PrinterCardState extends State<PrinterCard> {
             // bambuddy's own flag rather than anything on the machine.
             if (status != null)
               _PlateClearBanner(printerId: printerId, status: status),
+            if (status?.pandaBreath case final panda?)
+              _PandaBreathRow(printerId: printerId, panda: panda),
           ],
         ),
       );
@@ -331,10 +335,11 @@ class _PrinterCardState extends State<PrinterCard> {
             const SizedBox(height: DashSpace.md),
             _PrintPanel(printerId: printerId, status: status!),
           ],
-          if (readings.isNotEmpty) ...[
+          if (readings.isNotEmpty || status?.pandaBreath != null) ...[
             const SizedBox(height: DashSpace.lg),
             _TempGrid(
               readings: readings,
+              panda: status?.pandaBreath,
               printerId: printerId,
               model: model,
               activeExtruder: status?.activeExtruder,

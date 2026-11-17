@@ -4269,5 +4269,15 @@
   "notifLowStockDesc": "Ustawiane na serwerze dla wszystkich. Własny próg szpuli ma pierwszeństwo.",
   "notifLowStockEdit": "Zmień próg niskiego filamentu",
   "notifLowStockInputLabel": "Procent wagi z etykiety",
-  "notifLowStockInvalid": "Podaj liczbę od 0,1 do 99,9."
+  "notifLowStockInvalid": "Podaj liczbę od 0,1 do 99,9.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "Wysłano do grzałki Panda Breath",
+  "pandaBreathOffline": "Grzałka offline",
+  "pandaBreathTurnOn": "Włącz",
+  "pandaBreathTurnOff": "Wyłącz",
+  "pandaBreathMode": "Tryb",
+  "pandaBreathModeOn": "Zawsze włączona",
+  "pandaBreathModeDrying": "Suszenie",
+  "pandaBreathDryingLeft": "Suszenie, zostało {minutes} min",
+  "pandaBreathTarget": "Temperatura docelowa 0–{max} °C"
 }
