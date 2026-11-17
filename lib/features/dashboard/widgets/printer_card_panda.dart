@@ -111,13 +111,7 @@ class _PandaBreathRow extends ConsumerWidget {
     final body = Container(
       padding: const EdgeInsets.only(left: DashSpace.lg, right: DashSpace.xs),
       constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
-      decoration: BoxDecoration(
-        color: t.accentGreen.withValues(alpha: DashAlpha.faint),
-        borderRadius: BorderRadius.circular(DashRadius.xl),
-        border: Border.all(
-          color: t.accentGreen.withValues(alpha: DashAlpha.soft),
-        ),
-      ),
+      decoration: t.tintBox(t.accentGreen, radius: DashRadius.xl),
       child: Row(
         children: [
           Icon(

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/models/panda_breath.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
@@ -199,6 +200,26 @@ void main() {
       expect(find.text(pl.pandaBreathSent), findsOneWidget);
       // The switch is its own target: the sheet did not open under it.
       expect(byLogId('panda_breath.set'), findsNothing);
+    });
+
+    testWidgets('the row is a washed box with the row radius', (tester) async {
+      await pumpCard(tester, _status(connected: false));
+
+      final box =
+          tester
+                  .widget<Container>(
+                    find
+                        .descendant(
+                          of: byLogId('printer.panda_breath'),
+                          matching: find.byType(Container),
+                        )
+                        .first,
+                  )
+                  .decoration!
+              as BoxDecoration;
+      final t = DashTokens.of(tester.element(byLogId('printer.panda_breath')));
+      expect(box.borderRadius, BorderRadius.circular(DashRadius.xl));
+      expect(box.color, t.accentGreen.withValues(alpha: DashAlpha.faint));
     });
 
     testWidgets('the row opens the sheet', (tester) async {

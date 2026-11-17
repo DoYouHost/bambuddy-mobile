@@ -556,6 +556,34 @@ void main() {
     expect(find.text(pl.speedStandard), findsOneWidget); // speed (level 2)
   });
 
+  testWidgets('the light row is a washed box with the row radius', (
+    tester,
+  ) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+    await tester.pumpWidget(_cardWithProviders(item));
+
+    final box =
+        tester
+                .widget<Container>(
+                  find
+                      .descendant(
+                        of: byLogId('controls.light'),
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                )
+                .decoration!
+            as BoxDecoration;
+    final t = DashTokens.of(tester.element(byLogId('controls.light')));
+    expect(box.borderRadius, BorderRadius.circular(DashRadius.xl));
+    expect(box.color, t.accentGreen.withValues(alpha: DashAlpha.faint));
+  });
+
   testWidgets('controls bar does not render without control data', (
     tester,
   ) async {
