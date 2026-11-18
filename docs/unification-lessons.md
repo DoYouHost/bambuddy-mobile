@@ -38,6 +38,7 @@ is the map and the decisions.
 | `DashPill`, `DashSpace`, the `cardBox` and `subCardBox(radius)` decorations, `buildDashThemeData` | `dash_ui` package |
 | `textWidth` (`text_measure.dart`), `classifyDioException` (`dio_failure.dart`), `ServerReachability` | `app_util` package |
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
+| `FactRow`: a fact as the label on the left and its value on the right, read first, with an icon where the list has them (a spool's details, a user's, a nozzle's figures); the label takes up to 45% of the row and the value the rest, at its end; `stacked` and `below` for free text and a note under the row | [fact_row.dart](../lib/features/common/fact_row.dart) |
 | `SectionLabel`: the small heading over a group, one look (bold, secondary ink, capitals, `DashTracking.caps`) and a heading for a screen reader; a card's title is another role (`titleSm`, `titleMd`) |
 | `_StepSlider`, `_TargetNumeral`, `_HeldWhen` in [printer_card_target.dart](../lib/features/dashboard/widgets/printer_card_target.dart): the −/+ buttons, slider and presets of the temperature, Panda Breath, fan and drying sheets, the big number above them, and the dim-and-block that takes the keyboard with it |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |

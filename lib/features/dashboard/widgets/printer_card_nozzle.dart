@@ -29,7 +29,13 @@ class NozzleFigures extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _nozzleRows(AppLocalizations.of(context), slot, set, status);
+    final rows = _nozzleRows(
+      DashTokens.of(context),
+      AppLocalizations.of(context),
+      slot,
+      set,
+      status,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -44,7 +50,8 @@ class NozzleFigures extends StatelessWidget {
 }
 
 /// The rows [NozzleFigures] draws, empty when the nozzle reported none of them.
-List<_FigureRow> _nozzleRows(
+List<FactRow> _nozzleRows(
+  DashTokens t,
   AppLocalizations l10n,
   NozzleRackSlot slot,
   NozzleFigureSet set,
@@ -74,35 +81,38 @@ List<_FigureRow> _nozzleRows(
   final hasFilament =
       (filament != null && filament.a != 0) || filamentType.isNotEmpty;
 
-  final rows = <_FigureRow>[
+  final rows = <FactRow>[
     if (diameter.isNotEmpty)
-      _FigureRow(
-        l10n.nozzleLabelDiameter,
-        Text(l10n.nozzleDiameterValue(diameter)),
+      FactRow(
+        label: l10n.nozzleLabelDiameter,
+        value: l10n.nozzleDiameterValue(diameter),
       ),
     if (full && material.isNotEmpty)
-      _FigureRow(l10n.nozzleLabelType, Text(material)),
-    if (flow.isNotEmpty) _FigureRow(l10n.nozzleLabelFlow, Text(flow)),
+      FactRow(label: l10n.nozzleLabelType, value: material),
+    if (flow.isNotEmpty) FactRow(label: l10n.nozzleLabelFlow, value: flow),
     if (full && status != null)
-      _FigureRow(l10n.nozzleLabelStatus, Text(status)),
+      FactRow(label: l10n.nozzleLabelStatus, value: status),
     if (wear != null)
-      _FigureRow(l10n.nozzleLabelWear, Text(l10n.nozzleWearValue(wear))),
+      FactRow(label: l10n.nozzleLabelWear, value: l10n.nozzleWearValue(wear)),
     if (printTime != null && printTime >= 0)
-      _FigureRow(
-        l10n.nozzleLabelPrintTime,
-        Text(formatSeconds(l10n, printTime)),
+      FactRow(
+        label: l10n.nozzleLabelPrintTime,
+        value: formatSeconds(l10n, printTime),
       ),
     if (full && maxTemp > 0)
-      _FigureRow(
-        l10n.nozzleLabelMaxTemp,
-        Text(l10n.nozzleMaxTempValue(maxTemp)),
+      FactRow(
+        label: l10n.nozzleLabelMaxTemp,
+        value: l10n.nozzleMaxTempValue(maxTemp),
       ),
     if (full && serial.isNotEmpty)
-      _FigureRow(l10n.nozzleLabelSerial, Text(serial), mono: true),
+      FactRow.custom(
+        label: l10n.nozzleLabelSerial,
+        value: Text(serial, style: t.monoValue.copyWith(color: t.textPrimary)),
+      ),
     if (full && hasFilament)
-      _FigureRow(
-        l10n.nozzleLabelFilament,
-        Row(
+      FactRow.custom(
+        label: l10n.nozzleLabelFilament,
+        value: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (filament != null && filament.a != 0) _FigureDot(filament),
@@ -116,57 +126,6 @@ List<_FigureRow> _nozzleRows(
       ),
   ];
   return rows;
-}
-
-/// One label/value line of [NozzleFigures]. The label may take up to 45% of the
-/// row and the value all the rest, at its end: a short label leaves a long
-/// serial the room, and a long label wraps before it crowds the value out.
-class _FigureRow extends StatelessWidget {
-  const _FigureRow(this.label, this.value, {this.mono = false});
-
-  final String label;
-  final Widget value;
-  final bool mono;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
-      // Not two flexible children: a flex row hands each its share and leaves
-      // what one does not use, so a short value stopped half way along the row
-      // and a long one wrapped at half of it. Only the value is flexible here;
-      // the space between pushes it to the end.
-      child: LayoutBuilder(
-        builder: (context, constraints) => Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: constraints.maxWidth * 0.45,
-              ),
-              child: Text(
-                label.toUpperCase(),
-                style: t.caption.copyWith(color: t.textSecondary),
-              ),
-            ),
-            const SizedBox(width: DashSpace.md),
-            Flexible(
-              child: DefaultTextStyle.merge(
-                textAlign: TextAlign.end,
-                style: (mono ? t.monoValue : t.bodyStrong).copyWith(
-                  color: t.textPrimary,
-                ),
-                child: value,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// A filament colour as a round mark, outlined so black and white show on both
@@ -241,7 +200,13 @@ class _NozzleSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    if (_nozzleRows(l10n, slot, NozzleFigureSet.hotend, null).isEmpty) {
+    if (_nozzleRows(
+      DashTokens.of(context),
+      l10n,
+      slot,
+      NozzleFigureSet.hotend,
+      null,
+    ).isEmpty) {
       return const SizedBox.shrink();
     }
     return Column(

@@ -9,6 +9,7 @@ import '../../core/models/current_user.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/fact_row.dart';
 import '../common/dash_async.dart';
 import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
@@ -248,21 +249,21 @@ class _UserDetailSheet extends ConsumerWidget {
               children: [
                 Text(user.username, style: t.display),
                 const SizedBox(height: DashSpace.lg),
-                _DetailRow(
+                FactRow(
                   icon: Icons.alternate_email,
                   label: l10n.usersEmailLabel,
                   value: (user.email?.isNotEmpty ?? false)
                       ? user.email!
                       : l10n.usersEmailNone,
                 ),
-                _DetailRow(
+                FactRow(
                   icon: Icons.group_outlined,
                   label: l10n.usersGroupsLabel,
                   value: user.groups.isEmpty
                       ? l10n.usersNoGroups
                       : [for (final g in user.groups) g.name].join(', '),
                 ),
-                _DetailRow(
+                FactRow(
                   icon: Icons.key_outlined,
                   label: l10n.usersPermissionsLabel,
                   // An unknown permission set (a server that didn't send the
@@ -271,7 +272,7 @@ class _UserDetailSheet extends ConsumerWidget {
                       ? l10n.usersPermissionsCount(user.permissions.length)
                       : l10n.usersPermissionsUnknown,
                 ),
-                _DetailRow(
+                FactRow(
                   icon: Icons.dns_outlined,
                   label: l10n.usersAuthSourceLabel,
                   value: user.authSource == 'local'
@@ -279,7 +280,7 @@ class _UserDetailSheet extends ConsumerWidget {
                       : user.authSource.toUpperCase(),
                 ),
                 if (created != null)
-                  _DetailRow(
+                  FactRow(
                     icon: Icons.event_outlined,
                     label: l10n.usersCreatedLabel,
                     value: fmt.dateNamedMonthTime(created),
@@ -449,38 +450,6 @@ class _CountTile extends StatelessWidget {
           Text('$value', style: t.monoHeadline),
           const SizedBox(height: DashSpace.xs),
           Text(label, textAlign: TextAlign.center, maxLines: 2, style: t.micro),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: DashIcon.sm, color: t.textTertiary),
-          const SizedBox(width: DashSpace.md),
-          SizedBox(
-            width: DashSize.d112,
-            child: Text(label, style: t.label.copyWith(color: t.textSecondary)),
-          ),
-          Expanded(child: Text(value, style: t.body)),
         ],
       ),
     );

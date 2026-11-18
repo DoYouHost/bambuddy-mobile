@@ -1907,13 +1907,13 @@ void main() {
         ];
         final shown = [
           for (final l in labels)
-            if (find.text(l.toUpperCase()).evaluate().isNotEmpty) l,
+            if (find.text(l).evaluate().isNotEmpty) l,
         ];
         shown.sort(
           (a, b) => tester
-              .getTopLeft(find.text(a.toUpperCase()))
+              .getTopLeft(find.text(a))
               .dy
-              .compareTo(tester.getTopLeft(find.text(b.toUpperCase())).dy),
+              .compareTo(tester.getTopLeft(find.text(b)).dy),
         );
         return shown;
       }
@@ -2044,8 +2044,8 @@ void main() {
         await tapPosition(tester, 2);
 
         expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
-        expect(find.text(pl.nozzleLabelPrintTime.toUpperCase()), findsNothing);
-        expect(find.text(pl.nozzleLabelWear.toUpperCase()), findsOneWidget);
+        expect(find.text(pl.nozzleLabelPrintTime), findsNothing);
+        expect(find.text(pl.nozzleLabelWear), findsOneWidget);
       });
 
       testWidgets('the nozzle on the toolhead says so, and a nozzle that has '
@@ -2078,10 +2078,7 @@ void main() {
         expect(find.text(pl.nozzleSheetTitle(7)), findsOneWidget);
         expect(find.text(pl.nozzleStatusMounted), findsOneWidget);
         expect(find.text(pl.nozzleStatusDocked), findsNothing);
-        expect(
-          find.text(pl.nozzleLabelPrintTime.toUpperCase()),
-          findsOneWidget,
-        );
+        expect(find.text(pl.nozzleLabelPrintTime), findsOneWidget);
         expect(find.text(pl.durationSeconds(0)), findsOneWidget);
       });
 
@@ -4603,10 +4600,7 @@ void main() {
       expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
       expect(inSheet(find.text(pl.nozzleFlowHigh)), findsOneWidget);
       expect(inSheet(find.text(formatMinutes(pl, 61))), findsOneWidget);
-      expect(
-        inSheet(find.text(pl.nozzleLabelWear.toUpperCase())),
-        findsNothing,
-      );
+      expect(inSheet(find.text(pl.nozzleLabelWear)), findsNothing);
       expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
     });
 

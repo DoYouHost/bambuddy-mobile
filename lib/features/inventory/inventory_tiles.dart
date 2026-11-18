@@ -508,7 +508,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
 
             _DetailCard(
               children: [
-                _InfoRow(
+                FactRow(
                   icon: Icons.print_outlined,
                   label: l10n.inventoryDetailSlot,
                   value: assignment != null
@@ -520,7 +520,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
                       : l10n.inventoryDetailNotLoaded,
                 ),
                 if (spool.storageLocation != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.place_outlined,
                     label: l10n.inventoryLocation,
                     value: spool.storageLocation!,
@@ -536,19 +536,19 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 // that action had nothing to show for itself: it moves the
                 // baseline, never the remaining weight above.
                 if (spool.consumedWeight > 0)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.trending_down,
                     label: l10n.inventoryDetailConsumedSinceReset,
                     value: fmtGrams(spool.consumedWeight),
                   ),
                 if (spool.materialNumber case final number?)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.tag,
                     label: l10n.inventoryFieldMaterialNumber,
                     value: number,
                   ),
                 if (spool.lastDriedAt case final dried?)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.air,
                     label: l10n.inventoryLastDried,
                     value: [
@@ -557,33 +557,33 @@ class _SpoolDetailSheet extends ConsumerWidget {
                     ].join(' · '),
                   ),
                 if (spool.costPerKg != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.payments_outlined,
                     label: l10n.inventoryFieldCostPerKg,
                     value: spool.costPerKg!.toStringAsFixed(2),
                   ),
                 if (spool.slicerFilamentName ?? spool.slicerFilament
                     case final preset?)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.tune,
                     label: l10n.inventoryFieldSlicerPreset,
                     value: preset,
                   ),
                 if (spool.nozzleTempMin != null || spool.nozzleTempMax != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.thermostat_outlined,
                     label: l10n.inventoryNozzleTemp,
                     value:
                         '${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
                   ),
                 if (spool.tagUid != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.nfc_outlined,
                     label: l10n.inventoryTag,
                     value: spool.tagUid!,
                   ),
                 if (spool.note != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.sticky_note_2_outlined,
                     label: l10n.inventoryNote,
                     value: spool.note!,
@@ -599,7 +599,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
               _DetailCard(
                 children: [
                   for (final k in spool.kProfiles)
-                    _InfoRow(
+                    FactRow(
                       icon: Icons.tune,
                       label: k.name ?? '—',
                       value: l10n.inventoryKProfileLine(
@@ -750,84 +750,6 @@ class _DetailCard extends StatelessWidget {
       ),
       decoration: t.subCardBox(DashRadius.lg),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
-/// One fact about the spool: what it is on the left, its value on the right,
-/// read first. [stacked] puts the value under the label instead, for free text
-/// that would otherwise wrap into a narrow right-aligned column.
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.below,
-    this.stacked = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  /// Under the whole row, lined up with the label.
-  final Widget? below;
-  final bool stacked;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final labelText = Text(
-      label,
-      style: t.label.copyWith(color: t.textSecondary),
-    );
-    final valueText = Text(
-      value,
-      textAlign: stacked ? TextAlign.start : TextAlign.end,
-      style: t.body.copyWith(color: t.textPrimary),
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: _detailIconNudge),
-            child: Icon(icon, size: DashIcon.sm, color: t.textSecondary),
-          ),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (stacked) ...[
-                  labelText,
-                  const SizedBox(height: DashSpace.xs),
-                  valueText,
-                ] else
-                  Row(
-                    // Both sides loose: each wraps at half the row instead of
-                    // one squeezing the other to nothing at a large text size,
-                    // and spaceBetween keeps the value on the row's right edge
-                    // however short the label is.
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Flexible(child: labelText),
-                      const SizedBox(width: DashSpace.md),
-                      Flexible(child: valueText),
-                    ],
-                  ),
-                if (below != null) ...[
-                  const SizedBox(height: DashSpace.sm),
-                  below!,
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
