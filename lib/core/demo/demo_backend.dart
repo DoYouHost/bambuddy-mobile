@@ -1987,6 +1987,31 @@ class DemoBackend {
     // heats ([_maybePrinting] sets only that one): index 0 is the right head,
     // `nozzle_2`, which would be marked active while it sat cold.
     'active_extruder': 1,
+    // The two heads' own figures, as a H2D sends them: id 0 is the right one
+    // (`nozzle_2`), id 1 the left, and neither is a rack dock. The left one
+    // reports no wear, which the sheet has to leave out.
+    'nozzle_rack': [
+      {
+        'id': 0,
+        'nozzle_type': 'HS01',
+        'nozzle_diameter': '0.6',
+        'wear': 18,
+        'print_time_s': 7320,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0R001',
+      },
+      {
+        'id': 1,
+        'nozzle_type': 'HH01',
+        'nozzle_diameter': '0.4',
+        'wear': null,
+        'print_time_s': 3661,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0L001',
+      },
+    ],
     'hms_errors': const <Object>[],
     'firmware_version': '01.01.00.00',
     'cover_url': null,

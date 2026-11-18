@@ -96,6 +96,29 @@ The name is one line by decision: wrapped, a row at 200 % text turned into a blo
 of text with no hierarchy. A material chip was tried and dropped: the name already
 carries the material.
 
+### Nozzle figures (#1908)
+
+A nozzle reports its own wear, print time (`p_t`), status code, temperature rating and
+serial in `nozzle_rack`, and the web lists them in a hover card. A phone has no hover, so
+two taps open the same rows (`NozzleFigures`, `printer_card_nozzle.dart`), in the web's
+order: diameter, type, flow, status, wear, print time, max temp, serial, filament.
+
+- **A rack chip opens a sheet** (`showNozzleSheet`). An empty dock is not a button: the web
+  shows a line for it, and there is nothing to show. The touch target is 48 dp, the chip's
+  40 plus half the old gap on each side, so the row is no wider than before.
+- **A hotend's temperature sheet ends with a "Nozzle" section** (`_NozzleSection`) of four
+  rows: diameter, flow, wear, print time. The tile's hardware index is the entry's id: 0 is
+  the right head (`nozzle_2`), 1 the left. The sheet already names the hotend, and its
+  status is the "Activate" control above, so the rest of the card is left out.
+- **A figure the nozzle did not report is not a row.** A null print time is older firmware
+  or a server before 1.3.1 (the key is absent, 1.3.0 measured), and "0h" would say the
+  nozzle never printed; a reported 0 is a row. Max temp 0 and an empty serial are "not set".
+- **Material and flow are ported from the web, not from `highFlowFromCode`.**
+  `nozzleMaterialOf` is `nozzleTypeName` and `nozzleHighFlowStated` is `nozzleFlowName`: a
+  code naming neither `HH` nor `HS` (`HT01`) has no flow row, where `highFlowFromCode` calls
+  it standard to rule a queue pick in or out. An unknown type is shown as the printer sent it.
+- **Reads only**, so an API key sees all of it (`PRINTERS_READ`).
+
 ### Smart plugs (`/api/v1/smart-plugs/`)
 
 - `GET /smart-plugs/` lists the plugs with `printer_id` (the plug-to-printer map in

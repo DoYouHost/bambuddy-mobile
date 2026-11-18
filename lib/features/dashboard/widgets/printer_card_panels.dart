@@ -416,6 +416,17 @@ int tempGridColumns({
 /// 1 dp of border on each side.
 const tileChrome = 2 * (DashSpace.md + 1);
 
+/// The nozzle a hotend tile belongs to, from the printer's `nozzle_rack`: ids 0
+/// and 1 are the hotends (right, left), and a placeholder with nothing in it is
+/// not one. Null for a sensor that is no nozzle.
+NozzleRackSlot? _hotendFigures(List<NozzleRackSlot>? nozzles, int? index) {
+  if (index == null) return null;
+  for (final slot in nozzles ?? const <NozzleRackSlot>[]) {
+    if (slot.id == index && !slot.isEmpty) return slot;
+  }
+  return null;
+}
+
 /// Grid of temperature tiles, two columns where the digits fit (see
 /// [tempGridColumns]). Tiles are tappable to set targets
 /// (see [_GaugeTile]); [printerId]/[model] are threaded down for the command
@@ -428,9 +439,14 @@ class _TempGrid extends StatelessWidget {
     required this.activeExtruder,
     required this.printing,
     this.panda,
+    this.nozzles,
   });
 
   final List<TempReading> readings;
+
+  /// What each nozzle reports about itself (`nozzle_rack`): a hotend's tile
+  /// finds its own entry by hardware index (0 right, 1 left).
+  final List<NozzleRackSlot>? nozzles;
 
   /// The printer's Panda Breath, the grid's last tile when there is one.
   final PandaBreathState? panda;
@@ -448,6 +464,9 @@ class _TempGrid extends StatelessWidget {
     final hasSecondNozzle = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
+    int? hardwareIndex(TempReading r) => r.kind != TempKind.nozzle
+        ? null
+        : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0));
     final tokens = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final digits = tokens.monoDisplay.copyWith(height: 1.0);
@@ -481,12 +500,11 @@ class _TempGrid extends StatelessWidget {
                   reading: r,
                   printerId: printerId,
                   model: model,
-                  nozzleIndex: r.kind != TempKind.nozzle
-                      ? null
-                      : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0)),
+                  nozzleIndex: hardwareIndex(r),
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
+                  nozzle: _hotendFigures(nozzles, hardwareIndex(r)),
                 ),
               ),
             if (panda case final panda?)

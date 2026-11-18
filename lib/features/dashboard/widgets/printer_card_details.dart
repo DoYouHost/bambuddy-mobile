@@ -1162,10 +1162,9 @@ class _NozzleRackSection extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final (j, p) in row.indexed) ...[
-                    if (j > 0) const SizedBox(width: DashSpace.sm),
-                    _RackChip(position: p),
-                  ],
+                  // No gap between chips: each carries half of it as padding, so
+                  // a touch target is 48 dp wide and the row no wider than before.
+                  for (final p in row) _RackChip(position: p),
                 ],
               ),
             ),
@@ -1199,9 +1198,8 @@ class _RackChip extends StatelessWidget {
           : l10n.nozzleRackPosition(number, diameter),
       if (position.mounted) l10n.nozzleRackMounted,
     ].join(', ');
-    return Semantics(
-      label: label,
-      excludeSemantics: true,
+    final chip = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1243,6 +1241,32 @@ class _RackChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+    // An empty dock has nothing to show, as on the web, where it is a line.
+    if (empty) {
+      return Semantics(label: label, excludeSemantics: true, child: chip);
+    }
+    void open() => showNozzleSheet(
+      context,
+      position: number,
+      slot: slot,
+      mounted: position.mounted,
+    );
+    return Semantics(
+      label: label,
+      button: true,
+      // The descendants' own semantics are excluded, so the tap a reader
+      // activates has to be on this node.
+      onTap: open,
+      excludeSemantics: true,
+      child: logTag(
+        'printer.rack_nozzle',
+        InkWell(
+          borderRadius: BorderRadius.circular(DashRadius.sm),
+          onTap: open,
+          child: chip,
+        ),
       ),
     );
   }

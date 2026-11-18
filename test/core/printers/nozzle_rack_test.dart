@@ -338,4 +338,51 @@ void main() {
       }
     });
   });
+
+  group('nozzleMaterialOf, as the web names a nozzle (#1908)', () {
+    test('the four-character code takes its material from the last digits', () {
+      expect(nozzleMaterialOf('HS00'), NozzleMaterial.stainless);
+      expect(nozzleMaterialOf('HS01'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('HH01'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('HT05'), NozzleMaterial.tungsten);
+    });
+
+    test('a hotend\'s own long name and the bare codes are read too', () {
+      expect(nozzleMaterialOf('stainless_steel'), NozzleMaterial.stainless);
+      expect(nozzleMaterialOf('hardened_steel'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('tungsten_carbide'), NozzleMaterial.tungsten);
+      expect(nozzleMaterialOf('00'), NozzleMaterial.stainless);
+      expect(nozzleMaterialOf('01'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('05'), NozzleMaterial.tungsten);
+      expect(nozzleMaterialOf('H'), NozzleMaterial.hardened);
+    });
+
+    test('a type that states no material has none, and so does empty', () {
+      expect(nozzleMaterialOf(null), isNull);
+      expect(nozzleMaterialOf(''), isNull);
+      expect(nozzleMaterialOf('X9'), isNull);
+      expect(
+        nozzleMaterialOf('HS99'),
+        NozzleMaterial.hardened,
+        reason: 'the H prefix is the web\'s last resort for a four-char code',
+      );
+    });
+  });
+
+  group('nozzleHighFlowStated', () {
+    test('HH is high flow, HS standard, and nothing else is stated', () {
+      expect(nozzleHighFlowStated('HH01'), isTrue);
+      expect(nozzleHighFlowStated('HS00'), isFalse);
+      expect(nozzleHighFlowStated('HT01'), isNull);
+      expect(nozzleHighFlowStated(''), isNull);
+      expect(nozzleHighFlowStated(null), isNull);
+    });
+
+    test(
+      'highFlowFromCode still calls HT01 standard, which is why this is not it',
+      () {
+        expect(highFlowFromCode('HT01'), isFalse);
+      },
+    );
+  });
 }

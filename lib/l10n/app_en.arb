@@ -7867,5 +7867,56 @@
   "queueSettingsDispatchPriority": "Printer priority",
   "editPrinterDispatchPriority": "Priority for any-model jobs",
   "editPrinterDispatchPriorityHelp": "Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.",
-  "editPrinterDispatchPriorityInvalid": "Enter a whole number from 0 to 100000"
+  "editPrinterDispatchPriorityInvalid": "Enter a whole number from 0 to 100000",
+  "nozzleSheetTitle": "Position {position}",
+  "@nozzleSheetTitle": {
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "nozzleSectionTitle": "Nozzle",
+  "nozzleLabelDiameter": "Diameter",
+  "nozzleLabelType": "Type",
+  "nozzleLabelFlow": "Flow",
+  "nozzleLabelStatus": "Status",
+  "nozzleLabelWear": "Wear",
+  "nozzleLabelPrintTime": "Print time",
+  "nozzleLabelMaxTemp": "Max temp",
+  "nozzleLabelSerial": "Serial",
+  "nozzleLabelFilament": "Filament",
+  "nozzleMaterialStainless": "Stainless steel",
+  "nozzleMaterialHardened": "Hardened steel",
+  "nozzleMaterialTungsten": "Tungsten carbide",
+  "nozzleStatusDocked": "Docked",
+  "nozzleStatusMounted": "On the toolhead",
+  "nozzleWearValue": "{percent}%",
+  "@nozzleWearValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "nozzleMaxTempValue": "{degrees} °C",
+  "@nozzleMaxTempValue": {
+    "placeholders": {
+      "degrees": {
+        "type": "int",
+        "example": "300"
+      }
+    }
+  },
+  "nozzleDiameterValue": "{diameter} mm",
+  "@nozzleDiameterValue": {
+    "placeholders": {
+      "diameter": {
+        "type": "String",
+        "example": "0.4"
+      }
+    }
+  }
 }

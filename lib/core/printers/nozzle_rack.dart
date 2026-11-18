@@ -206,6 +206,43 @@ bool? highFlowFromCode(String? code) {
   return value.isEmpty ? null : value.startsWith('HH');
 }
 
+/// The nozzle's material, as the web's rack card names it
+/// (`nozzleTypeName` in `PrintersPage.tsx`).
+enum NozzleMaterial { stainless, hardened, tungsten }
+
+/// The material a nozzle's `type` states: the long names of a hotend's own info,
+/// a four-character code whose last two digits are the material (`HS01`), the
+/// bare two-digit code, and — for the alpha-only codes — `H` for hardened.
+/// Null when the type says none, and a caller then shows the code as it came.
+NozzleMaterial? nozzleMaterialOf(String? type) {
+  final value = type ?? '';
+  if (value.isEmpty) return null;
+  if (value.contains('hardened')) return NozzleMaterial.hardened;
+  if (value.contains('stainless')) return NozzleMaterial.stainless;
+  if (value.contains('tungsten')) return NozzleMaterial.tungsten;
+  final code = value.length >= 4 ? value.substring(2, 4) : value;
+  switch (code) {
+    case '00':
+      return NozzleMaterial.stainless;
+    case '01':
+      return NozzleMaterial.hardened;
+    case '05':
+      return NozzleMaterial.tungsten;
+  }
+  return value.startsWith('H') ? NozzleMaterial.hardened : null;
+}
+
+/// The flow the code states, the way the web's card does: `HH…` high flow,
+/// `HS…` standard, anything else nothing. Unlike [highFlowFromCode] a code that
+/// names neither (`HT01`) is not called standard, because this one is shown to
+/// the user as a fact about the nozzle rather than used to rule a pick out.
+bool? nozzleHighFlowStated(String? type) {
+  final value = type ?? '';
+  if (value.startsWith('HH')) return true;
+  if (value.startsWith('HS')) return false;
+  return null;
+}
+
 /// The same answer from the slicer's spelling of the property (`High Flow` /
 /// `Standard`), which is the form a filament group states it in.
 bool? highFlowFromName(String? name) {

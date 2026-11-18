@@ -89,6 +89,7 @@ part 'printer_card_panda.dart';
 part 'printer_card_target.dart';
 part 'printer_card_movement.dart';
 part 'printer_card_collapsed.dart';
+part 'printer_card_nozzle.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({
@@ -346,6 +347,7 @@ class _PrinterCardState extends State<PrinterCard> {
               model: model,
               activeExtruder: status?.activeExtruder,
               printing: printing,
+              nozzles: status?.nozzleRack,
             ),
           ],
           if (status != null) ...[
