@@ -17522,6 +17522,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Target temperature 0–{max} °C'**
   String pandaBreathTarget(int max);
+
+  /// No description provided for @queueSettingsDispatchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer for any-model jobs'**
+  String get queueSettingsDispatchLabel;
+
+  /// No description provided for @queueSettingsDispatchDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Which printer takes a job queued for a whole model. Busy or offline ones are skipped.'**
+  String get queueSettingsDispatchDesc;
+
+  /// No description provided for @queueSettingsDispatchFewestHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewest print hours'**
+  String get queueSettingsDispatchFewestHours;
+
+  /// No description provided for @queueSettingsDispatchMostHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Most print hours'**
+  String get queueSettingsDispatchMostHours;
+
+  /// No description provided for @queueSettingsDispatchLeastRecentlyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle the longest'**
+  String get queueSettingsDispatchLeastRecentlyUsed;
+
+  /// No description provided for @queueSettingsDispatchPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer priority'**
+  String get queueSettingsDispatchPriority;
+
+  /// No description provided for @editPrinterDispatchPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority for any-model jobs'**
+  String get editPrinterDispatchPriority;
+
+  /// No description provided for @editPrinterDispatchPriorityHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.'**
+  String get editPrinterDispatchPriorityHelp;
+
+  /// No description provided for @editPrinterDispatchPriorityInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from 0 to 100000'**
+  String get editPrinterDispatchPriorityInvalid;
 }
 
 class _AppLocalizationsDelegate

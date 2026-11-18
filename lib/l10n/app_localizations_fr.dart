@@ -10764,4 +10764,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String pandaBreathTarget(int max) {
     return 'Température cible 0–$max °C';
   }
+
+  @override
+  String get queueSettingsDispatchLabel =>
+      'Imprimante pour les travaux de modèle quelconque';
+
+  @override
+  String get queueSettingsDispatchDesc =>
+      'Quelle imprimante reçoit un travail mis en file pour tout un modèle. Les imprimantes occupées ou hors ligne sont passées.';
+
+  @override
+  String get queueSettingsDispatchFewestHours =>
+      'Le moins d\'heures d\'impression';
+
+  @override
+  String get queueSettingsDispatchMostHours =>
+      'Le plus d\'heures d\'impression';
+
+  @override
+  String get queueSettingsDispatchLeastRecentlyUsed =>
+      'Inactive depuis le plus longtemps';
+
+  @override
+  String get queueSettingsDispatchPriority => 'Priorité de l\'imprimante';
+
+  @override
+  String get editPrinterDispatchPriority =>
+      'Priorité pour les travaux de modèle quelconque';
+
+  @override
+  String get editPrinterDispatchPriorityHelp =>
+      'Le plus petit nombre passe en premier, vide en dernier. S\'applique quand les travaux de modèle quelconque suivent la priorité des imprimantes.';
+
+  @override
+  String get editPrinterDispatchPriorityInvalid =>
+      'Saisissez un nombre entier de 0 à 100000';
 }

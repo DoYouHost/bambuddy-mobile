@@ -10551,4 +10551,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String pandaBreathTarget(int max) {
     return 'Target temperature 0–$max °C';
   }
+
+  @override
+  String get queueSettingsDispatchLabel => 'Printer for any-model jobs';
+
+  @override
+  String get queueSettingsDispatchDesc =>
+      'Which printer takes a job queued for a whole model. Busy or offline ones are skipped.';
+
+  @override
+  String get queueSettingsDispatchFewestHours => 'Fewest print hours';
+
+  @override
+  String get queueSettingsDispatchMostHours => 'Most print hours';
+
+  @override
+  String get queueSettingsDispatchLeastRecentlyUsed => 'Idle the longest';
+
+  @override
+  String get queueSettingsDispatchPriority => 'Printer priority';
+
+  @override
+  String get editPrinterDispatchPriority => 'Priority for any-model jobs';
+
+  @override
+  String get editPrinterDispatchPriorityHelp =>
+      'Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.';
+
+  @override
+  String get editPrinterDispatchPriorityInvalid =>
+      'Enter a whole number from 0 to 100000';
 }
