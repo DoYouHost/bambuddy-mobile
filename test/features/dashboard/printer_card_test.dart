@@ -1959,6 +1959,59 @@ void main() {
         });
       }
 
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('every value sits against the right edge of its row, at '
+            'text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          for (final value in [
+            pl.nozzleWearValue(8),
+            formatMinutes(pl, 1501),
+            pl.nozzleStatusDocked,
+            pl.nozzleMaxTempValue(280),
+          ]) {
+            expect(
+              tester.getRect(find.text(value)).right,
+              closeTo(right, 0.5),
+              reason: value,
+            );
+          }
+        });
+      }
+
+      testWidgets(
+        'a filament colour with no name sits against the row\'s end',
+        (tester) async {
+          await pumpAt(
+            tester,
+            1,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_FigureDot',
+            ),
+          );
+          expect(dot, findsOneWidget);
+          expect(tester.getRect(dot).right, closeTo(right, 0.5));
+        },
+      );
+
       testWidgets('a nozzle that reports no print time shows no such row, '
           'and none shows zero hours', (tester) async {
         await pumpAt(
@@ -4538,6 +4591,49 @@ void main() {
         findsNothing,
       );
       expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+    });
+
+    testWidgets('a frame without nozzle_2 yet still gives the left head its '
+        'own figures, not the right one\'s', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2D'),
+          status: const PrinterStatus(
+            id: 1,
+            model: 'H2D',
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right, left],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+    });
+
+    testWidgets('a single-nozzle printer keeps its one nozzle\'s figures', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2C'),
+          status: const PrinterStatus(
+            id: 1,
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsOneWidget);
     });
 
     testWidgets('a printer that reports no nozzle figures has no section', (

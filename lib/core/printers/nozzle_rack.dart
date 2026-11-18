@@ -212,8 +212,9 @@ enum NozzleMaterial { stainless, hardened, tungsten }
 
 /// The material a nozzle's `type` states: the long names of a hotend's own info,
 /// a four-character code whose last two digits are the material (`HS01`), the
-/// bare two-digit code, and — for the alpha-only codes — `H` for hardened.
-/// Null when the type says none, and a caller then shows the code as it came.
+/// bare two-digit code, and, as the web's last resort, any other code that
+/// starts with `H` (hardened). Null when the type says none, and a caller then
+/// shows the code as it came.
 NozzleMaterial? nozzleMaterialOf(String? type) {
   final value = type ?? '';
   if (value.isEmpty) return null;

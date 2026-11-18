@@ -467,6 +467,16 @@ class _TempGrid extends StatelessWidget {
     int? hardwareIndex(TempReading r) => r.kind != TempKind.nozzle
         ? null
         : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0));
+    // The plain `nozzle` is the left head once a second one exists. Its own
+    // temperature is not the only proof: the printer's nozzle list names a left
+    // head (id 1) even in a frame that has not carried `nozzle_2` yet, and the
+    // figures must not then be the right head's.
+    final leftHeadListed =
+        nozzles?.any((n) => n.id == 1 && !n.isEmpty) ?? false;
+    int? figuresIndex(TempReading r) =>
+        r.kind == TempKind.nozzle && r.index == null && leftHeadListed
+        ? 1
+        : hardwareIndex(r);
     final tokens = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final digits = tokens.monoDisplay.copyWith(height: 1.0);
@@ -504,7 +514,7 @@ class _TempGrid extends StatelessWidget {
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
-                  nozzle: _hotendFigures(nozzles, hardwareIndex(r)),
+                  nozzle: _hotendFigures(nozzles, figuresIndex(r)),
                 ),
               ),
             if (panda case final panda?)

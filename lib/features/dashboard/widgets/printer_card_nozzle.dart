@@ -1,8 +1,10 @@
 part of 'printer_card.dart';
 
-/// Which of a nozzle's figures a surface shows. The rack sheet has room for all
-/// of them; the section in a hotend's temperature sheet keeps to what changes
-/// between nozzles, since the sheet around it already names the hotend.
+/// Which of a nozzle's figures a surface shows. The rack sheet shows all of
+/// them. The section in a hotend's temperature sheet shows the four the
+/// mock-up drew (diameter, flow, wear, print time): the sheet around it already
+/// names the hotend and carries its status, and the type, rating, serial and
+/// filament are one tap away on the rack for a printer that has one.
 enum NozzleFigureSet { full, hotend }
 
 /// What a nozzle reports about itself (#1908), as the web's hover card lists it
@@ -103,11 +105,12 @@ List<_FigureRow> _nozzleRows(
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (filament != null && filament.a != 0) ...[
-              _FigureDot(filament),
+            if (filament != null && filament.a != 0) _FigureDot(filament),
+            // The gap only between a dot and a name, so a colour alone sits
+            // against the end of the row like every other value.
+            if (filament != null && filament.a != 0 && filamentType.isNotEmpty)
               const SizedBox(width: DashSpace.sm),
-            ],
-            Flexible(child: Text(filamentType)),
+            if (filamentType.isNotEmpty) Flexible(child: Text(filamentType)),
           ],
         ),
       ),
@@ -133,8 +136,12 @@ class _FigureRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
+        // Space between, not an expanded value: a flex row hands each flexible
+        // child its share and leaves the rest unused, so a short value would
+        // stop half way along the row instead of at its end.
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
+          Flexible(
             child: Text(
               label.toUpperCase(),
               style: t.caption.copyWith(color: t.textSecondary),
