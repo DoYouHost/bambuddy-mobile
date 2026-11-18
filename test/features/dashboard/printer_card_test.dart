@@ -1941,9 +1941,7 @@ void main() {
           expect(
             find.descendant(
               of: find.byType(FittedSheetSurface),
-              // The name shares a line with the dot (a placeholder character before
-              // it), so it is rich text and not the whole string.
-              matching: find.textContaining('PLA', findRichText: true),
+              matching: find.text('PLA'),
             ),
             findsOneWidget,
           );
@@ -2058,10 +2056,7 @@ void main() {
           );
           final value = find.descendant(
             of: find.byType(NozzleFigures),
-            matching: find.textContaining(
-              name.split(' ').first,
-              findRichText: true,
-            ),
+            matching: find.text(name),
           );
           final paragraph = tester.renderObject<RenderParagraph>(value);
           final line = paragraph.getFullHeightForCaret(
