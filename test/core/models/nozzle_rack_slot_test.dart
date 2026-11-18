@@ -56,7 +56,7 @@ void main() {
           'print_time_s': '7200',
           'wear': 'worn',
           'stat': true,
-          'max_temp': 3.5,
+          'max_temp': '300',
         });
 
         expect(slot.printTimeS, 7200);

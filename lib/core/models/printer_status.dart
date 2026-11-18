@@ -1140,10 +1140,9 @@ class NozzleInfo with ValueEquality {
 /// translation, and the recovery of the position the carriage emptied, live in
 /// `core/printers/nozzle_rack.dart`.
 ///
-/// Only what choosing a position needs is read — the diameter and flow type the
-/// pick is checked against, and the filament sitting there so the row can say
-/// which nozzle is which. Wear, temperature rating and serial number are the
-/// server's business.
+/// What the nozzle reports about itself rides along: the diameter and flow type
+/// a queue pick is checked against, the filament sitting there, and wear, print
+/// time, status, temperature rating and serial number for the nozzle's own card.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class NozzleRackSlot with ValueEquality {
   const NozzleRackSlot({
@@ -1178,8 +1177,8 @@ class NozzleRackSlot with ValueEquality {
   /// RGBA hex of the filament loaded on this nozzle, `00000000` when none.
   final String? filamentColor;
 
-  /// Material loaded on this nozzle (`PLA`, `PETG`). Absent from the WebSocket
-  /// frame, which carries every other field of this record.
+  /// Material loaded on this nozzle (`PLA`, `PETG`). An older server's
+  /// WebSocket frame leaves it out, though it carries every other field.
   final String? filamentType;
 
   /// H3C only: every nozzle's home rack position (0-8), the docked ones and
