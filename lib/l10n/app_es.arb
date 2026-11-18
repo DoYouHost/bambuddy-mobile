@@ -4968,5 +4968,14 @@
   "pandaBreathModeOn": "Siempre encendido",
   "pandaBreathModeDrying": "Secado",
   "pandaBreathDryingLeft": "Secando, quedan {minutes} min",
-  "pandaBreathTarget": "Temperatura deseada 0–{max} °C"
+  "pandaBreathTarget": "Temperatura deseada 0–{max} °C",
+  "queueSettingsDispatchLabel": "Impresora para trabajos de cualquier modelo",
+  "queueSettingsDispatchDesc": "Qué impresora recibe un trabajo puesto en cola para todo un modelo. Las ocupadas o sin conexión se saltan.",
+  "queueSettingsDispatchFewestHours": "Menos horas de impresión",
+  "queueSettingsDispatchMostHours": "Más horas de impresión",
+  "queueSettingsDispatchLeastRecentlyUsed": "Inactiva desde hace más tiempo",
+  "queueSettingsDispatchPriority": "Prioridad de la impresora",
+  "editPrinterDispatchPriority": "Prioridad para trabajos de cualquier modelo",
+  "editPrinterDispatchPriorityHelp": "El número más bajo va primero, vacío va al final. Se aplica cuando los trabajos de cualquier modelo van por prioridad de impresora.",
+  "editPrinterDispatchPriorityInvalid": "Introduce un número entero de 0 a 100000"
 }

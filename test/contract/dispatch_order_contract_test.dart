@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// The order an "Any model" job picks its printer in, and the per-printer
 /// priority it can follow (server #2915, 1.3.2): what the app reads, what it
@@ -100,6 +101,46 @@ void main() {
         cleared.servesDispatchPriority,
         isTrue,
         reason: 'a cleared priority is still a null the key carries',
+      );
+    });
+
+    test('the save the edit form sends is stored and read back', () async {
+      if (!served) return markTestSkipped('the server predates #2915');
+      final [answer] = await replayWrites(
+        dio,
+        recordedWrites('printer_dispatch_priority_save'),
+        item: printer.id,
+        // The recording is the demo's X1 Carbon; the rest of the body is this
+        // server's own printer, so the replay changes only the priority.
+        ids: {
+          'name': printer.name,
+          'ip_address': printer.ipAddress,
+          'model': printer.model,
+          'location': printer.location,
+          'auto_archive': printer.autoArchive,
+          'is_active': printer.isActive,
+          'wear_cost_per_hour': printer.wearCostPerHour,
+        },
+      );
+      expect(answer.statusCode, 200, reason: '${answer.data}');
+
+      final row = (await printers.fetchPrinters()).firstWhere(
+        (p) => p.id == printer.id,
+      );
+      expect(row.dispatchPriority, 0);
+    });
+
+    test('the write the settings row sends is stored and read back', () async {
+      if (!served) return markTestSkipped('the server predates #2915');
+      final [answer] = await replayWrites(
+        dio,
+        recordedWrites('dispatch_order_save'),
+      );
+      expect(answer.statusCode, 200, reason: '${answer.data}');
+
+      expect(
+        QueueSettings.fromSettings(await settings.fetch()).dispatchOrder,
+        ModelDispatchOrder.priority,
       );
     });
 

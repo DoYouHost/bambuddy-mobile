@@ -71,6 +71,27 @@ table", which the app would have to duplicate.
 `queue_keep_warm_bed_temp` is **not** greyed out when keep-warm is off: it is also the bed
 temperature preheat falls back to when a chamber-heated job's metadata carries none.
 
+### Any-model order and printer priority
+
+`model_dispatch_order` (server #2915, 1.3.2) decides which printer takes a job queued for
+a whole model: fewest print hours (the default), most, idle the longest, or by each
+printer's `dispatch_priority`. The order is a select at the end of the queue card
+(`_DispatchOrderField`) and the priority a number field in the printer's edit form, after
+the wear rate. Both reach the screen the way the wear rate does, **by the key's presence,
+not by a version row**: 1.3.1 measured answers 200 to a `PATCH /printers/{id}` and a
+`PUT /settings/` carrying them and keeps neither, so a control offered there would save
+nothing and say nothing. `Printer.servesDispatchPriority` is the `dispatch_priority` key
+(a null still counts), and `QueueSettings.known` the setting.
+
+- A value the app does not know reads as `fewest_hours`, which is what the scheduler
+  does with a stored string it does not know.
+- The priority field is shown whatever order is set, as on the web, and empty means
+  "last"; the server takes 0 to 100000 and answers 422 outside it, so the form refuses
+  first and `PrinterUpdate` clamps.
+- The select is keyed by its value and a counter: the menu writes the picked label into
+  its own text box, and a refusal that arrives before the next frame leaves the value
+  unchanged for Flutter, so only the counter redraws it.
+
 ### Pause warning
 
 `pause_warning_minutes` (server #2984, 1 to 120, default 5) is how long before a slicer

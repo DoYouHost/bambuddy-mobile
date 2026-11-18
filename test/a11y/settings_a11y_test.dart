@@ -48,6 +48,7 @@ Map<String, dynamic> _queueBlock({bool preheat = true, bool keepWarm = true}) =>
       'require_plate_clear': false,
       'queue_shortest_first': true,
       'queue_max_concurrent_uploads': 4,
+      'model_dispatch_order': 'priority',
       'preheat_enabled': preheat,
       'preheat_max_wait_seconds': 900,
       'preheat_soak_seconds': 300,
