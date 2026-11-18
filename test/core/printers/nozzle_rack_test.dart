@@ -378,11 +378,24 @@ void main() {
       expect(nozzleHighFlowStated(null), isNull);
     });
 
-    test(
-      'highFlowFromCode still calls HT01 standard, which is why this is not it',
-      () {
-        expect(highFlowFromCode('HT01'), isFalse);
-      },
-    );
+    test('highFlowFromCode is built on it, and differs only where the server '
+        'and the web do', () {
+      // What the code states is the same answer in both ...
+      for (final code in ['HH01', 'hh00', ' HS00 ', 'HS']) {
+        expect(
+          highFlowFromCode(code),
+          nozzleHighFlowStated(code.trim().toUpperCase()),
+          reason: code,
+        );
+      }
+      // ... and the two differ only for a code that names neither: the web's
+      // card states nothing, the server's dispatch calls it standard.
+      expect(nozzleHighFlowStated('HT01'), isNull);
+      expect(highFlowFromCode('HT01'), isFalse);
+      expect(highFlowFromCode('X9'), isFalse);
+      // A blank is nothing in both, never standard.
+      expect(highFlowFromCode(''), isNull);
+      expect(nozzleHighFlowStated(''), isNull);
+    });
   });
 }

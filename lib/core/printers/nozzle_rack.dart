@@ -197,13 +197,19 @@ String _colorKey(String? hex) {
   return (value.length > 6 ? value.substring(0, 6) : value).toUpperCase();
 }
 
-/// Whether the printer's own flow-type code names a high-flow nozzle: `HH…`
-/// yes, anything else no. Null when the printer states nothing, which is not
-/// the same as "standard" — [rackSlotFits] then skips the flow check rather
-/// than ruling the position out.
+/// Whether the printer's own flow-type code names a high-flow nozzle, as the
+/// server's dispatch reads it (`slot_type.upper().startswith("HH")`): `HH…` yes,
+/// any other code no. Null when the printer states nothing, which is not the
+/// same as "standard" — [rackSlotFits] then skips the flow check rather than
+/// ruling the position out.
+///
+/// What a code *states* is [nozzleHighFlowStated]'s; this adds the server's rule
+/// that a code naming neither `HH` nor `HS` (`HT01`) counts as standard, because
+/// here the answer rules a pick in or out.
 bool? highFlowFromCode(String? code) {
   final value = code?.trim().toUpperCase() ?? '';
-  return value.isEmpty ? null : value.startsWith('HH');
+  if (value.isEmpty) return null;
+  return nozzleHighFlowStated(value) ?? false;
 }
 
 /// The nozzle's material, as the web's rack card names it
@@ -234,9 +240,10 @@ NozzleMaterial? nozzleMaterialOf(String? type) {
 }
 
 /// The flow the code states, the way the web's card does: `HH…` high flow,
-/// `HS…` standard, anything else nothing. Unlike [highFlowFromCode] a code that
-/// names neither (`HT01`) is not called standard, because this one is shown to
-/// the user as a fact about the nozzle rather than used to rule a pick out.
+/// `HS…` standard, anything else nothing. A code that names neither (`HT01`) is
+/// not called standard here, because this answer is shown to the user as a fact
+/// about the nozzle; [highFlowFromCode] builds on it and adds the server's
+/// "anything else is standard" for the queue pick.
 bool? nozzleHighFlowStated(String? type) {
   final value = type ?? '';
   if (value.startsWith('HH')) return true;
