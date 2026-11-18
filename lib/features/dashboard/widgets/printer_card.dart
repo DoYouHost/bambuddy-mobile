@@ -41,6 +41,7 @@ import '../../common/color_catalog.dart';
 import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
 import '../../common/fact_row.dart';
+import '../../common/filament_dot.dart';
 import '../../common/section_label.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';

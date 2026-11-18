@@ -156,12 +156,15 @@ more than the lines it saves.
   pointing one at another changes behaviour (see the comment on
   `printerModelsProvider` in
   [inventory_providers.dart](../lib/features/inventory/inventory_providers.dart)).
-- **The other colour dots.** `FilamentDot` (archive) outlines in `textTertiary`,
-  the printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and
-  the mapping sheet's and controller's swatches draw a question mark for an unknown
+- **The other colour dots.** `FilamentDot` (archive rows and calendar, and the nozzle
+  sheet; `lib/features/common/filament_dot.dart`) outlines in `textTertiary`, the
+  printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and the
+  mapping sheet's and controller's swatches draw a question mark for an unknown
   colour. Each differs from `ColorDot` in outline or fallback, so merging them would
   change pixels or need a flag per difference; only the three identical ones
-  (queue history, queue edit, substitution chip) share it.
+  (queue history, queue edit, substitution chip) share it, and the two identical
+  `FilamentDot`s (the archive's and the one the nozzle sheet wrote for itself) share
+  theirs.
 - **`Archive.isSliced`** mirrors the web's `isSlicedFile` (a `.gcode` / `.gcode.*`
   name, or slice metadata), so it is not folded into `isSlicedFilename`.
 - **`plateLabel` vs `batchPlateLabel`** word things differently on purpose, and

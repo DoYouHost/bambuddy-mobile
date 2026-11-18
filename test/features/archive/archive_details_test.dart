@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
+import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
 import 'package:bambuddy_mobile/providers.dart';

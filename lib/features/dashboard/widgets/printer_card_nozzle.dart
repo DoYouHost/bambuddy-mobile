@@ -142,7 +142,7 @@ class _FilamentValue extends StatelessWidget {
     final line =
         MediaQuery.textScalerOf(context).scale(style.fontSize ?? 14) *
         (style.height ?? 1.2);
-    final dotTop = ((line - DashSize.d12) / 2).clamp(0.0, double.infinity);
+    final dotTop = ((line - FilamentDot.size) / 2).clamp(0.0, double.infinity);
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,34 +150,12 @@ class _FilamentValue extends StatelessWidget {
         if (color case final color?)
           Padding(
             padding: EdgeInsets.only(top: dotTop),
-            child: _FigureDot(color),
+            child: FilamentDot(color: color),
           ),
         if (color != null && name.isNotEmpty)
           const SizedBox(width: DashSpace.sm),
         if (name.isNotEmpty) Flexible(child: Text(name)),
       ],
-    );
-  }
-}
-
-/// A filament colour as a round mark, outlined so black and white show on both
-/// themes (as `FilamentDot` does for an archive, from a parsed colour here).
-class _FigureDot extends StatelessWidget {
-  const _FigureDot(this.color);
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      width: DashSize.d12,
-      height: DashSize.d12,
-      decoration: BoxDecoration(
-        color: Color.alphaBlend(color, t.overlaySurface),
-        shape: BoxShape.circle,
-        border: Border.all(color: t.textTertiary),
-      ),
     );
   }
 }

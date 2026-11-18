@@ -46,6 +46,7 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dar
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
@@ -2020,9 +2021,7 @@ void main() {
           final right = tester.getRect(find.byType(NozzleFigures)).right;
           final dot = find.descendant(
             of: find.byType(NozzleFigures),
-            matching: find.byWidgetPredicate(
-              (w) => w.runtimeType.toString() == '_FigureDot',
-            ),
+            matching: find.byType(FilamentDot),
           );
           expect(dot, findsOneWidget);
           expect(tester.getRect(dot).right, closeTo(right, 0.5));
@@ -2050,9 +2049,7 @@ void main() {
 
           final dot = find.descendant(
             of: find.byType(NozzleFigures),
-            matching: find.byWidgetPredicate(
-              (w) => w.runtimeType.toString() == '_FigureDot',
-            ),
+            matching: find.byType(FilamentDot),
           );
           final value = find.descendant(
             of: find.byType(NozzleFigures),
@@ -2088,9 +2085,7 @@ void main() {
 
           final dot = find.descendant(
             of: find.byType(NozzleFigures),
-            matching: find.byWidgetPredicate(
-              (w) => w.runtimeType.toString() == '_FigureDot',
-            ),
+            matching: find.byType(FilamentDot),
           );
           // One line of the row's text: the wear value is a single body line.
           final line = tester.getSize(find.text(pl.nozzleWearValue(8))).height;
