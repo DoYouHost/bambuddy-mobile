@@ -471,10 +471,6 @@ class _InertStatuses extends PrinterStatusesNotifier {
   Map<int, PrinterStatus> build() => const {};
 }
 
-/// How far a dot's centre may sit from its label's, per unit of text scale: a
-/// baseline and a middle differ by a pixel or two, a top alignment by a line.
-const _dotTolerance = 3.0;
-
 void main() {
   testWidgets('card renders name, progress and temperatures from fixture', (
     tester,
@@ -2035,47 +2031,54 @@ void main() {
         },
       );
 
-      testWidgets('a wrapping filament name keeps the dot on its first line, '
-          'at 200% text', (tester) async {
-        await pumpAt(
-          tester,
-          2,
-          realItem(
-            unit: dryer,
-            top: {
-              'nozzle_rack': figuredRack(
-                extra: {'filament_type': 'PLA Matte Silk Dual Colour'},
-              ),
-            },
-          ),
-        );
-        await tapPosition(tester, 2);
+      for (final name in [
+        'PLA Matte Silk Dual Colour',
+        // A first word wider than the room beside the dot.
+        'Polycarbonate-Translucent-Green',
+      ]) {
+        testWidgets('a wrapping filament name "$name" keeps the dot on its '
+            'first line, at 200% text', (tester) async {
+          await pumpAt(
+            tester,
+            2,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': name}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
 
-        final dot = find.descendant(
-          of: find.byType(NozzleFigures),
-          matching: find.byWidgetPredicate(
-            (w) => w.runtimeType.toString() == '_FigureDot',
-          ),
-        );
-        final name = find.descendant(
-          of: find.byType(NozzleFigures),
-          matching: find.textContaining('Matte', findRichText: true),
-        );
-        final paragraph = tester.renderObject<RenderParagraph>(name);
-        final line = paragraph.getFullHeightForCaret(
-          const TextPosition(offset: 0),
-        );
-        // More than one line, or the test proves nothing.
-        expect(paragraph.size.height, greaterThan(line * 1.5));
-        expect(
-          tester.getCenter(dot).dy,
-          lessThan(tester.getTopLeft(name).dy + line),
-        );
-      });
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_FigureDot',
+            ),
+          );
+          final value = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.textContaining(
+              name.split(' ').first,
+              findRichText: true,
+            ),
+          );
+          final paragraph = tester.renderObject<RenderParagraph>(value);
+          final line = paragraph.getFullHeightForCaret(
+            const TextPosition(offset: 0),
+          );
+          // More than one line, or the test proves nothing.
+          expect(paragraph.size.height, greaterThan(line * 1.5));
+          // The dot is on the name's first line, not stranded above it.
+          final top = tester.getTopLeft(value).dy;
+          expect(tester.getCenter(dot).dy, greaterThan(top));
+          expect(tester.getCenter(dot).dy, lessThan(top + line));
+        });
+      }
 
       for (final scale in [1.0, 2.0]) {
-        testWidgets('a lone colour dot is centred on its label\'s line, at '
-            'text scale $scale', (tester) async {
+        testWidgets('a lone colour dot is centred on a line of text, at text '
+            'scale $scale', (tester) async {
           await pumpAt(
             tester,
             scale,
@@ -2094,13 +2097,13 @@ void main() {
               (w) => w.runtimeType.toString() == '_FigureDot',
             ),
           );
-          expect(
-            tester.getCenter(dot).dy,
-            closeTo(
-              tester.getCenter(find.text(pl.nozzleLabelFilament)).dy,
-              _dotTolerance * scale,
-            ),
-          );
+          // One line of the row's text: the wear value is a single body line.
+          final line = tester.getSize(find.text(pl.nozzleWearValue(8))).height;
+          final rowTop = tester
+              .getTopLeft(find.text(pl.nozzleLabelFilament))
+              .dy;
+          // A dot left at the top of its row is half a line above this.
+          expect(tester.getCenter(dot).dy, closeTo(rowTop + line / 2, 2));
         });
       }
 

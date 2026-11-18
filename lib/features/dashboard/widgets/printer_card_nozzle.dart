@@ -112,29 +112,52 @@ List<FactRow> _nozzleRows(
     if (full && hasFilament)
       FactRow.custom(
         label: l10n.nozzleLabelFilament,
-        // One line of text with the dot inside it, not a Row: a dot alone has no
-        // baseline, and a baseline-aligned row would put it at the top of the line
-        // instead of on its middle. The gap is only between a dot and a name, so a
-        // colour alone sits against the end of the row like every other value.
-        value: Text.rich(
-          TextSpan(
-            children: [
-              if (filament != null && filament.a != 0)
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.middle,
-                  child: _FigureDot(filament),
-                ),
-              if (filament != null &&
-                  filament.a != 0 &&
-                  filamentType.isNotEmpty)
-                const WidgetSpan(child: SizedBox(width: DashSpace.sm)),
-              if (filamentType.isNotEmpty) TextSpan(text: filamentType),
-            ],
-          ),
+        value: _FilamentValue(
+          color: filament != null && filament.a != 0 ? filament : null,
+          name: filamentType,
         ),
       ),
   ];
   return rows;
+}
+
+/// A filament's colour and name for the end of a [FactRow]: the dot centred on
+/// the name's first line, then the name, which wraps beside it.
+///
+/// Not one line of rich text with the dot in it (a long first word breaks away
+/// from a dot and leaves it alone above), and not a baseline-aligned row (a dot
+/// has no baseline and goes to the top of the line). The dot is padded down to
+/// the middle of one line of the row's text, which is the row's own style at the
+/// user's text size. The gap sits only between a dot and a name, so a colour alone
+/// stays against the end of the row like every other value.
+class _FilamentValue extends StatelessWidget {
+  const _FilamentValue({required this.color, required this.name});
+
+  final Color? color;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = DefaultTextStyle.of(context).style;
+    final line =
+        MediaQuery.textScalerOf(context).scale(style.fontSize ?? 14) *
+        (style.height ?? 1.2);
+    final dotTop = ((line - DashSize.d12) / 2).clamp(0.0, double.infinity);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (color case final color?)
+          Padding(
+            padding: EdgeInsets.only(top: dotTop),
+            child: _FigureDot(color),
+          ),
+        if (color != null && name.isNotEmpty)
+          const SizedBox(width: DashSpace.sm),
+        if (name.isNotEmpty) Flexible(child: Text(name)),
+      ],
+    );
+  }
 }
 
 /// A filament colour as a round mark, outlined so black and white show on both
