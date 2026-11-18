@@ -1985,6 +1985,23 @@ void main() {
         });
       }
 
+      testWidgets('a long value may use more than half the row when its label '
+          'is short, at 200% text', (tester) async {
+        await pumpAt(
+          tester,
+          2,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+        await tapPosition(tester, 2);
+
+        final row = tester.getRect(find.byType(NozzleFigures)).width;
+        expect(
+          tester.getRect(find.text('0K00A91C3X002')).width,
+          greaterThan(row / 2),
+          reason: 'two flexible children would cap it at half the row',
+        );
+      });
+
       testWidgets(
         'a filament colour with no name sits against the row\'s end',
         (tester) async {

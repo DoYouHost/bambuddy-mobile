@@ -118,9 +118,9 @@ List<_FigureRow> _nozzleRows(
   return rows;
 }
 
-/// One label/value line of [NozzleFigures]. The value takes what room the label
-/// leaves and wraps there, so a long serial at a large text size grows the row
-/// instead of running out of it.
+/// One label/value line of [NozzleFigures]. The label may take up to 45% of the
+/// row and the value all the rest, at its end: a short label leaves a long
+/// serial the room, and a long label wraps before it crowds the value out.
 class _FigureRow extends StatelessWidget {
   const _FigureRow(this.label, this.value, {this.mono = false});
 
@@ -133,31 +133,37 @@ class _FigureRow extends StatelessWidget {
     final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        // Space between, not an expanded value: a flex row hands each flexible
-        // child its share and leaves the rest unused, so a short value would
-        // stop half way along the row instead of at its end.
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Flexible(
-            child: Text(
-              label.toUpperCase(),
-              style: t.caption.copyWith(color: t.textSecondary),
-            ),
-          ),
-          const SizedBox(width: DashSpace.md),
-          Flexible(
-            child: DefaultTextStyle.merge(
-              textAlign: TextAlign.end,
-              style: (mono ? t.monoValue : t.bodyStrong).copyWith(
-                color: t.textPrimary,
+      // Not two flexible children: a flex row hands each its share and leaves
+      // what one does not use, so a short value stopped half way along the row
+      // and a long one wrapped at half of it. Only the value is flexible here;
+      // the space between pushes it to the end.
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * 0.45,
               ),
-              child: value,
+              child: Text(
+                label.toUpperCase(),
+                style: t.caption.copyWith(color: t.textSecondary),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: DashSpace.md),
+            Flexible(
+              child: DefaultTextStyle.merge(
+                textAlign: TextAlign.end,
+                style: (mono ? t.monoValue : t.bodyStrong).copyWith(
+                  color: t.textPrimary,
+                ),
+                child: value,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
