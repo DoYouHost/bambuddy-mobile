@@ -13,6 +13,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 
 const _passing = {
@@ -37,18 +38,23 @@ const _diagnoseBody = {
 
 final _keyProfile = fakeServerProfileOverride(authMode: AuthMode.apiKey);
 
-Printer _printer({bool servesWearCost = true, double? rate = 0.25}) =>
-    Printer.fromJson({
-      'id': 1,
-      'name': 'X1 Carbon',
-      'model': 'X1C',
-      'ip_address': '192.168.4.21',
-      'serial_number': '01P00A390800000',
-      'location': 'Workshop',
-      'is_active': true,
-      'auto_archive': true,
-      if (servesWearCost) 'wear_cost_per_hour': rate,
-    });
+Printer _printer({
+  bool servesWearCost = true,
+  double? rate = 0.25,
+  bool servesDispatch = false,
+  int? priority,
+}) => Printer.fromJson({
+  'id': 1,
+  'name': 'X1 Carbon',
+  'model': 'X1C',
+  'ip_address': '192.168.4.21',
+  'serial_number': '01P00A390800000',
+  'location': 'Workshop',
+  'is_active': true,
+  'auto_archive': true,
+  if (servesWearCost) 'wear_cost_per_hour': rate,
+  if (servesDispatch) 'dispatch_priority': priority,
+});
 
 void main() {
   group('wear rate as typed', () {
@@ -73,6 +79,32 @@ void main() {
     test('a stored rate goes back into the field without a trailing .0', () {
       expect(fmtRate(2), '2');
       expect(fmtRate(0.25), '0.25');
+    });
+  });
+
+  group('dispatchPriorityIsValid', () {
+    test('a whole number from 0 to the server\'s ceiling, or empty', () {
+      for (final ok in ['', '  ', '0', '7', ' 12 ', '100000']) {
+        expect(dispatchPriorityIsValid(ok), isTrue, reason: '"$ok"');
+      }
+    });
+
+    test('anything else is refused before the server 422s it', () {
+      for (final bad in [
+        '-1',
+        '100001',
+        '1.5',
+        '1,5',
+        'abc',
+        '1e3',
+        '٣',
+        '0x10',
+        '+5',
+        '-0',
+        '1000000',
+      ]) {
+        expect(dispatchPriorityIsValid(bad), isFalse, reason: '"$bad"');
+      }
     });
   });
 
@@ -102,7 +134,7 @@ void main() {
       accessCode: accessCode,
       location: location,
       wearCostPerHour: rate,
-      sendWearCost: send,
+      served: send ? {PrinterKey.wearCostPerHour} : const {},
     );
 
     test('an untyped access code is left out, a typed one is sent', () {
@@ -238,6 +270,118 @@ void main() {
       // Both answered 200: the exact-body mock matched what went out.
       expect(log.statuses, [200, 200]);
       expect(patched()!.containsKey('wear_cost_per_hour'), isFalse);
+    });
+
+    Finder priorityField() =>
+        find.widgetWithText(TextFormField, pl.editPrinterDispatchPriority);
+
+    /// Answers the check and the save with the body the edit form should send
+    /// for [_printer] once its priority is [priority].
+    void expectSave({required Object? priority}) => server
+      ..onPost(
+        Endpoints.printersDiagnostic,
+        (s) => s.reply(200, _passing),
+        data: _diagnoseBody,
+      )
+      ..onPatch(
+        Endpoints.printer(1),
+        (s) => s.reply(200, {'id': 1, 'name': 'X1 Carbon'}),
+        data: {
+          'name': 'X1 Carbon',
+          'ip_address': '192.168.4.21',
+          'auto_archive': true,
+          'is_active': true,
+          'model': 'X1C',
+          'location': 'Workshop',
+          'wear_cost_per_hour': 0.25,
+          'dispatch_priority': priority,
+        },
+      );
+
+    testWidgets('the priority opens filled in and the typed one is saved', (
+      tester,
+    ) async {
+      await pump(tester, _printer(servesDispatch: true, priority: 2));
+      expect(
+        tester.widget<TextFormField>(priorityField()).controller!.text,
+        '2',
+      );
+
+      expectSave(priority: 0);
+      await tester.enterText(priorityField(), ' 0 ');
+      await tester.tap(find.text(pl.editPrinterSubmit));
+      await tester.pumpAndSettle();
+
+      expect(log.statuses, [200, 200]);
+      expectSentAsRecorded(
+        'printer_dispatch_priority_save',
+        writesOf(log.requests.where((r) => r.method == 'PATCH')),
+      );
+    });
+
+    testWidgets('an emptied priority is sent as null, which clears it', (
+      tester,
+    ) async {
+      await pump(tester, _printer(servesDispatch: true, priority: 2));
+
+      expectSave(priority: null);
+      await tester.enterText(priorityField(), '');
+      await tester.tap(find.text(pl.editPrinterSubmit));
+      await tester.pumpAndSettle();
+
+      expect(log.statuses, [200, 200]);
+      expect(patched()!['dispatch_priority'], isNull);
+    });
+
+    testWidgets('a priority the server would refuse stops in the form', (
+      tester,
+    ) async {
+      await pump(tester, _printer(servesDispatch: true));
+
+      for (final bad in ['abc', '-1', '1.5', '100001', '1e3', '0x10']) {
+        await tester.enterText(priorityField(), bad);
+        await tester.tap(find.text(pl.editPrinterSubmit));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(pl.editPrinterDispatchPriorityInvalid),
+          findsOneWidget,
+          reason: bad,
+        );
+      }
+      expect(log.requests, isEmpty, reason: 'nothing left the form');
+    });
+
+    testWidgets('a server that does not know it gets no field and no key', (
+      tester,
+    ) async {
+      await pump(tester, _printer());
+      expect(priorityField(), findsNothing);
+
+      // The mock matches the exact body, so one carrying the key would 404.
+      server
+        ..onPost(
+          Endpoints.printersDiagnostic,
+          (s) => s.reply(200, _passing),
+          data: _diagnoseBody,
+        )
+        ..onPatch(
+          Endpoints.printer(1),
+          (s) => s.reply(200, {'id': 1, 'name': 'X1 Carbon'}),
+          data: {
+            'name': 'X1 Carbon',
+            'ip_address': '192.168.4.21',
+            'auto_archive': true,
+            'is_active': true,
+            'model': 'X1C',
+            'location': 'Workshop',
+            'wear_cost_per_hour': 0.25,
+          },
+        );
+      await tester.tap(find.text(pl.editPrinterSubmit));
+      await tester.pumpAndSettle();
+
+      expect(log.statuses, [200, 200]);
+      expect(patched()!.containsKey('dispatch_priority'), isFalse);
     });
 
     testWidgets('a failed connection check asks before saving', (tester) async {

@@ -4968,5 +4968,14 @@
   "pandaBreathModeOn": "Immer an",
   "pandaBreathModeDrying": "Trocknen",
   "pandaBreathDryingLeft": "Trocknen, noch {minutes} Min.",
-  "pandaBreathTarget": "Zieltemperatur 0–{max} °C"
+  "pandaBreathTarget": "Zieltemperatur 0–{max} °C",
+  "queueSettingsDispatchLabel": "Drucker für Aufträge an ein beliebiges Modell",
+  "queueSettingsDispatchDesc": "Welcher Drucker einen Auftrag für ein ganzes Modell bekommt. Beschäftigte oder Offline-Drucker werden übergangen.",
+  "queueSettingsDispatchFewestHours": "Wenigste Betriebsstunden",
+  "queueSettingsDispatchMostHours": "Meiste Betriebsstunden",
+  "queueSettingsDispatchLeastRecentlyUsed": "Am längsten unbenutzt",
+  "queueSettingsDispatchPriority": "Druckerpriorität",
+  "editPrinterDispatchPriority": "Priorität für Aufträge an ein beliebiges Modell",
+  "editPrinterDispatchPriorityHelp": "Niedrigste Zahl zuerst, leer zuletzt. Gilt, wenn Aufträge für ein beliebiges Modell nach Druckerpriorität vergeben werden.",
+  "editPrinterDispatchPriorityInvalid": "Ganze Zahl von 0 bis 100000 eingeben"
 }

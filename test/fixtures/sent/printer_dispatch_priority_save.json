@@ -1,0 +1,16 @@
+[
+  {
+    "method": "PATCH",
+    "path": "/api/v1/printers/1",
+    "body": {
+      "name": "X1 Carbon",
+      "ip_address": "192.168.4.21",
+      "auto_archive": true,
+      "is_active": true,
+      "model": "X1C",
+      "location": "Workshop",
+      "wear_cost_per_hour": 0.25,
+      "dispatch_priority": 0
+    }
+  }
+]

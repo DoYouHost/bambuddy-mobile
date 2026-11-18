@@ -7858,5 +7858,14 @@
         "type": "int"
       }
     }
-  }
+  },
+  "queueSettingsDispatchLabel": "Printer for any-model jobs",
+  "queueSettingsDispatchDesc": "Which printer takes a job queued for a whole model. Busy or offline ones are skipped.",
+  "queueSettingsDispatchFewestHours": "Fewest print hours",
+  "queueSettingsDispatchMostHours": "Most print hours",
+  "queueSettingsDispatchLeastRecentlyUsed": "Idle the longest",
+  "queueSettingsDispatchPriority": "Printer priority",
+  "editPrinterDispatchPriority": "Priority for any-model jobs",
+  "editPrinterDispatchPriorityHelp": "Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.",
+  "editPrinterDispatchPriorityInvalid": "Enter a whole number from 0 to 100000"
 }

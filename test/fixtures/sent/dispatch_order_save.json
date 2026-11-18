@@ -1,0 +1,9 @@
+[
+  {
+    "method": "PUT",
+    "path": "/api/v1/settings/",
+    "body": {
+      "model_dispatch_order": "priority"
+    }
+  }
+]

@@ -543,6 +543,7 @@ final _editedPrinter = Printer.fromJson(const {
   'is_active': true,
   'auto_archive': true,
   'wear_cost_per_hour': 0.25,
+  'dispatch_priority': 2,
 });
 
 /// Name, address, serial and access code, in the order the form lays them out.
