@@ -90,7 +90,19 @@ void main() {
     });
 
     test('anything else is refused before the server 422s it', () {
-      for (final bad in ['-1', '100001', '1.5', '1,5', 'abc', '1e3', '٣']) {
+      for (final bad in [
+        '-1',
+        '100001',
+        '1.5',
+        '1,5',
+        'abc',
+        '1e3',
+        '٣',
+        '0x10',
+        '+5',
+        '-0',
+        '1000000',
+      ]) {
         expect(dispatchPriorityIsValid(bad), isFalse, reason: '"$bad"');
       }
     });
@@ -326,7 +338,7 @@ void main() {
     ) async {
       await pump(tester, _printer(servesDispatch: true));
 
-      for (final bad in ['abc', '-1', '1.5', '100001', '1e3']) {
+      for (final bad in ['abc', '-1', '1.5', '100001', '1e3', '0x10']) {
         await tester.enterText(priorityField(), bad);
         await tester.tap(find.text(pl.editPrinterSubmit));
         await tester.pumpAndSettle();

@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/queue_settings.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/features/settings/queue_settings_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:material_ui/material_ui.dart';
@@ -122,12 +126,25 @@ void main() {
     );
   });
 
-  testWidgets('choosing the order already set sends nothing', (tester) async {
-    await pump(tester, settings());
+  testWidgets('an order the app does not know can be replaced by the default', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      settings(order: 'most_wear'),
+      routes: (s) => s.onPut(
+        Endpoints.appSettingsUpdate,
+        (r) => r.reply(200, settings()),
+        data: {'model_dispatch_order': 'fewest_hours'},
+      ),
+    );
 
+    // It reads as the default, so choosing the default is not "no change".
     await choose(tester, pl.queueSettingsDispatchFewestHours);
 
-    expect(log.requests.where((r) => r.method == 'PUT'), isEmpty);
+    final puts = log.requests.where((r) => r.method == 'PUT').toList();
+    expect(puts, hasLength(1));
+    expect(puts.single.data, {'model_dispatch_order': 'fewest_hours'});
   });
 
   testWidgets('a refused write puts the old order back on screen', (
@@ -170,5 +187,58 @@ void main() {
       expect(find.text(pl.queueSettingsDispatchLabel), findsOneWidget);
       expect(find.text(pl.queueSettingsDispatchDesc), findsOneWidget);
     });
+  }
+
+  testWidgets('a refusal of the second pick does not undo the first, which '
+      'the server kept', (tester) async {
+    usePhoneWindow(tester, dp: 2400);
+    final repo = _ScriptedRepo(settings());
+    await pumpPhone(
+      tester,
+      const QueueSettingsScreen(),
+      overrides: [
+        fakeServerProfileOverride(authMode: AuthMode.none),
+        currentUserOverride(null),
+        serverSettingsRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    await choose(tester, pl.queueSettingsDispatchPriority);
+    await choose(tester, pl.queueSettingsDispatchMostHours);
+    expect(repo.pending, hasLength(2));
+
+    // The first lands and is kept, then the second is refused.
+    repo.pending[0].complete(settings(order: 'priority'));
+    await tester.pumpAndSettle();
+    repo.pending[1].completeError(
+      const ApiException(AppErrorCode.badResponse, statusCode: 500),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(pl.queueSettingsDispatchPriority),
+      findsOneWidget,
+      reason: 'the server holds priority; the field must say so',
+    );
+    expect(find.text(pl.queueSettingsDispatchFewestHours), findsNothing);
+  });
+}
+
+/// A settings repository whose writes wait for the test to answer them.
+class _ScriptedRepo extends ServerSettingsRepository {
+  _ScriptedRepo(this._settings) : super(Dio());
+
+  final Map<String, dynamic> _settings;
+  final List<Completer<Map<String, dynamic>>> pending = [];
+
+  @override
+  Future<Map<String, dynamic>> fetch() async => _settings;
+
+  @override
+  Future<Map<String, dynamic>> update(Map<String, dynamic> changes) {
+    final answer = Completer<Map<String, dynamic>>();
+    pending.add(answer);
+    return answer.future;
   }
 }

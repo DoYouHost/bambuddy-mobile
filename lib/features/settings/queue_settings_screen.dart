@@ -433,16 +433,16 @@ class _DispatchOrderField extends StatefulWidget {
 }
 
 class _DispatchOrderFieldState extends State<_DispatchOrderField> {
-  /// Part of the field's key. The menu writes the picked label into its own
-  /// text box, so a refused write that restores the old value cannot reach it
-  /// through `initialSelection` (read once) — and a refusal that lands before
-  /// the next frame leaves [ModelDispatchOrder] equal to what the last frame
-  /// saw, so keying by the value alone would not rebuild it either.
+  /// The field's key. `initialSelection` follows the value from one frame to
+  /// the next, but a refusal that lands before the next frame leaves the value
+  /// as that frame saw it while the menu already shows the label just picked;
+  /// a new key is the only way to redraw it then.
   int _epoch = 0;
 
   Future<void> _select(ModelDispatchOrder order) async {
     await widget.onSelected(order);
-    if (mounted) setState(() => _epoch++);
+    // Still on the old value: the write was refused (or has not landed).
+    if (mounted && widget.current != order) setState(() => _epoch++);
   }
 
   @override
@@ -460,13 +460,15 @@ class _DispatchOrderFieldState extends State<_DispatchOrderField> {
       child: dashCombo<ModelDispatchOrder>(
         context,
         id: 'queue_settings.dispatch_order',
-        fieldKey: ValueKey((widget.current, _epoch)),
+        fieldKey: ValueKey(_epoch),
         label: Text(l10n.queueSettingsDispatchLabel),
         helperText: l10n.queueSettingsDispatchDesc,
         initialSelection: widget.current,
         enabled: widget.enabled,
+        // Also the value already shown: a stored string this app does not know
+        // is shown as the default, and choosing the default must still write it.
         onSelected: (o) {
-          if (o != null && o != widget.current) _select(o);
+          if (o != null) _select(o);
         },
         entries: [
           for (final o in ModelDispatchOrder.values)

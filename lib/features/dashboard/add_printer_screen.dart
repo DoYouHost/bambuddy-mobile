@@ -383,7 +383,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               isActive: _isActive,
               wearCostPerHour: parseUserDecimal(_wearCost.text),
               sendWearCost: printer.servesWearCost,
-              dispatchPriority: int.tryParse(_dispatchPriority.text.trim()),
+              dispatchPriority: parseDispatchPriority(_dispatchPriority.text),
               sendDispatchPriority: printer.servesDispatchPriority,
             ),
           );
@@ -637,7 +637,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         hint: '0.00',
         helper: l10n.editPrinterWearCostHelp,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textInputAction: TextInputAction.done,
+        textInputAction: widget.printer!.servesDispatchPriority
+            ? TextInputAction.next
+            : TextInputAction.done,
         validator: (v) =>
             rateIsValid(v ?? '') ? null : l10n.editPrinterWearCostInvalid,
       ),
@@ -1049,12 +1051,20 @@ bool rateIsValid(String text) {
   return v != null && v >= 0 && v <= 100000;
 }
 
+/// A priority as typed: ASCII digits only, so `0x10`, `+5` and `1e3` are not
+/// numbers here (`int.tryParse` reads the first as 16). Null for empty or odd
+/// input.
+int? parseDispatchPriority(String text) {
+  final t = text.trim();
+  return RegExp(r'^\d{1,6}$').hasMatch(t) ? int.parse(t) : null;
+}
+
 /// The server's own bound (`Field(ge=0, le=100000)`) on a whole number, checked
 /// before it 422s. Empty is allowed: it clears the priority, which sorts last.
 bool dispatchPriorityIsValid(String text) {
   if (text.trim().isEmpty) return true;
-  final v = int.tryParse(text.trim());
-  return v != null && v >= 0 && v <= PrinterUpdate.maxDispatchPriority;
+  final v = parseDispatchPriority(text);
+  return v != null && v <= PrinterUpdate.maxDispatchPriority;
 }
 
 /// A stored rate back into the field, without a trailing `.0`.
