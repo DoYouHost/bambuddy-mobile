@@ -4630,6 +4630,9 @@ void main() {
 
       expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
       expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+      // The same head throughout: the sheet that shows the left nozzle is the
+      // one that offers to make it the active extruder.
+      expect(inSheet(find.text(pl.ctrlActivate)), findsOneWidget);
     });
 
     testWidgets('a single-nozzle printer keeps its one nozzle\'s figures', (
