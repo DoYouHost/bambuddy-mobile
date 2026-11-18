@@ -24,6 +24,8 @@ import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/group_write.dart';
+import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_create.dart';
 import 'package:bambuddy_mobile/core/models/user_write.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/account_repository.dart';
@@ -416,3 +418,34 @@ Future<ServerVersion> contractServerVersion() async {
   ).current();
   return version!;
 }
+
+const _same = Object();
+
+/// The edit form's save of [printer] as the server holds it: every field its
+/// own, and every key the server served sent with its current value.
+///
+/// [model], [wearCostPerHour] and [dispatchPriority] replace the row's value,
+/// and a null given is a null sent — which clears the field; leave one out to
+/// keep it. [served] narrows which optional keys go out, as an older server's
+/// row would.
+PrinterUpdate saveOf(
+  Printer printer, {
+  Object? model = _same,
+  Object? wearCostPerHour = _same,
+  Object? dispatchPriority = _same,
+  Set<String>? served,
+}) => PrinterUpdate(
+  name: printer.name,
+  ipAddress: printer.ipAddress!,
+  autoArchive: printer.autoArchive ?? true,
+  isActive: printer.isActive ?? true,
+  location: printer.location,
+  model: identical(model, _same) ? printer.model : model as String?,
+  wearCostPerHour: identical(wearCostPerHour, _same)
+      ? printer.wearCostPerHour
+      : wearCostPerHour as double?,
+  dispatchPriority: identical(dispatchPriority, _same)
+      ? printer.dispatchPriority
+      : dispatchPriority as int?,
+  served: served ?? printer.servedKeys,
+);

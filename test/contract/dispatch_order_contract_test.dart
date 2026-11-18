@@ -172,14 +172,7 @@ void main() {
       // What an editor does on a server that does not know the field.
       final saved = await printers.updatePrinter(
         printer.id,
-        PrinterUpdate(
-          name: printer.name,
-          ipAddress: printer.ipAddress!,
-          autoArchive: printer.autoArchive ?? true,
-          isActive: printer.isActive ?? true,
-          model: printer.model,
-          location: printer.location,
-        ),
+        saveOf(printer, served: const {}),
       );
 
       expect(saved.dispatchPriority, 4);
@@ -206,16 +199,5 @@ Future<Printer> _savePriority(
   int? priority,
 ) => printers.updatePrinter(
   printer.id,
-  PrinterUpdate(
-    name: printer.name,
-    ipAddress: printer.ipAddress!,
-    autoArchive: printer.autoArchive ?? true,
-    isActive: printer.isActive ?? true,
-    model: printer.model,
-    location: printer.location,
-    dispatchPriority: priority,
-    // Every served key is sent, so the other one keeps its value.
-    wearCostPerHour: printer.wearCostPerHour,
-    served: printer.servedKeys,
-  ),
+  saveOf(printer, dispatchPriority: priority),
 );

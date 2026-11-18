@@ -1,6 +1,5 @@
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/models/printer_create.dart';
 import 'package:bambuddy_mobile/core/models/project.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
@@ -37,20 +36,13 @@ void main() {
     });
 
     /// The edit form's save, as it would go out for [printer] with [rate].
-    Future<Printer> saveRate(double? rate, {String? model = ''}) =>
+    Future<Printer> saveRate(double? rate, {bool clearModel = false}) =>
         printers.updatePrinter(
           printer.id,
-          PrinterUpdate(
-            name: printer.name,
-            ipAddress: printer.ipAddress!,
-            autoArchive: printer.autoArchive ?? true,
-            isActive: printer.isActive ?? true,
-            model: model == '' ? printer.model : model,
-            location: printer.location,
+          saveOf(
+            printer,
             wearCostPerHour: rate,
-            // Every served key is sent, so the other one keeps its value.
-            dispatchPriority: printer.dispatchPriority,
-            served: printer.servedKeys,
+            model: clearModel ? null : printer.model,
           ),
         );
 
@@ -67,7 +59,7 @@ void main() {
     test('"not set" clears the model on the server', () async {
       addTearDown(() => saveRate(printer.wearCostPerHour));
       expect(
-        (await saveRate(printer.wearCostPerHour, model: null)).model,
+        (await saveRate(printer.wearCostPerHour, clearModel: true)).model,
         isNull,
       );
     });
