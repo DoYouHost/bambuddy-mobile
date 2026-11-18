@@ -1153,6 +1153,11 @@ class NozzleRackSlot with ValueEquality {
     this.filamentColor,
     this.filamentType,
     this.addrId,
+    this.wear,
+    this.printTimeS,
+    this.stat,
+    this.maxTemp,
+    this.serialNumber,
   });
 
   factory NozzleRackSlot.fromJson(Map<String, dynamic> json) =>
@@ -1183,6 +1188,27 @@ class NozzleRackSlot with ValueEquality {
   @JsonKey(fromJson: toIntOrNull)
   final int? addrId;
 
+  /// Wear in percent, as the nozzle reports it. Null when it does not.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? wear;
+
+  /// Seconds this nozzle has printed (`p_t`, server #1908, 1.3.2). H2C firmware
+  /// only: null on other models, on older firmware and on a server that does not
+  /// send it, and a null row is left out rather than shown as "0h".
+  @JsonKey(fromJson: toIntOrNull)
+  final int? printTimeS;
+
+  /// The printer's own status code for the nozzle (mounted, docked).
+  @JsonKey(fromJson: toIntOrNull)
+  final int? stat;
+
+  /// Temperature rating in °C; 0 and null both mean "not reported".
+  @JsonKey(fromJson: toIntOrNull)
+  final int? maxTemp;
+
+  /// Empty or null when the nozzle does not report one.
+  final String? serialNumber;
+
   /// Whether the position holds a nozzle at all. A dock the operator left
   /// empty still arrives, with its properties blank.
   bool get isEmpty =>
@@ -1197,6 +1223,11 @@ class NozzleRackSlot with ValueEquality {
     filamentColor,
     filamentType,
     addrId,
+    wear,
+    printTimeS,
+    stat,
+    maxTemp,
+    serialNumber,
   ];
 }
 
