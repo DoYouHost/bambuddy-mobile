@@ -10,11 +10,11 @@ import '../../core/theme/dash_theme.dart';
 /// name, `body` in the primary ink for the value), so a screen that wants its
 /// facts to read differently changes this widget, not a copy of it.
 ///
-/// **The label may take up to 45% of the row and the value all the rest, at the
-/// row's end.** Two flexible children would each be handed half of the row and
-/// leave what the other does not use: a short value then stops half way along
-/// the row, and a long one wraps at half of it although its label is short. Only
-/// the value is flexible here, and the space between pushes it to the end.
+/// **The label may take up to 45% of the room beside the icon and the value all
+/// the rest, at the row's end.** Two flexible children would each be capped at
+/// half of it: a long value then wraps at half the row although its label is
+/// short. Only the value is flexible here, and the space between pushes a short
+/// one to the end.
 ///
 /// [stacked] puts the value under the label, for free text that would otherwise
 /// wrap into a narrow right-aligned column. [below] goes under the whole row,
@@ -48,7 +48,7 @@ class FactRow extends StatelessWidget {
   final bool stacked;
   final Widget? below;
 
-  /// Puts a 16 dp icon on the first line of the body text next to it.
+  /// Puts a 16 dp icon on the first line of the label next to it.
   static const _iconNudge = 2.0;
 
   @override

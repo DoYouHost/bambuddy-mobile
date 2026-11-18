@@ -471,6 +471,10 @@ class _InertStatuses extends PrinterStatusesNotifier {
   Map<int, PrinterStatus> build() => const {};
 }
 
+/// How far a dot's centre may sit from its label's, per unit of text scale: a
+/// baseline and a middle differ by a pixel or two, a top alignment by a line.
+const _dotTolerance = 3.0;
+
 void main() {
   testWidgets('card renders name, progress and temperatures from fixture', (
     tester,
@@ -1941,7 +1945,8 @@ void main() {
           expect(
             find.descendant(
               of: find.byType(FittedSheetSurface),
-              matching: find.text('PLA'),
+              // The name shares a line with the dot, so it is rich text.
+              matching: find.text('PLA', findRichText: true),
             ),
             findsOneWidget,
           );
@@ -2028,6 +2033,37 @@ void main() {
           expect(tester.getRect(dot).right, closeTo(right, 0.5));
         },
       );
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('a lone colour dot is centred on its label\'s line, at '
+            'text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_FigureDot',
+            ),
+          );
+          expect(
+            tester.getCenter(dot).dy,
+            closeTo(
+              tester.getCenter(find.text(pl.nozzleLabelFilament)).dy,
+              _dotTolerance * scale,
+            ),
+          );
+        });
+      }
 
       testWidgets('a nozzle that reports no print time shows no such row, '
           'and none shows zero hours', (tester) async {

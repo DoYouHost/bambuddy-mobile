@@ -112,16 +112,25 @@ List<FactRow> _nozzleRows(
     if (full && hasFilament)
       FactRow.custom(
         label: l10n.nozzleLabelFilament,
-        value: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (filament != null && filament.a != 0) _FigureDot(filament),
-            // The gap only between a dot and a name, so a colour alone sits
-            // against the end of the row like every other value.
-            if (filament != null && filament.a != 0 && filamentType.isNotEmpty)
-              const SizedBox(width: DashSpace.sm),
-            if (filamentType.isNotEmpty) Flexible(child: Text(filamentType)),
-          ],
+        // One line of text with the dot inside it, not a Row: a dot alone has no
+        // baseline, and a baseline-aligned row would put it at the top of the line
+        // instead of on its middle. The gap is only between a dot and a name, so a
+        // colour alone sits against the end of the row like every other value.
+        value: Text.rich(
+          TextSpan(
+            children: [
+              if (filament != null && filament.a != 0)
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: _FigureDot(filament),
+                ),
+              if (filament != null &&
+                  filament.a != 0 &&
+                  filamentType.isNotEmpty)
+                const WidgetSpan(child: SizedBox(width: DashSpace.sm)),
+              if (filamentType.isNotEmpty) TextSpan(text: filamentType),
+            ],
+          ),
         ),
       ),
   ];
