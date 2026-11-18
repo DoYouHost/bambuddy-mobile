@@ -109,7 +109,11 @@ order: diameter, type, flow, status, wear, print time, max temp, serial, filamen
 - **A hotend's temperature sheet ends with a "Nozzle" section** (`_NozzleSection`) of four
   rows: diameter, flow, wear, print time. The tile's hardware index is the entry's id: 0 is
   the right head (`nozzle_2`), 1 the left. The sheet already names the hotend, and its
-  status is the "Activate" control above, so the rest of the card is left out.
+  status is the "Activate" control above, so the rest of the card is left out. A printer is
+  dual when it reports `nozzle_2` **or** lists a non-empty id 1: a frame can carry the list
+  before the temperature, and the one decision then drives the tile's target index, its
+  nozzle switch and its figures. An empty entry proves nothing (a stub), which is argued
+  from the H3C capture listing no id 1, not measured on a single-nozzle printer.
 - **A figure the nozzle did not report is not a row.** A null print time is older firmware
   or a server before 1.3.1 (the key is absent, 1.3.0 measured), and "0h" would say the
   nozzle never printed; a reported 0 is a row. Max temp 0 and an empty serial are "not set".
