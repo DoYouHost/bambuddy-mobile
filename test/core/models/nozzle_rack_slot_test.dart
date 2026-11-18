@@ -62,6 +62,7 @@ void main() {
         expect(slot.printTimeS, 7200);
         expect(slot.wear, isNull);
         expect(slot.stat, isNull);
+        expect(slot.maxTemp, 300);
       },
     );
 

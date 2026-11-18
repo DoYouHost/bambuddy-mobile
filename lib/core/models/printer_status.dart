@@ -1178,7 +1178,7 @@ class NozzleRackSlot with ValueEquality {
   final String? filamentColor;
 
   /// Material loaded on this nozzle (`PLA`, `PETG`). An older server's
-  /// WebSocket frame leaves it out, though it carries every other field.
+  /// WebSocket frame leaves it out.
   final String? filamentType;
 
   /// H3C only: every nozzle's home rack position (0-8), the docked ones and
