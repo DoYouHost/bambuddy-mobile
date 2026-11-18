@@ -39,6 +39,9 @@ void main() {
 
     // The capture's nine hotends: slot 6's on the toolhead (id 0, addr_id 6),
     // 23 an empty high-temperature one.
+    //
+    // `p_t` is the nozzle's accumulated print time in seconds (#1908), which
+    // the capture's firmware sends for all but the empty one.
     Map<String, Object?> hotend(int id, int addr, String colour) => {
       'id': id,
       'addr_id': addr,
@@ -46,6 +49,11 @@ void main() {
       'diameter': 0.4,
       'color_m': colour,
       'fila_id': colour == '00000000' ? '' : 'GFL99',
+      'wear': id + 1,
+      if (id != 23) 'p_t': 3600 * (addr + 1) + 61,
+      'stat': addr == 6 ? 1 : 0,
+      'tm': 300,
+      'sn': 'SN-$id',
     };
 
     final report = <String, Object?>{
@@ -155,6 +163,33 @@ void main() {
     });
 
     tearDownAll(() => dio.delete<void>('/api/v1/printers/$printerId'));
+
+    test('each nozzle\'s own figures reach the app, the print time where '
+        'the server has it', () async {
+      final rack = status.nozzleRack!;
+      final seventeen = rack.singleWhere((n) => n.id == 17);
+
+      expect(seventeen.wear, 18);
+      expect(seventeen.maxTemp, 300);
+      expect(seventeen.serialNumber, 'SN-17');
+      expect(rack.singleWhere((n) => n.id == 0).stat, 1);
+
+      final raw = (await dio.get<Map<String, dynamic>>(
+        '/api/v1/printers/$printerId/status',
+      )).data!;
+      final servesPrintTime = (raw['nozzle_rack'] as List).cast<Map>().every(
+        (n) => n.containsKey('print_time_s'),
+      );
+      if (!servesPrintTime) {
+        // A server before #1908: the key is absent, so the nozzle reports none.
+        expect(seventeen.printTimeS, isNull);
+        markTestSkipped('server predates nozzle print time (#1908)');
+        return;
+      }
+      // addr_id 1 reports 3600 * 2 + 61; the empty hotend reports none.
+      expect(seventeen.printTimeS, 7261);
+      expect(rack.singleWhere((n) => n.id == 23).printTimeS, isNull);
+    });
 
     test('the AMS 3H reaches the app numbered as on the web', () {
       final unit = status.ams!.singleWhere((u) => u.id == 32);

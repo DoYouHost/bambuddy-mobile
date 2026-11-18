@@ -1191,7 +1191,7 @@ class NozzleRackSlot with ValueEquality {
   @JsonKey(fromJson: toIntOrNull)
   final int? wear;
 
-  /// Seconds this nozzle has printed (`p_t`, server #1908, 1.3.2). H2C firmware
+  /// Seconds this nozzle has printed (`p_t`, server #1908, 1.3.1). H2C firmware
   /// only: null on other models, on older firmware and on a server that does not
   /// send it, and a null row is left out rather than shown as "0h".
   @JsonKey(fromJson: toIntOrNull)

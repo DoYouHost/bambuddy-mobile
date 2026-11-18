@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// what was reported.
 void main() {
   group('NozzleRackSlot.fromJson', () {
-    test('reads what a 1.3.2 server sends for an H2C nozzle', () {
+    test('reads what a 1.3.1 server sends for an H2C nozzle', () {
       final slot = NozzleRackSlot.fromJson(const {
         'id': 17,
         'nozzle_type': 'HS01',
@@ -26,7 +26,7 @@ void main() {
       expect(slot.serialNumber, '0A1B2C');
     });
 
-    test('a server before 1.3.2 sends no print time, and it stays null', () {
+    test('a server before 1.3.1 sends no print time, and it stays null', () {
       final slot = NozzleRackSlot.fromJson(const {
         'id': 17,
         'wear': 12,

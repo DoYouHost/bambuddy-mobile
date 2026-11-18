@@ -2092,6 +2092,16 @@ class DemoBackend {
             'nozzle_diameter': i == 3 ? '0.6' : '0.4',
             'filament_color': colours[i] ?? '00000000',
             'filament_type': colours[i] == null ? '' : 'PLA',
+            // What each nozzle reports about itself: the mounted one has
+            // printed longest, 7 is a newer nozzle, and 8 reports no print time
+            // (older firmware), so the card has to leave that row out.
+            'wear': [12, 8, 21, 3, 15, 30, 44, 0, 6][i],
+            'print_time_s': i == 8
+                ? null
+                : [14400, 90061, 7320, 600, 28800, 3600, 172800, 0][i],
+            'stat': i == 6 ? 1 : 0,
+            'max_temp': i == 7 ? 300 : 280,
+            'serial_number': '0K00A9${i}C3X00${i + 1}',
           },
       ],
       'hms_errors': const <Object>[],
