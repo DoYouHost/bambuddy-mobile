@@ -8,7 +8,9 @@ import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:collection/collection.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
+import 'package:bambuddy_mobile/core/models/queue_settings.dart';
 import 'package:bambuddy_mobile/core/models/wled_config.dart';
+import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
@@ -55,7 +57,6 @@ import 'package:bambuddy_mobile/data/profile_defaults_repository.dart';
 import 'package:bambuddy_mobile/core/models/spool_preset_override.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
-import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
@@ -105,6 +106,25 @@ void main() {
         [7],
       );
     });
+
+    test(
+      'every printer serves a dispatch priority, and the order is set',
+      () async {
+        final printers = await PrintersRepository(dio).fetchPrinters();
+
+        expect(printers.every((p) => p.servesDispatchPriority), isTrue);
+        expect(
+          {for (final p in printers) p.id: p.dispatchPriority},
+          {1: 2, 2: null, 3: null, 4: null, 5: 1, 6: null, 7: null},
+        );
+        expect(
+          QueueSettings.fromSettings(
+            await ServerSettingsRepository(dio).fetch(),
+          ).dispatchOrder,
+          ModelDispatchOrder.priority,
+        );
+      },
+    );
 
     test('the P1S has a Panda Breath, and a command reaches it', () async {
       final repo = PrintersRepository(dio);

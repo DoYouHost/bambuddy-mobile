@@ -842,6 +842,10 @@ class DemoBackend {
     'queue_keep_warm_max_minutes': 45,
     // Off the server's default of 5, like the rows above it.
     'pause_warning_minutes': 10,
+    // Off the server's default of `fewest_hours`, so the row visibly reads it:
+    // the two X1 Carbons carry priorities 2 and 1 in `_printers`, and the rest
+    // none, which is last.
+    'model_dispatch_order': 'priority',
     // Off the server's default of 20, so the spool list and the notification
     // settings row visibly read it. The Silk Gold spool (9.5% left) is below it.
     'low_stock_threshold': 15.0,
@@ -1510,6 +1514,7 @@ class DemoBackend {
       'model': 'X1C',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': 2,
       'nozzle_count': 1,
       'wear_cost_per_hour': _demoWearCostPerHour,
       'wled_config': {
@@ -1528,6 +1533,7 @@ class DemoBackend {
       'model': 'P1S',
       'location': 'Office',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     {
@@ -1539,6 +1545,7 @@ class DemoBackend {
       'model': 'A1 mini',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     // Carries both P2S accessory fan kits — the only configuration that shows
@@ -1553,6 +1560,7 @@ class DemoBackend {
       'model': 'P2S',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     // The second X1C, and the only reason the fleet is five rather than four:
@@ -1571,6 +1579,7 @@ class DemoBackend {
       'model': 'X1C',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': 1,
       'nozzle_count': 1,
     },
     // The only machine with two nozzles and a chamber heater, so the four
@@ -1585,6 +1594,7 @@ class DemoBackend {
       'model': 'H2D',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 2,
     },
     // The only rack printer: an AMS 3H numbered 28-36 with its dryer, nine
@@ -1599,6 +1609,7 @@ class DemoBackend {
       'model': 'H3C',
       'location': 'Office',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
   ];
