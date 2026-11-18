@@ -22,15 +22,20 @@ enum QueueSetting {
   // Not a queue setting: how long before a slicer pause the server and this app
   // warn (#2984). It rides on this block's writer, gate and lock — the same
   // `PUT /settings/`, key-presence gate and denied-to-API-keys rule.
-  pauseWarningMinutes('pause_warning_minutes', min: 1, max: 120);
+  pauseWarningMinutes('pause_warning_minutes', min: 1, max: 120),
+  // Which printer an "Any model" job takes (#2915), a [ModelDispatchOrder]. The
+  // one setting here that is neither a flag nor a number.
+  dispatchOrder('model_dispatch_order');
 
   const QueueSetting(this.key, {this.min, this.max});
 
   final String key;
 
-  /// Null on the flags, which have no range of their own.
+  /// Null on the flags and on [dispatchOrder], which have no range of their own.
   final int? min;
   final int? max;
+
+  bool get isChoice => this == dispatchOrder;
 
   /// `AppSettings`' own field default. Only reached when the server answered
   /// the key with something unreadable — an absent key means no such setting.
@@ -63,7 +68,9 @@ class QueueSettings {
     for (final setting in QueueSetting.values) {
       if (!settings.containsKey(setting.key)) continue;
       known.add(setting);
-      values[setting] = setting.min == null
+      values[setting] = setting.isChoice
+          ? ModelDispatchOrder.fromWire(settings[setting.key])
+          : setting.min == null
           ? settings.settingBool(setting.key)
           : toIntOrNull(settings[setting.key]) ?? setting.serverDefault;
     }
@@ -79,6 +86,10 @@ class QueueSettings {
   int number(QueueSetting setting) =>
       values[setting] as int? ?? setting.serverDefault;
 
+  ModelDispatchOrder get dispatchOrder =>
+      values[QueueSetting.dispatchOrder] as ModelDispatchOrder? ??
+      ModelDispatchOrder.fewestHours;
+
   /// This block with one setting changed, for the optimistic redraw. A setting
   /// the server does not know is a no-op, never an addition.
   QueueSettings withValue(QueueSetting setting, Object value) =>
@@ -89,8 +100,35 @@ class QueueSettings {
   /// The `PUT /settings/` body for one change. Numbers are clamped here, the
   /// last place that knows the range before the request leaves.
   static Map<String, dynamic> patch(QueueSetting setting, Object value) => {
-    setting.key: value is int
-        ? value.clamp(setting.min ?? value, setting.max ?? value)
-        : value,
+    setting.key: switch (value) {
+      int() => value.clamp(setting.min ?? value, setting.max ?? value),
+      ModelDispatchOrder() => value.wire,
+      _ => value,
+    },
   };
+}
+
+/// How an "Any model" job picks among the printers that can take it
+/// (`schemas/settings.py::AppSettingsUpdate.model_dispatch_order`, a `Literal`
+/// that answers **422** to anything else).
+enum ModelDispatchOrder {
+  fewestHours('fewest_hours'),
+  mostHours('most_hours'),
+  leastRecentlyUsed('least_recently_used'),
+
+  /// Follows each printer's own `dispatch_priority`.
+  priority('priority');
+
+  const ModelDispatchOrder(this.wire);
+
+  final String wire;
+
+  /// What the scheduler does with a stored value it does not know: it reads it
+  /// as the default (`print_scheduler.py::_get_model_dispatch_order`), so a
+  /// later server's fifth order shows here as the default rather than breaking
+  /// the screen.
+  static ModelDispatchOrder fromWire(Object? value) => values.firstWhere(
+    (order) => order.wire == value,
+    orElse: () => fewestHours,
+  );
 }

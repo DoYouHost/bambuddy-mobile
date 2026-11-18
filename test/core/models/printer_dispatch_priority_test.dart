@@ -1,0 +1,73 @@
+import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_create.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// `dispatch_priority` (server #2915, 1.3.2): an older server answers no key and
+/// drops the field on a `PATCH`, so the key's presence is the only thing that
+/// may switch the editor's field on and the write on.
+void main() {
+  Printer printer(Map<String, dynamic> extra) =>
+      Printer.fromJson({'id': 1, 'name': 'X1C', ...extra});
+
+  PrinterUpdate update({int? priority, bool send = true}) => PrinterUpdate(
+    name: 'X1',
+    ipAddress: '10.0.0.2',
+    autoArchive: true,
+    isActive: true,
+    location: null,
+    dispatchPriority: priority,
+    sendDispatchPriority: send,
+  );
+
+  group('Printer.servesDispatchPriority', () {
+    test('a null priority still says the server knows the field', () {
+      final p = printer({'dispatch_priority': null});
+
+      expect(p.servesDispatchPriority, isTrue);
+      expect(p.dispatchPriority, isNull);
+    });
+
+    test('a stored priority is read', () {
+      final p = printer({'dispatch_priority': 3});
+
+      expect(p.servesDispatchPriority, isTrue);
+      expect(p.dispatchPriority, 3);
+    });
+
+    test('an older server sends no key at all', () {
+      final p = printer(const {});
+
+      expect(p.servesDispatchPriority, isFalse);
+      expect(p.dispatchPriority, isNull);
+    });
+  });
+
+  group('PrinterUpdate.dispatch_priority', () {
+    test('a server that does not know it is not sent one', () {
+      final json = update(priority: 3, send: false).toJson();
+
+      expect(json.containsKey('dispatch_priority'), isFalse);
+    });
+
+    test('a number is sent as it is, zero included', () {
+      expect(update(priority: 3).toJson()['dispatch_priority'], 3);
+      expect(update(priority: 0).toJson()['dispatch_priority'], 0);
+    });
+
+    test('empty is sent as null, which clears it', () {
+      final json = update().toJson();
+
+      expect(json.containsKey('dispatch_priority'), isTrue);
+      expect(json['dispatch_priority'], isNull);
+    });
+
+    test('the server\'s ceiling is not exceeded, never sent to a 422', () {
+      expect(
+        update(priority: 100001).toJson()['dispatch_priority'],
+        PrinterUpdate.maxDispatchPriority,
+      );
+      expect(PrinterUpdate.maxDispatchPriority, 100000);
+      expect(update(priority: -5).toJson()['dispatch_priority'], 0);
+    });
+  });
+}

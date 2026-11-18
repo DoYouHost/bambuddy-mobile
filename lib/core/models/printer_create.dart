@@ -50,6 +50,8 @@ class PrinterUpdate {
     this.model,
     this.wearCostPerHour,
     this.sendWearCost = false,
+    this.dispatchPriority,
+    this.sendDispatchPriority = false,
   });
 
   final String name;
@@ -68,6 +70,12 @@ class PrinterUpdate {
   /// Left out for a server that does not know the field.
   final bool sendWearCost;
 
+  /// Null clears it; the server accepts 0 to 100000 and answers 422 outside.
+  final int? dispatchPriority;
+
+  /// Left out for a server that does not know the field (a silent drop there).
+  final bool sendDispatchPriority;
+
   Map<String, dynamic> toJson() => {
     'name': name,
     'ip_address': ipAddress,
@@ -81,5 +89,10 @@ class PrinterUpdate {
     if (accessCode != null && accessCode!.isNotEmpty) 'access_code': accessCode,
     if (sendWearCost)
       'wear_cost_per_hour': (wearCostPerHour ?? 0) > 0 ? wearCostPerHour : null,
+    if (sendDispatchPriority)
+      'dispatch_priority': dispatchPriority?.clamp(0, maxDispatchPriority),
   };
+
+  /// `PrinterUpdate.dispatch_priority`'s `le=100000`.
+  static const maxDispatchPriority = 100000;
 }

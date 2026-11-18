@@ -21,6 +21,8 @@ class Printer {
     this.autoArchive,
     this.wearCostPerHour,
     this.servesWearCost = false,
+    this.dispatchPriority,
+    this.servesDispatchPriority = false,
     this.wledConfig,
   });
 
@@ -52,6 +54,16 @@ class Printer {
   @JsonKey(readValue: _hasWearCostKey)
   final bool servesWearCost;
 
+  /// Place in the pick order of "Any model" jobs when that order is
+  /// `priority` (#2915): lowest first, null last.
+  final int? dispatchPriority;
+
+  /// Whether the server knows [dispatchPriority] — it sends the key, null or
+  /// not, from 1.3.2. An older one drops the field on a `PATCH` without a
+  /// word, so the editor offers it only on this answer.
+  @JsonKey(readValue: _hasDispatchPriorityKey)
+  final bool servesDispatchPriority;
+
   /// Null both for a printer with no WLED mapping and for a server older than
   /// it; `PrintersRepository.wledCapability` tells the two apart.
   @JsonKey(fromJson: _wledFromJson)
@@ -63,6 +75,9 @@ WledConfig? _wledFromJson(Object? json) =>
 
 Object? _hasWearCostKey(Map<dynamic, dynamic> json, String _) =>
     json.containsKey('wear_cost_per_hour');
+
+Object? _hasDispatchPriorityKey(Map<dynamic, dynamic> json, String _) =>
+    json.containsKey('dispatch_priority');
 
 /// The distinct models of [printers], sorted, spelled exactly as the server
 /// stores them: `target_model` and a pipeline's printer class are matched

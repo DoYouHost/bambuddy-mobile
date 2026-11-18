@@ -72,10 +72,90 @@ void main() {
     test('a full modern response knows every setting', () {
       final settings = QueueSettings.fromSettings({
         for (final setting in QueueSetting.values)
-          setting.key: setting.min == null ? true : setting.serverDefault,
+          setting.key: setting.isChoice
+              ? 'priority'
+              : setting.min == null
+              ? true
+              : setting.serverDefault,
       });
 
       expect(settings.known, QueueSetting.values.toSet());
+    });
+  });
+
+  group('dispatchOrder (#2915)', () {
+    test('an older server sends no key, so the row is not offered', () {
+      final settings = QueueSettings.fromSettings(const {
+        'queue_shortest_first': false,
+      });
+
+      expect(settings.known, isNot(contains(QueueSetting.dispatchOrder)));
+      expect(settings.values, isNot(contains(QueueSetting.dispatchOrder)));
+    });
+
+    test('every order the server accepts reads back as itself', () {
+      for (final order in ModelDispatchOrder.values) {
+        final settings = QueueSettings.fromSettings({
+          'model_dispatch_order': order.wire,
+        });
+
+        expect(settings.known, contains(QueueSetting.dispatchOrder));
+        expect(settings.dispatchOrder, order);
+      }
+    });
+
+    test('the wire values are the server\'s Literal, in its spelling', () {
+      // `AppSettingsUpdate.model_dispatch_order`: 422 on any other string.
+      expect(ModelDispatchOrder.values.map((o) => o.wire), [
+        'fewest_hours',
+        'most_hours',
+        'least_recently_used',
+        'priority',
+      ]);
+    });
+
+    test('an unknown or unreadable value reads as the default, like the '
+        'scheduler does', () {
+      for (final odd in <Object?>['', 'most_wear', null, 7, true]) {
+        final settings = QueueSettings.fromSettings({
+          'model_dispatch_order': odd,
+        });
+
+        expect(settings.known, contains(QueueSetting.dispatchOrder));
+        expect(settings.dispatchOrder, ModelDispatchOrder.fewestHours);
+      }
+    });
+
+    test('is the default when the key is absent', () {
+      expect(
+        QueueSettings.fromSettings(const {}).dispatchOrder,
+        ModelDispatchOrder.fewestHours,
+      );
+    });
+
+    test('is written as the wire string, never an enum name', () {
+      expect(
+        QueueSettings.patch(
+          QueueSetting.dispatchOrder,
+          ModelDispatchOrder.leastRecentlyUsed,
+        ),
+        {'model_dispatch_order': 'least_recently_used'},
+      );
+    });
+
+    test('withValue replaces it and leaves the rest', () {
+      final before = QueueSettings.fromSettings(const {
+        'model_dispatch_order': 'fewest_hours',
+        'queue_shortest_first': true,
+      });
+
+      final after = before.withValue(
+        QueueSetting.dispatchOrder,
+        ModelDispatchOrder.priority,
+      );
+
+      expect(after.dispatchOrder, ModelDispatchOrder.priority);
+      expect(after.flag(QueueSetting.shortestFirst), isTrue);
     });
   });
 
