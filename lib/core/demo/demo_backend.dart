@@ -1987,6 +1987,31 @@ class DemoBackend {
     // heats ([_maybePrinting] sets only that one): index 0 is the right head,
     // `nozzle_2`, which would be marked active while it sat cold.
     'active_extruder': 1,
+    // The two heads' own figures, as a H2D sends them: id 0 is the right one
+    // (`nozzle_2`), id 1 the left, and neither is a rack dock. The left one
+    // reports no wear, which the sheet has to leave out.
+    'nozzle_rack': [
+      {
+        'id': 0,
+        'nozzle_type': 'HS01',
+        'nozzle_diameter': '0.6',
+        'wear': 18,
+        'print_time_s': 7320,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0R001',
+      },
+      {
+        'id': 1,
+        'nozzle_type': 'HH01',
+        'nozzle_diameter': '0.4',
+        'wear': null,
+        'print_time_s': 3661,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0L001',
+      },
+    ],
     'hms_errors': const <Object>[],
     'firmware_version': '01.01.00.00',
     'cover_url': null,
@@ -2092,6 +2117,16 @@ class DemoBackend {
             'nozzle_diameter': i == 3 ? '0.6' : '0.4',
             'filament_color': colours[i] ?? '00000000',
             'filament_type': colours[i] == null ? '' : 'PLA',
+            // What each nozzle reports about itself: the mounted one has
+            // printed longest, 7 is a newer nozzle, and 8 reports no print time
+            // (older firmware), so the card has to leave that row out.
+            'wear': [12, 8, 21, 3, 15, 30, 44, 0, 6][i],
+            'print_time_s': i == 8
+                ? null
+                : [14400, 90061, 7320, 600, 28800, 3600, 172800, 0][i],
+            'stat': i == 6 ? 1 : 0,
+            'max_temp': i == 7 ? 300 : 280,
+            'serial_number': '0K00A9${i}C3X00${i + 1}',
           },
       ],
       'hms_errors': const <Object>[],

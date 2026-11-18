@@ -174,6 +174,25 @@ void main() {
     );
   }
 
+  // The H3C's rack with its details open, and one nozzle's sheet over it: the
+  // chips are buttons now, and the sheet is a label/value list that has to stay
+  // readable at every text size.
+  _card(
+    'card details, H3C rack',
+    demoId: 7,
+    arrange: _openDetails,
+    shows: byLogId('printer.rack_nozzle').first,
+  );
+  _card(
+    'nozzle sheet, H3C rack position',
+    demoId: 7,
+    arrange: (tester) async {
+      await _openDetails(tester);
+      await a11yTap(tester, byLogId('printer.rack_nozzle').first);
+    },
+    shows: find.text(pl.nozzleSheetTitle(1)),
+  );
+
   // --- temperature sheet ----------------------------------------------------------
 
   for (final (name, status, tile) in <(String, PrinterStatus, String)>[

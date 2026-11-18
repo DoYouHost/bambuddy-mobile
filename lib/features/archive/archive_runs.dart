@@ -11,13 +11,13 @@ import '../../core/models/print_log_entry.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/filament_dot.dart';
 import '../common/print_run_labels.dart';
 import '../slicer/slice_providers.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/app_context.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import 'archive_details.dart';
 import 'outcome_sheet.dart';
 import 'archive_providers.dart';
 import 'print_outcome.dart';
@@ -364,7 +364,7 @@ class _RunTile extends ConsumerWidget {
                   runSpacing: DashSpace.xs,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    for (final hex in colours) FilamentDot(hex: hex),
+                    for (final hex in colours) FilamentDot.hex(hex),
                     if (types.isNotEmpty)
                       Text(types.join(', '), style: t.labelSoft),
                   ],

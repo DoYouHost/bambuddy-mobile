@@ -23,10 +23,15 @@ class _GaugeTile extends ConsumerWidget {
     required this.dualNozzle,
     required this.activeExtruder,
     required this.printing,
+    this.nozzle,
   });
 
   final TempReading reading;
   final int printerId;
+
+  /// What this tile's nozzle reports about itself, shown at the end of its
+  /// sheet. Null for the other sensors and for a printer that reports none.
+  final NozzleRackSlot? nozzle;
   final String? model;
 
   /// Hardware nozzle index (0=right/default, 1=left) for nozzle tiles; null for
@@ -142,6 +147,7 @@ class _GaugeTile extends ConsumerWidget {
         printing: printing,
         editable: editable,
         hasHistory: hasHistory,
+        nozzle: nozzle,
       ),
     );
   }
@@ -340,7 +346,11 @@ class _TempControlSheet extends ConsumerStatefulWidget {
     required this.printing,
     required this.editable,
     required this.hasHistory,
+    this.nozzle,
   });
+
+  /// The nozzle's own figures, for a nozzle sheet.
+  final NozzleRackSlot? nozzle;
 
   final int printerId;
   final TempReading reading;
@@ -690,6 +700,8 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                 ],
               ),
             ],
+            if (_reading.kind == TempKind.nozzle && widget.nozzle != null)
+              _NozzleSection(widget.nozzle!),
           ],
         ),
       ),

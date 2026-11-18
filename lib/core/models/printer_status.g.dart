@@ -100,6 +100,11 @@ NozzleRackSlot _$NozzleRackSlotFromJson(Map<String, dynamic> json) =>
       filamentColor: json['filament_color'] as String?,
       filamentType: json['filament_type'] as String?,
       addrId: toIntOrNull(json['addr_id']),
+      wear: toIntOrNull(json['wear']),
+      printTimeS: toIntOrNull(json['print_time_s']),
+      stat: toIntOrNull(json['stat']),
+      maxTemp: toIntOrNull(json['max_temp']),
+      serialNumber: json['serial_number'] as String?,
     );
 
 FilaSwitch _$FilaSwitchFromJson(Map<String, dynamic> json) => FilaSwitch(

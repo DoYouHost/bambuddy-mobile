@@ -10691,4 +10691,69 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get editPrinterDispatchPriorityInvalid =>
       'Ganze Zahl von 0 bis 100000 eingeben';
+
+  @override
+  String nozzleSheetTitle(int position) {
+    return 'Position $position';
+  }
+
+  @override
+  String get nozzleSectionTitle => 'Düse';
+
+  @override
+  String get nozzleLabelDiameter => 'Durchmesser';
+
+  @override
+  String get nozzleLabelType => 'Typ';
+
+  @override
+  String get nozzleLabelFlow => 'Durchfluss';
+
+  @override
+  String get nozzleLabelStatus => 'Status';
+
+  @override
+  String get nozzleLabelWear => 'Verschleiß';
+
+  @override
+  String get nozzleLabelPrintTime => 'Druckzeit';
+
+  @override
+  String get nozzleLabelMaxTemp => 'Max. Temp.';
+
+  @override
+  String get nozzleLabelSerial => 'Seriennummer';
+
+  @override
+  String get nozzleLabelFilament => 'Filament';
+
+  @override
+  String get nozzleMaterialStainless => 'Edelstahl';
+
+  @override
+  String get nozzleMaterialHardened => 'Gehärteter Stahl';
+
+  @override
+  String get nozzleMaterialTungsten => 'Wolframkarbid';
+
+  @override
+  String get nozzleStatusDocked => 'Im Düsenhalter';
+
+  @override
+  String get nozzleStatusMounted => 'Am Werkzeugkopf';
+
+  @override
+  String nozzleWearValue(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String nozzleMaxTempValue(int degrees) {
+    return '$degrees °C';
+  }
+
+  @override
+  String nozzleDiameterValue(String diameter) {
+    return '$diameter mm';
+  }
 }

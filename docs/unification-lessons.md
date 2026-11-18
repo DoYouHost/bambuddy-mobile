@@ -38,6 +38,7 @@ is the map and the decisions.
 | `DashPill`, `DashSpace`, the `cardBox` and `subCardBox(radius)` decorations, `buildDashThemeData` | `dash_ui` package |
 | `textWidth` (`text_measure.dart`), `classifyDioException` (`dio_failure.dart`), `ServerReachability` | `app_util` package |
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
+| `FactRow`: a fact as the label on the left and its value on the right, read first, with an icon where the list has them (a spool's details, a user's, a nozzle's figures); the label takes up to 45% of the row and the value the rest, at its end; `stacked` and `below` for free text and a note under the row | [fact_row.dart](../lib/features/common/fact_row.dart) |
 | `SectionLabel`: the small heading over a group, one look (bold, secondary ink, capitals, `DashTracking.caps`) and a heading for a screen reader; a card's title is another role (`titleSm`, `titleMd`) |
 | `_StepSlider`, `_TargetNumeral`, `_HeldWhen` in [printer_card_target.dart](../lib/features/dashboard/widgets/printer_card_target.dart): the −/+ buttons, slider and presets of the temperature, Panda Breath, fan and drying sheets, the big number above them, and the dim-and-block that takes the keyboard with it |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
@@ -155,12 +156,15 @@ more than the lines it saves.
   pointing one at another changes behaviour (see the comment on
   `printerModelsProvider` in
   [inventory_providers.dart](../lib/features/inventory/inventory_providers.dart)).
-- **The other colour dots.** `FilamentDot` (archive) outlines in `textTertiary`,
-  the printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and
-  the mapping sheet's and controller's swatches draw a question mark for an unknown
+- **The other colour dots.** `FilamentDot` (archive rows and calendar, and the nozzle
+  sheet; `lib/features/common/filament_dot.dart`) outlines in `textTertiary`, the
+  printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and the
+  mapping sheet's and controller's swatches draw a question mark for an unknown
   colour. Each differs from `ColorDot` in outline or fallback, so merging them would
   change pixels or need a flag per difference; only the three identical ones
-  (queue history, queue edit, substitution chip) share it.
+  (queue history, queue edit, substitution chip) share it, and the two identical
+  `FilamentDot`s (the archive's and the one the nozzle sheet wrote for itself) share
+  theirs.
 - **`Archive.isSliced`** mirrors the web's `isSlicedFile` (a `.gcode` / `.gcode.*`
   name, or slice metadata), so it is not folded into `isSlicedFilename`.
 - **`plateLabel` vs `batchPlateLabel`** word things differently on purpose, and
