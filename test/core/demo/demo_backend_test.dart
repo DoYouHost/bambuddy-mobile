@@ -107,6 +107,34 @@ void main() {
       );
     });
 
+    test('the H3C rack nozzles report their own figures, one without a print '
+        'time', () async {
+      final h3c = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 7).status!;
+      final rack = h3c.nozzleRack!;
+
+      expect(rack, hasLength(rackSlotCount));
+      expect(rack.every((n) => n.wear != null && n.stat != null), isTrue);
+      expect(rack.every((n) => (n.serialNumber ?? '').isNotEmpty), isTrue);
+      expect(rack.singleWhere((n) => n.stat == 1).id, 0);
+      expect(
+        rack.where((n) => n.printTimeS == null),
+        hasLength(1),
+        reason: 'the card must show it with no print time row',
+      );
+      expect(rack.map((n) => n.printTimeS).whereType<int>().toSet(), {
+        14400,
+        90061,
+        7320,
+        600,
+        28800,
+        3600,
+        172800,
+        0,
+      });
+    });
+
     test(
       'every printer serves a dispatch priority, and the order is set',
       () async {

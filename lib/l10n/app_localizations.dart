@@ -17576,6 +17576,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a whole number from 0 to 100000'**
   String get editPrinterDispatchPriorityInvalid;
+
+  /// No description provided for @nozzleSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}'**
+  String nozzleSheetTitle(int position);
+
+  /// No description provided for @nozzleSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle'**
+  String get nozzleSectionTitle;
+
+  /// No description provided for @nozzleLabelDiameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Diameter'**
+  String get nozzleLabelDiameter;
+
+  /// No description provided for @nozzleLabelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get nozzleLabelType;
+
+  /// No description provided for @nozzleLabelFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow'**
+  String get nozzleLabelFlow;
+
+  /// No description provided for @nozzleLabelStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get nozzleLabelStatus;
+
+  /// No description provided for @nozzleLabelWear.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear'**
+  String get nozzleLabelWear;
+
+  /// No description provided for @nozzleLabelPrintTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Print time'**
+  String get nozzleLabelPrintTime;
+
+  /// No description provided for @nozzleLabelMaxTemp.
+  ///
+  /// In en, this message translates to:
+  /// **'Max temp'**
+  String get nozzleLabelMaxTemp;
+
+  /// No description provided for @nozzleLabelSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial'**
+  String get nozzleLabelSerial;
+
+  /// No description provided for @nozzleLabelFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get nozzleLabelFilament;
+
+  /// No description provided for @nozzleMaterialStainless.
+  ///
+  /// In en, this message translates to:
+  /// **'Stainless steel'**
+  String get nozzleMaterialStainless;
+
+  /// No description provided for @nozzleMaterialHardened.
+  ///
+  /// In en, this message translates to:
+  /// **'Hardened steel'**
+  String get nozzleMaterialHardened;
+
+  /// No description provided for @nozzleMaterialTungsten.
+  ///
+  /// In en, this message translates to:
+  /// **'Tungsten carbide'**
+  String get nozzleMaterialTungsten;
+
+  /// No description provided for @nozzleStatusDocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Docked'**
+  String get nozzleStatusDocked;
+
+  /// No description provided for @nozzleStatusMounted.
+  ///
+  /// In en, this message translates to:
+  /// **'On the toolhead'**
+  String get nozzleStatusMounted;
+
+  /// No description provided for @nozzleWearValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String nozzleWearValue(int percent);
+
+  /// No description provided for @nozzleMaxTempValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{degrees} °C'**
+  String nozzleMaxTempValue(int degrees);
+
+  /// No description provided for @nozzleDiameterValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{diameter} mm'**
+  String nozzleDiameterValue(String diameter);
 }
 
 class _AppLocalizationsDelegate

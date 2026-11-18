@@ -11,6 +11,7 @@ import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/filament_dot.dart';
 import '../common/web_link.dart';
 
 /// The printer a print ran on, by name, as the web card's `printerMap` lookup —
@@ -46,30 +47,6 @@ String archiveMoney(String currency, double amount) =>
   return accuracy > 105
       ? (text: text, fill: t.accentBlue, ink: t.accentBlueInk)
       : (text: text, fill: t.accentOrange, ink: t.accentOrangeInk);
-}
-
-/// A filament colour as a small round mark. The outline keeps black and white
-/// filament visible on either theme.
-class FilamentDot extends StatelessWidget {
-  const FilamentDot({super.key, required this.hex});
-
-  final String hex;
-
-  static const size = 10.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: colorFromHex(hex),
-        shape: BoxShape.circle,
-        border: Border.all(color: t.textTertiary),
-      ),
-    );
-  }
 }
 
 /// The list row under the title: where and when it printed, then what it printed
@@ -121,7 +98,7 @@ class ArchiveRowMeta extends ConsumerWidget {
           Row(
             children: [
               for (final hex in colours.take(_maxDots)) ...[
-                FilamentDot(hex: hex),
+                FilamentDot.hex(hex),
                 const SizedBox(width: DashSpace.xs),
               ],
               if (material != null)
@@ -428,7 +405,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
           for (final s in slots)
             Row(
               children: [
-                FilamentDot(hex: s.color),
+                FilamentDot.hex(s.color),
                 const SizedBox(width: DashSpace.sm),
                 Flexible(
                   child: Text(
@@ -465,7 +442,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
             spacing: DashSpace.xs,
             runSpacing: DashSpace.xs,
             children: [
-              for (final hex in archive.filamentColors) FilamentDot(hex: hex),
+              for (final hex in archive.filamentColors) FilamentDot.hex(hex),
             ],
           ),
         ),

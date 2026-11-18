@@ -8,10 +8,10 @@ import '../../core/models/archive.dart';
 import '../../core/models/print_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/filament_dot.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
 import 'archive_calendar_data.dart';
-import 'archive_details.dart';
 
 /// A month of prints — the web's `CalendarView`: each print of an archive on
 /// the day it ended, so a file printed three times shows three times. A day
@@ -395,7 +395,7 @@ class _PrintRow extends StatelessWidget {
             printRunStatusLabel(l10n, print.status),
             style: t.label.copyWith(color: ink),
           ),
-          for (final hex in colours) FilamentDot(hex: hex),
+          for (final hex in colours) FilamentDot.hex(hex),
         ],
       ),
       onTap: onTap,

@@ -46,6 +46,7 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dar
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
@@ -1860,6 +1861,337 @@ void main() {
           expect(chipLabelled(RegExp(pl.nozzleRackMounted)), findsOneWidget);
         });
       }
+
+      // The rack with what nozzle 17 (position 2) reports about itself.
+      List<Map<String, Object?>> figuredRack({Map<String, Object?>? extra}) => [
+        for (final n in h3cRack())
+          if (n['id'] == 17)
+            {
+              ...n,
+              'nozzle_type': 'HS01',
+              'wear': 8,
+              'print_time_s': 90061,
+              'stat': 0,
+              'max_temp': 280,
+              'serial_number': '0K00A91C3X002',
+              'filament_type': 'PLA',
+              ...?extra,
+            }
+          else
+            n,
+      ];
+
+      Future<void> tapPosition(WidgetTester tester, int n) async {
+        await tester.tap(
+          find.descendant(
+            of: chipLabelled(pl.nozzleRackPosition(n, '0.4')),
+            matching: find.byType(InkWell),
+          ),
+        );
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      // Top to bottom of the sheet: where each row's label sits.
+      List<String> sheetLabels(WidgetTester tester) {
+        final labels = [
+          pl.nozzleLabelDiameter,
+          pl.nozzleLabelType,
+          pl.nozzleLabelFlow,
+          pl.nozzleLabelStatus,
+          pl.nozzleLabelWear,
+          pl.nozzleLabelPrintTime,
+          pl.nozzleLabelMaxTemp,
+          pl.nozzleLabelSerial,
+          pl.nozzleLabelFilament,
+        ];
+        final shown = [
+          for (final l in labels)
+            if (find.text(l).evaluate().isNotEmpty) l,
+        ];
+        shown.sort(
+          (a, b) => tester
+              .getTopLeft(find.text(a))
+              .dy
+              .compareTo(tester.getTopLeft(find.text(b)).dy),
+        );
+        return shown;
+      }
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('a rack chip opens the nozzle\'s figures, in the web\'s '
+            'order, at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
+          expect(find.text(pl.nozzleDiameterValue('0.4')), findsOneWidget);
+          expect(find.text(pl.nozzleMaterialHardened), findsOneWidget);
+          expect(find.text(pl.nozzleFlowStandard), findsOneWidget);
+          expect(find.text(pl.nozzleStatusDocked), findsOneWidget);
+          expect(find.text(pl.nozzleWearValue(8)), findsOneWidget);
+          // 90061 s is 25 h 1 min.
+          expect(find.text(formatMinutes(pl, 1501)), findsOneWidget);
+          expect(find.text(pl.nozzleMaxTempValue(280)), findsOneWidget);
+          expect(find.text('0K00A91C3X002'), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(FittedSheetSurface),
+              matching: find.text('PLA'),
+            ),
+            findsOneWidget,
+          );
+          expect(sheetLabels(tester), [
+            pl.nozzleLabelDiameter,
+            pl.nozzleLabelType,
+            pl.nozzleLabelFlow,
+            pl.nozzleLabelStatus,
+            pl.nozzleLabelWear,
+            pl.nozzleLabelPrintTime,
+            pl.nozzleLabelMaxTemp,
+            pl.nozzleLabelSerial,
+            pl.nozzleLabelFilament,
+          ]);
+        });
+      }
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('every value sits against the right edge of its row, at '
+            'text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          for (final value in [
+            pl.nozzleWearValue(8),
+            formatMinutes(pl, 1501),
+            pl.nozzleStatusDocked,
+            pl.nozzleMaxTempValue(280),
+          ]) {
+            expect(
+              tester.getRect(find.text(value)).right,
+              closeTo(right, 0.5),
+              reason: value,
+            );
+          }
+        });
+      }
+
+      testWidgets('a long value may use more than half the row when its label '
+          'is short, at 200% text', (tester) async {
+        await pumpAt(
+          tester,
+          2,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+        await tapPosition(tester, 2);
+
+        final row = tester.getRect(find.byType(NozzleFigures)).width;
+        expect(
+          tester.getRect(find.text('0K00A91C3X002')).width,
+          greaterThan(row / 2),
+          reason: 'two flexible children would cap it at half the row',
+        );
+      });
+
+      testWidgets(
+        'a filament colour with no name sits against the row\'s end',
+        (tester) async {
+          await pumpAt(
+            tester,
+            1,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          expect(dot, findsOneWidget);
+          expect(tester.getRect(dot).right, closeTo(right, 0.5));
+        },
+      );
+
+      for (final name in [
+        'PLA Matte Silk Dual Colour',
+        // A first word wider than the room beside the dot.
+        'Polycarbonate-Translucent-Green',
+      ]) {
+        testWidgets('a wrapping filament name "$name" keeps the dot on its '
+            'first line, at 200% text', (tester) async {
+          await pumpAt(
+            tester,
+            2,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': name}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          final value = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.text(name),
+          );
+          final paragraph = tester.renderObject<RenderParagraph>(value);
+          final line = paragraph.getFullHeightForCaret(
+            const TextPosition(offset: 0),
+          );
+          // More than one line, or the test proves nothing.
+          expect(paragraph.size.height, greaterThan(line * 1.5));
+          // The dot is on the name's first line, not stranded above it.
+          final top = tester.getTopLeft(value).dy;
+          expect(tester.getCenter(dot).dy, greaterThan(top));
+          expect(tester.getCenter(dot).dy, lessThan(top + line));
+        });
+      }
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('a lone colour dot is centred on a line of text, at text '
+            'scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          // One line of the row's text: the wear value is a single body line.
+          final line = tester.getSize(find.text(pl.nozzleWearValue(8))).height;
+          final rowTop = tester
+              .getTopLeft(find.text(pl.nozzleLabelFilament))
+              .dy;
+          // A dot left at the top of its row is half a line above this.
+          expect(tester.getCenter(dot).dy, closeTo(rowTop + line / 2, 2));
+        });
+      }
+
+      testWidgets('a nozzle that reports no print time shows no such row, '
+          'and none shows zero hours', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': figuredRack(extra: {'print_time_s': null}),
+            },
+          ),
+        );
+        await tapPosition(tester, 2);
+
+        expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
+        expect(find.text(pl.nozzleLabelPrintTime), findsNothing);
+        expect(find.text(pl.nozzleLabelWear), findsOneWidget);
+      });
+
+      testWidgets('the nozzle on the toolhead says so, and a nozzle that has '
+          'printed for no time shows zero, not a missing row', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': [
+                for (final n in figuredRack())
+                  if (n['id'] == 0) {...n, 'print_time_s': 0} else n,
+              ],
+            },
+          ),
+        );
+        await tester.tap(
+          find.descendant(
+            of: chipLabelled(
+              '${pl.nozzleRackPosition(7, '0.6')}, ${pl.nozzleRackMounted}',
+            ),
+            matching: find.byType(InkWell),
+          ),
+        );
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+
+        expect(find.text(pl.nozzleSheetTitle(7)), findsOneWidget);
+        expect(find.text(pl.nozzleStatusMounted), findsOneWidget);
+        expect(find.text(pl.nozzleStatusDocked), findsNothing);
+        expect(find.text(pl.nozzleLabelPrintTime), findsOneWidget);
+        expect(find.text(pl.durationSeconds(0)), findsOneWidget);
+      });
+
+      testWidgets('an empty dock is not a button', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': [
+                for (final n in h3cRack())
+                  if (n['id'] == 23)
+                    {
+                      'id': 23,
+                      'nozzle_diameter': '',
+                      'nozzle_type': '',
+                      'addr_id': 7,
+                    }
+                  else
+                    n,
+              ],
+            },
+          ),
+        );
+
+        expect(byLogId('printer.rack_nozzle'), findsNWidgets(8));
+      });
+
+      testWidgets('a screen reader can open a nozzle: the node has a tap', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpAt(
+          tester,
+          1,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+
+        final node = tester.getSemantics(
+          chipLabelled(pl.nozzleRackPosition(2, '0.4')),
+        );
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+        handle.dispose();
+      });
 
       for (final scale in [1.0, 1.5, 2.0]) {
         testWidgets('nine positions sit 5 over 4, both rows centred, at text '
@@ -4232,6 +4564,197 @@ void main() {
       expect(find.text('X2D'), findsOneWidget); // card survives
       expect(find.byIcon(Icons.system_update), findsNothing);
       expect(find.byIcon(Icons.memory), findsNothing);
+    });
+  });
+
+  group('a hotend\'s own figures in its temperature sheet', () {
+    // The H2D: `nozzle_2` is the right head (id 0), the plain `nozzle` the left
+    // (id 1), and each reports what it knows about itself in `nozzle_rack`.
+    PrinterWithStatus h2d(List<NozzleRackSlot>? rack) => PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'H2D'),
+      status: PrinterStatus(
+        id: 1,
+        model: 'H2D',
+        connected: true,
+        state: 'IDLE',
+        temperatures: const {
+          'nozzle': 24,
+          'nozzle_target': 0,
+          'nozzle_2': 25,
+          'nozzle_2_target': 0,
+          'bed': 24,
+        },
+        nozzleRack: rack,
+      ),
+    );
+
+    const right = NozzleRackSlot(
+      id: 0,
+      nozzleType: 'HS01',
+      nozzleDiameter: '0.6',
+      wear: 18,
+      printTimeS: 7320,
+      maxTemp: 300,
+      serialNumber: 'RIGHT-SN',
+    );
+    const left = NozzleRackSlot(
+      id: 1,
+      nozzleType: 'HH01',
+      nozzleDiameter: '0.4',
+      printTimeS: 3661,
+    );
+
+    // The card behind the sheet repeats labels such as the nozzle's name.
+    Finder inSheet(Finder f) =>
+        find.descendant(of: find.byType(FittedSheetSurface), matching: f);
+
+    Future<void> openTile(
+      WidgetTester tester,
+      String id,
+      PrinterWithStatus item, {
+      double scale = 1,
+    }) async {
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId(id));
+      await tester.pumpAndSettle();
+    }
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the right head\'s sheet shows its own nozzle, at text scale '
+          '$scale', (tester) async {
+        await openTile(
+          tester,
+          'printer.temperature_nozzle_2',
+          h2d(const [right, left]),
+          scale: scale,
+        );
+
+        expect(
+          inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+          findsOneWidget,
+        );
+        expect(
+          inSheet(find.text(pl.nozzleDiameterValue('0.6'))),
+          findsOneWidget,
+        );
+        expect(inSheet(find.text(pl.nozzleFlowStandard)), findsOneWidget);
+        expect(inSheet(find.text(pl.nozzleWearValue(18))), findsOneWidget);
+        expect(inSheet(find.text(formatMinutes(pl, 122))), findsOneWidget);
+        // The hotend's section is the short one: no serial, rating or status.
+        expect(inSheet(find.text('RIGHT-SN')), findsNothing);
+        expect(inSheet(find.text(pl.nozzleMaxTempValue(300))), findsNothing);
+      });
+    }
+
+    testWidgets('the left head\'s sheet shows the left nozzle, without a wear '
+        'row it did not report', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        h2d(const [right, left]),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleFlowHigh)), findsOneWidget);
+      expect(inSheet(find.text(formatMinutes(pl, 61))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleLabelWear)), findsNothing);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+    });
+
+    testWidgets('a frame without nozzle_2 yet still gives the left head its '
+        'own figures, not the right one\'s', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2D'),
+          status: const PrinterStatus(
+            id: 1,
+            model: 'H2D',
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right, left],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+      // The same head throughout: the sheet that shows the left nozzle is the
+      // one that offers to make it the active extruder.
+      expect(inSheet(find.text(pl.ctrlActivate)), findsOneWidget);
+    });
+
+    testWidgets('a single-nozzle printer keeps its one nozzle\'s figures', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2C'),
+          status: const PrinterStatus(
+            id: 1,
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsOneWidget);
+    });
+
+    testWidgets('a printer that reports no nozzle figures has no section', (
+      tester,
+    ) async {
+      await openTile(tester, 'printer.temperature_nozzle_2', h2d(null));
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a head whose entry is an empty placeholder has no section', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle_2',
+        h2d(const [NozzleRackSlot(id: 0), left]),
+      );
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the bed\'s sheet has no nozzle section', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_bed',
+        h2d(const [right, left]),
+      );
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
     });
   });
 
