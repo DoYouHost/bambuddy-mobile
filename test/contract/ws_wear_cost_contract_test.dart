@@ -48,6 +48,8 @@ void main() {
             model: model == '' ? printer.model : model,
             location: printer.location,
             wearCostPerHour: rate,
+            // Every served key is sent, so the other one keeps its value.
+            dispatchPriority: printer.dispatchPriority,
             served: printer.servedKeys,
           ),
         );

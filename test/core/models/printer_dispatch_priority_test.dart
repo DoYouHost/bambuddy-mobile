@@ -78,6 +78,23 @@ void main() {
       expect(json['dispatch_priority'], 3);
     });
 
+    test('every served key is sent, so an omitted value clears its field', () {
+      const both = {PrinterKey.wearCostPerHour, PrinterKey.dispatchPriority};
+      final json = PrinterUpdate(
+        name: 'X1',
+        ipAddress: '10.0.0.2',
+        autoArchive: true,
+        isActive: true,
+        location: null,
+        dispatchPriority: 3,
+        served: both,
+      ).toJson();
+
+      // The caller gave no wear rate, and the server is told "none".
+      expect(json.containsKey('wear_cost_per_hour'), isTrue);
+      expect(json['wear_cost_per_hour'], isNull);
+    });
+
     test('a number is sent as it is, zero included', () {
       expect(update(priority: 3).toJson()['dispatch_priority'], 3);
       expect(update(priority: 0).toJson()['dispatch_priority'], 0);

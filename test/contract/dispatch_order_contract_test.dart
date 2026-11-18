@@ -214,6 +214,8 @@ Future<Printer> _savePriority(
     model: printer.model,
     location: printer.location,
     dispatchPriority: priority,
+    // Every served key is sent, so the other one keeps its value.
+    wearCostPerHour: printer.wearCostPerHour,
     served: printer.servedKeys,
   ),
 );

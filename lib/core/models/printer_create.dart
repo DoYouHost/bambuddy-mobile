@@ -73,6 +73,8 @@ class PrinterUpdate {
 
   /// The row's `Printer.servedKeys`. A field from [PrinterKey] is sent only
   /// when its key is in here: an older server takes it and drops it unseen.
+  /// Every key in here is sent, null included, and null clears the field: give
+  /// each one its current value unless the edit means to clear it.
   final Set<String> served;
 
   Map<String, dynamic> toJson() => {
