@@ -2,19 +2,22 @@ import 'package:app_util/app_util.dart';
 
 import '../settings/server_settings.dart';
 
+/// How a [QueueSetting] is read, drawn and written.
+enum QueueSettingKind { flag, number, choice }
+
 /// One editable server setting: where it lives on the wire, and what the server
 /// accepts. Bounds are `schemas/settings.py::AppSettingsUpdate`'s own, which
 /// answers **422** rather than clamping.
 enum QueueSetting {
   requirePlateClear('require_plate_clear'),
   shortestFirst('queue_shortest_first'),
-  maxConcurrentUploads('queue_max_concurrent_uploads', min: 1, max: 16),
+  maxConcurrentUploads.number('queue_max_concurrent_uploads', min: 1, max: 16),
   preheatEnabled('preheat_enabled'),
-  preheatMaxWaitSeconds('preheat_max_wait_seconds', min: 60, max: 3600),
-  preheatSoakSeconds('preheat_soak_seconds', min: 0, max: 1800),
+  preheatMaxWaitSeconds.number('preheat_max_wait_seconds', min: 60, max: 3600),
+  preheatSoakSeconds.number('preheat_soak_seconds', min: 0, max: 1800),
   keepBedWarm('queue_keep_bed_warm'),
-  keepWarmBedTemp('queue_keep_warm_bed_temp', min: 40, max: 110),
-  keepWarmMaxMinutes('queue_keep_warm_max_minutes', min: 5, max: 480),
+  keepWarmBedTemp.number('queue_keep_warm_bed_temp', min: 40, max: 110),
+  keepWarmMaxMinutes.number('queue_keep_warm_max_minutes', min: 5, max: 480),
   // Post-print outcome confirmation (#1898), Settings → Workflow on the web.
   confirmOutcomeDefault('default_confirm_outcome'),
   confirmOutcomeExternal('confirm_outcome_external_prints'),
@@ -22,20 +25,36 @@ enum QueueSetting {
   // Not a queue setting: how long before a slicer pause the server and this app
   // warn (#2984). It rides on this block's writer, gate and lock — the same
   // `PUT /settings/`, key-presence gate and denied-to-API-keys rule.
-  pauseWarningMinutes('pause_warning_minutes', min: 1, max: 120),
+  pauseWarningMinutes.number('pause_warning_minutes', min: 1, max: 120),
   // Which printer an "Any model" job takes (#2915), a [ModelDispatchOrder]. The
   // one setting here that is neither a flag nor a number.
-  dispatchOrder('model_dispatch_order');
+  dispatchOrder.choice('model_dispatch_order');
 
-  const QueueSetting(this.key, {this.min, this.max});
+  /// A switch.
+  const QueueSetting(this.key)
+    : kind = QueueSettingKind.flag,
+      min = null,
+      max = null;
+
+  /// A whole number the server bounds and answers 422 outside of.
+  const QueueSetting.number(
+    this.key, {
+    required int this.min,
+    required int this.max,
+  }) : kind = QueueSettingKind.number;
+
+  /// One of a fixed set of strings, read through its own enum.
+  const QueueSetting.choice(this.key)
+    : kind = QueueSettingKind.choice,
+      min = null,
+      max = null;
 
   final String key;
+  final QueueSettingKind kind;
 
-  /// Null on the flags and on [dispatchOrder], which have no range of their own.
+  /// Only on a [QueueSettingKind.number].
   final int? min;
   final int? max;
-
-  bool get isChoice => this == dispatchOrder;
 
   /// `AppSettings`' own field default. Only reached when the server answered
   /// the key with something unreadable — an absent key means no such setting.
@@ -68,11 +87,14 @@ class QueueSettings {
     for (final setting in QueueSetting.values) {
       if (!settings.containsKey(setting.key)) continue;
       known.add(setting);
-      values[setting] = setting.isChoice
-          ? ModelDispatchOrder.fromWire(settings[setting.key])
-          : setting.min == null
-          ? settings.settingBool(setting.key)
-          : toIntOrNull(settings[setting.key]) ?? setting.serverDefault;
+      values[setting] = switch (setting.kind) {
+        QueueSettingKind.flag => settings.settingBool(setting.key),
+        QueueSettingKind.number =>
+          toIntOrNull(settings[setting.key]) ?? setting.serverDefault,
+        QueueSettingKind.choice => ModelDispatchOrder.fromWire(
+          settings[setting.key],
+        ),
+      };
     }
     return QueueSettings(values: values, known: known);
   }

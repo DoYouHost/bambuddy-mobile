@@ -72,14 +72,44 @@ void main() {
     test('a full modern response knows every setting', () {
       final settings = QueueSettings.fromSettings({
         for (final setting in QueueSetting.values)
-          setting.key: setting.isChoice
-              ? 'priority'
-              : setting.min == null
-              ? true
-              : setting.serverDefault,
+          setting.key: switch (setting.kind) {
+            QueueSettingKind.flag => true,
+            QueueSettingKind.number => setting.serverDefault,
+            QueueSettingKind.choice => 'priority',
+          },
       });
 
       expect(settings.known, QueueSetting.values.toSet());
+    });
+  });
+
+  group('QueueSetting.kind', () {
+    test('only a number has bounds, and every number has them', () {
+      for (final s in QueueSetting.values) {
+        final number = s.kind == QueueSettingKind.number;
+        expect(s.min != null && s.max != null, number, reason: s.key);
+        expect(s.min == null && s.max == null, !number, reason: s.key);
+      }
+    });
+
+    test('the one choice is the dispatch order', () {
+      expect(
+        [
+          for (final s in QueueSetting.values)
+            if (s.kind == QueueSettingKind.choice) s,
+        ],
+        [QueueSetting.dispatchOrder],
+      );
+    });
+
+    test('a flag reads a bool and a number an int, whatever the key', () {
+      final settings = QueueSettings.fromSettings(const {
+        'queue_keep_bed_warm': true,
+        'queue_keep_warm_bed_temp': 100,
+      });
+
+      expect(settings.values[QueueSetting.keepBedWarm], isA<bool>());
+      expect(settings.values[QueueSetting.keepWarmBedTemp], isA<int>());
     });
   });
 
@@ -224,7 +254,7 @@ void main() {
       expect(
         {
           for (final s in QueueSetting.values)
-            if (s.min != null) s.key: [s.min, s.max],
+            if (s.kind == QueueSettingKind.number) s.key: [s.min, s.max],
         },
         {
           'queue_max_concurrent_uploads': [1, 16],
