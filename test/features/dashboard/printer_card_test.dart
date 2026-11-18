@@ -1945,8 +1945,9 @@ void main() {
           expect(
             find.descendant(
               of: find.byType(FittedSheetSurface),
-              // The name shares a line with the dot, so it is rich text.
-              matching: find.text('PLA', findRichText: true),
+              // The name shares a line with the dot (a placeholder character before
+              // it), so it is rich text and not the whole string.
+              matching: find.textContaining('PLA', findRichText: true),
             ),
             findsOneWidget,
           );
