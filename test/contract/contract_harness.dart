@@ -443,7 +443,8 @@ PrinterUpdate saveOf(
   model: identical(model, _same) ? printer.model : model as String?,
   wearCostPerHour: identical(wearCostPerHour, _same)
       ? printer.wearCostPerHour
-      : wearCostPerHour as double?,
+      // A num, not a double: `Object?` takes the literal `0` as an int.
+      : (wearCostPerHour as num?)?.toDouble(),
   dispatchPriority: identical(dispatchPriority, _same)
       ? printer.dispatchPriority
       : dispatchPriority as int?,
