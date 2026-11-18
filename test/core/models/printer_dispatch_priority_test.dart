@@ -16,7 +16,7 @@ void main() {
     isActive: true,
     location: null,
     dispatchPriority: priority,
-    sendDispatchPriority: send,
+    served: send ? {PrinterKey.dispatchPriority} : const {},
   );
 
   group('Printer.servesDispatchPriority', () {
@@ -42,11 +42,40 @@ void main() {
     });
   });
 
+  group('Printer.servedKeys', () {
+    test('carries every key of the row, nulls included, and no other', () {
+      final p = printer({'dispatch_priority': null, 'wear_cost_per_hour': 1.5});
+
+      expect(p.servedKeys, {
+        'id',
+        'name',
+        'dispatch_priority',
+        'wear_cost_per_hour',
+      });
+      expect(p.servesWearCost, isTrue);
+      expect(p.servesDispatchPriority, isTrue);
+    });
+
+    test('a printer built by hand serves nothing', () {
+      const p = Printer(id: 1, name: 'X1C');
+
+      expect(p.servesWearCost, isFalse);
+      expect(p.servesDispatchPriority, isFalse);
+    });
+  });
+
   group('PrinterUpdate.dispatch_priority', () {
     test('a server that does not know it is not sent one', () {
       final json = update(priority: 3, send: false).toJson();
 
       expect(json.containsKey('dispatch_priority'), isFalse);
+    });
+
+    test('serving one field does not send the other', () {
+      final json = update(priority: 3).toJson();
+
+      expect(json.containsKey('wear_cost_per_hour'), isFalse);
+      expect(json['dispatch_priority'], 3);
     });
 
     test('a number is sent as it is, zero included', () {

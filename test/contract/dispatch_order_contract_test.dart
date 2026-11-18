@@ -214,6 +214,6 @@ Future<Printer> _savePriority(
     model: printer.model,
     location: printer.location,
     dispatchPriority: priority,
-    sendDispatchPriority: printer.servesDispatchPriority,
+    served: printer.servedKeys,
   ),
 );

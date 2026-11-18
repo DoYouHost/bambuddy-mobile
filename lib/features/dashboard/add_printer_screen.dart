@@ -382,9 +382,8 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               autoArchive: _autoArchive,
               isActive: _isActive,
               wearCostPerHour: parseUserDecimal(_wearCost.text),
-              sendWearCost: printer.servesWearCost,
               dispatchPriority: parseDispatchPriority(_dispatchPriority.text),
-              sendDispatchPriority: printer.servesDispatchPriority,
+              served: printer.servedKeys,
             ),
           );
       await ref.read(dashboardProvider.notifier).refresh();

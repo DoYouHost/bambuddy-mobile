@@ -48,7 +48,7 @@ void main() {
             model: model == '' ? printer.model : model,
             location: printer.location,
             wearCostPerHour: rate,
-            sendWearCost: printer.servesWearCost,
+            served: printer.servedKeys,
           ),
         );
 

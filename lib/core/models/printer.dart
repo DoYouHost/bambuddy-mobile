@@ -20,9 +20,8 @@ class Printer {
     this.nozzleCount,
     this.autoArchive,
     this.wearCostPerHour,
-    this.servesWearCost = false,
     this.dispatchPriority,
-    this.servesDispatchPriority = false,
+    this.servedKeys = const {},
     this.wledConfig,
   });
 
@@ -48,21 +47,23 @@ class Printer {
   /// What an hour of printing costs this printer in wear (#694); null = off.
   final double? wearCostPerHour;
 
-  /// Whether the server knows [wearCostPerHour] at all — it sends the key,
-  /// null or not, from 1.2.6. An older one would take the field on a `PATCH`
-  /// and drop it without a word, so the editor offers it only on this answer.
-  @JsonKey(readValue: _hasWearCostKey)
-  final bool servesWearCost;
-
   /// Place in the pick order of "Any model" jobs when that order is
   /// `priority` (#2915): lowest first, null last.
   final int? dispatchPriority;
 
-  /// Whether the server knows [dispatchPriority] — it sends the key, null or
-  /// not, from 1.3.2. An older one drops the field on a `PATCH` without a
-  /// word, so the editor offers it only on this answer.
-  @JsonKey(readValue: _hasDispatchPriorityKey)
-  final bool servesDispatchPriority;
+  /// Every key the server sent for this printer, null values included. A field
+  /// that landed in a later release is a silent drop on an older server — a
+  /// `PATCH` takes it and keeps nothing — so its key being here is the only
+  /// proof the server knows it. Read through the getters below.
+  @JsonKey(readValue: _keysOf)
+  final Set<String> servedKeys;
+
+  /// `wear_cost_per_hour` (#694) is sent, null or not, from 1.2.6.
+  bool get servesWearCost => servedKeys.contains(PrinterKey.wearCostPerHour);
+
+  /// `dispatch_priority` (#2915) is sent, null or not, from 1.3.2.
+  bool get servesDispatchPriority =>
+      servedKeys.contains(PrinterKey.dispatchPriority);
 
   /// Null both for a printer with no WLED mapping and for a server older than
   /// it; `PrintersRepository.wledCapability` tells the two apart.
@@ -73,11 +74,15 @@ class Printer {
 WledConfig? _wledFromJson(Object? json) =>
     json is Map<String, dynamic> ? WledConfig.fromJson(json) : null;
 
-Object? _hasWearCostKey(Map<dynamic, dynamic> json, String _) =>
-    json.containsKey('wear_cost_per_hour');
+Object? _keysOf(Map<dynamic, dynamic> json, String _) =>
+    json.keys.cast<String>().toList();
 
-Object? _hasDispatchPriorityKey(Map<dynamic, dynamic> json, String _) =>
-    json.containsKey('dispatch_priority');
+/// Wire keys the editor sends only to a server that served them back: a row's
+/// [Printer.servedKeys] says which, and [PrinterUpdate.served] carries it over.
+abstract final class PrinterKey {
+  static const wearCostPerHour = 'wear_cost_per_hour';
+  static const dispatchPriority = 'dispatch_priority';
+}
 
 /// The distinct models of [printers], sorted, spelled exactly as the server
 /// stores them: `target_model` and a pipeline's printer class are matched

@@ -134,7 +134,7 @@ void main() {
       accessCode: accessCode,
       location: location,
       wearCostPerHour: rate,
-      sendWearCost: send,
+      served: send ? {PrinterKey.wearCostPerHour} : const {},
     );
 
     test('an untyped access code is left out, a typed one is sent', () {
