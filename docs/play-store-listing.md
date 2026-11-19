@@ -2,8 +2,8 @@
 
 Copy-paste source for the Play Console "Main store listing" page.
 Default language: **English (en-US)**. Polish (pl-PL), German (de-DE), Spanish
-(es-ES) and French (fr-FR) provided as additional translations — the five
-languages the app ships in.
+(es-ES), French (fr-FR) and Simplified Chinese (zh-CN) provided as additional
+translations — the six languages the app ships in.
 
 ---
 
@@ -353,6 +353,69 @@ mobile est une application communautaire indépendante et n'est pas affiliée à
 The `applicationId` stays `page.codeberg.morganmlgman.bambuddy_mobile` forever: it is the
 identity of the Play listing and cannot be changed without publishing a different app.
 Its `codeberg` prefix is now only a historical artifact.
+
+## Simplified Chinese translation (zh-CN) — optional
+
+### Short description (max 80 chars)
+```
+非官方 Bambu Lab 打印机监控与控制客户端，配合自建 bambuddy 服务器使用。
+```
+
+### Full description
+```
+Bambuddy mobile 是一款 Android 与 Wear OS 应用，通过你自建的“bambuddy”服务器监控和
+控制 Bambu Lab 3D 打印机。它支持服务器所支持的各款 Bambu Lab 打印机，包括 X1、P1、
+A1、H2 和 P2 系列。
+
+这是一款非官方开源应用：不是 Bambu Lab 的官方应用，与 Bambu Lab 无隶属关系，也未获得
+其认可。
+
+重要：Bambuddy mobile 需要你自己运行一台 bambuddy 服务器。它不会自行连接 Bambu Lab
+云端，没有可指向的服务器就无法使用。
+
+监控打印
+• 打印机实时状态：状态、进度、层数、预计剩余时间与温度
+• 实时摄像头画面
+• 打印期间常驻通知，随时掌握动态
+• 可配置的打印事件与硬件（HMS）错误提醒
+
+控制打印机
+• 暂停、继续和停止打印
+• 清空打印板并启动队列中的下一个任务
+• 调整与管理打印队列
+• 使用服务器上的切片器为文件切片
+
+管理耗材与硬件
+• 管理料盘库存，并将料盘分配到 AMS 槽位
+• 用摄像头扫描料盘二维码，直接跳转到对应料盘
+• 智能插座控制与功率监测
+• 带提醒的维护记录
+
+更多功能
+• 打印归档与统计
+• 文件库，支持从 MakerWorld 与 Manyfold 导入
+• 项目、打印板与部件总览
+• 展示墙模式：手机或平板放在支架上时持续显示的横屏视图，包含实时摄像头与状态卡片、显示当前错误和打印队列的侧边面板
+• 主屏幕小组件，显示打印机状态并提供扫描料盘的快捷入口
+• Wear OS 伴生应用：在手表上查看状态并控制打印
+
+隐私
+使用过程中，Bambuddy mobile 只与你配置的 bambuddy 服务器通信。没有统计分析，没有广告，
+也没有云服务。你的凭据以加密形式保存在设备基于 Keystore 的存储中，只会发送给你自己的
+服务器。如果你选择在应用内提交问题反馈，你所写的描述与一份诊断日志（你可以先自行查看）
+会作为公开的 GitHub issue 发布。除非你决定发送，否则什么都不会上传。
+
+开源
+Bambuddy mobile 是遵循 AGPL-3.0 许可证的自由软件。
+源码：https://github.com/DoYouHost/bambuddy-mobile
+
+“Bambu Lab”与“Bambu”是其各自所有者的商标。Bambuddy mobile 是一款独立的社区应用，
+与 Bambu Lab 无隶属关系。
+```
+
+---
+
+---
 
 ## Graphics still required (you must create these)
 
