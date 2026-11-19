@@ -124,7 +124,7 @@ do not stay silent because it was not part of the task.
   (`lib/wear/main_wear.dart`), reuses `lib/core` and `lib/data`.
 - `lib/data/` — repositories on top of the API client, shared by both flavors.
 - `lib/l10n/` — `app_en.arb` (the template) plus `app_pl.arb`, `app_de.arb`,
-  `app_es.arb` and `app_fr.arb`, and the generated
+  `app_es.arb`, `app_fr.arb` and `app_zh.arb`, and the generated
   `app_localizations*.dart` (committed). User-visible strings go through
   `AppLocalizations`, never hardcoded, and every string you add or change goes
   through `just l10n-check` before you hand the change over (see Conventions).
