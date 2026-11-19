@@ -529,7 +529,7 @@
   "remaining": "剩余 {time}",
   "eta": "预计 {time} 完成",
   "durationMinutes": "{minutes} 分钟",
-  "durationHoursMinutes": "{hours} 小时 {minutes} 分钟",
+  "durationHoursMinutes": "{hours}小时{minutes}分钟",
   "durationHours": "{hours} 小时",
   "durationSeconds": "{seconds} 秒",
   "connectToServer": "连接服务器",

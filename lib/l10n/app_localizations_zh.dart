@@ -1896,7 +1896,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String durationHoursMinutes(int hours, int minutes) {
-    return '$hours 小时 $minutes 分钟';
+    return '$hours小时$minutes分钟';
   }
 
   @override
