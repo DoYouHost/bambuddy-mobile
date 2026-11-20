@@ -187,23 +187,9 @@ class _PrintPanel extends ConsumerWidget {
     final progress = status.progress;
     final name = status.currentPrint ?? status.gcodeFile;
 
-    final remaining = status.remainingTime;
     final meta = <PrintMetaItem>[
-      if (remaining != null && remaining > 0)
-        PrintMetaItem(
-          icon: Icons.schedule,
-          text: l10n.remaining(formatMinutes(l10n, remaining)),
-        ),
-      if (remaining != null && remaining > 0)
-        PrintMetaItem(
-          icon: Icons.flag_outlined,
-          text: l10n.eta(etaClock(DateTimeFormats.of(context), remaining)),
-        ),
-      if (status.layerNum != null && status.totalLayers != null)
-        PrintMetaItem(
-          icon: Icons.layers_outlined,
-          text: '${status.layerNum}/${status.totalLayers}',
-        ),
+      ...timeMetaItems(context, l10n, status),
+      ?layerMetaItem(status),
       ?pauseMetaItem(context, l10n, status),
       ?aiDetectionMetaItem(
         context,

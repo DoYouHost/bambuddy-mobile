@@ -11,12 +11,13 @@ library;
 import 'package:app_util/app_util.dart';
 
 import 'json_utils.dart';
+import 'value_equality.dart';
 
 /// A `{source, id}` preset reference — how a pipeline, and the slice request it
 /// feeds, names a preset. No display name: it is resolved against the
 /// `/slicer/presets` catalog at render time, since a pipeline can outlive the
 /// preset it points at.
-class PresetRef {
+class PresetRef with ValueEquality {
   const PresetRef({required this.source, required this.id});
 
   factory PresetRef.fromJson(Map<String, dynamic> json) => PresetRef(
@@ -32,11 +33,7 @@ class PresetRef {
   Map<String, String> toJson() => {'source': source, 'id': id};
 
   @override
-  bool operator ==(Object other) =>
-      other is PresetRef && other.source == source && other.id == id;
-
-  @override
-  int get hashCode => Object.hash(source, id);
+  List<Object?> get props => [source, id];
 }
 
 /// Which printers a pipeline run may dispatch to.

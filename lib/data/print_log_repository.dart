@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -141,11 +142,11 @@ class PrintLogRepository {
       'notes': ?notes,
     };
     return guardKeepingDetail(() async {
-      final res = await _dio.patch<Map<String, dynamic>>(
+      return _dio.patchObject(
         Endpoints.printLogEntry(entryId),
+        PrintLogEntry.fromJson,
         data: data,
       );
-      return PrintLogEntry.fromJson(res.data ?? const {});
     });
   }
 
