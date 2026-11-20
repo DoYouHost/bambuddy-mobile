@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/features/queue/queue_item_view.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_selection.dart';
@@ -24,16 +25,19 @@ void main() {
     'archive_name': 'Part $id',
   });
 
-  Widget screen(FakeQueue queue, {List<Override> extra = const []}) =>
-      ProviderScope(
-        retry: neverRetry,
-        overrides: layerOverrides([
-          queueProvider.overrideWith(() => queue),
-          noServerProfileOverride,
-          printerListProvider.overrideWith((ref) async => const <Printer>[]),
-        ], extra),
-        child: plApp(const QueueScreen()),
-      );
+  Widget screen(
+    FakeQueue queue, {
+    List<Override> extra = const [],
+    TransitionBuilder? builder,
+  }) => ProviderScope(
+    retry: neverRetry,
+    overrides: layerOverrides([
+      queueProvider.overrideWith(() => queue),
+      noServerProfileOverride,
+      printerListProvider.overrideWith((ref) async => const <Printer>[]),
+    ], extra),
+    child: plApp(const QueueScreen(), builder: builder),
+  );
 
   Future<void> pick(WidgetTester tester, int id) async {
     await tester.longPress(find.text('Part $id'));
@@ -60,6 +64,122 @@ void main() {
       findsNothing,
       reason: 'starting is not what a selection is for',
     );
+  });
+
+  // The name has a row of its own, beside the menu, from 150% text. 'Cable clip'
+  // is one line either way, so only the height of the menu's slot holds the card;
+  // 'Cable clip holder' wraps beside the menu and fits one line without it.
+  for (final name in ['Cable clip', 'Cable clip holder']) {
+    testWidgets(
+      'a selection does not shrink the card of "$name" at 200% text',
+      (tester) async {
+        final long = QueueItem.fromJson({
+          'id': 1,
+          'position': 1,
+          'status': 'pending',
+          'archive_name': name,
+        });
+        await open(
+          tester,
+          screen(FakeQueue([long, item(2)]), builder: textScaled(2)),
+        );
+        Size card() => tester.getSize(
+          find.ancestor(of: find.text(name), matching: byLogId('queue.card')),
+        );
+        final before = card();
+
+        await tester.longPress(find.text(name));
+        await tester.pumpAndSettle();
+
+        expect(card(), before);
+      },
+    );
+  }
+
+  testWidgets('a selection puts the pictures where the handle was', (
+    tester,
+  ) async {
+    await open(tester, screen(FakeQueue([item(1), item(2)])));
+    final handle = tester.getTopLeft(
+      find
+          .ancestor(
+            of: find.byIcon(Icons.drag_indicator).last,
+            matching: find.byType(SizedBox),
+          )
+          .first,
+    );
+
+    await pick(tester, 1);
+
+    // The first card is a tick now, the second still a picture; both start at
+    // the card's edge, with no empty slot where the handle was.
+    expect(tester.getTopLeft(find.byType(QueueThumbnail).last).dx, handle.dx);
+    expect(find.byIcon(Icons.drag_indicator), findsNothing);
+  });
+
+  testWidgets('a selection does not change how a name wraps at 100% text', (
+    tester,
+  ) async {
+    // 'Cable clip holder' needs two lines beside the handle's width and would
+    // fit one without it: the handle's width has to stay with the row.
+    final named = QueueItem.fromJson({
+      'id': 1,
+      'position': 1,
+      'status': 'pending',
+      'archive_name': 'Cable clip holder',
+    });
+    await open(tester, screen(FakeQueue([named, item(2)])));
+    final before = tester.getSize(find.text('Cable clip holder'));
+
+    await tester.longPress(find.text('Cable clip holder'));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.text('Cable clip holder')), before);
+  });
+
+  testWidgets('a selection does not change how a status line wraps at 200%', (
+    tester,
+  ) async {
+    final queued = QueueItem.fromJson({
+      'id': 1,
+      'position': 1,
+      'status': 'pending',
+      'archive_name': 'Hook',
+      // 'A1 mini · 46min' needs two lines beside the handle's width and fits
+      // one without it.
+      'printer_name': 'A1 mini',
+      'print_time_seconds': 2760,
+    });
+    await open(
+      tester,
+      screen(FakeQueue([queued, item(2)]), builder: textScaled(2)),
+    );
+    Size card() => tester.getSize(
+      find.ancestor(of: find.text('Hook'), matching: byLogId('queue.card')),
+    );
+    final before = card();
+
+    await tester.longPress(find.text('Hook'));
+    await tester.pumpAndSettle();
+
+    expect(card(), before);
+  });
+
+  testWidgets('the tick of a picked card stays inside its 56 dp box at 300% '
+      'text', (tester) async {
+    await open(
+      tester,
+      screen(FakeQueue([item(1), item(2)]), builder: textScaled(3)),
+    );
+    await pick(tester, 1);
+
+    final glyph = tester.widget<RichText>(
+      find.descendant(
+        of: find.byIcon(Icons.check),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(glyph.text.style?.fontSize, 24);
   });
 
   testWidgets('a tap extends the selection, and taps it away again', (
