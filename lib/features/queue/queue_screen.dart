@@ -340,8 +340,8 @@ class _QueueList extends ConsumerWidget {
       ),
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       physics: const AlwaysScrollableScrollPhysics(),
-      // No default long-press drag — reorder only via explicit handle on left
-      // side of tile.
+      // No default long-press drag — reorder only via the explicit handle in
+      // the card's status line.
       buildDefaultDragHandles: false,
       itemCount: reorderable.length,
       onReorderItem: (oldIndex, newIndex) async {
@@ -375,8 +375,8 @@ class _QueueCard extends ConsumerWidget {
   /// (not wrapped in Dismissible).
   final bool pinned;
 
-  /// Index in reorderable list; when provided, show explicit drag handle on left
-  /// (`ReorderableDragStartListener`). Null for pinned items.
+  /// Index in reorderable list; when provided, show the explicit drag handle in
+  /// the status line (`ReorderableDragStartListener`). Null for pinned items.
   final int? dragIndex;
 
   @override
@@ -426,56 +426,56 @@ class _QueueCard extends ConsumerWidget {
                   : t.cardBorder,
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (idx != null && !selecting)
-                logTag(
-                  'queue.reorder',
-                  ReorderableDragStartListener(
-                    index: idx,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: DashSpace.md),
-                      child: Icon(Icons.drag_indicator, color: t.textTertiary),
+              Row(
+                children: [
+                  // A tick in place of the picture, as the archive marks a pick.
+                  if (selected)
+                    Container(
+                      width: DashSize.d56,
+                      height: DashSize.d56,
+                      decoration: BoxDecoration(
+                        color: t.accentGreen.withValues(alpha: DashAlpha.wash),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
+                      ),
+                      child: Icon(Icons.check, color: t.accentGreenInk),
+                    )
+                  else
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(DashRadius.lg),
+                      child: QueueThumbnail(item: item, size: DashSize.d56),
                     ),
-                  ).tourTarget('queue.reorder.${item.id}'),
-                ),
-              // A tick in place of the picture, as the archive marks a pick.
-              if (selected)
-                Container(
-                  width: DashSize.d56,
-                  height: DashSize.d56,
-                  decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: DashAlpha.wash),
-                    borderRadius: BorderRadius.circular(DashRadius.lg),
-                  ),
-                  child: Icon(Icons.check, color: t.accentGreenInk),
-                )
-              else
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(DashRadius.lg),
-                  child: QueueThumbnail(item: item, size: DashSize.d56),
-                ),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
+                  const SizedBox(width: DashSpace.md),
+                  Expanded(
+                    child: Text(
                       item.displayName,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: t.titleMd,
                     ),
-                    const SizedBox(height: DashSpace.sm),
-                    _Subtitle(item: item),
-                    QueueFilamentChips(item: item),
-                  ],
-                ),
+                  ),
+                  // The menu's removal and the swipe both act on one item, and
+                  // a selection is about several: they wait until it is over.
+                  // Its slot stays, or the name reflows and the card shrinks.
+                  if (selecting)
+                    const SizedBox(width: DashSize.d48)
+                  else
+                    _QueueActions(item: item),
+                ],
               ),
-              // The menu's removal and the swipe both act on one item, and a
-              // selection is about several: they wait until it is over.
-              if (!selecting) _QueueActions(item: item),
+              const SizedBox(height: DashSpace.sm),
+              _StatusLine(item: item, dragIndex: idx, selecting: selecting),
+              QueueFilamentChips(
+                item: item,
+                // Left out when there is nothing to show: a zero-size child
+                // that lands on a new run still costs a `runSpacing`.
+                leading: [
+                  if (item.colorSubstitutions.isNotEmpty)
+                    ColorSubstitutionChip(item: item),
+                ],
+              ),
             ],
           ),
         ),
@@ -533,15 +533,31 @@ class _QueueCard extends ConsumerWidget {
   }
 }
 
-class _Subtitle extends ConsumerWidget {
-  const _Subtitle({required this.item});
+/// The line under the name: the drag handle, the status, the web's Staged
+/// badge and the printer and time. The handle lives here and not beside the
+/// picture because at large text it took a quarter of the width the name needs.
+class _StatusLine extends ConsumerWidget {
+  const _StatusLine({
+    required this.item,
+    required this.dragIndex,
+    required this.selecting,
+  });
 
   final QueueItem item;
+
+  /// Index in the reorderable list; null where there is no handle (the printing
+  /// item).
+  final int? dragIndex;
+
+  /// A selection hides the handle but keeps its slot: the 48 dp row it sets
+  /// would otherwise shrink on every card the moment a pick starts.
+  final bool selecting;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    final idx = dragIndex;
     final parts = <String>[
       if (item.printerName != null) item.printerName!,
       // A cross-model item (server #671) has no printer yet and never will
@@ -559,37 +575,51 @@ class _Subtitle extends ConsumerWidget {
       // appears.
       if (item.archiveHasSlicerAmsMapping) l10n.queueAmsFromSlicer,
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      spacing: DashSpace.xs,
+      runSpacing: DashSpace.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: DashSpace.xs,
-          runSpacing: DashSpace.xs,
-          children: [
-            _StatusChip(item: item),
-            // The web's Staged badge, which says who starts the job to a user
-            // held for review (#1620).
-            if (item.manualStart)
-              _Chip(
-                label: queueStagedLabel(
-                  l10n,
-                  awaitingReview: ref.watch(awaitingReviewProvider),
+        if (idx != null && selecting)
+          const SizedBox.square(dimension: DashSize.d48)
+        else if (idx != null)
+          logTag(
+            'queue.reorder',
+            ReorderableDragStartListener(
+              index: idx,
+              // Opaque and 48 dp for the finger; the glyph stays 24 dp at any
+              // text size, as the menu icon does. Without the colour the
+              // listener answers only on the glyph, not the ring around it.
+              child: ColoredBox(
+                color: Colors.transparent,
+                child: SizedBox.square(
+                  dimension: DashSize.d48,
+                  child: Icon(
+                    Icons.drag_indicator,
+                    applyTextScaling: false,
+                    color: t.textTertiary,
+                  ),
                 ),
-                accent: t.textTertiary,
               ),
-            ColorSubstitutionChip(item: item),
-          ],
-        ),
-        if (parts.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: DashSpace.xs),
-            child: Text(
-              parts.join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.monoLabel,
             ),
+          ).tourTarget('queue.reorder.${item.id}'),
+        _StatusChip(item: item),
+        // The web's Staged badge, which says who starts the job to a user
+        // held for review (#1620).
+        if (item.manualStart)
+          _Chip(
+            label: queueStagedLabel(
+              l10n,
+              awaitingReview: ref.watch(awaitingReviewProvider),
+            ),
+            accent: t.textTertiary,
+          ),
+        if (parts.isNotEmpty)
+          Text(
+            parts.join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoLabel,
           ),
       ],
     );
@@ -688,7 +718,12 @@ class _QueueActions extends ConsumerWidget {
     return logTag(
       'queue.actions',
       PopupMenuButton<String>(
-        icon: Icon(Icons.more_vert, color: t.textSecondary),
+        icon: Icon(
+          Icons.more_vert,
+          // Grown with the text it took 64 dp of the card's width.
+          applyTextScaling: false,
+          color: t.textSecondary,
+        ),
         onSelected: (value) async {
           if (value == 'preview') {
             _previewGcode(context);

@@ -24,16 +24,19 @@ void main() {
     'archive_name': 'Part $id',
   });
 
-  Widget screen(FakeQueue queue, {List<Override> extra = const []}) =>
-      ProviderScope(
-        retry: neverRetry,
-        overrides: layerOverrides([
-          queueProvider.overrideWith(() => queue),
-          noServerProfileOverride,
-          printerListProvider.overrideWith((ref) async => const <Printer>[]),
-        ], extra),
-        child: plApp(const QueueScreen()),
-      );
+  Widget screen(
+    FakeQueue queue, {
+    List<Override> extra = const [],
+    TransitionBuilder? builder,
+  }) => ProviderScope(
+    retry: neverRetry,
+    overrides: layerOverrides([
+      queueProvider.overrideWith(() => queue),
+      noServerProfileOverride,
+      printerListProvider.overrideWith((ref) async => const <Printer>[]),
+    ], extra),
+    child: plApp(const QueueScreen(), builder: builder),
+  );
 
   Future<void> pick(WidgetTester tester, int id) async {
     await tester.longPress(find.text('Part $id'));
@@ -60,6 +63,47 @@ void main() {
       findsNothing,
       reason: 'starting is not what a selection is for',
     );
+  });
+
+  testWidgets('starting a selection does not change the height of a card', (
+    tester,
+  ) async {
+    await open(tester, screen(FakeQueue([item(1), item(2)])));
+    Size card(int id) => tester.getSize(
+      find.ancestor(of: find.text('Part $id'), matching: byLogId('queue.card')),
+    );
+    final before = card(2);
+
+    await pick(tester, 1);
+
+    // The handle leaves with the selection; its row must not shrink, or every
+    // card below the finger jumps up.
+    expect(card(2), before);
+  });
+
+  testWidgets('a name that wraps beside the menu does not reflow when the menu '
+      'leaves for a selection', (tester) async {
+    // Fits on one line in the width the menu frees, not in the width with it:
+    // without a reserved slot the header shrinks and the cards below jump.
+    final long = QueueItem.fromJson({
+      'id': 1,
+      'position': 1,
+      'status': 'pending',
+      'archive_name': 'Drawer front',
+    });
+    await open(
+      tester,
+      screen(FakeQueue([long, item(2)]), builder: textScaled(2)),
+    );
+    Size card(int id, String name) => tester.getSize(
+      find.ancestor(of: find.text(name), matching: byLogId('queue.card')),
+    );
+    final before = card(1, 'Drawer front');
+
+    await tester.longPress(find.text('Drawer front'));
+    await tester.pumpAndSettle();
+
+    expect(card(1, 'Drawer front'), before);
   });
 
   testWidgets('a tap extends the selection, and taps it away again', (
