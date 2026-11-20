@@ -58,11 +58,11 @@ class MaintenanceRepository {
   /// `POST /maintenance/types` — create a custom type. Returns it (with new id).
   Future<MaintenanceType> createType(MaintenanceTypeDraft draft) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.maintenanceTypes,
+          MaintenanceType.fromJson,
           data: draft.toJson(),
         );
-        return MaintenanceType.fromJson(res.data ?? const {});
       });
 
   /// `PATCH /maintenance/types/{id}` — edit a type (name, interval, icon, wiki).

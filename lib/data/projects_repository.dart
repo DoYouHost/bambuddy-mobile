@@ -4,6 +4,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/library_file.dart';
 import '../core/models/library_folder.dart';
@@ -70,20 +71,20 @@ class ProjectsRepository {
 
   /// POST /projects/ — create.
   Future<ProjectResponse> create(ProjectCreate body) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.projects,
+      ProjectResponse.fromJson,
       data: body.toMap(),
     );
-    return ProjectResponse.fromJson(res.data ?? const {});
   });
 
   /// PATCH /projects/{id} — partial update.
   Future<ProjectResponse> update(int id, ProjectUpdate body) => guard(() async {
-    final res = await _dio.patch<Map<String, dynamic>>(
+    return _dio.patchObject(
       Endpoints.project(id),
+      ProjectResponse.fromJson,
       data: body.toMap(),
     );
-    return ProjectResponse.fromJson(res.data ?? const {});
   });
 
   /// DELETE /projects/{id}.
@@ -95,11 +96,11 @@ class ProjectsRepository {
   /// POST /projects/from-template/{id}?name= — instantiate a template.
   Future<ProjectResponse> createFromTemplate(int templateId, String name) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.projectFromTemplate(templateId),
-          queryParameters: {'name': name},
+          ProjectResponse.fromJson,
+          query: {'name': name},
         );
-        return ProjectResponse.fromJson(res.data ?? const {});
       });
 
   /// POST /projects/{id}/create-template — turn project into a template.

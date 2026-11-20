@@ -61,11 +61,11 @@ class FirmwareRepository {
     int printerId, {
     String? version,
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.firmwareUpload(printerId),
-      queryParameters: {'version': ?version},
+      FirmwareUploadStartResult.fromJson,
+      query: {'version': ?version},
     );
-    return FirmwareUploadStartResult.fromJson(res.data ?? const {});
   });
 
   /// `GET /firmware/updates/{id}/upload/status` — upload progress.

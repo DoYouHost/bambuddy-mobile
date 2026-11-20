@@ -77,11 +77,11 @@ class ProfileDefaultsRepository {
   /// taking it for "no defaults here" would hide a list the session may read.
   Future<ProfileDefault> save(ProfileDefaultDraft draft) =>
       capability.watching(observing: const {}, () async {
-        final res = await _dio.put<Map<String, dynamic>>(
+        return _dio.putObject(
           Endpoints.inventoryProfileDefaults,
+          ProfileDefault.fromJson,
           data: draft.toJson(),
         );
-        return ProfileDefault.fromJson(res.data ?? const {});
       });
 
   /// Spools that already got its profiles keep them. A 403 here also means the

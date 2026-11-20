@@ -55,21 +55,21 @@ class SuppliersRepository {
   /// list, the filter and the statistics from a session that may read them.
   Future<Supplier> createSupplier(SupplierDraft draft) =>
       capability.watching(observing: const {}, () async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.inventorySuppliers,
+          Supplier.fromJson,
           data: draft.toJson(),
         );
-        return Supplier.fromJson(res.data ?? const {});
       });
 
   /// A 409 is a rename onto a name already taken; a 404 is the row gone.
   Future<Supplier> updateSupplier(int supplierId, SupplierDraft draft) =>
       capability.watching(observing: const {}, () async {
-        final res = await _dio.patch<Map<String, dynamic>>(
+        return _dio.patchObject(
           Endpoints.inventorySupplier(supplierId),
+          Supplier.fromJson,
           data: draft.toJson(),
         );
-        return Supplier.fromJson(res.data ?? const {});
       });
 
   /// A 409 is a supplier still assigned to a spool: the server refuses rather

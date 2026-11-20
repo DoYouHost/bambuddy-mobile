@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:app_util/app_util.dart';
 
 import 'json_utils.dart';
+import 'value_equality.dart';
 
 /// The two pages the server lays a sheet on (`PageSize` in `label_renderer.py`).
 enum LabelPageSize {
@@ -61,7 +62,7 @@ typedef SheetProblemReport = ({
 /// A sheet of labels as the server takes it (`SheetLayoutSpec`): the page, the
 /// size of one label, the grid, and the margins and gaps. Lengths are in
 /// millimetres.
-class SheetLayout {
+class SheetLayout with ValueEquality {
   const SheetLayout({
     required this.page,
     required this.labelWidthMm,
@@ -210,20 +211,7 @@ class SheetLayout {
   };
 
   @override
-  bool operator ==(Object other) =>
-      other is SheetLayout &&
-      other.page == page &&
-      other.labelWidthMm == labelWidthMm &&
-      other.labelHeightMm == labelHeightMm &&
-      other.columns == columns &&
-      other.rows == rows &&
-      other.topMm == topMm &&
-      other.leftMm == leftMm &&
-      other.columnGapMm == columnGapMm &&
-      other.rowGapMm == rowGapMm;
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     page,
     labelWidthMm,
     labelHeightMm,
@@ -233,7 +221,7 @@ class SheetLayout {
     leftMm,
     columnGapMm,
     rowGapMm,
-  );
+  ];
 }
 
 /// A sheet saved under a name (`LabelTemplateResponse`), shared by everyone on

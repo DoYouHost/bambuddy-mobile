@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -167,11 +168,11 @@ class LibraryRepository {
   /// a duplicate answers 409, which reaches the caller as [ApiException] with
   /// `statusCode == 409`.
   Future<LibraryTag> createTag(String name) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.libraryTags,
+      LibraryTag.fromJson,
       data: <String, dynamic>{'name': name},
     );
-    return LibraryTag.fromJson(res.data ?? const {});
   });
 
   /// PATCH /library/tags/{id} — rename a tag (409 on duplicate name).
@@ -194,15 +195,15 @@ class LibraryRepository {
     required List<int> tagIds,
     required TagAssignAction action,
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.libraryTagsBulkAssign,
+      TagAssignResult.fromJson,
       data: <String, dynamic>{
         'file_ids': fileIds,
         'tag_ids': tagIds,
         'action': action.wire,
       },
     );
-    return TagAssignResult.fromJson(res.data ?? const {});
   });
 
   // --- Variant groups (server #671, 1.2.6+) ---
@@ -247,8 +248,9 @@ class LibraryRepository {
   /// travel as an [AppApiException] for the caller to show.
   Future<VariantGroup> createVariantGroup(List<int> fileIds, {String? name}) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.libraryVariantGroups,
+          VariantGroup.fromJson,
           data: <String, dynamic>{
             'members': [
               for (final id in fileIds)
@@ -257,7 +259,6 @@ class LibraryRepository {
             'name': ?name,
           },
         );
-        return VariantGroup.fromJson(res.data ?? const {});
       });
 
   /// PATCH /library/variant-groups/{id} — rename and/or re-prioritise.
@@ -270,21 +271,21 @@ class LibraryRepository {
     String? name,
     List<int>? memberFileIds,
   }) => guard(() async {
-    final res = await _dio.patch<Map<String, dynamic>>(
+    return _dio.patchObject(
       Endpoints.libraryVariantGroup(groupId),
+      VariantGroup.fromJson,
       data: <String, dynamic>{'name': ?name, 'member_file_ids': ?memberFileIds},
     );
-    return VariantGroup.fromJson(res.data ?? const {});
   });
 
   /// POST /library/variant-groups/{id}/members — add [fileId] at the end.
   Future<VariantGroup> addVariantGroupMember(int groupId, int fileId) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.libraryVariantGroupMembers(groupId),
+          VariantGroup.fromJson,
           data: <String, dynamic>{'library_file_id': fileId},
         );
-        return VariantGroup.fromJson(res.data ?? const {});
       });
 
   /// DELETE /library/variant-groups/{id}/members/{fileId}.

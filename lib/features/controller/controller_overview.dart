@@ -3,8 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/printers_repository.dart';
-import '../../core/format/datetime_format.dart';
-import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -492,27 +490,10 @@ class _JobCard extends StatelessWidget {
     // While the printer is still heating or levelling the bar runs
     // indeterminate and no percentage is shown: a 0% there reads as a stall.
     final preparing = status.isPreparing;
-    final remaining = status.remainingTime;
-    final fmt = DateTimeFormats.of(context);
     final meta = <PrintMetaItem>[
-      if (remaining != null && remaining > 0) ...[
-        PrintMetaItem(
-          icon: Icons.schedule,
-          text: l10n.remaining(formatMinutes(l10n, remaining)),
-        ),
-        PrintMetaItem(
-          icon: Icons.flag_outlined,
-          text: l10n.eta(etaClock(fmt, remaining)),
-        ),
-      ],
+      ...timeMetaItems(context, l10n, status),
       // The least used of the three: left out where there is room for two.
-      if (!controllerLargeText(context) &&
-          status.layerNum != null &&
-          status.totalLayers != null)
-        PrintMetaItem(
-          icon: Icons.layers_outlined,
-          text: '${status.layerNum}/${status.totalLayers}',
-        ),
+      if (!controllerLargeText(context)) ?layerMetaItem(status),
     ];
     return Container(
       padding: EdgeInsets.all(

@@ -43,22 +43,22 @@ class UsersRepository {
   /// POST /users/ — the created account, as the server stored it.
   Future<CurrentUser> create(UserCreateInput body) {
     return guardKeepingDetail(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
+      return _dio.postObject(
         Endpoints.users,
+        CurrentUser.fromJson,
         data: body.toJson(),
       );
-      return CurrentUser.fromJson(res.data ?? const {});
     });
   }
 
   /// PATCH /users/{id} — only the fields [body] carries are touched.
   Future<CurrentUser> update(int userId, UserUpdateInput body) {
     return guardKeepingDetail(() async {
-      final res = await _dio.patch<Map<String, dynamic>>(
+      return _dio.patchObject(
         Endpoints.userById(userId),
+        CurrentUser.fromJson,
         data: body.toJson(),
       );
-      return CurrentUser.fromJson(res.data ?? const {});
     });
   }
 

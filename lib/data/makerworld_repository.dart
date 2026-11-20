@@ -25,11 +25,11 @@ class MakerWorldRepository {
 
   /// POST /makerworld/resolve — resolve model URL to design + instances.
   Future<MakerWorldResolvedModel> resolve(String url) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.makerworldResolve,
+      MakerWorldResolvedModel.fromJson,
       data: <String, dynamic>{'url': url},
     );
-    return MakerWorldResolvedModel.fromJson(res.data ?? const {});
   });
 
   /// POST /makerworld/import — download instance to library.
@@ -38,15 +38,15 @@ class MakerWorldRepository {
     int? profileId,
     int? folderId,
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.makerworldImport,
+      MakerWorldImportResponse.fromJson,
       data: <String, dynamic>{
         'model_id': modelId,
         'profile_id': ?profileId,
         'folder_id': ?folderId,
       },
     );
-    return MakerWorldImportResponse.fromJson(res.data ?? const {});
   });
 
   /// GET /makerworld/recent-imports — recent imports. Defensive parsing.
