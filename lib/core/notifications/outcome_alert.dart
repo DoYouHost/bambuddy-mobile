@@ -30,17 +30,16 @@ const String outcomeActionIdPrefix = 'outcome:';
 
 /// `outcome:<archiveId>:<server>` — see [serverTag] for why the server.
 String outcomePayload(int archiveId, String serverUrl) =>
-    'outcome:$archiveId:${serverTag(serverUrl)}';
+    taggedPayload('outcome', [archiveId], serverUrl: serverUrl);
 
 /// The archive and server an outcome notification is about, or null for any
 /// other payload — including one written by a version that formatted it
 /// differently.
 ({int archiveId, String server})? parseOutcomePayload(String? payload) {
-  if (payload == null || !payload.startsWith('outcome:')) return null;
-  final parts = payload.split(':');
-  if (parts.length != 3 || parts[2].isEmpty) return null;
-  final id = int.tryParse(parts[1]);
-  return id != null && id > 0 ? (archiveId: id, server: parts[2]) : null;
+  final tagged = parseTaggedPayload(payload, 'outcome', fieldCount: 1);
+  if (tagged == null) return null;
+  final id = int.tryParse(tagged.fields.single);
+  return id != null && id > 0 ? (archiveId: id, server: tagged.server) : null;
 }
 
 /// The verdict an action id names, or null for any other action.

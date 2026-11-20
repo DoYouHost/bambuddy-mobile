@@ -13,18 +13,10 @@ import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
-import 'package:bambuddy_mobile/core/api/ws_messages.dart';
-import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
-import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
-import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
-import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
-import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
 import 'package:bambuddy_mobile/features/links/external_links_screen.dart'
     show ExternalLinkBadge;
-import 'package:bambuddy_mobile/features/notifications/finish_photo_providers.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
@@ -45,7 +37,17 @@ import '../../helpers.dart';
 
 /// Notification onboarding in initState reads these providers; inert in tests.
 class _NoopNotifications implements NotificationService {
-  _NoopNotifications({this.permissionGranted = false});
+  _NoopNotifications({
+    this.permissionGranted = false,
+    this.permissionGate,
+    this.permissionFails = false,
+  });
+
+  /// The platform refusing to answer at all.
+  final bool permissionFails;
+
+  /// Holds the permission request open, as the system's own dialog does.
+  final Completer<void>? permissionGate;
 
   /// What the system answers to the permission request — denial is the default,
   /// because that is what the test host looks like.
@@ -54,7 +56,12 @@ class _NoopNotifications implements NotificationService {
   @override
   Future<void> init() async {}
   @override
-  Future<bool> requestPermission() async => permissionGranted;
+  Future<bool> requestPermission() async {
+    await permissionGate?.future;
+    if (permissionFails) throw StateError('platform gone');
+    return permissionGranted;
+  }
+
   @override
   Future<void> showOngoing({
     required String title,
@@ -74,6 +81,7 @@ class _NoopNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {}
   @override
   Future<bool> isAlertActive(int id) async => true;
@@ -81,41 +89,6 @@ class _NoopNotifications implements NotificationService {
 
 late SharedPreferences _prefs;
 
-/// Background service with no Android underneath — the lifecycle tests check who
-/// the dashboard hands work to and takes it back from, not the service itself.
-class _FakeBackgroundMonitor implements BackgroundMonitor {
-  _FakeBackgroundMonitor({this.running = false});
-
-  /// Whether Android is keeping the service alive from a previous app launch.
-  final bool running;
-  int stops = 0;
-
-  @override
-  Future<bool> start() async => true;
-  @override
-  Future<bool> stop() async {
-    stops++;
-    // What the real one answers: whether there was a service to stop.
-    return running;
-  }
-
-  @override
-  Future<bool> isRunning() async => running;
-  @override
-  void sync(BackgroundSync what) {}
-}
-
-/// Watch relay stubbed only so it does not reach for the platform channel.
-class _InertWearRelay extends WearRelayHandler {
-  _InertWearRelay() : super(watch: WatchConnectivity(), dio: () => null);
-  @override
-  Future<void> start() async {}
-  @override
-  Future<void> stop() async {}
-}
-
-/// Counts the hand-off alone; what the notifier does inside is covered by its
-/// own test.
 /// A store whose reads park until the test lets them through — a Keystore
 /// taking its time, which is the window a resume can land in.
 class _GatedCredentialsStore extends InMemoryCredentialsStore {
@@ -134,41 +107,18 @@ class _GatedCredentialsStore extends InMemoryCredentialsStore {
   }
 }
 
-class _SpyFinishPhoto extends FinishPhotoNotifier {
-  _SpyFinishPhoto()
-    : super(
-        updates: const Stream<WsArchiveUpdated>.empty(),
-        fetchArchive: (_) async => null,
-        recentArchives: (_) async => const [],
-        fetchPicture: (_, _) async => null,
-        notifications: _NoopNotifications(),
-        memory: FinishAlertMemory(_prefs),
-        isEnabled: () => true,
-      );
-
-  int starts = 0;
-  int stops = 0;
-
-  @override
-  void start() => starts++;
-
-  @override
-  Future<void> stop() async => stops++;
-}
-
 List<Override> _overrides(DashboardState state) => [
   fixedDashboardOverride(state),
   fakeServerProfileOverride(),
   inertStatusesOverride,
-  inertSmartPlugsOverride,
+  ...inertDashboardPollOverrides,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
   inertExternalLinksOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),
-  // Touched on the very first frame (taking over from a surviving service), so
-  // without a stub every test here would reach for the platform channel.
-  backgroundMonitorProvider.overrideWithValue(_FakeBackgroundMonitor()),
+  // The monitoring switch stops a running service through it.
+  inertBackgroundMonitorOverride,
   notificationServiceProvider.overrideWithValue(_NoopNotifications()),
   wsConnectionStateProvider.overrideWith(
     (ref) => Stream.value(WsConnectionState.connected),
@@ -977,27 +927,6 @@ void main() {
     );
   });
 
-  testWidgets('a service that outlived the previous launch is stopped', (
-    tester,
-  ) async {
-    // After a swipe-away Android revives the service and it survives the next
-    // launch. `onResume` does not catch it, because that fires on a transition and
-    // a cold start is already "resumed" — so everything it froze at its own start
-    // (notification switches, server profile) would outlive the whole session.
-    final monitor = _FakeBackgroundMonitor(running: true);
-    await tester.pumpWidget(
-      _app(
-        const DashboardState(
-          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-        ),
-        extra: [backgroundMonitorProvider.overrideWithValue(monitor)],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(monitor.stops, 1);
-  });
-
   testWidgets('a refused permission does not spend the one-time onboarding', (
     tester,
   ) async {
@@ -1047,121 +976,6 @@ void main() {
     expect(_prefs.getBool('notif_onboarded'), isTrue);
   });
 
-  testWidgets('the photo hunt yields to the background service and takes it back '
-      'on return', (tester) async {
-    // Both copies at once would fetch the same photo and trample each other's
-    // writes to the shared alert memory — the losing entry disappears and its
-    // notification stays without a photo forever.
-    final spy = _SpyFinishPhoto();
-    await tester.pumpWidget(
-      _app(
-        const DashboardState(
-          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-        ),
-        extra: [
-          finishPhotoNotifierProvider.overrideWithValue(spy),
-          wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // AppLifecycleListener recognises transitions, not states — hence the full path.
-    Future<void> drive(List<AppLifecycleState> states) async {
-      for (final s in states) {
-        tester.binding.handleAppLifecycleStateChanged(s);
-      }
-      await tester.pumpAndSettle();
-    }
-
-    const toBackground = [
-      AppLifecycleState.inactive,
-      AppLifecycleState.hidden,
-      AppLifecycleState.paused,
-    ];
-
-    await drive(toBackground);
-    expect(spy.stops, 1, reason: 'the background service takes over the hunt');
-    expect(spy.starts, 0);
-
-    await drive(const [
-      AppLifecycleState.hidden,
-      AppLifecycleState.inactive,
-      AppLifecycleState.resumed,
-    ]);
-    expect(spy.starts, 1, reason: 'only once the service is already stopped');
-
-    // Returning resumed polling; without this its timers outlive the widget tree.
-    await drive(toBackground);
-  });
-
-  group('the service lane in the log', () {
-    /// One record per thing that actually happened to the service. The verb
-    /// `ui_stop` used to be written for having *asked*, and the app asks on
-    /// every resume whether or not monitoring is on — so a user with the
-    /// feature switched off collected a stop per foreground/background cycle
-    /// for a service that had never run.
-    Future<String> resumeWith(WidgetTester tester, bool running) async {
-      final recorder = testRecorder();
-      addTearDown(recorder.discard);
-      await recorder.start();
-
-      await tester.pumpWidget(
-        _app(
-          const DashboardState(
-            printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-          ),
-          extra: [
-            backgroundMonitorProvider.overrideWithValue(
-              _FakeBackgroundMonitor(running: running),
-            ),
-            wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // AppLifecycleListener recognises transitions, not states.
-      Future<void> drive(List<AppLifecycleState> states) async {
-        for (final state in states) {
-          tester.binding.handleAppLifecycleStateChanged(state);
-        }
-        await tester.pumpAndSettle();
-      }
-
-      const toBackground = [
-        AppLifecycleState.inactive,
-        AppLifecycleState.hidden,
-        AppLifecycleState.paused,
-      ];
-
-      await drive(toBackground);
-      await drive(const [
-        AppLifecycleState.hidden,
-        AppLifecycleState.inactive,
-        AppLifecycleState.resumed,
-      ]);
-
-      final raw = await recorder.stop();
-      // Resuming restarted polling; parked again so its timers do not outlive
-      // the widget tree. After the recording, so the second pause adds nothing
-      // to what is asserted.
-      await drive(toBackground);
-      return raw;
-    }
-
-    // The exact field, not the bare word: `ui_stop_survivor` contains it.
-    const stopRecord = '"evt":"ui_stop"';
-
-    testWidgets('a resume that stopped nothing writes no stop', (tester) async {
-      expect(await resumeWith(tester, false), isNot(contains(stopRecord)));
-    });
-
-    testWidgets('a resume that really stopped one writes it', (tester) async {
-      expect(await resumeWith(tester, true), contains(stopRecord));
-    });
-  });
-
   group('rejected-password warning', () {
     const state = DashboardState(
       printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
@@ -1199,6 +1013,205 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+    });
+
+    // The prompts of a first run come one after another so they never stack
+    // (tour, notification permission, battery question, then this warning), but
+    // the system's own permission dialog closing is a resume, and a resume
+    // asks for the warning on its own.
+    testWidgets('a resume during the first-run prompts waits for them', (
+      tester,
+    ) async {
+      await _prefs.remove('notif_onboarded');
+      await _prefs.setBool('sign_in_required', true);
+      final permission = Completer<void>();
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            notificationServiceProvider.overrideWithValue(
+              _NoopNotifications(permissionGate: permission),
+            ),
+          ],
+        ),
+      );
+      // Far enough for the permission request to park on the gate.
+      await tester.pump();
+      await tester.pump();
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(pl.signInRequiredTitle),
+        findsNothing,
+        reason: 'the permission prompt is still the one being answered',
+      );
+
+      permission.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(pl.signInRequiredTitle),
+        findsOneWidget,
+        reason: 'and once they are done it is not lost',
+      );
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+    });
+
+    // A first-run prompt that throws is reported, and does not hold the warning
+    // back: it is what tells a user whose login was rejected why nothing loads.
+    testWidgets('a first-run prompt that fails does not hold back the warning', (
+      tester,
+    ) async {
+      await _prefs.remove('notif_onboarded');
+      await _prefs.setBool('sign_in_required', true);
+
+      // The failure goes on to the uncaught handler, as a bug in the app does.
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.pumpWidget(
+          _app(
+            state,
+            extra: [
+              notificationServiceProvider.overrideWithValue(
+                _NoopNotifications(permissionFails: true),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+      }, (error, _) => uncaught.add(error));
+
+      expect(uncaught, [isA<StateError>()]);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      // And a resume with the dialog up does not open a second one.
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pumpAndSettle();
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+    });
+
+    // The flag has to be up after a prompt failed too, or the resume that
+    // follows would never raise a warning that was not yet due at launch.
+    testWidgets('after a failed first-run prompt a later resume still warns', (
+      tester,
+    ) async {
+      await _prefs.remove('notif_onboarded');
+
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.pumpWidget(
+          _app(
+            state,
+            extra: [
+              notificationServiceProvider.overrideWithValue(
+                _NoopNotifications(permissionFails: true),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+      }, (error, _) => uncaught.add(error));
+      expect(uncaught, [isA<StateError>()]);
+      expect(find.text(pl.signInRequiredTitle), findsNothing);
+
+      await _prefs.setBool('sign_in_required', true);
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+    });
+
+    // The check reads the flag, then asks the store, which can take a while. A
+    // background isolate that raises the flag in that gap, and a resume that
+    // arrives with it, must not be answered with "already checking" and then
+    // forgotten once the check decides there was nothing to warn about.
+    testWidgets('a resume that lands mid-check is not forgotten', (
+      tester,
+    ) async {
+      final store = _GatedCredentialsStore()
+        ..username = 'tester'
+        ..password = 'sekret';
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(store),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(store.checks, 1, reason: 'the first check is parked on the store');
+
+      // The other isolate has just heard the rejection, and the user is back.
+      await _prefs.setBool('sign_in_required', true);
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
+
+      store.gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+
+      for (final lifecycle in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(lifecycle);
+      }
+      await tester.pump();
     });
 
     testWidgets('no flag, no dialog', (tester) async {
@@ -1354,7 +1367,6 @@ void main() {
             extra: [
               fakeServerProfileOverride(authMode: AuthMode.jwt),
               credentialsStoreProvider.overrideWithValue(store),
-              wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
             ],
           ),
         );

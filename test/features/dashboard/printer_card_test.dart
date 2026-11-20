@@ -1,14 +1,21 @@
 import 'dart:async';
+import 'dart:math' show max, min;
 import 'dart:ui' show Tristate;
 
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
+import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
+import 'package:bambuddy_mobile/core/ams/color_names.dart';
+import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
+import 'package:bambuddy_mobile/core/models/k_profile.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
+import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:clock/clock.dart';
-import 'package:dash_kit/dash_kit.dart'
-    show ContentGrid, DashSpinner, DashTracking;
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/next_pause.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/format/duration_format.dart';
@@ -39,6 +46,7 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dar
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
@@ -49,6 +57,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 import '../../hms_samples.dart';
 
@@ -338,6 +347,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         inertChamberMaxOverride,
         ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(() => stub),
+        aiDetectionOverride(),
       ],
       child: plApp(
         Scaffold(
@@ -393,7 +403,7 @@ Widget _scope(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    inertSmartPlugsOverride,
+    ...inertDashboardPollOverrides,
   ], extra),
   // On the app, not on the card: a sheet is a route above the card and would
   // otherwise open at 100 %.
@@ -438,7 +448,7 @@ Widget _cardSwap(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    inertSmartPlugsOverride,
+    ...inertDashboardPollOverrides,
   ],
   child: plApp(
     Scaffold(
@@ -545,6 +555,34 @@ void main() {
     expect(find.text('73%'), findsOneWidget); // auxiliary
     expect(find.text('60%'), findsOneWidget); // chamber
     expect(find.text(pl.speedStandard), findsOneWidget); // speed (level 2)
+  });
+
+  testWidgets('the light row is a washed box with the row radius', (
+    tester,
+  ) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+    await tester.pumpWidget(_cardWithProviders(item));
+
+    final box =
+        tester
+                .widget<Container>(
+                  find
+                      .descendant(
+                        of: byLogId('controls.light'),
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                )
+                .decoration!
+            as BoxDecoration;
+    final t = DashTokens.of(tester.element(byLogId('controls.light')));
+    expect(box.borderRadius, BorderRadius.circular(DashRadius.xl));
+    expect(box.color, t.accentGreen.withValues(alpha: DashAlpha.faint));
   });
 
   testWidgets('controls bar does not render without control data', (
@@ -938,7 +976,17 @@ void main() {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
-    PrinterWithStatus realItem({bool tagged = false, bool oneHolder = false}) {
+    /// [trays] patches fields of AMS 1's trays, by index; [trayOrder] then
+    /// reports only those trays, in that order. [unit] patches AMS 1 itself,
+    /// [top] the status.
+    PrinterWithStatus realItem({
+      bool tagged = false,
+      bool oneHolder = false,
+      Map<int, Map<String, Object?>> trays = const {},
+      List<int>? trayOrder,
+      Map<String, Object?> unit = const {},
+      Map<String, Object?> top = const {},
+    }) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
@@ -949,6 +997,31 @@ void main() {
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
+      data.addAll(top);
+      if (unit.isNotEmpty) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        units[0] = {...Map<String, dynamic>.from(units.first as Map), ...unit};
+        data['ams'] = units;
+      }
+      if (trays.isNotEmpty) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        final unit = Map<String, dynamic>.from(units.first as Map);
+        final raw = List<dynamic>.from(unit['tray'] as List);
+        for (final MapEntry(:key, :value) in trays.entries) {
+          raw[key] = {...Map<String, dynamic>.from(raw[key] as Map), ...value};
+        }
+        unit['tray'] = raw;
+        units[0] = unit;
+        data['ams'] = units;
+      }
+      if (trayOrder != null) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        final unit = Map<String, dynamic>.from(units.first as Map);
+        final raw = unit['tray'] as List;
+        unit['tray'] = [for (final i in trayOrder) raw[i]];
+        units[0] = unit;
+        data['ams'] = units;
+      }
       if (tagged) {
         final units = List<dynamic>.from(data['ams'] as List);
         final unit = Map<String, dynamic>.from(units.first as Map);
@@ -1075,6 +1148,16 @@ void main() {
             expect(size.height, greaterThanOrEqualTo(48), reason: id);
           }
         }
+        // The chips share one line: a chip that grows to the width it is
+        // offered stacks every reading on a line of its own.
+        if (scale < 2.0) {
+          final tops = {
+            for (final id in ['printer.ams_meta', 'printer.drying'])
+              for (final e in byLogId(id).evaluate())
+                tester.getRect(find.byWidget(e.widget)).top,
+          };
+          expect(tops, hasLength(1));
+        }
         // With room they stay at the end of the header, as they were; at 150 %
         // the 48 dp chips no longer fit beside the name and take a line.
         if (scale == 1.0) {
@@ -1086,37 +1169,1194 @@ void main() {
       });
     }
 
-    testWidgets('a slot with a fill shows its level as a bar in the row', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(411, 3000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        _scope(
-          Scaffold(
-            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(find.text(pl.detailsShow));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
-
-      // The 48 dp the touch target needs is spent on the bar, not on air.
-      final row = find.ancestor(
-        of: find.text('PLA Basic'),
-        matching: find.byType(InkWell),
-      );
-      expect(
-        find.descendant(
-          of: row.first,
-          matching: find.byType(LinearProgressIndicator),
-        ),
-        findsOneWidget,
-      );
+    group('a slot holding a spool the printer cannot name', () {
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('reads "?", or the spool assigned to it, at text scale '
+            '$scale', (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(
+                textScaler: TextScaler.linear(scale),
+                size: const Size(360, 3000),
+              ),
+              child: _scope(
+                Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(
+                      // Slot 2 unconfigured, slot 3 unconfigured with a spool
+                      // assigned, slot 4 really empty.
+                      item: realItem(
+                        trays: {
+                          1: {
+                            'tray_type': '',
+                            'tray_color': '',
+                            'exists': true,
+                          },
+                          2: {
+                            'tray_type': '',
+                            'tray_color': '',
+                            'exists': true,
+                          },
+                          3: {
+                            'tray_type': '',
+                            'tray_color': '',
+                            'exists': false,
+                          },
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                extra: [
+                  inventoryProvider.overrideWith(
+                    () => FixedInventory(
+                      InventoryState(
+                        spools: [
+                          Spool(
+                            id: 7,
+                            material: 'PETG',
+                            brand: 'Bambu',
+                            subtype: 'HF',
+                            colorName: 'Blue',
+                            rgba: '0178BFFF',
+                          ),
+                        ],
+                        assignments: const [
+                          SpoolAssignment(
+                            spoolId: 7,
+                            printerId: 1,
+                            amsId: 0,
+                            trayId: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+          // An overflow is a FlutterError, which fails the test on its own.
+          expect(find.text(pl.traySlotUnconfigured), findsOneWidget);
+          expect(find.text('?'), findsOneWidget);
+          expect(find.text('Bambu PETG HF (Blue)'), findsOneWidget);
+          expect(find.text(pl.traySlotEmpty), findsOneWidget);
+        });
+      }
     });
+
+    group('AMS-HT load (server 1.3.0)', () {
+      for (final supported in [true, false]) {
+        testWidgets(
+          'Load and Unload on an AMS-HT slot: '
+          '${supported ? 'sent by its unit id' : 'hidden on an older server'}',
+          (tester) async {
+            tester.view.physicalSize = const Size(360, 3000);
+            tester.view.devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            final dio = testDio();
+            mockServer(dio).onPost(
+              '/api/v1/printers/1/ams/load',
+              (server) => server.reply(200, {'success': true}),
+              queryParameters: {'tray_id': 128},
+            );
+            final log = captureRequests(dio);
+            await tester.pumpWidget(
+              _scope(
+                Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(
+                      item: realItem(
+                        unit: {'id': 128, 'module_type': 'n3s'},
+                        trayOrder: [3],
+                        top: {'tray_now': 255, 'state': 'IDLE'},
+                      ),
+                    ),
+                  ),
+                ),
+                extra: [
+                  printerCommandsRepositoryProvider.overrideWithValue(
+                    PrinterCommandsRepository(dio),
+                  ),
+                  amsHtLoadProvider.overrideWithValue(AsyncData(supported)),
+                ],
+              ),
+            );
+            Future<void> settle() async {
+              for (var i = 0; i < 5; i++) {
+                await tester.pump(const Duration(milliseconds: 200));
+              }
+            }
+
+            await tester.pump();
+            await tester.tap(find.text(pl.detailsShow));
+            await settle();
+            final row = find
+                .byWidgetPredicate(
+                  (w) =>
+                      w is Semantics &&
+                      (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+                )
+                .first;
+            await tester.ensureVisible(row);
+            await tester.tap(row);
+            await settle();
+
+            if (!supported) {
+              expect(byLogId('assign_spool.ams_load'), findsNothing);
+              expect(byLogId('assign_spool.ams_unload'), findsNothing);
+              return;
+            }
+            expect(byLogId('assign_spool.ams_unload'), findsOneWidget);
+            await tester.tap(byLogId('assign_spool.ams_load'));
+            await settle();
+            // Replayed by `ams_ht_load_contract_test.dart`.
+            expectSentAsRecorded('ams_ht_load', writesOf(log.requests));
+          },
+        );
+      }
+    });
+
+    group('H3C', () {
+      // The AMS 3H as the server reports it, over AMS 1 of the fixture.
+      const dryer = {
+        'id': 32,
+        'ams_type': 6,
+        'module_type': 'n10a',
+        'dryer_slots': [2, 3],
+        'dryer_humidity': 12,
+        'dryer_temp': 55.4,
+      };
+      Finder slotFlames() => find.descendant(
+        of: find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+        ),
+        matching: find.byIcon(Icons.local_fire_department),
+      );
+      Finder controlText(String text) => find.descendant(
+        of: byLogId('printer.drying'),
+        matching: find.text(text),
+      );
+
+      Future<void> pumpAt(
+        WidgetTester tester,
+        double scale,
+        PrinterWithStatus item, {
+        bool expand = true,
+      }) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(360, 3000),
+            ),
+            child: _scope(
+              Scaffold(
+                body: SingleChildScrollView(child: PrinterCard(item: item)),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        if (!expand) return;
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('the drying control carries the dryer readings at text '
+            'scale $scale', (tester) async {
+          await pumpAt(tester, scale, realItem(unit: dryer));
+          // An overflow is a FlutterError, which fails the test on its own.
+
+          expect(controlText('${pl.ctrlDry} · 12% · 55°'), findsOneWidget);
+          expect(byLogId('printer.ams_dryer'), findsNothing);
+          expect(find.text('AMS 3H'), findsOneWidget);
+          // The unit's own readings stay beside it.
+          expect(find.text('28%'), findsOneWidget);
+          final control = tester.getSize(byLogId('printer.drying'));
+          expect(control.height, greaterThanOrEqualTo(48));
+          // The two slots in the dryer, nothing else.
+          expect(slotFlames(), findsNWidgets(2));
+        });
+      }
+
+      testWidgets('the slot marks are orange through the whole cycle, grey '
+          'when idle', (tester) async {
+        Color ink() => tester.widget<Icon>(slotFlames().first).color!;
+        // Cooling: no countdown left, still a running cycle.
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: {...dryer, 'dry_time': 0, 'dry_status': 3}),
+        );
+        final t = DashTokens.of(tester.element(slotFlames().first));
+        expect(ink(), t.accentOrangeInk);
+
+        // The same card, still expanded, with the next frame's unit.
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: {...dryer, 'dry_time': 0, 'dry_status': 0}),
+          expand: false,
+        );
+        expect(ink(), t.textTertiary);
+      });
+
+      testWidgets('a reading the server left out is left out', (tester) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: {...dryer, 'dryer_humidity': null}),
+        );
+        expect(controlText('${pl.ctrlDry} · 55°'), findsOneWidget);
+
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            unit: {...dryer, 'dryer_humidity': null, 'dryer_temp': null},
+          ),
+          expand: false,
+        );
+        expect(controlText(pl.ctrlDry), findsOneWidget);
+        expect(slotFlames(), findsNWidgets(2));
+      });
+
+      testWidgets('starting a drying cycle sends what the server replays', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final dio = testDio();
+        mockServer(dio).onPost(
+          '/api/v1/printers/1/drying/start',
+          (server) => server.reply(200, {'status': 'drying_started'}),
+        );
+        final log = captureRequests(dio);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(item: realItem(unit: dryer)),
+              ),
+            ),
+            extra: [
+              printerCommandsRepositoryProvider.overrideWithValue(
+                PrinterCommandsRepository(dio),
+              ),
+            ],
+          ),
+        );
+        // The card animates for ever: fixed pumps, never pumpAndSettle.
+        Future<void> settle() async {
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+        }
+
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await settle();
+
+        await tester.tap(byLogId('printer.drying'));
+        await settle();
+        await tester.ensureVisible(byLogId('drying.start'));
+        await tester.tap(byLogId('drying.start'));
+        await settle();
+
+        // Replayed on an H3C by `h3c_contract_test.dart`.
+        expectSentAsRecorded('ams3h_drying_start', writesOf(log.requests));
+      });
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('the drying sheet names the dryer slots and opens on their '
+            'filament at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            // Slot 1 holds PETG, but only slots 2 and 4 dry: slot 2 is empty,
+            // slot 4 holds the fixture's PLA.
+            realItem(
+              unit: {
+                ...dryer,
+                'dryer_slots': [1, 3],
+              },
+              trays: {
+                1: {'tray_type': ''},
+              },
+              top: {'state': 'IDLE'},
+            ),
+          );
+          await tester.tap(byLogId('printer.drying'));
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+          expect(find.text(pl.dryAms3hSlots(2, 4)), findsOneWidget);
+          final combo = find.descendant(
+            of: byLogId('drying.filament'),
+            matching: find.byType(EditableText),
+          );
+          expect(tester.widget<EditableText>(combo).controller.text, 'PLA');
+        });
+      }
+
+      testWidgets('a regular AMS opens drying on its first filament', (
+        tester,
+      ) async {
+        await pumpAt(tester, 1.0, realItem(top: {'state': 'IDLE'}));
+        await tester.tap(byLogId('printer.drying'));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        final combo = find.descendant(
+          of: byLogId('drying.filament'),
+          matching: find.byType(EditableText),
+        );
+        expect(tester.widget<EditableText>(combo).controller.text, 'PETG');
+        expect(find.textContaining('AMS 3H'), findsNothing);
+      });
+
+      for (final (status, expected) in [(200, 'unload'), (409, 'load409')]) {
+        testWidgets('the AMS 3H snackbar after $expected', (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final dio = testDio();
+          mockServer(dio)
+            ..onPost(
+              '/api/v1/printers/1/ams/load',
+              (server) => server.reply(status, {'detail': 'no filament'}),
+              queryParameters: {'tray_id': 31},
+            )
+            ..onPost(
+              '/api/v1/printers/1/ams/unload',
+              (server) => server.reply(status, {'success': true}),
+              queryParameters: {'tray_id': 31},
+            );
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: realItem(
+                      unit: dryer,
+                      top: {'tray_now': 255, 'state': 'IDLE'},
+                    ),
+                  ),
+                ),
+              ),
+              extra: [
+                printerCommandsRepositoryProvider.overrideWithValue(
+                  PrinterCommandsRepository(dio),
+                ),
+              ],
+            ),
+          );
+          Future<void> settle() async {
+            for (var i = 0; i < 5; i++) {
+              await tester.pump(const Duration(milliseconds: 200));
+            }
+          }
+
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          await settle();
+          final row = find
+              .byWidgetPredicate(
+                (w) =>
+                    w is Semantics &&
+                    (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+              )
+              .first;
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await settle();
+          await tester.tap(
+            byLogId(
+              expected == 'unload'
+                  ? 'assign_spool.ams_unload'
+                  : 'assign_spool.ams_load',
+            ),
+          );
+          await settle();
+
+          expect(
+            find.text(
+              expected == 'unload'
+                  ? pl.amsUnloadAms3h(4)
+                  : pl.amsLoadAms3hEmpty(4),
+            ),
+            findsOneWidget,
+          );
+          if (expected == 'unload') {
+            // Still there after the usual four seconds.
+            await tester.pump(const Duration(seconds: 5));
+            await tester.pump(const Duration(seconds: 1));
+            expect(find.text(pl.amsUnloadAms3h(4)), findsOneWidget);
+          }
+        });
+      }
+
+      testWidgets('names the nozzle on the toolhead by its rack position', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            unit: dryer,
+            top: {
+              'temperatures': {'nozzle': 215.0, 'nozzle_target': 220.0},
+              'nozzle_rack': [
+                {'id': 0, 'addr_id': 4, 'nozzle_diameter': '0.4'},
+              ],
+            },
+          ),
+          expand: false,
+        );
+        expect(
+          find.text(pl.tempNozzleNumbered('5').toUpperCase()),
+          findsOneWidget,
+        );
+      });
+
+      for (final (action, recording) in [
+        ('assign_spool.ams_load', 'ams3h_load'),
+        ('assign_spool.ams_unload', 'ams3h_unload'),
+      ]) {
+        testWidgets('$action on an AMS 3H slot sends what the server replays', (
+          tester,
+        ) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final dio = testDio();
+          mockServer(dio)
+            ..onPost(
+              '/api/v1/printers/1/ams/load',
+              (server) => server.reply(200, {'success': true}),
+              queryParameters: {'tray_id': 31},
+            )
+            ..onPost(
+              '/api/v1/printers/1/ams/unload',
+              (server) => server.reply(200, {'success': true}),
+              queryParameters: {'tray_id': 31},
+            );
+          final log = captureRequests(dio);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: realItem(
+                      unit: dryer,
+                      top: {'tray_now': 255, 'state': 'IDLE'},
+                    ),
+                  ),
+                ),
+              ),
+              extra: [
+                printerCommandsRepositoryProvider.overrideWithValue(
+                  PrinterCommandsRepository(dio),
+                ),
+              ],
+            ),
+          );
+          Future<void> settle() async {
+            for (var i = 0; i < 5; i++) {
+              await tester.pump(const Duration(milliseconds: 200));
+            }
+          }
+
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          await settle();
+          // Slot 4 of the AMS 3H, the fixture's one PLA: global 28 + 3.
+          final row = find
+              .byWidgetPredicate(
+                (w) =>
+                    w is Semantics &&
+                    (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+              )
+              .first;
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await settle();
+          await tester.tap(byLogId(action));
+          await settle();
+
+          // Replayed on an H3C by `h3c_contract_test.dart`.
+          expectSentAsRecorded(recording, writesOf(log.requests));
+        });
+      }
+
+      testWidgets('without the drying control a chip shows the readings', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'supports_drying': false}),
+        );
+        expect(byLogId('printer.drying'), findsNothing);
+        expect(
+          find.descendant(
+            of: byLogId('printer.ams_dryer'),
+            matching: find.text('12% · 55°'),
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('an older server, or any other AMS, shows no dryer', (
+        tester,
+      ) async {
+        await pumpAt(tester, 1.0, realItem());
+        expect(byLogId('printer.ams_dryer'), findsNothing);
+        expect(slotFlames(), findsNothing);
+        expect(controlText(pl.ctrlDry), findsOneWidget);
+      });
+
+      // Nine inputs, one per hotend; 250 feeds hotend 5, shown as 6.
+      List<Map<String, Object?>> inputs({int? loaded}) => [
+        for (var id = 247; id <= 255; id++)
+          {
+            'id': id,
+            'tray_type': id == loaded ? 'PA6-CF' : '',
+            'tray_color': id == loaded ? '2FBF5AFF' : '',
+          },
+      ];
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('a rack printer lists only its loaded input, by hotend, '
+            'at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'vt_tray': inputs(loaded: 250)}),
+          );
+          expect(find.text(pl.externalInputs.toUpperCase()), findsOneWidget);
+          expect(find.text(pl.externalSpool.toUpperCase()), findsNothing);
+          expect(find.text('PA6-CF'), findsOneWidget);
+          expect(find.text('6'), findsOneWidget);
+          expect(find.text(pl.traySlotEmpty), findsNothing);
+        });
+      }
+
+      testWidgets('a rack printer with no input loaded says so in one line', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'vt_tray': inputs()}),
+        );
+        expect(find.text(pl.externalInputsEmpty(9)), findsOneWidget);
+        expect(find.text(pl.traySlotEmpty), findsNothing);
+      });
+
+      testWidgets('an empty input with a spool assigned keeps its row', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        // Input 251, Ext-5, is tray 6 under unit 255.
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(unit: dryer, top: {'vt_tray': inputs()}),
+                ),
+              ),
+            ),
+            extra: [
+              inventoryProvider.overrideWith(
+                () => FixedInventory(
+                  InventoryState(
+                    spools: [Spool(id: 7, material: 'PETG')],
+                    assignments: const [
+                      SpoolAssignment(
+                        spoolId: 7,
+                        printerId: 1,
+                        amsId: 255,
+                        trayId: 6,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        expect(find.text(pl.externalInputsEmpty(9)), findsNothing);
+        // The input's badge, its hotend number.
+        expect(find.text('5'), findsOneWidget);
+      });
+
+      // The rack from the server's H3C capture: slot 6's hotend on the
+      // toolhead (id 0, addr_id 6), its dock id 22 absent.
+      List<Map<String, Object?>> h3cRack() => [
+        {'id': 0, 'nozzle_diameter': '0.6', 'addr_id': 6},
+        for (var i = 0; i < 9; i++)
+          if (i != 6)
+            {
+              'id': 16 + i,
+              'nozzle_diameter': '0.4',
+              'filament_color': 'DE4343FF',
+              'addr_id': i,
+            },
+      ];
+
+      // The card is one merged semantics node, so the chips are read by the
+      // label each one gives.
+      Finder chipLabelled(Pattern label) => find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            w.excludeSemantics &&
+            label.allMatches(w.properties.label ?? '').isNotEmpty &&
+            (label is! String || w.properties.label == label),
+      );
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('the H3C rack draws nine positions, the mounted one named, '
+            'at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': h3cRack()}),
+          );
+          expect(find.text(pl.nozzleRack.toUpperCase()), findsOneWidget);
+          for (var n = 1; n <= 9; n++) {
+            expect(find.text('$n'), findsWidgets, reason: 'position $n');
+          }
+          expect(
+            chipLabelled(
+              '${pl.nozzleRackPosition(7, '0.6')}, ${pl.nozzleRackMounted}',
+            ),
+            findsOneWidget,
+          );
+          expect(chipLabelled(RegExp(pl.nozzleRackMounted)), findsOneWidget);
+        });
+      }
+
+      // The rack with what nozzle 17 (position 2) reports about itself.
+      List<Map<String, Object?>> figuredRack({Map<String, Object?>? extra}) => [
+        for (final n in h3cRack())
+          if (n['id'] == 17)
+            {
+              ...n,
+              'nozzle_type': 'HS01',
+              'wear': 8,
+              'print_time_s': 90061,
+              'stat': 0,
+              'max_temp': 280,
+              'serial_number': '0K00A91C3X002',
+              'filament_type': 'PLA',
+              ...?extra,
+            }
+          else
+            n,
+      ];
+
+      Future<void> tapPosition(WidgetTester tester, int n) async {
+        await tester.tap(
+          find.descendant(
+            of: chipLabelled(pl.nozzleRackPosition(n, '0.4')),
+            matching: find.byType(InkWell),
+          ),
+        );
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      // Top to bottom of the sheet: where each row's label sits.
+      List<String> sheetLabels(WidgetTester tester) {
+        final labels = [
+          pl.nozzleLabelDiameter,
+          pl.nozzleLabelType,
+          pl.nozzleLabelFlow,
+          pl.nozzleLabelStatus,
+          pl.nozzleLabelWear,
+          pl.nozzleLabelPrintTime,
+          pl.nozzleLabelMaxTemp,
+          pl.nozzleLabelSerial,
+          pl.nozzleLabelFilament,
+        ];
+        final shown = [
+          for (final l in labels)
+            if (find.text(l).evaluate().isNotEmpty) l,
+        ];
+        shown.sort(
+          (a, b) => tester
+              .getTopLeft(find.text(a))
+              .dy
+              .compareTo(tester.getTopLeft(find.text(b)).dy),
+        );
+        return shown;
+      }
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('a rack chip opens the nozzle\'s figures, in the web\'s '
+            'order, at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
+          expect(find.text(pl.nozzleDiameterValue('0.4')), findsOneWidget);
+          expect(find.text(pl.nozzleMaterialHardened), findsOneWidget);
+          expect(find.text(pl.nozzleFlowStandard), findsOneWidget);
+          expect(find.text(pl.nozzleStatusDocked), findsOneWidget);
+          expect(find.text(pl.nozzleWearValue(8)), findsOneWidget);
+          // 90061 s is 25 h 1 min.
+          expect(find.text(formatMinutes(pl, 1501)), findsOneWidget);
+          expect(find.text(pl.nozzleMaxTempValue(280)), findsOneWidget);
+          expect(find.text('0K00A91C3X002'), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(FittedSheetSurface),
+              matching: find.text('PLA'),
+            ),
+            findsOneWidget,
+          );
+          expect(sheetLabels(tester), [
+            pl.nozzleLabelDiameter,
+            pl.nozzleLabelType,
+            pl.nozzleLabelFlow,
+            pl.nozzleLabelStatus,
+            pl.nozzleLabelWear,
+            pl.nozzleLabelPrintTime,
+            pl.nozzleLabelMaxTemp,
+            pl.nozzleLabelSerial,
+            pl.nozzleLabelFilament,
+          ]);
+        });
+      }
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('every value sits against the right edge of its row, at '
+            'text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          for (final value in [
+            pl.nozzleWearValue(8),
+            formatMinutes(pl, 1501),
+            pl.nozzleStatusDocked,
+            pl.nozzleMaxTempValue(280),
+          ]) {
+            expect(
+              tester.getRect(find.text(value)).right,
+              closeTo(right, 0.5),
+              reason: value,
+            );
+          }
+        });
+      }
+
+      testWidgets('a long value may use more than half the row when its label '
+          'is short, at 200% text', (tester) async {
+        await pumpAt(
+          tester,
+          2,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+        await tapPosition(tester, 2);
+
+        final row = tester.getRect(find.byType(NozzleFigures)).width;
+        expect(
+          tester.getRect(find.text('0K00A91C3X002')).width,
+          greaterThan(row / 2),
+          reason: 'two flexible children would cap it at half the row',
+        );
+      });
+
+      testWidgets(
+        'a filament colour with no name sits against the row\'s end',
+        (tester) async {
+          await pumpAt(
+            tester,
+            1,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          expect(dot, findsOneWidget);
+          expect(tester.getRect(dot).right, closeTo(right, 0.5));
+        },
+      );
+
+      for (final name in [
+        'PLA Matte Silk Dual Colour',
+        // A first word wider than the room beside the dot.
+        'Polycarbonate-Translucent-Green',
+      ]) {
+        testWidgets('a wrapping filament name "$name" keeps the dot on its '
+            'first line, at 200% text', (tester) async {
+          await pumpAt(
+            tester,
+            2,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': name}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          final value = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.text(name),
+          );
+          final paragraph = tester.renderObject<RenderParagraph>(value);
+          final line = paragraph.getFullHeightForCaret(
+            const TextPosition(offset: 0),
+          );
+          // More than one line, or the test proves nothing.
+          expect(paragraph.size.height, greaterThan(line * 1.5));
+          // The dot is on the name's first line, not stranded above it.
+          final top = tester.getTopLeft(value).dy;
+          expect(tester.getCenter(dot).dy, greaterThan(top));
+          expect(tester.getCenter(dot).dy, lessThan(top + line));
+        });
+      }
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('a lone colour dot is centred on a line of text, at text '
+            'scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          // One line of the row's text: the wear value is a single body line.
+          final line = tester.getSize(find.text(pl.nozzleWearValue(8))).height;
+          final rowTop = tester
+              .getTopLeft(find.text(pl.nozzleLabelFilament))
+              .dy;
+          // A dot left at the top of its row is half a line above this.
+          expect(tester.getCenter(dot).dy, closeTo(rowTop + line / 2, 2));
+        });
+      }
+
+      testWidgets('a nozzle that reports no print time shows no such row, '
+          'and none shows zero hours', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': figuredRack(extra: {'print_time_s': null}),
+            },
+          ),
+        );
+        await tapPosition(tester, 2);
+
+        expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
+        expect(find.text(pl.nozzleLabelPrintTime), findsNothing);
+        expect(find.text(pl.nozzleLabelWear), findsOneWidget);
+      });
+
+      testWidgets('the nozzle on the toolhead says so, and a nozzle that has '
+          'printed for no time shows zero, not a missing row', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': [
+                for (final n in figuredRack())
+                  if (n['id'] == 0) {...n, 'print_time_s': 0} else n,
+              ],
+            },
+          ),
+        );
+        await tester.tap(
+          find.descendant(
+            of: chipLabelled(
+              '${pl.nozzleRackPosition(7, '0.6')}, ${pl.nozzleRackMounted}',
+            ),
+            matching: find.byType(InkWell),
+          ),
+        );
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+
+        expect(find.text(pl.nozzleSheetTitle(7)), findsOneWidget);
+        expect(find.text(pl.nozzleStatusMounted), findsOneWidget);
+        expect(find.text(pl.nozzleStatusDocked), findsNothing);
+        expect(find.text(pl.nozzleLabelPrintTime), findsOneWidget);
+        expect(find.text(pl.durationSeconds(0)), findsOneWidget);
+      });
+
+      testWidgets('an empty dock is not a button', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': [
+                for (final n in h3cRack())
+                  if (n['id'] == 23)
+                    {
+                      'id': 23,
+                      'nozzle_diameter': '',
+                      'nozzle_type': '',
+                      'addr_id': 7,
+                    }
+                  else
+                    n,
+              ],
+            },
+          ),
+        );
+
+        expect(byLogId('printer.rack_nozzle'), findsNWidgets(8));
+      });
+
+      testWidgets('a screen reader can open a nozzle: the node has a tap', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpAt(
+          tester,
+          1,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+
+        final node = tester.getSemantics(
+          chipLabelled(pl.nozzleRackPosition(2, '0.4')),
+        );
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+        handle.dispose();
+      });
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('nine positions sit 5 over 4, both rows centred, at text '
+            'scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': h3cRack()}),
+          );
+          // An overflow is a FlutterError, which fails the test on its own.
+          // "Position n: " — the label up to the diameter.
+          Rect at(int n) => tester.getRect(
+            chipLabelled(
+              RegExp(
+                '^${RegExp.escape(pl.nozzleRackPosition(n, '@').split('@').first)}',
+              ),
+            ),
+          );
+          final top = [for (var n = 1; n <= 5; n++) at(n)];
+          final bottom = [for (var n = 6; n <= 9; n++) at(n)];
+          expect(top.map((r) => r.top).toSet(), hasLength(1));
+          expect(bottom.map((r) => r.top).toSet(), hasLength(1));
+          expect(bottom.first.top, greaterThan(top.first.bottom));
+          // Centred: the four start half a step in from the five, and the two
+          // rows share a centre line.
+          expect(bottom.first.left, greaterThan(top.first.left));
+          expect(bottom.first.left, lessThan(top[1].left));
+          final topMid = (top.first.left + top.last.right) / 2;
+          final bottomMid = (bottom.first.left + bottom.last.right) / 2;
+          expect((topMid - bottomMid).abs(), lessThan(1));
+        });
+      }
+
+      testWidgets('an H2C rack draws six, none ringed without addr_id', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            top: {
+              'nozzle_rack': [
+                {'id': 0, 'nozzle_diameter': '0.4'},
+                {'id': 1, 'nozzle_diameter': '0.4'},
+                for (final id in [16, 18, 19, 20, 21])
+                  {'id': id, 'nozzle_diameter': '0.4'},
+              ],
+            },
+          ),
+        );
+        expect(chipLabelled(pl.nozzleRackPositionEmpty(2)), findsOneWidget);
+        expect(chipLabelled(pl.nozzleRackPosition(6, '0.4')), findsOneWidget);
+        expect(chipLabelled(pl.nozzleRackPosition(7, '0.4')), findsNothing);
+        expect(chipLabelled(RegExp(pl.nozzleRackMounted)), findsNothing);
+      });
+
+      testWidgets('a printer without a rack shows none', (tester) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(
+            top: {
+              'nozzle_rack': [
+                {'id': 0, 'nozzle_diameter': '0.4'},
+                {'id': 1, 'nozzle_diameter': '0.4'},
+              ],
+            },
+          ),
+        );
+        expect(find.text(pl.nozzleRack.toUpperCase()), findsNothing);
+      });
+
+      testWidgets("a rack printer's input opens its sheet without load", (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          // 254 is a holder side elsewhere, the one input load would reach.
+          realItem(unit: dryer, top: {'vt_tray': inputs(loaded: 254)}),
+        );
+        await tester.tap(find.text('PA6-CF'));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        // The web keeps assigning and configuring; load and unload go.
+        expect(find.textContaining('Ext-2'), findsWidgets);
+        expect(byLogId('assign_spool.ams_load'), findsNothing);
+        expect(byLogId('assign_spool.ams_unload'), findsNothing);
+        expect(byLogId('assign_spool.configure'), findsOneWidget);
+      });
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the door reading holds on a 360 dp phone at text scale '
+          '$scale', (tester) async {
+        // At 2.0 the Polish closed-door label beside its icon was 1.6 px wider
+        // than the card; it now wraps onto a second line.
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(360, 3000),
+            ),
+            child: _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem()),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        // An overflow is a FlutterError, which fails the test on its own.
+
+        final label = pl.doorClosed.toUpperCase();
+        final door = tester.renderObject<RenderParagraph>(find.text(label));
+        final lines = {
+          for (final box in door.getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: label.length),
+          ))
+            box.top,
+        };
+        expect(lines, hasLength(scale == 2.0 ? 2 : 1));
+      });
+    }
+
+    testWidgets(
+      'a slot with a fill shows its level as a ring round the swatch',
+      (tester) async {
+        tester.view.physicalSize = const Size(411, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+
+        final row = find.ancestor(
+          of: find.text('PLA Basic'),
+          matching: find.byType(InkWell),
+        );
+        final ring = tester.widget<CircularProgressIndicator>(
+          find.descendant(
+            of: row.first,
+            matching: find.byType(CircularProgressIndicator),
+          ),
+        );
+        expect(ring.value, 0.66);
+      },
+    );
 
     testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
       tester,
@@ -1139,8 +2379,19 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      expect(find.textContaining('L · '), findsOneWidget);
-      expect(find.textContaining('P · '), findsNothing);
+      final slots = find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+      );
+      expect(
+        find.descendant(of: slots, matching: find.text(pl.extruderLeftShort)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: slots, matching: find.text(pl.extruderRightShort)),
+        findsNothing,
+      );
     });
 
     testWidgets('a slot with a spool reads its fill from the spool', (
@@ -1163,11 +2414,608 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      expect(find.text('10% · 102\u00A0g'), findsOneWidget);
+      expect(find.text('10%'), findsOneWidget);
+      expect(find.text('102\u00A0g'), findsOneWidget);
       expect(find.text('66%'), findsNothing);
       // The holder reports no fill of its own, so it had nothing to show
       // until a spool sat on it.
-      expect(find.text('50% · 250\u00A0g'), findsOneWidget);
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('250\u00A0g'), findsOneWidget);
+    });
+
+    group('a slot row names what is in the slot (#64)', () {
+      Finder slots() => find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+      );
+
+      Future<void> expand(WidgetTester tester) async {
+        await tester.pump();
+        await tester.ensureVisible(find.text(pl.detailsShow));
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      testWidgets('an assigned spool gives its name and the colour written on '
+          'it, even with no weight to read', (tester) async {
+        // No label weight: the fill stays the AMS's 66%, and the spool must
+        // still name the slot.
+        FixedInventory named() => FixedInventory(
+          InventoryState(
+            spools: [
+              Spool(
+                id: 1,
+                material: 'PLA',
+                subtype: 'Matte',
+                brand: 'eSun',
+                colorName: 'Warm White',
+              ),
+            ],
+            assignments: [
+              SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+            ],
+          ),
+        );
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [inventoryProvider.overrideWith(named)],
+          ),
+        );
+        await expand(tester);
+
+        final row = find.ancestor(
+          of: find.text('eSun PLA Matte'),
+          matching: slots(),
+        );
+        expect(row, findsOneWidget);
+        expect(find.text('66%'), findsOneWidget);
+        for (final text in ['Warm White', '4']) {
+          expect(
+            find.descendant(of: row, matching: find.text(text)),
+            findsOneWidget,
+            reason: text,
+          );
+        }
+        // The spool's name wins over the printer's preset name.
+        expect(find.text('PLA Basic'), findsNothing);
+      });
+
+      testWidgets('a bare slot is named by its material, its colour below', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [inventoryProvider.overrideWith(_emptyInventory)],
+          ),
+        );
+        await expand(tester);
+
+        // Slot 1: generic white PETG, no preset name, no spool.
+        final row = find.ancestor(of: find.text('1'), matching: slots());
+        expect(
+          find.descendant(of: row, matching: find.text(pl.colorFamilyWhite)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: row, matching: find.text('PETG')),
+          findsOneWidget,
+        );
+      });
+
+      group('a saved preset', () {
+        FixedInventory eSun() => FixedInventory(
+          InventoryState(
+            spools: [
+              Spool(
+                id: 1,
+                material: 'PLA',
+                subtype: 'Matte',
+                brand: 'eSun',
+                colorName: 'Warm White',
+              ),
+            ],
+            assignments: [
+              SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+            ],
+          ),
+        );
+
+        Future<void> pumpWith(
+          WidgetTester tester,
+          Map<(int, int), SlotPreset> presets, {
+          FixedInventory Function() inventory = _emptyInventory,
+        }) async {
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem()),
+                ),
+              ),
+              extra: [
+                inventoryProvider.overrideWith(inventory),
+                slotPresetsProvider(1).overrideWith((ref) async => presets),
+              ],
+            ),
+          );
+          await expand(tester);
+        }
+
+        testWidgets('names the slot, and the spool it pushed out gets a line '
+            'of its own', (tester) async {
+          await pumpWith(tester, {
+            (0, 3): const SlotPreset(
+              amsId: 0,
+              trayId: 3,
+              presetId: 'GFSL99',
+              presetName: 'Generic PLA @BBL X1C',
+              trayInfoIdx: 'GFA00',
+            ),
+          }, inventory: eSun);
+
+          final row = find.ancestor(
+            of: find.text('Generic PLA'),
+            matching: slots(),
+          );
+          expect(row, findsOneWidget, reason: 'the printer suffix is cut');
+          for (final text in ['Warm White', 'eSun PLA Matte']) {
+            expect(
+              find.descendant(of: row, matching: find.text(text)),
+              findsOneWidget,
+              reason: text,
+            );
+          }
+          expect(find.text('PLA Basic'), findsNothing);
+        });
+
+        testWidgets('is ignored once the slot was reconfigured elsewhere', (
+          tester,
+        ) async {
+          // Recorded with a user preset's id; the printer now reports Bambu's.
+          await pumpWith(tester, {
+            (0, 3): const SlotPreset(
+              amsId: 0,
+              trayId: 3,
+              presetId: 'local_7',
+              presetName: 'Overture PLA Matte',
+              trayInfoIdx: 'P4d5e6f7',
+            ),
+          });
+
+          expect(find.text('Overture PLA Matte'), findsNothing);
+          expect(find.text('PLA Basic'), findsOneWidget);
+        });
+
+        testWidgets('that names the spool already is not said twice', (
+          tester,
+        ) async {
+          await pumpWith(tester, {
+            (0, 3): const SlotPreset(
+              amsId: 0,
+              trayId: 3,
+              presetId: 'local_7',
+              presetName: 'eSun PLA matte',
+              trayInfoIdx: 'GFA00',
+            ),
+          }, inventory: eSun);
+
+          expect(find.text('eSun PLA matte'), findsOneWidget);
+          expect(find.text('eSun PLA Matte'), findsNothing);
+        });
+
+        testWidgets('names the external holder by its own unit and side', (
+          tester,
+        ) async {
+          // The TPU spool is `vt_tray` 254, side 0 of unit 255.
+          await pumpWith(tester, {
+            (255, 0): const SlotPreset(
+              amsId: 255,
+              trayId: 0,
+              presetId: 'GFSU99',
+              presetName: 'Generic TPU',
+              trayInfoIdx: 'GFU01',
+            ),
+          });
+
+          expect(find.text('Generic TPU'), findsOneWidget);
+        });
+      });
+
+      testWidgets('a translucent spool is painted as the colour its number '
+          'was inked against', (tester) async {
+        // Translucent blue over a dark card is dark, over a light one light;
+        // the number must be judged on what the circle really shows.
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(
+                    trays: {
+                      0: {'tray_color': '0086D680'},
+                    },
+                  ),
+                ),
+              ),
+            ),
+            extra: [inventoryProvider.overrideWith(_emptyInventory)],
+          ),
+        );
+        await expand(tester);
+
+        final number = find.descendant(of: slots(), matching: find.text('1'));
+        final ink = tester.widget<Text>(number).style!.color!;
+        final circle = tester
+            .widgetList<Container>(
+              find.ancestor(of: number, matching: find.byType(Container)),
+            )
+            .map((c) => c.decoration)
+            .whereType<BoxDecoration>()
+            .firstWhere((d) => d.shape == BoxShape.circle);
+        final painted = circle.color!;
+        expect(painted.a, 1.0, reason: 'the circle shows one colour');
+        double contrast(Color a, Color b) {
+          final (x, y) = (a.computeLuminance(), b.computeLuminance());
+          return (max(x, y) + 0.05) / (min(x, y) + 0.05);
+        }
+
+        expect(contrast(ink, painted), greaterThanOrEqualTo(4.5));
+      });
+
+      // White, the Bambu green the old ink rule left at 2.9:1, a translucent
+      // blue and the fixture's black — the swatches a slot number must read on.
+      const colours = {
+        0: {'tray_color': 'FFFFFFFF'},
+        1: {'tray_color': '00AE42FF'},
+        2: {'tray_color': '0086D680'},
+      };
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('white, green, translucent and black slots hold on a '
+            '360 dp phone at text scale $scale', (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem(trays: colours)),
+                ),
+              ),
+              extra: [inventoryProvider.overrideWith(_emptyInventory)],
+              textScaler: TextScaler.linear(scale),
+            ),
+          );
+          await expand(tester);
+          // An overflow is a FlutterError, which fails the test on its own.
+
+          double contrast(Color a, Color b) {
+            final (x, y) = (a.computeLuminance(), b.computeLuminance());
+            return (max(x, y) + 0.05) / (min(x, y) + 0.05);
+          }
+
+          for (final number in ['1', '2', '3', '4']) {
+            final text = find.descendant(
+              of: slots(),
+              matching: find.text(number),
+            );
+            final ink = tester.widget<Text>(text).style!.color!;
+            final painted = tester
+                .widgetList<Container>(
+                  find.ancestor(of: text, matching: find.byType(Container)),
+                )
+                .map((c) => c.decoration)
+                .whereType<BoxDecoration>()
+                .firstWhere((d) => d.shape == BoxShape.circle)
+                .color!;
+            expect(
+              contrast(ink, painted),
+              greaterThanOrEqualTo(4.5),
+              reason: 'slot $number',
+            );
+
+            final row = find.ancestor(of: text, matching: slots());
+            expect(
+              tester.getSize(row).height,
+              greaterThanOrEqualTo(48),
+              reason: 'slot $number',
+            );
+            // The name: the first line of the row's text column.
+            final name = tester
+                .widgetList<Text>(
+                  find.descendant(of: row, matching: find.byType(Text)),
+                )
+                .firstWhere((t) => t.data != number);
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.byWidget(name),
+            );
+            final lines = {
+              for (final box in paragraph.getBoxesForSelection(
+                TextSelection(baseOffset: 0, extentOffset: name.data!.length),
+              ))
+                box.top,
+            };
+            expect(lines, hasLength(1), reason: 'slot $number name');
+          }
+        });
+      }
+
+      testWidgets('a slot configured from the card is named after the '
+          'preset it was given, once the printer reports it', (tester) async {
+        final repo = _SlotPresetRepo();
+        Widget card(PrinterWithStatus item) => _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          extra: [
+            inventoryProvider.overrideWith(_emptyInventory),
+            amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+            colorCatalogProvider.overrideWith((ref) async => const []),
+          ],
+        );
+
+        await tester.pumpWidget(card(realItem()));
+        await expand(tester);
+        expect(find.text('Generic PLA'), findsNothing);
+
+        await tester.ensureVisible(slots().first);
+        await tester.tap(slots().first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text(pl.amsSlotConfigure));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        final preset = find.descendant(
+          of: find.byType(AmsSlotConfigSheet),
+          matching: find.text('Generic PLA'),
+        );
+        await tester.ensureVisible(preset);
+        await tester.pump();
+        await tester.tap(preset);
+        await tester.pump();
+        await tester.tap(find.text(pl.amsSlotConfigApply));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final written = repo.written!;
+        expect(repo.saved.keys, [(0, 0)]);
+        // The printer's push after the configure: the filament id it was given,
+        // and no name of its own — the case the saved preset is for.
+        await tester.pumpWidget(
+          card(
+            realItem(
+              trays: {
+                0: {
+                  'tray_type': written.trayType,
+                  'tray_info_idx': written.trayInfoIdx,
+                  'tray_sub_brands': '',
+                },
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final row = find.ancestor(of: find.text('1'), matching: slots());
+        expect(
+          find.descendant(of: row, matching: find.text('Generic PLA')),
+          findsOneWidget,
+        );
+      });
+
+      group('a unit that reports its trays partly or out of order', () {
+        testWidgets('names, fills and loads slot 3 when only slot 3 is '
+            'reported', (tester) async {
+          // `amsHelpers.ts::trayForSlot`: the tray id is the slot, not its
+          // place in the report.
+          FixedInventory atSlot3() => FixedInventory(
+            InventoryState(
+              spools: [
+                Spool(
+                  id: 1,
+                  material: 'PETG',
+                  brand: 'eSun',
+                  labelWeight: 1000,
+                  weightUsed: 500,
+                ),
+              ],
+              assignments: [
+                SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 2),
+              ],
+            ),
+          );
+          final commands = RecordingCommands();
+          final item = realItem(trayOrder: [2]);
+          // Idle: a printing card does not offer the load.
+          final idle = PrinterStatus(
+            id: item.printer.id,
+            connected: true,
+            state: 'IDLE',
+          ).mergedWith(item.status!);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: PrinterWithStatus(
+                      printer: item.printer,
+                      status: idle,
+                    ),
+                  ),
+                ),
+              ),
+              extra: [
+                printerCommandsRepositoryProvider.overrideWithValue(commands),
+                inventoryProvider.overrideWith(atSlot3),
+                slotPresetsProvider(1).overrideWith(
+                  (ref) async => {
+                    (0, 2): const SlotPreset(
+                      amsId: 0,
+                      trayId: 2,
+                      presetId: 'GFSG99',
+                      presetName: 'Generic PETG',
+                      trayInfoIdx: 'GFG02',
+                    ),
+                  },
+                ),
+              ],
+            ),
+          );
+          await expand(tester);
+
+          final row = find.ancestor(of: find.text('3'), matching: slots());
+          expect(row, findsOneWidget);
+          expect(
+            find.descendant(of: slots(), matching: find.text('1')),
+            findsNothing,
+          );
+          for (final text in ['Generic PETG', 'eSun PETG', '50%']) {
+            expect(
+              find.descendant(of: row, matching: find.text(text)),
+              findsOneWidget,
+              reason: text,
+            );
+          }
+
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.tap(find.text(pl.amsLoad));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          expect(commands.calls, ['amsLoad:1:2:-']);
+        });
+
+        testWidgets('lists trays reported out of order in slot order', (
+          tester,
+        ) async {
+          // Reported as slot 2, then slot 1: white is slot 1, yellow slot 2.
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem(trayOrder: [1, 0])),
+                ),
+              ),
+              extra: [inventoryProvider.overrideWith(_emptyInventory)],
+            ),
+          );
+          await expand(tester);
+
+          Finder rowOf(String number) =>
+              find.ancestor(of: find.text(number), matching: slots());
+          expect(
+            tester.getRect(rowOf('1')).top,
+            lessThan(tester.getRect(rowOf('2')).top),
+          );
+          expect(
+            find.descendant(
+              of: rowOf('1'),
+              matching: find.text(pl.colorFamilyWhite),
+            ),
+            findsOneWidget,
+          );
+        });
+      });
+
+      testWidgets('the slot number is inked against its colour', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [inventoryProvider.overrideWith(_emptyInventory)],
+          ),
+        );
+        await expand(tester);
+
+        Color? inkOf(String number) => tester
+            .widget<Text>(
+              find.descendant(of: slots(), matching: find.text(number)),
+            )
+            .style
+            ?.color;
+        expect(inkOf('1'), Colors.black, reason: 'white spool');
+        expect(inkOf('4'), Colors.white, reason: 'black spool');
+        // Pink F55A74: black reads 6.6:1, white 3.2:1. estimateBrightnessForColor
+        // still calls it dark and inks it white.
+        expect(inkOf('3'), Colors.black, reason: 'pink spool');
+      });
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('a long name stays on one line on a 360 dp phone at text '
+            'scale $scale', (tester) async {
+          FixedInventory long() => FixedInventory(
+            InventoryState(
+              spools: [
+                Spool(
+                  id: 1,
+                  material: 'PLA',
+                  subtype: 'Silk Dual Colour',
+                  brand: 'Polymaker PolyTerra',
+                  colorName: 'Galaxy Midnight Black',
+                  labelWeight: 1000,
+                  weightUsed: 188,
+                ),
+              ],
+              assignments: [
+                SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+              ],
+            ),
+          );
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(
+                textScaler: TextScaler.linear(scale),
+                size: const Size(360, 3000),
+              ),
+              child: _scope(
+                Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(item: realItem()),
+                  ),
+                ),
+                extra: [inventoryProvider.overrideWith(long)],
+              ),
+            ),
+          );
+          await expand(tester);
+          // An overflow is a FlutterError, which fails the test on its own.
+
+          const name = 'Polymaker PolyTerra PLA Silk Dual Colour';
+          final row = find.ancestor(of: find.text(name), matching: slots());
+          final rowRect = tester.getRect(row);
+          expect(rowRect.height, greaterThanOrEqualTo(48));
+          final title = tester.renderObject<RenderParagraph>(find.text(name));
+          final lines = {
+            for (final box in title.getBoxesForSelection(
+              const TextSelection(baseOffset: 0, extentOffset: name.length),
+            ))
+              box.top,
+          };
+          expect(lines, hasLength(1), reason: 'the name never wraps');
+          for (final text in ['Galaxy Midnight Black', '81%', '812\u00A0g']) {
+            final rect = tester.getRect(
+              find.descendant(of: row, matching: find.text(text)),
+            );
+            expect(rect.right, lessThanOrEqualTo(rowRect.right), reason: text);
+          }
+        });
+      }
     });
 
     testWidgets('a spool at 0 g the AMS still sees shows only the AMS fill', (
@@ -1756,7 +3604,7 @@ void main() {
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
-          inertSmartPlugsOverride,
+          ...inertDashboardPollOverrides,
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
@@ -2635,7 +4483,7 @@ void main() {
       overrides: [
         fakeServerProfileOverride(),
         mediaAuthOverride(),
-        inertSmartPlugsOverride,
+        ...inertDashboardPollOverrides,
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
       child: plApp(
@@ -2705,7 +4553,7 @@ void main() {
         overrides: layerOverrides([
           fakeServerProfileOverride(),
           mediaAuthOverride(),
-          inertSmartPlugsOverride,
+          ...inertDashboardPollOverrides,
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
@@ -2716,6 +4564,197 @@ void main() {
       expect(find.text('X2D'), findsOneWidget); // card survives
       expect(find.byIcon(Icons.system_update), findsNothing);
       expect(find.byIcon(Icons.memory), findsNothing);
+    });
+  });
+
+  group('a hotend\'s own figures in its temperature sheet', () {
+    // The H2D: `nozzle_2` is the right head (id 0), the plain `nozzle` the left
+    // (id 1), and each reports what it knows about itself in `nozzle_rack`.
+    PrinterWithStatus h2d(List<NozzleRackSlot>? rack) => PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'H2D'),
+      status: PrinterStatus(
+        id: 1,
+        model: 'H2D',
+        connected: true,
+        state: 'IDLE',
+        temperatures: const {
+          'nozzle': 24,
+          'nozzle_target': 0,
+          'nozzle_2': 25,
+          'nozzle_2_target': 0,
+          'bed': 24,
+        },
+        nozzleRack: rack,
+      ),
+    );
+
+    const right = NozzleRackSlot(
+      id: 0,
+      nozzleType: 'HS01',
+      nozzleDiameter: '0.6',
+      wear: 18,
+      printTimeS: 7320,
+      maxTemp: 300,
+      serialNumber: 'RIGHT-SN',
+    );
+    const left = NozzleRackSlot(
+      id: 1,
+      nozzleType: 'HH01',
+      nozzleDiameter: '0.4',
+      printTimeS: 3661,
+    );
+
+    // The card behind the sheet repeats labels such as the nozzle's name.
+    Finder inSheet(Finder f) =>
+        find.descendant(of: find.byType(FittedSheetSurface), matching: f);
+
+    Future<void> openTile(
+      WidgetTester tester,
+      String id,
+      PrinterWithStatus item, {
+      double scale = 1,
+    }) async {
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId(id));
+      await tester.pumpAndSettle();
+    }
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the right head\'s sheet shows its own nozzle, at text scale '
+          '$scale', (tester) async {
+        await openTile(
+          tester,
+          'printer.temperature_nozzle_2',
+          h2d(const [right, left]),
+          scale: scale,
+        );
+
+        expect(
+          inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+          findsOneWidget,
+        );
+        expect(
+          inSheet(find.text(pl.nozzleDiameterValue('0.6'))),
+          findsOneWidget,
+        );
+        expect(inSheet(find.text(pl.nozzleFlowStandard)), findsOneWidget);
+        expect(inSheet(find.text(pl.nozzleWearValue(18))), findsOneWidget);
+        expect(inSheet(find.text(formatMinutes(pl, 122))), findsOneWidget);
+        // The hotend's section is the short one: no serial, rating or status.
+        expect(inSheet(find.text('RIGHT-SN')), findsNothing);
+        expect(inSheet(find.text(pl.nozzleMaxTempValue(300))), findsNothing);
+      });
+    }
+
+    testWidgets('the left head\'s sheet shows the left nozzle, without a wear '
+        'row it did not report', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        h2d(const [right, left]),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleFlowHigh)), findsOneWidget);
+      expect(inSheet(find.text(formatMinutes(pl, 61))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleLabelWear)), findsNothing);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+    });
+
+    testWidgets('a frame without nozzle_2 yet still gives the left head its '
+        'own figures, not the right one\'s', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2D'),
+          status: const PrinterStatus(
+            id: 1,
+            model: 'H2D',
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right, left],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+      // The same head throughout: the sheet that shows the left nozzle is the
+      // one that offers to make it the active extruder.
+      expect(inSheet(find.text(pl.ctrlActivate)), findsOneWidget);
+    });
+
+    testWidgets('a single-nozzle printer keeps its one nozzle\'s figures', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2C'),
+          status: const PrinterStatus(
+            id: 1,
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsOneWidget);
+    });
+
+    testWidgets('a printer that reports no nozzle figures has no section', (
+      tester,
+    ) async {
+      await openTile(tester, 'printer.temperature_nozzle_2', h2d(null));
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a head whose entry is an empty placeholder has no section', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle_2',
+        h2d(const [NozzleRackSlot(id: 0), left]),
+      );
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the bed\'s sheet has no nozzle section', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_bed',
+        h2d(const [right, left]),
+      );
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
     });
   });
 
@@ -2881,6 +4920,51 @@ void main() {
           );
         }
       });
+
+      if (scale == 1.0) {
+        testWidgets('a chamber target held by the cooling duct takes no '
+            'keyboard focus', (tester) async {
+          tester.view.physicalSize = const Size(411, 2400);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: PrinterWithStatus(
+                      printer: idle.printer,
+                      status: PrinterStatus(
+                        id: 1,
+                        model: 'H2D',
+                        connected: true,
+                        state: 'IDLE',
+                        airductMode: 0,
+                        temperatures: const {
+                          'chamber': 40,
+                          'chamber_target': 0,
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            byLogId('printer.temperature_chamber'),
+            warnIfMissed: false,
+          );
+          await tester.pumpAndSettle();
+
+          final step = find.descendant(
+            of: byLogId('temperature.step_up'),
+            matching: find.byType(Icon),
+          );
+          expect(Focus.of(tester.element(step)).canRequestFocus, isFalse);
+        });
+      }
 
       testWidgets('the movement sheet rows hold at text $scale', (
         tester,
@@ -4083,6 +6167,37 @@ void main() {
         handle.dispose();
       });
 
+      /// The editor's ids are the log's vocabulary for both rows; the drying
+      /// rows spell them with an underscore, the other sheets with a dot.
+      testWidgets('both rows keep their log ids', (tester) async {
+        await openSheet(tester);
+
+        for (final row in ['drying.temp', 'drying.hours']) {
+          expect(byLogId('${row}_step_down'), findsOneWidget);
+          expect(byLogId('${row}_slider'), findsOneWidget);
+          expect(byLogId('${row}_step_up'), findsOneWidget);
+          expect(byLogId('${row}_preset'), findsWidgets);
+        }
+      });
+
+      /// The dryer starts at 45 °C, not at zero: the lower end of the range is
+      /// the row's own, so minus at 45 stays at 45.
+      testWidgets('the temperature step stops at the bottom of its range', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+
+        await tester.tap(byLogId('drying.temp_step_down'));
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        expect(find.text('44°'), findsNothing);
+        handle.dispose();
+      });
+
       testWidgets('the duration slider reads in hours', (tester) async {
         final handle = tester.ensureSemantics();
         await openSheet(tester);
@@ -5010,6 +7125,145 @@ void main() {
       expect(tick(), findsNothing);
     });
   });
+
+  group('AI failure detection on the print panel', () {
+    // The widest row the panel has: time left, ETA, layers, a pause and the
+    // detection item.
+    const item = PrinterWithStatus(
+      printer: Printer(id: 1, name: 'X1C'),
+      status: PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'RUNNING',
+        progress: 20,
+        remainingTime: 80,
+        layerNum: 40,
+        totalLayers: 200,
+        nextPause: NextPause(layer: 120, minutes: 40),
+      ),
+    );
+
+    Future<void> pumpCard(
+      WidgetTester tester,
+      AiDetectionStatus? status, {
+      double scale = 1,
+    }) async {
+      await tester.pumpWidget(
+        _scope(
+          const Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          extra: [aiDetectionOverride(status)],
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    AiDetectionStatus one(AiDetection detection, {Set<int>? monitored}) =>
+        AiDetectionStatus(
+          enabled: true,
+          monitoredPrinters: monitored,
+          perPrinter: {1: detection},
+        );
+
+    Finder eye() => find.byIcon(Icons.visibility_outlined);
+    Finder eyeOff() => find.byIcon(Icons.visibility_off_outlined);
+
+    for (final (cls, label) in [
+      (AiDetectionClass.safe, pl.aiDetectionSafe),
+      (AiDetectionClass.warning, pl.aiDetectionWarning),
+      (AiDetectionClass.failure, pl.aiDetectionFailure),
+      (AiDetectionClass.unknown, pl.aiDetectionStarting),
+    ]) {
+      testWidgets('${cls.name} shows its word beside an eye', (tester) async {
+        await pumpCard(tester, one(AiDetection(cls: cls, score: 0.01)));
+
+        expect(find.text(label), findsOneWidget);
+        expect(eye(), findsOneWidget);
+        expect(eyeOff(), findsNothing);
+      });
+    }
+
+    testWidgets('a print that is not being checked says so, eye crossed out', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpCard(
+        tester,
+        one(
+          const AiDetection(
+            cls: AiDetectionClass.error,
+            score: 0,
+            error: 'ML API unreachable',
+          ),
+        ),
+      );
+
+      expect(find.text(pl.aiDetectionNotChecking), findsOneWidget);
+      expect(eye(), findsNothing);
+      expect(
+        tester.getSemantics(eyeOff()).label,
+        contains(pl.aiDetectionTipError('ML API unreachable')),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a tap shows the sentence behind the word', (tester) async {
+      await pumpCard(
+        tester,
+        one(
+          const AiDetection(
+            cls: AiDetectionClass.safe,
+            printQuality: 8,
+            ratesQuality: true,
+          ),
+        ),
+      );
+      final sentence = pl.aiDetectionTipQuality(pl.aiDetectionSafe, 8);
+      expect(find.text(sentence), findsNothing);
+
+      await tester.tap(find.text(pl.aiDetectionSafe));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text(sentence), findsOneWidget);
+      // Let the tooltip's own timer run out before the test ends.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('nothing without an entry, without detection, or outside the '
+        'monitored printers', (tester) async {
+      const safe = AiDetection(cls: AiDetectionClass.safe, score: 0);
+      for (final status in [
+        null,
+        const AiDetectionStatus(enabled: true),
+        const AiDetectionStatus(enabled: false, perPrinter: {1: safe}),
+        one(safe, monitored: {2}),
+      ]) {
+        await pumpCard(tester, status);
+        expect(eye(), findsNothing, reason: '$status');
+        expect(find.text(pl.aiDetectionSafe), findsNothing);
+      }
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the widest row lays out at ${scale}x text', (tester) async {
+        // The longest label of the five, on a 360 dp phone.
+        tester.view.physicalSize = const Size(360, 1600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await pumpCard(
+          tester,
+          one(const AiDetection(cls: AiDetectionClass.error)),
+          scale: scale,
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text(pl.aiDetectionNotChecking), findsOneWidget);
+        expect(find.byIcon(Icons.pause_circle_outline), findsOneWidget);
+      });
+    }
+  });
 }
 
 /// Records bed jogs; anything else the card calls is a test bug.
@@ -5025,4 +7279,78 @@ class _JogRecorder implements PrinterCommandsRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName}');
+}
+
+/// A server that remembers the presets a slot is given: what the card reads
+/// back after the configure sheet saves one.
+class _SlotPresetRepo implements AmsSlotConfigRepository {
+  SlotConfiguration? written;
+  final Map<(int, int), SlotPreset> saved = {};
+
+  @override
+  Future<List<AmsFilamentPreset>> cloudFilaments() async => const [];
+
+  @override
+  Future<List<AmsFilamentPreset>> localFilaments() async => const [];
+
+  @override
+  Future<List<AmsFilamentPreset>> builtinFilaments() async => const [
+    AmsFilamentPreset(
+      source: AmsPresetSource.builtin,
+      id: 'GFL99',
+      name: 'Generic PLA',
+    ),
+  ];
+
+  @override
+  Future<Map<String, String>> printerModels() async => const {};
+
+  @override
+  Future<List<KProfile>> kProfiles(
+    int printerId, {
+    required String nozzleDiameter,
+  }) async => const [];
+
+  @override
+  Future<SlotPreset?> slotPreset(
+    int printerId, {
+    required int amsId,
+    required int trayId,
+  }) async => saved[(amsId, trayId)];
+
+  @override
+  Future<Map<(int, int), SlotPreset>> slotPresets(int printerId) async =>
+      Map.of(saved);
+
+  @override
+  Future<ColorCatalog> colorCatalog() async => ColorCatalog.empty;
+
+  @override
+  Future<void> configureSlot(
+    int printerId, {
+    required int amsId,
+    required int trayId,
+    required SlotConfiguration configuration,
+  }) async => written = configuration;
+
+  @override
+  Future<void> saveSlotPreset(
+    int printerId, {
+    required int amsId,
+    required int trayId,
+    required AmsFilamentPreset preset,
+    required String presetName,
+    String? trayInfoIdx,
+  }) async => saved[(amsId, trayId)] = SlotPreset(
+    amsId: amsId,
+    trayId: trayId,
+    presetId: preset.pickerId,
+    presetName: presetName,
+    trayInfoIdx: trayInfoIdx,
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+    '${invocation.memberName} is not part of this test',
+  );
 }

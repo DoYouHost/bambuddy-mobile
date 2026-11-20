@@ -1,0 +1,9 @@
+[
+  {
+    "method": "PATCH",
+    "path": "/api/v1/print-log/2",
+    "body": {
+      "notes": "Lids fit"
+    }
+  }
+]

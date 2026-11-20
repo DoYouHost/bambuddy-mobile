@@ -33,13 +33,18 @@ import 'print_outcome.dart';
 ///
 /// [rejecting] opens it on the reason step, for a reject the archive detail has
 /// just recorded with its thumb.
+///
+/// [runId] asks about one print of the archive instead of its latest, behind
+/// `archiveRunsSupportedProvider`.
 Future<void> showOutcomeSheet(
   BuildContext context,
   int archiveId, {
   bool rejecting = false,
+  int? runId,
 }) => dashSheet<void>(
   context,
-  builder: (_) => OutcomeSheet(archiveId: archiveId, rejecting: rejecting),
+  builder: (_) =>
+      OutcomeSheet(archiveId: archiveId, rejecting: rejecting, runId: runId),
 );
 
 /// Writes [verdict] (null clears it) and keeps the screen's list and the
@@ -48,11 +53,16 @@ Future<void> showOutcomeSheet(
 /// The cause goes with a reject as chosen — "No reason" included, which
 /// clears one the print still carries. Leaving a reject clears its cause,
 /// as the web's edit dialog does; anything else leaves it alone.
+///
+/// With [runId] the verdict is that print's, and [archive] is the archive as
+/// that print printed (its reason is what a reject carries over). The answer
+/// is the archive as its latest print shows it, like any other `PATCH`.
 Future<({Archive archive, bool applied})> writeVerdict(
   ProviderContainer providers,
   Archive archive,
   PrintVerdict? verdict, {
   String? reason,
+  int? runId,
 }) async {
   final chosen = (reason ?? '').isEmpty ? null : reason;
   final carried = archive.failureReason != null;
@@ -65,15 +75,19 @@ Future<({Archive archive, bool applied})> writeVerdict(
         clearReason: verdict == PrintVerdict.reject
             ? chosen == null && carried
             : archive.userVerdict == PrintVerdict.reject && carried,
+        runId: runId,
       );
+  final latest = result.archive;
+  // Either way a print's verdict changed, and the sheet's print list shows it.
+  providers.invalidate(archiveRunsProvider(archive.id));
   // Only a list somebody is looking at: building it here would fetch every
   // archive the server has to change one row.
   if (providers.exists(archiveProvider)) {
-    providers.read(archiveProvider.notifier).replace(result.archive);
+    providers.read(archiveProvider.notifier).replace(latest);
   }
   // Answered here, so the notification asking the same thing has nothing
-  // left to ask.
-  if (result.applied) {
+  // left to ask — for one print, only once the latest is answered.
+  if (result.applied && !latest.awaitsVerdict) {
     unawaited(
       cancelOutcomeAlert(
         archive.id,
@@ -102,10 +116,12 @@ class OutcomeSheet extends ConsumerStatefulWidget {
     super.key,
     required this.archiveId,
     this.rejecting = false,
+    this.runId,
   });
 
   final int archiveId;
   final bool rejecting;
+  final int? runId;
 
   @override
   ConsumerState<OutcomeSheet> createState() => _OutcomeSheetState();
@@ -131,9 +147,18 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
         ),
         child: dashAsync(
           context,
-          ref.watch(archiveDetailProvider(widget.archiveId)),
-          onRetry: () =>
-              ref.invalidate(archiveDetailProvider(widget.archiveId)),
+          switch (widget.runId) {
+            null => ref.watch(archiveDetailProvider(widget.archiveId)),
+            final runId => ref.watch(
+              archiveRunDetailProvider((widget.archiveId, runId)),
+            ),
+          },
+          onRetry: () => switch (widget.runId) {
+            null => ref.invalidate(archiveDetailProvider(widget.archiveId)),
+            final runId => ref.invalidate(
+              archiveRunDetailProvider((widget.archiveId, runId)),
+            ),
+          },
           data: (archive) => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -326,6 +351,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
         archive,
         verdict,
         reason: reason,
+        runId: widget.runId,
       );
       messenger.snack(
         verdictSavedMessage(l10n, verdict, applied: result.applied),

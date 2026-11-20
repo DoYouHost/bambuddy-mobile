@@ -26,6 +26,6 @@ class ExternalLinksRepository {
       ];
     },
     const [],
-    statuses: {404, 403},
+    statuses: absentOrRefused,
   );
 }

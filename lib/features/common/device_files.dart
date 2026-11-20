@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -65,6 +66,16 @@ Future<PickedFileResult> pickFileFromDevice({
     outcome: DeviceFileOutcome.done,
     file: (path: path ?? '', name: name, bytes: file.bytes),
   );
+}
+
+/// The contents of a small [file] the caller parses, or nothing when it is over
+/// [maxBytes]. The size first, so a video picked by mistake is never read into
+/// memory; the bytes only from a picker that gave no path.
+Future<List<int>> readSmallPickedFile(PickedFile file, int maxBytes) async {
+  if (file.path.isEmpty) return file.bytes ?? const [];
+  final disk = File(file.path);
+  if (await disk.length() > maxBytes) return const [];
+  return disk.readAsBytes();
 }
 
 /// Saves [bytes] wherever the user points the system dialog.

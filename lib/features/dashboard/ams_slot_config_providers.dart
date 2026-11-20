@@ -145,6 +145,15 @@ final kProfilesProvider = FutureProvider.autoDispose
       }
     });
 
+/// Every saved slot preset of a printer, by unit and local tray id — what the
+/// dashboard's slot rows are named after. Empty when the server has none or
+/// cannot say.
+final slotPresetsProvider = FutureProvider.autoDispose
+    .family<Map<(int, int), SlotPreset>, int>(
+      (ref, printerId) =>
+          ref.watch(amsSlotConfigRepositoryProvider).slotPresets(printerId),
+    );
+
 /// The preset a slot was configured with, or null when it has none.
 ///
 /// Auto-disposed and per slot: unlike the catalogue this is state the user is

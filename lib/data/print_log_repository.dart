@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -118,6 +119,10 @@ class PrintLogRepository {
   /// PATCH vocabulary cannot write back (`aborted` — see [printLogStatuses]).
   /// [clearFailureReason] sends `''`, the server's "no classification".
   ///
+  /// [notes] is the print's own note (archive redesign); an empty string clears
+  /// it. An older server drops the key, so send it only behind
+  /// `ArchiveRepository.runsCapability`.
+  ///
   /// Refused with 400 for a value outside either vocabulary; the server's
   /// wording survives, since our list drifting from its list is the only way to
   /// get there.
@@ -126,6 +131,7 @@ class PrintLogRepository {
     String? failureReason,
     bool clearFailureReason = false,
     String? status,
+    String? notes,
   }) async {
     // `?value` omits the entry entirely when the value is null, which is what
     // an unsent field has to be here — clearing sends `''`, so the two cases
@@ -133,13 +139,14 @@ class PrintLogRepository {
     final data = <String, dynamic>{
       'failure_reason': ?(clearFailureReason ? '' : failureReason),
       'status': ?status,
+      'notes': ?notes,
     };
     return guardKeepingDetail(() async {
-      final res = await _dio.patch<Map<String, dynamic>>(
+      return _dio.patchObject(
         Endpoints.printLogEntry(entryId),
+        PrintLogEntry.fromJson,
         data: data,
       );
-      return PrintLogEntry.fromJson(res.data ?? const {});
     });
   }
 

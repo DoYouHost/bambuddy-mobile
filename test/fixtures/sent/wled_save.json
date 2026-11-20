@@ -1,0 +1,25 @@
+[
+  {
+    "method": "PATCH",
+    "path": "/api/v1/printers/1",
+    "body": {
+      "wled_config": {
+        "enabled": true,
+        "base_url": "http://192.168.1.50",
+        "presets": {
+          "idle": 1,
+          "prepare": null,
+          "printing": 5,
+          "paused": 2,
+          "finished": null,
+          "error": null,
+          "queue_waiting": null,
+          "filament_problem": null,
+          "hms_error": null,
+          "offline": null
+        },
+        "finished_timeout_seconds": 120
+      }
+    }
+  }
+]

@@ -4,6 +4,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/library_file.dart';
 import '../core/models/library_folder.dart';
@@ -58,37 +59,32 @@ class ProjectsRepository {
   /// 1.2.5.2), the same feature gate [LibraryRepository.listTags] uses: the
   /// sets progress bar stays hidden rather than reading zero on a server that
   /// simply cannot answer. Other failures propagate as real errors.
-  Future<List<ProjectFileProgress>?> fileProgress(int id) async {
-    try {
-      final body = await guard(() async {
-        final res = await _dio.get<List<dynamic>>(
-          Endpoints.projectFileProgress(id),
-        );
-        return res.data ?? const [];
-      });
-      return parseJsonList(body, ProjectFileProgress.fromJson);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+  Future<List<ProjectFileProgress>?> fileProgress(int id) => guardAbsent(
+    () async {
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.projectFileProgress(id),
+      );
+      return parseJsonList(res.data ?? const [], ProjectFileProgress.fromJson);
+    },
+    null,
+  );
 
   /// POST /projects/ — create.
   Future<ProjectResponse> create(ProjectCreate body) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.projects,
+      ProjectResponse.fromJson,
       data: body.toMap(),
     );
-    return ProjectResponse.fromJson(res.data ?? const {});
   });
 
   /// PATCH /projects/{id} — partial update.
   Future<ProjectResponse> update(int id, ProjectUpdate body) => guard(() async {
-    final res = await _dio.patch<Map<String, dynamic>>(
+    return _dio.patchObject(
       Endpoints.project(id),
+      ProjectResponse.fromJson,
       data: body.toMap(),
     );
-    return ProjectResponse.fromJson(res.data ?? const {});
   });
 
   /// DELETE /projects/{id}.
@@ -100,11 +96,11 @@ class ProjectsRepository {
   /// POST /projects/from-template/{id}?name= — instantiate a template.
   Future<ProjectResponse> createFromTemplate(int templateId, String name) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.projectFromTemplate(templateId),
-          queryParameters: {'name': name},
+          ProjectResponse.fromJson,
+          query: {'name': name},
         );
-        return ProjectResponse.fromJson(res.data ?? const {});
       });
 
   /// POST /projects/{id}/create-template — turn project into a template.

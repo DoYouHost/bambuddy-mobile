@@ -92,9 +92,7 @@ class Spool {
   /// Native `SpoolResponse` from `GET /inventory/spools`.
   factory Spool.fromNative(Map<String, dynamic> json) => Spool(
     id: toIntOrNull(json['id']) ?? -1,
-    material: (json['material'] as String?)?.trim().isNotEmpty == true
-        ? json['material'] as String
-        : 'Unknown',
+    material: toStringOrNull(json['material']) ?? 'Unknown',
     subtype: toStringOrNull(json['subtype']),
     colorName: toStringOrNull(json['color_name']),
     rgba: toStringOrNull(json['rgba']),
@@ -325,13 +323,33 @@ class Spool {
 
   bool get isArchived => archivedAt != null && archivedAt!.isNotEmpty;
 
-  /// Whether below low-stock threshold (default 10% if server doesn't provide).
-  bool get isLowStock {
+  /// Remaining filament as a percentage of the label weight; null without a
+  /// label weight. The server's `_remaining_percent`
+  /// (`services/print_scheduler.py`).
+  double? get remainingPercent {
     final frac = remainingFraction;
-    if (frac == null) return false;
-    final thresholdPct = lowStockThresholdPct ?? 10;
-    return frac * 100 <= thresholdPct;
+    return frac == null ? null : frac * 100;
   }
+
+  /// The percentage this spool alerts below: its own, else the server-wide
+  /// [globalThreshold]. A zero or missing own value falls through, as the
+  /// server's `low_stock_threshold_pct or global_threshold` does. The web's `??`
+  /// would keep a zero, which `schemas/spool.py` (`ge=1`) never lets be stored.
+  double lowStockThresholdFor(double globalThreshold) {
+    final own = lowStockThresholdPct;
+    return own != null && own > 0 ? own.toDouble() : globalThreshold;
+  }
+
+  /// Whether this spool is below its low-stock threshold. Strictly below, like
+  /// the web's Low Stock count (`InventoryPage.tsx`: `pct < threshold`) and the
+  /// server's alert (`_emit_filament_low`: re-armed at `pct >= threshold`).
+  ///
+  /// A spool with no label weight counts as 0% and so as low, which is what the
+  /// web does (`InventoryPage.tsx`: `label_weight > 0 ? ... : 0`). The
+  /// background alert does not follow it: the server never alerts on one
+  /// (`_remaining_percent` is None), and `lowStockSlots` skips it the same way.
+  bool isLowStock(double globalThreshold) =>
+      (remainingPercent ?? 0) < lowStockThresholdFor(globalThreshold);
 
   /// Display name for list: brand + material + (subtype).
   String get displayName {
@@ -348,6 +366,11 @@ class Spool {
   bool matchesSearch(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return true;
+    // Web parity (frontend/src/utils/inventorySearch.ts): "#3" is that one
+    // spool, a bare "3" also finds #13 and #30.
+    final exactId = RegExp(r'^#(\d+)$').firstMatch(q);
+    if (exactId != null) return id == int.tryParse(exactId.group(1)!);
+    if ('$id'.contains(q)) return true;
     for (final field in [
       material,
       subtype,
@@ -356,8 +379,12 @@ class Spool {
       storageLocation,
       category,
       materialNumber,
-      for (final link in suppliers ?? const <SpoolSupplierLink>[])
+      note,
+      slicerFilamentName,
+      for (final link in suppliers ?? const <SpoolSupplierLink>[]) ...[
         link.supplierName,
+        link.articleNumber,
+      ],
     ]) {
       if (field != null && field.toLowerCase().contains(q)) return true;
     }
@@ -708,6 +735,7 @@ class SpoolAssignment {
     this.printerName,
     this.amsLabel,
     this.spool,
+    this.printerModel,
   });
 
   factory SpoolAssignment.fromNative(Map<String, dynamic> json) =>
@@ -718,6 +746,7 @@ class SpoolAssignment {
         trayId: toIntOrNull(json['tray_id']) ?? -1,
         printerName: toStringOrNull(json['printer_name']),
         amsLabel: toStringOrNull(json['ams_label']),
+        printerModel: toStringOrNull(json['printer_model']),
         spool: switch (json['spool']) {
           final Map<String, dynamic> spool => Spool.fromNative(spool),
           _ => null,
@@ -732,6 +761,7 @@ class SpoolAssignment {
         trayId: toIntOrNull(json['tray_id']) ?? -1,
         printerName: toStringOrNull(json['printer_name']),
         amsLabel: toStringOrNull(json['ams_label']),
+        printerModel: toStringOrNull(json['printer_model']),
       );
 
   final int spoolId;
@@ -740,6 +770,17 @@ class SpoolAssignment {
   final int trayId;
   final String? printerName;
   final String? amsLabel;
+
+  /// The printer's model, which names a rack printer's external inputs "Ext-n"
+  /// (server #3442); absent on an older server.
+  final String? printerModel;
+
+  /// A rack printer's external input: by model, or by a tray past the two a
+  /// holder has, which only a rack printer reports.
+  bool get isRackExternal =>
+      isExternalSpool &&
+      trayId >= 0 &&
+      (trayId >= 2 || isRackPrinterModel(printerModel));
 
   /// The spool itself, which the built-in inventory sends inside each
   /// assignment (`SpoolAssignmentResponse.spool`); the web reads a slot's
@@ -758,7 +799,9 @@ class SpoolAssignment {
   /// physically LEFT, PLA `ams=255, tray=1` RIGHT. Note that [trayId] here is
   /// the holder **side**, not the `vt_tray` id the dashboard shows — see
   /// [slot_addressing] for the two.
-  int? get extruder => isExternalSpool ? extruderForExternalSide(trayId) : null;
+  int? get extruder => isExternalSpool && !isRackExternal
+      ? extruderForExternalSide(trayId)
+      : null;
 
   /// AMS slot label for UI, the unit named by the user's `ams_label` when it
   /// has one. For external spool, label built in UI (needs l10n) — see
@@ -775,6 +818,7 @@ class SpoolAssignmentDraft {
     required this.printerId,
     required this.amsId,
     required this.trayId,
+    this.move = false,
   });
 
   final int spoolId;
@@ -782,11 +826,18 @@ class SpoolAssignmentDraft {
   final int amsId;
   final int trayId;
 
+  /// Take the spool out of every other slot in the same commit
+  /// (`SpoolAssignmentCreate.move`). Only for a server that has the field:
+  /// below `ServerFeature.assignmentMove` the server ignores it and the spool
+  /// stays in both slots.
+  final bool move;
+
   Map<String, dynamic> toNativeJson() => {
     'spool_id': spoolId,
     'printer_id': printerId,
     'ams_id': amsId,
     'tray_id': trayId,
+    if (move) 'move': true,
   };
 }
 
@@ -844,3 +895,47 @@ class SpoolKProfile {
   final double? kValue;
   final String? nozzleDiameter;
 }
+
+/// What the server's `low_stock_threshold` setting amounts to: the schema's 20
+/// when it is missing or unreadable, and when it lies outside `0 < v <= 100`
+/// (`print_scheduler.py::_get_low_stock_threshold`).
+const double defaultLowStockThreshold = 20;
+
+/// The key the setting goes by, in `GET /settings` and in `GET /settings/ui-flags`.
+const lowStockThresholdKey = 'low_stock_threshold';
+
+double lowStockThresholdFrom(Map<String, dynamic> settings) {
+  final value = toDoubleOrNull(settings[lowStockThresholdKey]);
+  return value != null && value > 0 && value <= 100
+      ? value
+      : defaultLowStockThreshold;
+}
+
+/// The bounds `PUT /settings/` accepts for `low_stock_threshold`
+/// (`schemas/settings.py`, `ge=0.1, le=99.9`); it answers 422 outside them.
+const double lowStockThresholdMin = 0.1;
+const double lowStockThresholdMax = 99.9;
+
+final _lowStockInput = RegExp(r'^\d{0,2}([.,]\d*)?$');
+
+/// The number a user typed into the threshold field, or null when it is not one
+/// the server takes. A superset of the web's field (`InventoryPage.tsx`:
+/// `^\d{0,2}(\.\d?)?$`, then 0.1 to 99.9): the server takes any decimals, and a
+/// value it holds with two (set through the API) has to survive being edited. A
+/// comma stands in for the point because that is the key a phone keyboard shows
+/// in some locales.
+double? parseLowStockThresholdInput(String text) {
+  final trimmed = text.trim();
+  if (!_lowStockInput.hasMatch(trimmed)) return null;
+  final value = double.tryParse(trimmed.replaceAll(',', '.'));
+  return value != null &&
+          value >= lowStockThresholdMin &&
+          value <= lowStockThresholdMax
+      ? value
+      : null;
+}
+
+/// A threshold as it reads on screen: "20", not "20.0", and the rest as the
+/// server holds it, so "12.04" is not shown as "12.0".
+String formatLowStockThreshold(double value) =>
+    value == value.truncateToDouble() ? value.toInt().toString() : '$value';

@@ -1,3 +1,4 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -172,6 +173,12 @@ class QueueSettingsScreen extends ConsumerWidget {
             bubble: '${settings.number(QueueSetting.maxConcurrentUploads)}',
             enabled: writable,
             onChangeEnd: write,
+          ),
+        if (has(QueueSetting.dispatchOrder))
+          _DispatchOrderField(
+            current: settings.dispatchOrder,
+            enabled: writable,
+            onSelected: (o) => write(QueueSetting.dispatchOrder, o),
           ),
       ]),
       ..._section(
@@ -407,4 +414,74 @@ class QueueSettingsScreen extends ConsumerWidget {
         ref.read(queueSettingsProvider.notifier).preview(setting, v),
     onChangeEnd: (v) => onChangeEnd(setting, v),
   );
+}
+
+/// Which printer an "Any model" job takes (#2915).
+class _DispatchOrderField extends StatefulWidget {
+  const _DispatchOrderField({
+    required this.current,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final ModelDispatchOrder current;
+  final bool enabled;
+  final Future<void> Function(ModelDispatchOrder) onSelected;
+
+  @override
+  State<_DispatchOrderField> createState() => _DispatchOrderFieldState();
+}
+
+class _DispatchOrderFieldState extends State<_DispatchOrderField> {
+  /// The field's key. `initialSelection` follows the value from one frame to
+  /// the next, but a refusal that lands before the next frame leaves the value
+  /// as that frame saw it while the menu already shows the label just picked;
+  /// a new key is the only way to redraw it then.
+  int _epoch = 0;
+
+  Future<void> _select(ModelDispatchOrder order) async {
+    await widget.onSelected(order);
+    // Still on the old value: the write was refused (or has not landed).
+    if (mounted && widget.current != order) setState(() => _epoch++);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    String label(ModelDispatchOrder o) => switch (o) {
+      ModelDispatchOrder.fewestHours => l10n.queueSettingsDispatchFewestHours,
+      ModelDispatchOrder.mostHours => l10n.queueSettingsDispatchMostHours,
+      ModelDispatchOrder.leastRecentlyUsed =>
+        l10n.queueSettingsDispatchLeastRecentlyUsed,
+      ModelDispatchOrder.priority => l10n.queueSettingsDispatchPriority,
+    };
+    return Padding(
+      padding: const EdgeInsets.all(DashSpace.sm),
+      child: dashCombo<ModelDispatchOrder>(
+        context,
+        id: 'queue_settings.dispatch_order',
+        fieldKey: ValueKey(_epoch),
+        label: Text(l10n.queueSettingsDispatchLabel),
+        helperText: l10n.queueSettingsDispatchDesc,
+        initialSelection: widget.current,
+        enabled: widget.enabled,
+        // Also the value already shown: a stored string this app does not know
+        // is shown as the default, and choosing the default must still write it.
+        onSelected: (o) {
+          if (o != null) _select(o);
+        },
+        entries: [
+          for (final o in ModelDispatchOrder.values)
+            DropdownMenuEntry(
+              value: o,
+              label: label(o),
+              labelWidget: logTag(
+                'queue_settings.dispatch_order.${o.wire}',
+                Text(label(o)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

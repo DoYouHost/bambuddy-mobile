@@ -51,6 +51,26 @@ void main() {
       });
     });
 
+    test('a move adds `move` to the body', () async {
+      adapter.onPost(
+        '/api/v1/inventory/assignments',
+        (s) => s.reply(200, {'id': 7}),
+        data: Matchers.any,
+      );
+
+      await NativeInventorySource(dio).assignSpool(
+        const SpoolAssignmentDraft(
+          spoolId: 12,
+          printerId: 1,
+          amsId: 0,
+          trayId: 2,
+          move: true,
+        ),
+      );
+
+      expect(sent.last.data, containsPair('move', true));
+    });
+
     test('a slot the server refuses surfaces as the error, not as success', () {
       adapter.onPost(
         '/api/v1/inventory/assignments',
@@ -123,6 +143,26 @@ void main() {
         'ams_id': 0,
         'tray_id': 2,
       });
+    });
+
+    test('a move adds `move` to the body', () async {
+      adapter.onPost(
+        '/api/v1/spoolman/inventory/slot-assignments',
+        (s) => s.reply(200, {'id': 12}),
+        data: Matchers.any,
+      );
+
+      await SpoolmanInventorySource(dio).assignSpool(
+        const SpoolAssignmentDraft(
+          spoolId: 12,
+          printerId: 1,
+          amsId: 0,
+          trayId: 2,
+          move: true,
+        ),
+      );
+
+      expect(sent.last.data, containsPair('move', true));
     });
 
     test('an external spool is addressed as AMS 255', () async {

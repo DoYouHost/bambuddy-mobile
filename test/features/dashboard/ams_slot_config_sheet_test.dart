@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:bambuddy_mobile/core/ams/preset_colours.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/format/filament_colour.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/core/models/inventory_reference.dart';
 import 'package:bambuddy_mobile/core/models/k_profile.dart';
@@ -12,6 +16,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import '../common/colour_catalogue_kit.dart';
 
 /// Records what the sheet writes and can be told to withhold each source.
 class _FakeRepo implements AmsSlotConfigRepository {
@@ -80,6 +85,9 @@ class _FakeRepo implements AmsSlotConfigRepository {
   /// What the server remembers for the slot — stale on purpose in one test.
   SlotPreset? saved;
 
+  /// The filament id the mapping was saved with.
+  String? savedTrayInfoIdx;
+
   @override
   Future<SlotPreset?> slotPreset(
     int printerId, {
@@ -111,8 +119,10 @@ class _FakeRepo implements AmsSlotConfigRepository {
     required int trayId,
     required AmsFilamentPreset preset,
     required String presetName,
+    String? trayInfoIdx,
   }) async {
     calls.add('save:${preset.pickerId}:$presetName');
+    savedTrayInfoIdx = trayInfoIdx;
     if (saveError != null) throw saveError!;
   }
 
@@ -150,7 +160,9 @@ void main() {
     _FakeRepo? repo,
     AmsSlotTarget? slot,
     List<ColorEntry>? colours,
+    Future<List<ColorEntry>>? loadingColours,
     AuthMode authMode = AuthMode.jwt,
+    double scale = 1,
   }) async {
     final fake = repo ?? _FakeRepo();
     // A phone, not the 800x600 default: the sheet is 75% of the window with a
@@ -172,10 +184,13 @@ void main() {
           ),
         ),
       ),
+      builder: textScaled(scale),
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         amsSlotConfigRepositoryProvider.overrideWithValue(fake),
-        colorCatalogProvider.overrideWith((ref) async => colours ?? const []),
+        colorCatalogProvider.overrideWith(
+          (ref) => loadingColours ?? Future.value(colours ?? const []),
+        ),
       ],
     );
     await tester.tap(find.text('open'));
@@ -285,6 +300,9 @@ void main() {
     expect(repo.cloudDetailId, 'GFSL05_09');
     expect(repo.written!.trayInfoIdx, 'P285e239');
     expect(repo.written!.settingId, 'GFSL05_09');
+    // The mapping records the id the slot was given, so the card can tell a
+    // later reconfiguration from elsewhere and stop naming the slot after it.
+    expect(repo.savedTrayInfoIdx, 'P285e239');
   });
 
   testWidgets('a refused mapping save is reported, not swallowed', (
@@ -841,52 +859,39 @@ void main() {
       ),
     ];
 
-    testWidgets('offers the colours this filament is sold in', (tester) async {
+    // A known material rides in the id (`ams_slot_colour.color_option@PLA`).
+    final options = find.byWidgetPredicate(
+      (w) =>
+          w is Semantics &&
+          (w.properties.identifier?.startsWith(
+                'ams_slot_colour.color_option',
+              ) ??
+              false),
+    );
+    Finder option(String name) =>
+        find.descendant(of: options, matching: find.text(name));
+
+    testWidgets('offers the colours this filament is sold in, named', (
+      tester,
+    ) async {
       await openSheet(tester, colours: catalogue);
       await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
 
-      // The field's own label floats above the tappable area, so the tap
-      // goes to the row it decorates.
-      await tapVisible(
-        tester,
-        find
-            .ancestor(
-              of: find.text(pl.amsSlotConfigColour),
-              matching: find.byType(InkWell),
-            )
-            .first,
-      );
-
-      expect(find.text(pl.amsSlotConfigColourCatalogue), findsOneWidget);
-      // Each swatch paints 36 dp but is a 48 dp cell to touch.
-      final cell = tester.getSize(byLogId('ams_slot_colour.swatch').first);
-      expect(cell.width, greaterThanOrEqualTo(48));
-      expect(cell.height, greaterThanOrEqualTo(48));
-      expect(find.byTooltip('Bambu Green'), findsOneWidget);
+      expect(option('Bambu Green'), findsOneWidget);
       expect(
-        find.byTooltip('Grey'),
+        option('Grey'),
         findsNothing,
         reason: 'PETG is a different filament',
       );
+      expect(tester.getSize(options.first).height, greaterThanOrEqualTo(48));
     });
 
     testWidgets('a catalogue colour is what gets written', (tester) async {
       final repo = await openSheet(tester, colours: catalogue);
       await tapVisible(tester, find.text('Generic PLA'));
-
-      // The field's own label floats above the tappable area, so the tap
-      // goes to the row it decorates.
-      await tapVisible(
-        tester,
-        find
-            .ancestor(
-              of: find.text(pl.amsSlotConfigColour),
-              matching: find.byType(InkWell),
-            )
-            .first,
-      );
-      await tapVisible(tester, find.byTooltip('Bambu Green'));
-      await tapVisible(tester, find.text(pl.inventoryColorSelect));
+      await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+      await tapVisible(tester, option('Bambu Green'));
       await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       expect(
@@ -896,25 +901,310 @@ void main() {
       );
     });
 
-    testWidgets('the wheel alone still picks a colour', (tester) async {
-      // No preset chosen, so no catalogue — the dialog must still work.
-      final repo = await openSheet(tester, colours: catalogue);
+    testWidgets('the picked colour is named in the field', (tester) async {
+      await openSheet(tester, colours: catalogue);
+      await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+      await tapVisible(tester, option('Bambu Green'));
 
-      // The field's own label floats above the tappable area, so the tap
-      // goes to the row it decorates.
-      await tapVisible(
-        tester,
-        find
-            .ancestor(
-              of: find.text(pl.amsSlotConfigColour),
-              matching: find.byType(InkWell),
-            )
-            .first,
+      expect(
+        find.descendant(
+          of: byLogId('ams_slot_config.colour_catalog'),
+          matching: find.text('Bambu Green'),
+        ),
+        findsOneWidget,
       );
+    });
 
-      expect(find.text(pl.amsSlotConfigColourCatalogue), findsNothing);
-      await tapVisible(tester, find.text(pl.cancel));
-      expect(repo.written, isNull);
+    testWidgets('the field stays while the catalogue loads', (tester) async {
+      await openSheet(
+        tester,
+        loadingColours: Completer<List<ColorEntry>>().future,
+      );
+      await tapVisible(tester, find.text('Generic PLA'));
+      expect(byLogId('ams_slot_config.colour_catalog'), findsOneWidget);
+    });
+
+    testWidgets('opened while loading, the slot\'s colour is still ticked', (
+      tester,
+    ) async {
+      final loading = Completer<List<ColorEntry>>();
+      await openSheet(
+        tester,
+        slot: const AmsSlotTarget(
+          printerId: 1,
+          amsId: 0,
+          trayId: 2,
+          label: 'AMS-A · 3',
+          printerModel: 'X1C',
+          nozzleDiameter: '0.6',
+          currentColour: '00AE42FF',
+        ),
+        loadingColours: loading.future,
+      );
+      await tapVisible(tester, find.text('Generic PLA'));
+      // The sheet spins until the catalogue lands, which never settles.
+      await tester.tap(byLogId('ams_slot_config.colour_catalog'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      loading.complete(catalogue);
+      await tester.pumpAndSettle();
+
+      final green = find.ancestor(
+        of: option('Bambu Green'),
+        matching: find.byType(ListTile),
+      );
+      expect(
+        find.descendant(of: green, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a preset the catalogue has no colours for lists all of it', (
+      tester,
+    ) async {
+      await openSheet(tester, colours: catalogue);
+      await tapVisible(tester, find.text('eSUN PETG'));
+      await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+
+      expect(option('Bambu Green'), findsOneWidget);
+      expect(option('Grey'), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsNothing);
+    });
+
+    for (final scale in const [1.0, 1.5, 2.0]) {
+      testWidgets('the dialog\'s hex code reads in full at ${scale * 100}%', (
+        tester,
+      ) async {
+        await openSheet(tester, colours: catalogue, scale: scale);
+        await tapVisible(tester, byLogId('ams_slot_config.colour'));
+        final code = tester
+            .state<EditableTextState>(find.byType(EditableText).last)
+            .renderEditable;
+        expect(
+          code.getMaxIntrinsicWidth(double.infinity),
+          lessThanOrEqualTo(code.size.width + 0.5),
+        );
+      });
+    }
+
+    testWidgets('the slot\'s own colour is ticked in the catalogue', (
+      tester,
+    ) async {
+      await openSheet(tester, colours: catalogue);
+      await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+      await tapVisible(tester, option('Bambu Green'));
+      await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+
+      final green = find.ancestor(
+        of: option('Bambu Green'),
+        matching: find.byType(ListTile),
+      );
+      expect(
+        find.descendant(of: green, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'without a preset there is no catalogue, the wheel still picks',
+      (tester) async {
+        final repo = await openSheet(tester, colours: catalogue);
+        expect(byLogId('ams_slot_config.colour_catalog'), findsNothing);
+
+        // The field's own label floats above the tappable area, so the tap
+        // goes to the row it decorates.
+        await tapVisible(
+          tester,
+          find
+              .ancestor(
+                of: find.text(pl.amsSlotConfigColour),
+                matching: find.byType(InkWell),
+              )
+              .first,
+        );
+
+        expect(find.text(pl.amsSlotConfigColourCatalogue), findsNothing);
+        expect(byLogId('ams_slot_colour.confirm'), findsOneWidget);
+        await tapVisible(tester, find.text(pl.cancel));
+        expect(repo.written, isNull);
+      },
+    );
+
+    testWidgets('a filament with no catalogue colours offers no field', (
+      tester,
+    ) async {
+      await openSheet(tester, colours: const []);
+      await tapVisible(tester, find.text('Generic PLA'));
+      expect(byLogId('ams_slot_config.colour_catalog'), findsNothing);
+    });
+
+    group('with the catalogue a server seeds', () {
+      // Every PLA of every maker, one per hex: the longest list a slot gets.
+      final shown = presetColours(realCatalogue, 'Generic PLA');
+
+      Future<_FakeRepo> openCatalogue(
+        WidgetTester tester, {
+        double scale = 1,
+      }) async {
+        final repo = await openSheet(
+          tester,
+          colours: realCatalogue,
+          scale: scale,
+        );
+        await tapVisible(tester, find.text('Generic PLA'));
+        await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+        return repo;
+      }
+
+      /// What a slot stores for [entry]: six hex digits, opaque.
+      String written(ColorEntry entry) => '${sixHexDigits(entry.hexColor)}FF';
+
+      testWidgets('the last colour of the list is reachable and written', (
+        tester,
+      ) async {
+        expect(shown.length, greaterThan(100));
+        final repo = await openCatalogue(tester);
+        await dragCatalogueToEnd(tester);
+
+        final last = lowestOption(tester, options);
+        final name = optionName(tester, last);
+        expect(name, lastListed(shown));
+        await tester.tap(last);
+        await tester.pumpAndSettle();
+        await tapVisible(tester, find.text(pl.amsSlotConfigApply));
+
+        expect(repo.written!.trayColour, written(listedEntries(shown).last));
+      });
+
+      for (final scale in const [1.0, 1.5, 2.0]) {
+        testWidgets(
+          'with the keyboard open the search and the last result stay above '
+          'it at ${scale * 100}% text',
+          (tester) async {
+            final repo = await openCatalogue(tester, scale: scale);
+            await tester.enterText(
+              byLogId('ams_slot_colour.color_search'),
+              'white',
+            );
+            showKeyboard(tester);
+            await tester.pumpAndSettle();
+
+            expect(
+              tester.getRect(byLogId('ams_slot_colour.color_search')).bottom,
+              lessThanOrEqualTo(keyboardTop(tester)),
+            );
+            await dragCatalogueToEnd(tester);
+            final last = lowestOption(tester, options);
+            expect(
+              tester.getRect(last).bottom,
+              lessThanOrEqualTo(keyboardTop(tester)),
+              reason: 'the last result hides under the keyboard',
+            );
+            final name = optionName(tester, last);
+            expect(name, lastListed(shown, 'white'));
+            await tester.tap(last);
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+
+            tester.view.resetViewInsets();
+            await tester.pumpAndSettle();
+            await tapVisible(tester, find.text(pl.amsSlotConfigApply));
+            expect(
+              repo.written!.trayColour,
+              written(listedEntries(shown, 'white').last),
+            );
+          },
+        );
+      }
+
+      testWidgets('dragging the sheet down closes it and keeps the colour', (
+        tester,
+      ) async {
+        final repo = await openCatalogue(tester);
+        await tester.fling(
+          find.text(pl.inventoryColorPickTitle).last,
+          const Offset(0, 500),
+          1500,
+        );
+        await tester.pumpAndSettle();
+
+        expect(options, findsNothing);
+        expect(find.byType(AmsSlotConfigSheet), findsOneWidget);
+        await tapVisible(tester, find.text(pl.amsSlotConfigApply));
+        expect(repo.written!.trayColour, target.currentColour);
+      });
+
+      testWidgets('a multi-colour custom colour writes its main colour', (
+        tester,
+      ) async {
+        final repo = await openSheet(tester, colours: catalogueWithCustom);
+        await tapVisible(tester, find.text('Generic PLA'));
+        await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+        await tester.enterText(
+          byLogId('ams_slot_colour.color_search'),
+          'galaxy night',
+        );
+        await tester.pumpAndSettle();
+        expect(options, findsOneWidget);
+        await tester.tap(option('Galaxy Night'));
+        await tester.pumpAndSettle();
+        await tapVisible(tester, find.text(pl.amsSlotConfigApply));
+
+        expect(repo.written!.trayColour, '1A1A2EFF');
+      });
+
+      // The web would send the alpha with another `FF` after it, ten digits
+      // (`ConfigureAmsSlotModal.tsx::configureMutation`); a slot takes one
+      // opaque colour.
+      testWidgets('a colour with an alpha is written opaque', (tester) async {
+        final repo = await openSheet(
+          tester,
+          repo: _FakeRepo()
+            ..cloudPresets = const [
+              AmsFilamentPreset(
+                source: AmsPresetSource.cloud,
+                id: 'GFG99',
+                name: 'Generic PETG',
+              ),
+            ],
+          colours: catalogueWithCustom,
+        );
+        await tapVisible(tester, find.text('Generic PETG'));
+        await tapVisible(tester, byLogId('ams_slot_config.colour_catalog'));
+        await tester.enterText(
+          byLogId('ams_slot_colour.color_search'),
+          'smoke tint',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(option('Smoke Tint'));
+        await tester.pumpAndSettle();
+        await tapVisible(tester, find.text(pl.amsSlotConfigApply));
+
+        expect(repo.written!.trayColour, '404040FF');
+      });
+
+      testWidgets(
+        'a double tap on a colour picks it and leaves the slot sheet open',
+        (tester) async {
+          final repo = await openCatalogue(tester);
+          final first = options.first;
+          expect(
+            optionName(tester, first),
+            listedEntries(shown).first.colorName,
+          );
+          await tester.tap(first);
+          await tester.pump(const Duration(milliseconds: 80));
+          await tester.tap(first, warnIfMissed: false);
+          await tester.pumpAndSettle();
+
+          expect(options, findsNothing);
+          expect(find.byType(AmsSlotConfigSheet), findsOneWidget);
+          await tapVisible(tester, find.text(pl.amsSlotConfigApply));
+          expect(repo.written!.trayColour, written(listedEntries(shown).first));
+        },
+      );
     });
   });
 }

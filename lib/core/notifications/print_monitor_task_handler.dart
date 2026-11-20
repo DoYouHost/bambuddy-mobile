@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +13,10 @@ import '../../data/server_settings_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
+import 'low_stock_feed.dart';
+import 'alarm_ringer.dart';
+import 'printer_locations.dart';
+import '../../data/printers_repository.dart';
 import 'background_api.dart';
 import 'background_sync.dart';
 import 'finish_alert_memory.dart';
@@ -56,9 +61,24 @@ import '../diagnostics/report_config.dart';
 /// during printing, so infrequent checks suffice and don't burden the server.
 const Duration _maintenanceCheckInterval = Duration(minutes: 30);
 
-/// How often the pause warning lead time is read again. An administrator can
-/// change it on the server while the service runs.
+/// How often the pause warning lead time is read again, and the printer list
+/// checked for deletions. An administrator can change the first on the server
+/// while the service runs.
 const Duration _pauseLeadRefreshInterval = Duration(minutes: 30);
+
+/// The safety net under the inventory frames: a socket that was down for a while
+/// missed them, and a spool used up by a print the server logged afterwards says
+/// nothing until something asks.
+const Duration _lowStockRefreshInterval = Duration(minutes: 5);
+
+/// The printers in [known] that are not on [roster]. The socket never says a
+/// printer was deleted, so the roster the server lists is the only thing that
+/// can end one here (the UI isolate trims by the same list,
+/// `PrinterStatusesNotifier.ingestPoll`).
+Set<int> printersGone(Iterable<int> known, Set<int> roster) => {
+  for (final id in known)
+    if (!roster.contains(id)) id,
+};
 
 /// Entry point for the background isolate. Must be top-level and marked
 /// with `@pragma('vm:entry-point')` — flutter_foreground_task launches it
@@ -73,6 +93,19 @@ void startCallback() {
 /// everything from scratch here: profile from SharedPreferences, secrets from Keystore,
 /// own [WsClient] and [PrintMonitor]. Shares no memory or providers with the UI isolate.
 class PrintMonitorTaskHandler extends TaskHandler {
+  /// [serverRefreshEvery] is for tests: the real interval is half an hour.
+  PrintMonitorTaskHandler({
+    this.serverRefreshEvery = _pauseLeadRefreshInterval,
+    this.lowStockRefreshEvery = _lowStockRefreshInterval,
+  });
+
+  /// How often the server's pause warning lead time and printer list are read.
+  final Duration serverRefreshEvery;
+
+  /// How often the spool inventory is read while a printer prints, on top of the
+  /// socket frames that announce a change. [lowStockRefreshEvery] is for tests.
+  final Duration lowStockRefreshEvery;
+
   WsClient? _ws;
   StreamSubscription<WsPrinterStatus>? _sub;
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
@@ -89,6 +122,19 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// [_pauseLeadRefreshInterval], and the server's own default until it answers.
   var _pauseLeadMinutes = QueueSetting.pauseWarningMinutes.serverDefault;
   Timer? _pauseLeadTimer;
+  Timer? _lowStockTimer;
+  LowStockFeed? _lowStockFeed;
+
+  /// The service's feed, for the teardown test.
+  @visibleForTesting
+  LowStockFeed? get lowStockFeed => _lowStockFeed;
+  StreamSubscription<WsInventoryChanged>? _inventorySub;
+  StreamSubscription<WsConnectionState>? _lowStockConnSub;
+
+  /// Publishes the current statuses to the widgets. Set once the socket is
+  /// wired and cleared in [onDestroy], which is also what tells a roster check
+  /// still waiting on the server that the service is gone.
+  void Function()? _publishWidgets;
   ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
   // Watch relay (plan 05 M-R4): while the app is backgrounded/swiped away this
@@ -262,15 +308,28 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Maintenance: REST monitor (if enabled) + reminder after print.
     // Set up before [PrintMonitor] to wire the `onPrintEnded` callback.
-    _setUpMaintenance(api, notify, prefs, notifPrefs);
+    _setUpMaintenance(api, notify, prefs, notifPrefs, profile.baseUrl);
     _setUpPauseLead(api);
 
+    // Fetched here only when a location is excluded; the 30-minute tick in
+    // [_setUpPauseLead] fetches it as well, to find deleted printers.
+    final alarm = notifPrefs.alarm;
+    final locations =
+        alarm.enabled && alarm.excludedLocations.isNotEmpty && api != null
+        ? PrinterLocations(PrintersRepository(api.dio).fetchPrinters)
+        : null;
+    if (locations != null) unawaited(locations.load());
+
+    // The alarm rings from this engine, so its stops are logged here while it lives.
+    AlarmRinger.recordReports();
     _monitor = PrintMonitor(
       notify,
       serverUrl: profile.baseUrl,
       prefs: notifPrefs,
       hmsDescribe: catalog.describe,
       pauseLeadMinutes: () => _pauseLeadMinutes,
+      alarm: const AlarmRinger(),
+      alarmLocationOf: locations?.of,
       // `catchError`, because a throw inside the reminder used to become an
       // uncaught error in this isolate with nothing to show for it: the repo lets
       // auth failures out on purpose and nobody is awaiting this.
@@ -312,26 +371,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
                 : null,
           );
     _ws = ws;
-    _sub = ws.statusFrames.listen((frame) {
-      final status = frame.status;
-      _statuses[status.id] = status;
-      _rawStatuses[status.id] = frame.raw;
-      // Guard against a throw inside update (l10n / plugin call) escaping the
-      // stream callback as an uncaught zone error, which would otherwise drop
-      // processing of this frame's downstream effects (widget publish below).
-      try {
-        _monitor?.update(Map.of(_statuses));
-      } on Object catch (error) {
-        // Swallow-and-continue, consistent with the publish guard below — but no
-        // longer in silence: this frame produced no alerts at all, and from the
-        // outside that is indistinguishable from a frame that warranted none.
-        _recording?.store.add(
-          LogSource.fgs,
-          'frame_dropped',
-          lvl: LogLevel.error,
-          fields: {'type': error.runtimeType.toString()},
-        );
-      }
+    void publishWidgets() {
       // Also feed the native home screen widget — background isolate may be the only
       // live source of status when the app is closed. Errors don't break the stream.
       unawaited(
@@ -350,6 +390,34 @@ class PrintMonitorTaskHandler extends TaskHandler {
           describeHms: _hmsCatalog?.describe,
         ).catchError((_) {}),
       );
+    }
+
+    void feed() {
+      // Guard against a throw inside update (l10n / plugin call) escaping the
+      // stream callback as an uncaught zone error, which would otherwise drop
+      // processing of this frame's downstream effects (widget publish below).
+      try {
+        _monitor?.update(Map.of(_statuses));
+      } on Object catch (error) {
+        // Swallow-and-continue, consistent with the publish guard below — but no
+        // longer in silence: this frame produced no alerts at all, and from the
+        // outside that is indistinguishable from a frame that warranted none.
+        _recording?.store.add(
+          LogSource.fgs,
+          'frame_dropped',
+          lvl: LogLevel.error,
+          fields: {'type': error.runtimeType.toString()},
+        );
+      }
+      publishWidgets();
+    }
+
+    _publishWidgets = publishWidgets;
+    _sub = ws.statusFrames.listen((frame) {
+      final status = frame.status;
+      _statuses[status.id] = status;
+      _rawStatuses[status.id] = frame.raw;
+      feed();
     });
     // "Plate not empty" event arrives as a separate frame (not in status) —
     // a real trigger distinct from `awaiting_plate_clear` in status.
@@ -428,6 +496,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _connSub = ws.connectionStates.listen((s) {
       _wsUp = s == WsConnectionState.connected;
     });
+    _setUpLowStock(api, ws);
     _wearRelay = WearRelayHandler(
       watch: WatchConnectivity(),
       dio: () => api?.dio,
@@ -441,6 +510,41 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.
     _setUpTokenRefresh(profile, creds, auth);
+  }
+
+  /// Low filament from the spool inventory, the server's rule. The monitor stays
+  /// silent about it until the first answer, and keeps the phone's own rule when
+  /// there is no client or the answer is a refusal.
+  void _setUpLowStock(ApiClient? api, WsClient ws) {
+    final monitor = _monitor;
+    if (api == null || monitor == null) return;
+    monitor.awaitLowStockInventory();
+    final feed = _lowStockFeed = LowStockFeed.overDio(
+      api.dio,
+      onSlots: monitor.updateLowStock,
+      onUnavailable: monitor.lowStockUnavailable,
+    );
+    void look() => unawaited(
+      feed.refresh().catchError((Object error) {
+        // Like a dropped frame: no alert came of this look, and from outside that
+        // reads the same as a look that found nothing.
+        _recording?.store.add(
+          LogSource.fgs,
+          'low_stock_failed',
+          lvl: LogLevel.error,
+          fields: {'type': error.runtimeType.toString()},
+        );
+      }),
+    );
+    _inventorySub = ws.inventoryChanges.listen((_) => look());
+    // Whatever changed while the socket was down was not announced.
+    _lowStockConnSub = ws.connectionStates
+        .where((s) => s == WsConnectionState.connected)
+        .listen((_) => look());
+    _lowStockTimer = Timer.periodic(lowStockRefreshEvery, (_) {
+      if (_statuses.values.any((s) => s.isPrinting)) look();
+    });
+    look();
   }
 
   /// Starts proactive JWT refresh in the background isolate (JWT mode only).
@@ -480,11 +584,37 @@ class PrintMonitorTaskHandler extends TaskHandler {
       }
     }
 
+    // The same tick drops printers deleted on the server: this timer exists
+    // whenever there is a client, which the maintenance one does not.
+    final printers = PrintersRepository(api.dio);
+    Future<void> dropRemovedPrinters() async {
+      // Taken before the request: a printer added on the server while it is in
+      // flight sends its first frame into [_statuses], and the list the server
+      // answered with may not have had it yet.
+      final known = _statuses.keys.toSet();
+      final Set<int> roster;
+      try {
+        roster = {for (final p in await printers.fetchPrinters()) p.id};
+      } on Object {
+        // Unreachable or refused says nothing about the printers. Whatever it
+        // wrongly dropped would return with its next frame anyway.
+        return;
+      }
+      // The service ended while the server was answering.
+      if (_publishWidgets == null) return;
+      final gone = printersGone(known, roster);
+      if (gone.isEmpty) return;
+      _statuses.removeWhere((id, _) => gone.contains(id));
+      _rawStatuses.removeWhere((id, _) => gone.contains(id));
+      _monitor?.forget(gone);
+      _publishWidgets?.call();
+    }
+
     unawaited(refresh());
-    _pauseLeadTimer = Timer.periodic(
-      _pauseLeadRefreshInterval,
-      (_) => unawaited(refresh()),
-    );
+    _pauseLeadTimer = Timer.periodic(serverRefreshEvery, (_) {
+      unawaited(refresh());
+      unawaited(dropRemovedPrinters());
+    });
   }
 
   void _setUpMaintenance(
@@ -492,6 +622,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     NotificationService notify,
     SharedPreferences prefs,
     NotificationPrefs notifPrefs,
+    String serverUrl,
   ) {
     // The one place `maintenanceDue` being off is decided: the monitor is never
     // built, so its own gates can never report it. The session snapshot in
@@ -503,8 +634,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
       notify,
       repo: MaintenanceRepository(api.dio),
       prefs: notifPrefs,
+      serverUrl: serverUrl,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
-      persist: settings.saveNotifiedMaintenanceDueIds,
+      persist: (ids) =>
+          settings.saveNotifiedMaintenanceDueIds(ids, serverUrl: serverUrl),
       // The point of this callback: "Mark Done" runs in another isolate, so its
       // removal only exists on disk, and this handle would keep serving the set
       // this isolate started with — the re-arm would be invisible here.
@@ -544,8 +677,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       baseUrl: baseUrl,
       coverPath: cover,
       dio: dio,
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     );
   }
 
@@ -564,8 +696,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     );
   }
 
@@ -672,8 +803,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    _publishWidgets = null;
     _maintenanceTimer?.cancel();
     _pauseLeadTimer?.cancel();
+    _lowStockTimer?.cancel();
+    _lowStockFeed?.stop();
     _tokenRefresher?.stop();
     _monitor?.dispose();
     // Awaited like the rest: the claim release is a prefs write, and this
@@ -681,6 +815,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // a claim left behind is a request nobody answers.
     await _wearRelay?.stop();
     await _connSub?.cancel();
+    await _inventorySub?.cancel();
+    await _lowStockConnSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();
     await _outcomeSub?.cancel();
@@ -829,6 +965,7 @@ class FgsNotificationService implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) => _alerts.showAlert(
     event: event,
     printerId: printerId,
@@ -839,6 +976,7 @@ class FgsNotificationService implements NotificationService {
     actions: actions,
     picture: picture,
     quiet: quiet,
+    silent: silent,
   );
 
   @override

@@ -2,8 +2,8 @@
 
 Things that live in `android/` or depend on the Android version, device or
 renderer, and that the code alone does not explain: the Android 16 Live Update,
-the camera stream's ANR history, the home-screen widgets and the overscroll
-stutter. The watch's own platform notes are in [wear-os.md](wear-os.md). Where a
+the camera stream's ANR history, the home-screen widgets, the overscroll
+stutter, a server behind a private CA and one behind mutual TLS. The watch's own platform notes are in [wear-os.md](wear-os.md). Where a
 number is a measurement it says on what setup it was taken; none of them was
 re-run when this file was written.
 
@@ -197,3 +197,130 @@ device, pull and parse: a raster frame is `AcquireNextImageKHR` to
 thread (no `1.ui`), and a second `N.raster` in the process is the foreground
 service's engine. Release builds emit no Flutter trace events, but the
 Android/Vulkan markers are enough.
+
+## A server behind a private CA (#62)
+
+**Why a CA installed on the phone does not help.** Every request goes through
+`dart:io`: Dio, the WebSocket, the MJPEG stream and `Image.network`. `dart:io`
+keeps its own copy of the system roots and never reads the Android user store. It
+also ignores `network_security_config`. A reverse proxy signed by the user's own
+root CA therefore fails with `CERTIFICATE_VERIFY_FAILED` even when Chrome on the
+same phone trusts it.
+
+**What we do instead.** Google's guidance for an unknown CA is to trust that one
+issuer on top of the system roots (`base-config` with the extra CA plus `system`).
+Trusting every user-installed CA is shown only under `debug-overrides`. We follow
+the first, at run time, because the CA differs per user. The setup screen imports
+one file, PEM or DER (`lib/features/setup/certificate_rows.dart`). `CustomCa.parse`
+keeps only its `CERTIFICATE` blocks. The import button sends a file with a private key
+to the client certificate instead (below), so a key never reaches the CA slot. The certificate lives in SharedPreferences under `custom_ca`; it is public,
+not a secret.
+
+**Where it applies.** `HttpOverrides.global` is per isolate, so each isolate that
+talks to the server calls `useTls(ca, cert)` (`lib/core/api/tls_overrides.dart`) before
+its first request:
+
+- **UI isolate:** `main()`.
+- **Foreground service, notification-button and watch-relay isolates:**
+  `buildBackgroundApiClient`. Dio creates its `HttpClient` lazily, so trust set
+  there is in time.
+- **The watch:** the relay through the phone needs nothing of its own. For the
+  direct-REST fallback the phone sends its CA with the server config
+  (`WatchConfigCodec`, `caName` and `caPem`), again whenever it changes, and
+  `PendingWatchConfig.adopt` stores it; a config without one clears the watch's.
+  `main_wear.dart` trusts the stored CA at start. The watch cannot import one
+  itself.
+
+**Traps.**
+
+- **A client keeps the trust it was created with.** Changing the CA through
+  `tlsIdentityProvider` invalidates `bareDioProvider`, so a retry after importing
+  gets a fresh client. Dio does not watch it: that would make every Dio depend on
+  preferences. The
+  `Image.network` client is one per isolate, so a CA changed while the app runs
+  reaches images only after a restart.
+- **Dio's error type.** Dio reports an untrusted certificate as a connection
+  error. `mapDioException` turns a `HandshakeException` carrying
+  `CERTIFICATE_VERIFY_FAILED` into a `NetworkException` with
+  `AppErrorCode.badCertificate`. Other handshake failures,
+  such as plain http on an https port, stay connection errors.
+- **The CA is trusted for every host the app contacts,** as `base-config` would
+  be, not only the server. A custom anchor also skips Certificate Transparency.
+- **Never add a `badCertificateCallback` that returns true.**
+
+`test/core/api/custom_ca_test.dart` proves the trust against a real TLS server on
+127.0.0.1 (fixtures in `test/fixtures/tls/`; the CA's key was discarded).
+
+## A server behind mutual TLS (#65)
+
+A reverse proxy can ask the client for a certificate during the handshake. Android's
+KeyChain does not help, for the reason a user CA does not: every request goes through
+`dart:io`, which needs the key's bytes, and a KeyChain key is usually held in hardware
+and cannot be exported. Using it would mean a native HTTP stack under Dio, the socket,
+the camera stream and `Image.network`. So the user imports a file instead: a `.p12` or
+`.pfx`, or a PEM holding the certificate and its key
+(`lib/features/setup/certificate_rows.dart`, on the setup screen and in app settings).
+`ClientCert.parse` loads it into a throwaway `SecurityContext`. A wrong password is told
+apart by BoringSSL's `INCORRECT_PASSWORD` in a `.p12`. An encrypted PEM key fails as
+"no key found" whatever the password, so there the `ENCRYPTED PRIVATE KEY` or
+`Proc-Type: 4,ENCRYPTED` header is what says a password is needed. The dialog asks only
+when the file needs one.
+
+**One import button for both.** The file decides: a key or a password makes it the
+client certificate, a bare certificate the CA. The client certificate is tried first,
+because `CustomCa.parse` takes the certificates out of any PEM, a bundle with its key
+included. A file that asked for a password or carries a PEM private key never falls
+through to the CA slot: one that fails (a key that does not match, a `.p12` with no key)
+says so as a client certificate and leaves the installed CA alone. A certificate PEM
+without its key does land as a CA; the proxy then refuses the app with the
+client-certificate message, which names the problem. Each
+kind has one slot, so the button stays and a new import replaces the old one.
+
+**Storage.** The file and its password are a secret, so they go to
+`flutter_secure_storage` under a namespace of their own (`client_cert`). That namespace
+keeps them out of the `deleteAll` a sign-out runs: the certificate belongs to the proxy,
+not to the account, as the CA does. The flag `has_client_cert` in preferences lets
+`loadClientCert` skip secure storage when there is no certificate. Opening the namespace
+creates its Keystore key, and every install would otherwise pay for that before its
+first frame.
+
+**Where it applies.** It applies wherever the CA does, through the same call: `useTls`
+takes both and builds the one `SecurityContext` that carries them. The traps above hold
+as written: a client keeps the identity it was made with, and a change invalidates
+`bareDioProvider`. The certificate is shown to any host that asks for one, not only the
+server.
+
+**The watch** gets the certificate with the rest of its config, beside the password it
+already receives (`certName`, `certData`, `certPassword`). It re-parses the certificate
+and stores it in its own secure storage. A CA and a certificate both near their 64 KB
+caps would overflow the 100 KB Data Layer item; real ones are a few KB, and this is not
+checked.
+
+**A refusal says so.** `mapDioException` turns a proxy's refusal into
+`AppErrorCode.clientCertRefused` ("The server needs a valid client certificate"). In
+TLS that is the alert the proxy sends, received as `…ALERT_CERTIFICATE_REQUIRED` (TLS
+1.3, none sent) or `…ALERT_UNKNOWN_CA` (one it does not trust), both recorded against
+`openssl s_server -Verify`. Over HTTP it is nginx's 400 page for `ssl_verify_client on`.
+TLS 1.2 without a certificate gives only `HANDSHAKE_FAILURE`, which a cipher mismatch
+gives as well, so it stays a connection error. A proxy that answers 403 by its own rule
+cannot be told apart from bambuddy's 403.
+
+**One state for both** (`tlsIdentityProvider`, a `TlsIdentity` record), because one
+context carries both. `setCa`, `setCert` and `setBoth` each make one change: one
+`useTls`, one invalidate, one push to the watch. "Remove all" and a watch adopting both
+are a single change, not two rebuilds of every client. `customCaProvider` and
+`clientCertProvider` are read-only views of it.
+
+**Writes are queued** (`SerialQueue`), and each computes its target from the state as
+it is when its turn comes, skipping what is unchanged. Two calls side by side could
+otherwise finish in either order. Secure storage is written first, as the write most
+likely to throw, and before its flag both ways. A write that throws leaves the key, the
+flag, the CA and the state as they were, so there is never a key on disk behind a flag
+that says there is none.
+
+**Removing** either one asks first. App settings show both under "Certificates", with
+"Remove all" once there are two.
+
+`test/core/api/client_cert_test.dart` proves the handshake against a server on 127.0.0.1
+that asks for a certificate. `dart:io` cannot make one mandatory, so the server answers
+with the subject it received.

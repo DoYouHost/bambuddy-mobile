@@ -165,6 +165,10 @@ abstract final class Permissions {
   /// whatever `/auth/me` says.
   static const printersUpdate = 'printers:update';
 
+  /// Saving, renaming and deleting a label template, among the rest of the
+  /// inventory writes. `backend/app/core/permissions.py::Permission`
+  static const inventoryUpdate = 'inventory:update';
+
   /// Driving a printer: pause, stop, smart plugs. The bulk queue edit greys its
   /// "power off when done" row without it, as the web does — the route itself
   /// does not ask (`print_queue.py::bulk_update_queue_items`), so this is a
@@ -214,6 +218,10 @@ abstract final class Permissions {
   /// `can_manage_archives` covers both.
   static const archivesUpdateOwn = 'archives:update_own';
   static const archivesUpdateAll = 'archives:update_all';
+
+  /// Deleting anyone's archive. With [archivesUpdateAll] it is what merging
+  /// duplicate archives takes (`archives.py::merge_archives`).
+  static const archivesDeleteAll = 'archives:delete_all';
 
   /// Queueing an archive again — reprint and add to queue alike — on top of
   /// [queueCreate]: reprint-all for any print, reprint-own for the caller's own

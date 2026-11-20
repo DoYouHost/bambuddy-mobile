@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -21,6 +22,14 @@ import 'streamed_download.dart';
 /// Auth adds [AuthInterceptor] to the shared Dio (thumbnails go separately via
 /// `?token=` — see `LibraryThumbnail`). Each method maps [DioException] to
 /// [AppApiException].
+/// What `POST /library/files/move` did ([LibraryRepository.moveFiles]).
+typedef FileMoveOutcome = ({
+  int moved,
+  int skipped,
+  String? skipCode,
+  String? skipReason,
+});
+
 class LibraryRepository {
   LibraryRepository(this._dio, [this._serverVersion]);
 
@@ -159,11 +168,11 @@ class LibraryRepository {
   /// a duplicate answers 409, which reaches the caller as [ApiException] with
   /// `statusCode == 409`.
   Future<LibraryTag> createTag(String name) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.libraryTags,
+      LibraryTag.fromJson,
       data: <String, dynamic>{'name': name},
     );
-    return LibraryTag.fromJson(res.data ?? const {});
   });
 
   /// PATCH /library/tags/{id} — rename a tag (409 on duplicate name).
@@ -186,15 +195,15 @@ class LibraryRepository {
     required List<int> tagIds,
     required TagAssignAction action,
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.libraryTagsBulkAssign,
+      TagAssignResult.fromJson,
       data: <String, dynamic>{
         'file_ids': fileIds,
         'tag_ids': tagIds,
         'action': action.wire,
       },
     );
-    return TagAssignResult.fromJson(res.data ?? const {});
   });
 
   // --- Variant groups (server #671, 1.2.6+) ---
@@ -208,20 +217,13 @@ class LibraryRepository {
   /// with a 404, and "this file is not grouped" is the ordinary answer, not a
   /// failure. A 404 from an older server that has no such route reads the same
   /// and is equally harmless.
-  Future<VariantGroup?> variantGroupForFile(int fileId) async {
-    try {
-      final body = await guard(() async {
+  Future<VariantGroup?> variantGroupForFile(int fileId) =>
+      guardAbsent(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.libraryVariantGroupByFile(fileId),
         );
-        return res.data ?? const <String, dynamic>{};
-      });
-      return VariantGroup.fromJson(body);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+        return VariantGroup.fromJson(res.data ?? const <String, dynamic>{});
+      }, null);
 
   /// GET /library/files/{id}/plates — the plates of a multi-plate 3MF.
   ///
@@ -246,8 +248,9 @@ class LibraryRepository {
   /// travel as an [AppApiException] for the caller to show.
   Future<VariantGroup> createVariantGroup(List<int> fileIds, {String? name}) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.libraryVariantGroups,
+          VariantGroup.fromJson,
           data: <String, dynamic>{
             'members': [
               for (final id in fileIds)
@@ -256,7 +259,6 @@ class LibraryRepository {
             'name': ?name,
           },
         );
-        return VariantGroup.fromJson(res.data ?? const {});
       });
 
   /// PATCH /library/variant-groups/{id} — rename and/or re-prioritise.
@@ -269,21 +271,21 @@ class LibraryRepository {
     String? name,
     List<int>? memberFileIds,
   }) => guard(() async {
-    final res = await _dio.patch<Map<String, dynamic>>(
+    return _dio.patchObject(
       Endpoints.libraryVariantGroup(groupId),
+      VariantGroup.fromJson,
       data: <String, dynamic>{'name': ?name, 'member_file_ids': ?memberFileIds},
     );
-    return VariantGroup.fromJson(res.data ?? const {});
   });
 
   /// POST /library/variant-groups/{id}/members — add [fileId] at the end.
   Future<VariantGroup> addVariantGroupMember(int groupId, int fileId) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.libraryVariantGroupMembers(groupId),
+          VariantGroup.fromJson,
           data: <String, dynamic>{'library_file_id': fileId},
         );
-        return VariantGroup.fromJson(res.data ?? const {});
       });
 
   /// DELETE /library/variant-groups/{id}/members/{fileId}.
@@ -315,6 +317,15 @@ class LibraryRepository {
     () => _dio.put<dynamic>(
       Endpoints.libraryFolder(folderId),
       data: <String, dynamic>{'name': name},
+    ),
+  );
+
+  /// PUT /library/folders/{id} — move folder into [parentId] (null = root).
+  /// The root is `0` on the wire; a null would leave the parent as it is.
+  Future<void> moveFolder(int folderId, {int? parentId}) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFolder(folderId),
+      data: <String, dynamic>{'parent_id': parentId ?? 0},
     ),
   );
 
@@ -380,12 +391,34 @@ class LibraryRepository {
   );
 
   /// POST /library/files/move — move files to folder [folderId] (null = root).
-  Future<void> moveFiles(List<int> fileIds, {int? folderId}) => guard(
-    () => _dio.post<dynamic>(
+  ///
+  /// A file the server will not move is skipped inside a 200, not refused:
+  /// a name already taken in a mount, a source gone from disk, a file the user
+  /// does not own. The first skip's `code` and English `reason` come back. A
+  /// reply without `moved` (a server older than the counts) moved them all.
+  Future<FileMoveOutcome> moveFiles(
+    List<int> fileIds, {
+    int? folderId,
+  }) => guard(() async {
+    final res = await _dio.post<dynamic>(
       Endpoints.libraryFilesMove,
       data: <String, dynamic>{'file_ids': fileIds, 'folder_id': folderId},
-    ),
-  );
+    );
+    final body = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final reasons = body['skipped_reasons'];
+    final first = reasons is List && reasons.isNotEmpty && reasons.first is Map
+        ? reasons.first as Map
+        : const {};
+    final skipped = toIntOrNull(body['skipped']) ?? 0;
+    return (
+      moved: toIntOrNull(body['moved']) ?? (skipped > 0 ? 0 : fileIds.length),
+      skipped: skipped,
+      skipCode: toStringOrNull(first['code']),
+      skipReason: toStringOrNull(first['reason']),
+    );
+  });
 
   /// DELETE /library/files/{id} — move file to trash.
   Future<void> deleteFile(int fileId) =>

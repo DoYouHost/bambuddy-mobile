@@ -182,12 +182,7 @@ void main() {
             [...overrides],
             [currentUserOverride(user({}))],
           ),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(scale)),
-            child: child!,
-          ),
+          builder: textScaled(scale),
         );
         await tester.pumpAndSettle();
         await tester.tap(find.text(pl.manyfoldTitle));
@@ -220,12 +215,7 @@ void main() {
           [...overrides],
           [currentUserOverride(user({}))],
         ),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(scale)),
-          child: child!,
-        ),
+        builder: textScaled(scale),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text(pl.manyfoldTitle));

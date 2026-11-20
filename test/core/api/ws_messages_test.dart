@@ -95,11 +95,15 @@ void main() {
       expect(ev.completed, isFalse);
     });
 
-    test('both inventory frames fold into one WsInventoryChanged', () {
-      // The server says the shelf changed in two ways — a spool edited and a
-      // spool assigned to a tray — and the screen re-reads the list either
+    test('the three inventory frames fold into one WsInventoryChanged', () {
+      // The server says the shelf changed in three ways: a spool edited, a
+      // spool assigned to a tray, a print's grams booked; the screen re-reads the list either
       // way, so the parser keeps no difference between them.
-      for (final type in ['inventory_changed', 'spool_assignment_changed']) {
+      for (final type in [
+        'inventory_changed',
+        'spool_assignment_changed',
+        'spool_usage_logged',
+      ]) {
         expect(
           parseWsMessage('{"type":"$type"}'),
           isA<WsInventoryChanged>(),

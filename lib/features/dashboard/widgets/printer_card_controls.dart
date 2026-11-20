@@ -144,13 +144,7 @@ class _LightSwitchRow extends ConsumerWidget {
                 horizontal: DashSpace.lg,
                 vertical: DashSpace.lg,
               ),
-              decoration: BoxDecoration(
-                color: t.accentGreen.withValues(alpha: DashAlpha.faint),
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(
-                  color: t.accentGreen.withValues(alpha: DashAlpha.soft),
-                ),
-              ),
+              decoration: t.tintBox(t.accentGreen, radius: DashRadius.xl),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -525,11 +519,7 @@ class _SpeedControl extends StatelessWidget {
           horizontal: DashSpace.md,
           vertical: DashSpace.md,
         ),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashRadius.lg),
-          border: Border.all(color: t.subCardBorder),
-        ),
+        decoration: t.subCardBox(DashRadius.lg),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -537,7 +527,7 @@ class _SpeedControl extends StatelessWidget {
                 ? _btnSpinner
                 : Icon(Icons.speed, size: DashIcon.md, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
-            Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
+            Text(label, style: t.bodyBoldPrimary),
             Icon(
               Icons.arrow_drop_down,
               size: DashIcon.md,

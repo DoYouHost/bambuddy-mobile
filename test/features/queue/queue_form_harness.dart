@@ -232,7 +232,7 @@ List<Override> queueFormOverrides({
   queueRepositoryProvider.overrideWithValue(
     queueFormRepo(triState: triState, createStatus: createStatus),
   ),
-  allPrintersProvider.overrideWith((ref) async => printers),
+  printerListProvider.overrideWith((ref) async => printers),
   sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
   triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
   gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),

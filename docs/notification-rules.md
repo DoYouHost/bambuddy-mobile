@@ -226,5 +226,105 @@ faking an end.
   UI applies from the next entry into the background. There is one HIGH-importance
   channel, `print_alerts`, and deliberately no separate silent one.
 - The event list and its defaults live in `NotifEvent` / `notification_prefs.dart`;
-  the numeric defaults there (bed cooled 35 °C, AMS humidity 60%, low filament 10%)
-  are the thresholds the monitor uses.
+  the numeric defaults there (bed cooled 35 °C, AMS humidity 60%, and 10% for low
+  filament, which only the fallback below uses) are the thresholds the monitor uses.
+
+## Low filament
+
+Two rules, and one speaks at a time (`LowStockSource` in `low_stock.dart`).
+
+- **The server's, from the spool inventory** (`PrintMonitor.updateLowStock`). The same
+  decision as `print_scheduler._check_filament_low` and the web's Low Stock count
+  (`InventoryPage.tsx`): a spool assigned to a slot, `(label − used) / label`, strictly
+  below the spool's own `low_stock_threshold_pct` or else the server's
+  `low_stock_threshold` (20 when unset). Keyed by printer, unit, slot **and spool id**, so
+  a low spool swapped for another low one alerts again. Re-armed at `pct >= threshold`
+  with no margin, on purpose (the server says why: a refilled slot can alert again, one
+  sitting just under stays quiet). Archived spools and spools with no label weight are
+  not judged. An empty answer forgets nothing. The AMS `remain` is not consulted at all:
+  the server measured it up to 56 points out against a scale.
+- **The phone's own, from the AMS reading** (`_processLowFilament`): `remain` of each
+  tray against `lowFilamentThreshold`. Only when the inventory cannot be read in this
+  session (403, or no such route on an older server), and quiet while the first answer is
+  awaited, so a start does not say it twice. A tray is let go (and the next spool in it
+  alerts) when the frame reports it **empty**, not when its reading merely goes unknown
+  with the spool still in, and not when it is missing from the frame.
+
+What the app adds to the server's rule: the first look only records. A service is built on
+every entry into the background, so a spool that was low when it started has been low for
+a while ([baseline](#baseline-the-first-frame-fires-nothing)). The server, long-lived, does
+not do this. One alert per printer per look, naming the emptiest slot: the notification id
+is per printer.
+
+The service reads spools, assignments and the threshold (`GET /settings`, or
+`/settings/ui-flags` for a session that may not read the settings) on start, on
+`inventory_changed`, `spool_assignment_changed` and `spool_usage_logged`, on every socket
+reconnect, and every five minutes while a printer prints (`LowStockFeed`). One look at a
+time, a second one queued behind it. The spools come from the assignments, which carry
+their spool on the built-in inventory (the list of every spool is read only for Spoolman,
+whose assignments do not, and merged with what they carry otherwise). So `inventory:read`
+is not needed there, `inventory:view_assignments` is; and with nothing assigned the look
+reads no list at all, so a Spoolman session without `inventory:read` is only found out
+when something is assigned. The threshold is not a phone preference any more:
+it is shown and, for a session that may write server settings, edited on the notification
+settings screen (`LowStockThresholdRow`); the stored `lowFilamentThreshold` stays where it
+is, used by the fallback and by a server that states no threshold.
+
+## The alarm (#61)
+
+An alarm on top of the alerts, for the events worth waking up for. Settings:
+`AlarmPrefs` (`lib/core/notifications/alarm_prefs.dart`), nested in
+`NotificationPrefs` under `alarm`; how it rings is in
+[notification-delivery.md](notification-delivery.md#the-alarm-printalarmkt).
+Tests: `test/features/notifications/print_alarm_test.dart`.
+
+- **Independent of the alert switches**, the master switch included. The user can
+  want the alarm and not the notification; the alarm has its own on/off, off by
+  default. Nothing is recorded while it is off.
+- **What rings it:**
+  - *Print finished* — the `FINISH` edge, the same one the alert uses.
+  - *Print stopped by a fault* — the `FAILED` edge, or an HMS fault of level 1
+    or 2 that has stood the hold while the printer is paused (`isPaused`). The
+    level alone does not say the print halted: an `hms[]` level 2 is a warning the
+    print often runs on through, and ringing for one of those woke the user for a
+    print that was fine. A pause somebody asked for does not count: `stgCur` 5
+    (M400), 16 (the user) or 30 (a pause G-code in the file), from bambuddy's
+    `STAGE_NAMES`. A printer that reports no stage rings on the pause alone, and
+    so does a requested stage the print already ran under: the server keeps
+    `stg_cur` until the printer sends another, so it may be a leftover. A
+    hold ends once, so a fault that stood while the print ran, or on an idle
+    printer before it started, rings on the edge into the pause instead
+    (`_ringOnPause`). While an alarm for the printer may still sound (its ring
+    length, cut short by a refused ring, a resume or a new print), a fault's
+    notification goes out silent. A level-1 fault that turns into `FAILED` within the hold rings once, on the `FAILED` edge: by the time the hold ends the print is
+    over and `_faultStood` leaves it to that edge. Level 3 and 4 only prompt and do
+    not ring. The hold also runs when the error alert is off and only the alarm
+    wants the fault, on an idle printer too: whether to hold is asked once per code,
+    at first sight, so a fault that shows up while a print is still starting must
+    not be ruled out on that first frame. The alert is then recorded as suppressed when the hold ends instead of at
+    first sight, and a hold that ends any other way (cleared, offline) records
+    nothing about an alert that was off.
+  - *Drying finished* — the server's own edge (`bambu_mqtt.py`,
+    `on_drying_complete`): `dry_time` falls from above 0 to 0, and a 0 while
+    `dry_status` is Checking, Drying or Cooling is ignored, so the alarm rings when
+    the cooling that closes the cycle ends. It rings only for a cycle that ran to
+    term: one that ended with more than 5 minutes left (`_EARLY_DRY_END_MINUTES`)
+    was stopped by somebody and is recorded as `ended_early`. The baseline frame
+    seeds the countdown, and a unit in Cooling counts as a cycle that ran to term
+    whatever was read before it, so neither a monitor started near the end nor a
+    gap in the feed (Doze, a reconnect) costs the alarm.
+- **Hours.** Rings only inside the window (22:00–07:00 by default; start inclusive,
+  end exclusive, equal ends mean all day), read at the moment it would ring, in local
+  time. The user can move or switch off the window.
+- **Excluded printers and locations** (`AlarmPrefs.exclusionOf`) silence every event
+  for them, drying included; recorded as `printer_excluded` / `location_excluded`.
+  A location is the free-text `Printer.location`, matched by exact name as the server
+  matches it. Status frames do not carry it, so the service loads `GET /printers` when
+  it starts, and only when some location is excluded (`PrinterLocations`). It never
+  waits for that list: a printer whose location it does not know — the list not in
+  yet, the call refused, a printer added since — rings, and the list is asked for
+  again. Waking someone for nothing beats sleeping through a print.
+- **One alarm per printer** (`_alarmBase + printerId`): a new one for the same
+  printer replaces the one ringing for it and restarts its timeout; other printers'
+  alarms ring alongside.
+- Like every preference, read when the foreground service starts.

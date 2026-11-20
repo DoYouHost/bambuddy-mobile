@@ -2,13 +2,17 @@ import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/announcement.dart';
+import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
 import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/api/observed_capability.dart';
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -26,6 +30,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/ai_detection_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
@@ -123,6 +128,17 @@ final _plDelegates = [
   ReportLocalizations.delegate,
   ...GlobalMaterialLocalizations.delegates,
 ];
+
+/// The [MaterialApp.builder] for a run at [scale] text size, the 1.0 / 1.5 /
+/// 2.0 runs a layout test makes (AGENTS.md: tests pass at more than 100 %).
+/// Pass it to [plApp] or [pumpPhone].
+TransitionBuilder textScaled(double scale) =>
+    (context, child) => MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(scale)),
+      child: child!,
+    );
 
 /// Pumps a phone widget inside a `ProviderScope` and [plApp]. Almost every caller
 /// wants [noServerProfileOverride] in [overrides].
@@ -621,6 +637,7 @@ class RecordingNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {
     alerts.add({
       'event': event,
@@ -634,6 +651,7 @@ class RecordingNotifications implements NotificationService {
       'photo': picture?.photoPath,
       'thumb': picture?.thumbnailPath,
       'quiet': quiet,
+      'silent': silent,
     });
     final failure = failWith;
     if (failure != null) throw failure;
@@ -713,6 +731,28 @@ class _InertSmartPlugs extends SmartPlugsNotifier {
   SmartPlugsState build() => const SmartPlugsState();
 }
 
+/// The server's AI failure detection answering [status] and never asked again:
+/// what a print panel reads without a repository behind it.
+Override aiDetectionOverride([AiDetectionStatus? status]) =>
+    aiDetectionProvider.overrideWith(() => _FixedAiDetection(status));
+
+class _FixedAiDetection extends AiDetectionNotifier {
+  _FixedAiDetection(this._status);
+
+  final AiDetectionStatus? _status;
+
+  @override
+  AiDetectionStatus? build() => _status;
+}
+
+/// The dashboard's own polls, silenced: no smart plugs and no AI detection.
+/// Whatever puts a printing card on screen needs both, or a request outlives
+/// the test.
+final inertDashboardPollOverrides = [
+  inertSmartPlugsOverride,
+  aiDetectionOverride(),
+];
+
 /// An [Archive] row for a test that does not care what it says: a finished print
 /// with no media. Name only what the test is about.
 Archive testArchive({
@@ -780,6 +820,10 @@ class RecordingCommands implements PrinterCommandsRepository {
     if (failure != null) throw failure;
   }
 
+  /// No version behind it, so it answers no, as a server too old to say.
+  @override
+  final amsHtLoadCapability = ObservedCapability(ServerFeature.amsHtLoad, null);
+
   @override
   Future<Object?> fetchOpenApi() async => null;
   @override
@@ -806,6 +850,15 @@ class RecordingCommands implements PrinterCommandsRepository {
   @override
   Future<void> setAirductMode(int id, {required bool heating}) =>
       _do('airduct:$id:$heating');
+  @override
+  Future<void> setPandaBreathOn(int id, {required bool on}) =>
+      _do('pandaOn:$id:$on');
+  @override
+  Future<void> setPandaBreathMode(int id, PandaBreathMode mode) =>
+      _do('pandaMode:$id:${mode.wire}');
+  @override
+  Future<void> setPandaBreathTarget(int id, int target) =>
+      _do('pandaTarget:$id:$target');
   @override
   Future<void> setFanSpeed(int id, String fan, int speed) =>
       _do('fan:$id:$fan:$speed');

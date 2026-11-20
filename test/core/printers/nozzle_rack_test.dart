@@ -20,6 +20,64 @@ NozzleRackSlot _slot(
 );
 
 void main() {
+  group('rackCardPositions', () {
+    NozzleRackSlot nozzle(int id, {int? addr, String d = '0.4'}) =>
+        NozzleRackSlot(id: id, nozzleDiameter: d, addrId: addr);
+
+    test('no rack dock, no card: the hotends alone are not a rack', () {
+      expect(rackCardPositions(null, rackPrinter: false), isNull);
+      expect(
+        rackCardPositions([nozzle(0), nozzle(1)], rackPrinter: false),
+        isNull,
+      );
+    });
+
+    test('an H2C draws six positions and leaves the picked-up one empty', () {
+      // `NozzleRackCard`: no recovery of the gap on the picture.
+      final card = rackCardPositions([
+        nozzle(0),
+        nozzle(1),
+        for (final id in [16, 18, 19, 20, 21]) nozzle(id),
+      ], rackPrinter: false)!;
+      expect(card, hasLength(6));
+      expect(card[1].slot, isNull);
+      expect(card.where((p) => p.mounted), isEmpty);
+      expect([for (final p in card) p.position], [1, 2, 3, 4, 5, 6]);
+    });
+
+    test('an H3C draws nine and rings the mounted one at its home', () {
+      // The capture in the server's test_h3c_ams3h.py: slot 6's hotend on the
+      // toolhead, id 0 with addr_id 6, its dock absent.
+      final card = rackCardPositions([
+        nozzle(0, addr: 6, d: '0.6'),
+        for (var i = 0; i < 9; i++)
+          if (i != 6) nozzle(16 + i, addr: i),
+      ], rackPrinter: true)!;
+      expect(card, hasLength(9));
+      expect(card[6].mounted, isTrue);
+      expect(card[6].slot?.nozzleDiameter, '0.6');
+      expect(card.where((p) => p.mounted), hasLength(1));
+      expect(card.where((p) => p.slot == null), isEmpty);
+    });
+
+    test('an H3C on a server without addr_id leaves the home empty', () {
+      final card = rackCardPositions([
+        nozzle(0),
+        for (var i = 0; i < 8; i++) nozzle(16 + i),
+      ], rackPrinter: true)!;
+      expect(card[8].slot, isNull);
+      expect(card.where((p) => p.mounted), isEmpty);
+    });
+
+    test('an addr_id outside the rack places nothing', () {
+      final card = rackCardPositions([
+        nozzle(0, addr: 12),
+        nozzle(16),
+      ], rackPrinter: true)!;
+      expect(card.where((p) => p.mounted), isEmpty);
+    });
+  });
+
   group('rackByPosition', () {
     test('translates physical nozzle ids into 1-based positions', () {
       final rack = rackByPosition([
@@ -278,6 +336,66 @@ void main() {
           );
         }
       }
+    });
+  });
+
+  group('nozzleMaterialOf, as the web names a nozzle (#1908)', () {
+    test('the four-character code takes its material from the last digits', () {
+      expect(nozzleMaterialOf('HS00'), NozzleMaterial.stainless);
+      expect(nozzleMaterialOf('HS01'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('HH01'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('HT05'), NozzleMaterial.tungsten);
+    });
+
+    test('a hotend\'s own long name and the bare codes are read too', () {
+      expect(nozzleMaterialOf('stainless_steel'), NozzleMaterial.stainless);
+      expect(nozzleMaterialOf('hardened_steel'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('tungsten_carbide'), NozzleMaterial.tungsten);
+      expect(nozzleMaterialOf('00'), NozzleMaterial.stainless);
+      expect(nozzleMaterialOf('01'), NozzleMaterial.hardened);
+      expect(nozzleMaterialOf('05'), NozzleMaterial.tungsten);
+      expect(nozzleMaterialOf('H'), NozzleMaterial.hardened);
+    });
+
+    test('a type that states no material has none, and so does empty', () {
+      expect(nozzleMaterialOf(null), isNull);
+      expect(nozzleMaterialOf(''), isNull);
+      expect(nozzleMaterialOf('X9'), isNull);
+      expect(
+        nozzleMaterialOf('HS99'),
+        NozzleMaterial.hardened,
+        reason: 'the H prefix is the web\'s last resort for a four-char code',
+      );
+    });
+  });
+
+  group('nozzleHighFlowStated', () {
+    test('HH is high flow, HS standard, and nothing else is stated', () {
+      expect(nozzleHighFlowStated('HH01'), isTrue);
+      expect(nozzleHighFlowStated('HS00'), isFalse);
+      expect(nozzleHighFlowStated('HT01'), isNull);
+      expect(nozzleHighFlowStated(''), isNull);
+      expect(nozzleHighFlowStated(null), isNull);
+    });
+
+    test('highFlowFromCode is built on it, and differs only where the server '
+        'and the web do', () {
+      // What the code states is the same answer in both ...
+      for (final code in ['HH01', 'hh00', ' HS00 ', 'HS']) {
+        expect(
+          highFlowFromCode(code),
+          nozzleHighFlowStated(code.trim().toUpperCase()),
+          reason: code,
+        );
+      }
+      // ... and the two differ only for a code that names neither: the web's
+      // card states nothing, the server's dispatch calls it standard.
+      expect(nozzleHighFlowStated('HT01'), isNull);
+      expect(highFlowFromCode('HT01'), isFalse);
+      expect(highFlowFromCode('X9'), isFalse);
+      // A blank is nothing in both, never standard.
+      expect(highFlowFromCode(''), isNull);
+      expect(nozzleHighFlowStated(''), isNull);
     });
   });
 }

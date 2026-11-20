@@ -12,17 +12,21 @@ import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
+import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory.dart';
+import '../../../core/models/panda_breath.dart';
 import '../../../core/models/printer.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
 import '../../../core/printers/bed_jog.dart';
 import '../../../core/printers/hms_readback.dart';
+import '../../../core/printers/nozzle_rack.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
+import '../../../core/slicer/loaded_spool_match.dart';
 import '../../../core/settings/server_profile.dart';
 import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
@@ -31,23 +35,34 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
+import '../../../core/ams/color_names.dart';
 import '../../common/api_failure_snack.dart';
+import '../../common/color_catalog.dart';
 import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
+import '../../common/fact_row.dart';
+import '../../common/filament_dot.dart';
+import '../../common/section_label.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';
 import '../../common/plate_clear.dart';
 import '../../common/speed_name.dart';
 import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
+import 'ai_detection_item.dart';
 import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
+    show
+        SpoolSwatch,
+        assignmentSlotLabel,
+        openSpoolInInventory,
+        parseSpoolColor;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../add_printer_screen.dart';
+import '../ams_slot_config_providers.dart';
 import '../controls_providers.dart';
 import '../print_lifecycle.dart';
 import '../smart_plug_actions.dart';
@@ -55,6 +70,7 @@ import 'pill_switch.dart';
 import '../temp_readings.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
+import '../ai_detection_providers.dart';
 import '../firmware_providers.dart';
 import '../ws_providers.dart';
 import '../skip_objects_screen.dart';
@@ -71,8 +87,11 @@ part 'printer_card_scheduled_drying.dart';
 part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
+part 'printer_card_panda.dart';
+part 'printer_card_target.dart';
 part 'printer_card_movement.dart';
 part 'printer_card_collapsed.dart';
+part 'printer_card_nozzle.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({
@@ -230,6 +249,8 @@ class _PrinterCardState extends State<PrinterCard> {
             // bambuddy's own flag rather than anything on the machine.
             if (status != null)
               _PlateClearBanner(printerId: printerId, status: status),
+            if (status?.pandaBreath case final panda?)
+              _PandaBreathRow(printerId: printerId, panda: panda),
           ],
         ),
       );
@@ -239,6 +260,7 @@ class _PrinterCardState extends State<PrinterCard> {
     final readings = buildTempReadings(
       status?.temperatures,
       status?.airductIsHeating,
+      rackPosition: status?.mountedRackPosition,
     );
     final hasDetails = status?.hasDetails ?? false;
     final hasFans =
@@ -316,16 +338,18 @@ class _PrinterCardState extends State<PrinterCard> {
           ],
           if (printing) ...[
             const SizedBox(height: DashSpace.md),
-            _PrintPanel(status: status!),
+            _PrintPanel(printerId: printerId, status: status!),
           ],
-          if (readings.isNotEmpty) ...[
+          if (readings.isNotEmpty || status?.pandaBreath != null) ...[
             const SizedBox(height: DashSpace.lg),
             _TempGrid(
               readings: readings,
+              panda: status?.pandaBreath,
               printerId: printerId,
               model: model,
               activeExtruder: status?.activeExtruder,
               printing: printing,
+              nozzles: status?.nozzleRack,
             ),
           ],
           if (status != null) ...[

@@ -78,9 +78,11 @@ jobs:
           server="bambuddy-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           spoolman="spoolman-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           labelprinter="label-printer-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
+          wled="wled-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           {
             echo "broker=$broker"
             echo "labelprinter=$labelprinter"
+            echo "wled=$wled"
             echo "name=$server"
             echo "spoolman=$spoolman"
           } >> "$GITHUB_OUTPUT"
@@ -108,17 +110,26 @@ jobs:
               && pip install -q 'git+https://github.com/DoYouHost/brother-ql-print-server@${LABEL_PRINTER_REF}' \
               && : > /tmp/lp0 && python -m label_printer"
 
+          docker create --rm --name "$wled" python:3.13-slim python /fake_wled.py >/dev/null
+          docker cp tool/ci/fake_wled.py "$wled":/fake_wled.py
+          docker start "$wled" >/dev/null
+
           docker pull --quiet "$BAMBUDDY_IMAGE"
+          # /srv/external/{rw,ro}: what the external-folder tests mount.
           docker run -d --rm --name "$server" \
             -p "${gateway}:8000:8000" \
             -e "DATA_DIR=/app/data" -e "TZ=Europe/Warsaw" \
+            -e "BAMBUDDY_EXTERNAL_ROOTS=/srv/external" \
+            --tmpfs /srv/external/rw:mode=1777 --tmpfs /srv/external/ro:mode=1777 \
             "$BAMBUDDY_IMAGE"
 
           broker_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$broker")"
           echo "broker_ip=$broker_ip" >> "$GITHUB_OUTPUT"
           spoolman_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$spoolman")"
+          wled_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$wled")"
           {
             echo "spoolman_url=http://${spoolman_ip}:8000"
+            echo "wled_url=http://${wled_ip}"
             echo "base=http://${gateway}:8000"
             echo "labelprinter_url=http://${gateway}:8200"
           } >> "$GITHUB_OUTPUT"
@@ -208,6 +219,9 @@ jobs:
           BAMBUDDY_CONTRACT_BROKER: ${{ steps.server.outputs.broker }}
           BAMBUDDY_CONTRACT_BROKER_IP: ${{ steps.server.outputs.broker_ip }}
           BAMBUDDY_CONTRACT_SPOOLMAN_URL: ${{ steps.server.outputs.spoolman_url }}
+          # tool/ci/fake_wled.py, on the bridge so the server can reach it.
+          BAMBUDDY_CONTRACT_WLED_URL: ${{ steps.server.outputs.wled_url }}
+          BAMBUDDY_CONTRACT_EXTERNAL_ROOT: /srv/external
           # Prints into /tmp/lp0 in its container; the tests read it via `docker exec`.
           LABEL_PRINTER_CONTRACT_URL: ${{ steps.server.outputs.labelprinter_url }}
           LABEL_PRINTER_CONTRACT_CONTAINER: ${{ steps.server.outputs.labelprinter }}
@@ -270,5 +284,6 @@ jobs:
           docker rm -f "${{ steps.server.outputs.name }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.broker }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.spoolman }}" >/dev/null 2>&1 || true
+          docker rm -f "${{ steps.server.outputs.wled }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.labelprinter }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.manyfold.outputs.name }}" >/dev/null 2>&1 || true

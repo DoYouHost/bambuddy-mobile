@@ -6,6 +6,7 @@ import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/demo/demo_labels.dart';
+import 'package:bambuddy_mobile/core/models/label_template.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:dio/dio.dart';
@@ -271,6 +272,70 @@ void main() {
         ),
       );
       expect(unzip(zip).keys, ['sheet-1.png', 'sheet-2.png']);
+    });
+  });
+
+  group('a custom sheet', () {
+    const letterTwoByFive = SheetLayout(
+      page: LabelPageSize.letter,
+      labelWidthMm: 101.6,
+      labelHeightMm: 50.8,
+      columns: 2,
+      rows: 5,
+      topMm: 12.7,
+      leftMm: 4.7,
+      columnGapMm: 3.2,
+    );
+
+    Map<String, dynamic> custom({
+      List<int> ids = const [1],
+      SheetLayout? layout = letterTwoByFive,
+      Map<String, dynamic> extra = const {},
+    }) => request(
+      ids: ids,
+      template: 'custom',
+      extra: {if (layout != null) 'layout': layout.toJson(), ...extra},
+    );
+
+    test('is drawn on the page it names', () {
+      final pdf = bytesOf(post(custom()));
+      expect(pages(pdf), 1);
+      // US Letter in points, not the A4 the built-in Avery sheet sits on.
+      expect(latin1.decode(pdf), contains('/MediaBox [0 0 612'));
+    });
+
+    test('starts within the capacity of its own grid', () {
+      // 10 slots: from slot 9 the second and third label spill to page 2.
+      expect(
+        pages(
+          bytesOf(
+            post(custom(ids: [1, 2, 3], extra: {'starting_position': 9})),
+          ),
+        ),
+        2,
+      );
+      expect(post(custom(extra: {'starting_position': 11})).status, 422);
+    });
+
+    test('needs its layout, and the others take none', () {
+      expect(post(custom(layout: null)).status, 422);
+      expect(
+        post(request(extra: {'layout': letterTwoByFive.toJson()})).status,
+        422,
+      );
+    });
+
+    test('a layout that does not fit the page is a 422', () {
+      const tooTall = SheetLayout(
+        page: LabelPageSize.a4,
+        labelWidthMm: 63.5,
+        labelHeightMm: 38.1,
+        columns: 3,
+        rows: 8,
+        topMm: 15.15,
+        leftMm: 7,
+      );
+      expect(post(custom(layout: tooTall)).status, 422);
     });
   });
 

@@ -9,6 +9,9 @@
 /// orifice.
 library;
 
+import 'package:collection/collection.dart';
+
+import '../ams/slot_addressing.dart';
 import '../format/fixed_format.dart';
 import '../models/filament_requirement.dart';
 import '../models/printer_status.dart';
@@ -59,6 +62,41 @@ Map<int, NozzleRackSlot> rackByPosition(List<NozzleRackSlot>? slots) {
     byPosition[missing.single] = carriage;
   }
   return byPosition;
+}
+
+/// One position of the rack card: its 1-based number, the nozzle there (null
+/// for an empty dock) and whether that nozzle is the one on the toolhead.
+typedef RackCardPosition = ({int position, NozzleRackSlot? slot, bool mounted});
+
+/// The positions the web's rack card draws (`NozzleRackCard`), or null when
+/// the printer reports no rack dock at all — ids 0 and 1 are the hotends.
+///
+/// Unlike [rackByPosition] this is only a picture, and a rack printer's
+/// mounted nozzle is drawn at its home position from `addr_id` alone. The
+/// print form keeps to [rackByPosition], because dispatch does.
+List<RackCardPosition>? rackCardPositions(
+  List<NozzleRackSlot>? slots, {
+  required bool rackPrinter,
+}) {
+  final all = slots ?? const <NozzleRackSlot>[];
+  if (!all.any((s) => (s.id ?? -1) >= 2)) return null;
+  RackCardPosition at(int index) {
+    final docked = all.firstWhereOrNull(
+      (s) => s.id == _rackPositionBase + 1 + index,
+    );
+    if (docked != null) {
+      return (position: index + 1, slot: docked, mounted: false);
+    }
+    final carriage = rackPrinter
+        ? all.firstWhereOrNull(
+            (s) => s.id == _carriageNozzleId && s.addrId == index,
+          )
+        : null;
+    return (position: index + 1, slot: carriage, mounted: carriage != null);
+  }
+
+  final size = rackPrinter ? rackSlotCount : rackPositions.length;
+  return [for (var i = 0; i < size; i++) at(i)];
 }
 
 /// Whether the nozzle in one rack position can print a group that asks for
@@ -159,13 +197,58 @@ String _colorKey(String? hex) {
   return (value.length > 6 ? value.substring(0, 6) : value).toUpperCase();
 }
 
-/// Whether the printer's own flow-type code names a high-flow nozzle: `HH…`
-/// yes, anything else no. Null when the printer states nothing, which is not
-/// the same as "standard" — [rackSlotFits] then skips the flow check rather
-/// than ruling the position out.
+/// Whether the printer's own flow-type code names a high-flow nozzle, as the
+/// server's dispatch reads it (`slot_type.upper().startswith("HH")`): `HH…` yes,
+/// any other code no. Null when the printer states nothing, which is not the
+/// same as "standard" — [rackSlotFits] then skips the flow check rather than
+/// ruling the position out.
+///
+/// What a code *states* is [nozzleHighFlowStated]'s; this adds the server's rule
+/// that a code naming neither `HH` nor `HS` (`HT01`) counts as standard, because
+/// here the answer rules a pick in or out.
 bool? highFlowFromCode(String? code) {
   final value = code?.trim().toUpperCase() ?? '';
-  return value.isEmpty ? null : value.startsWith('HH');
+  if (value.isEmpty) return null;
+  return nozzleHighFlowStated(value) ?? false;
+}
+
+/// The nozzle's material, as the web's rack card names it
+/// (`nozzleTypeName` in `PrintersPage.tsx`).
+enum NozzleMaterial { stainless, hardened, tungsten }
+
+/// The material a nozzle's `type` states: the long names of a hotend's own info,
+/// a four-character code whose last two digits are the material (`HS01`), the
+/// bare two-digit code, and, as the web's last resort, any other code that
+/// starts with `H` (hardened). Null when the type says none, and a caller then
+/// shows the code as it came.
+NozzleMaterial? nozzleMaterialOf(String? type) {
+  final value = type ?? '';
+  if (value.isEmpty) return null;
+  if (value.contains('hardened')) return NozzleMaterial.hardened;
+  if (value.contains('stainless')) return NozzleMaterial.stainless;
+  if (value.contains('tungsten')) return NozzleMaterial.tungsten;
+  final code = value.length >= 4 ? value.substring(2, 4) : value;
+  switch (code) {
+    case '00':
+      return NozzleMaterial.stainless;
+    case '01':
+      return NozzleMaterial.hardened;
+    case '05':
+      return NozzleMaterial.tungsten;
+  }
+  return value.startsWith('H') ? NozzleMaterial.hardened : null;
+}
+
+/// The flow the code states, the way the web's card does: `HH…` high flow,
+/// `HS…` standard, anything else nothing. A code that names neither (`HT01`) is
+/// not called standard here, because this answer is shown to the user as a fact
+/// about the nozzle; [highFlowFromCode] builds on it and adds the server's
+/// "anything else is standard" for the queue pick.
+bool? nozzleHighFlowStated(String? type) {
+  final value = type ?? '';
+  if (value.startsWith('HH')) return true;
+  if (value.startsWith('HS')) return false;
+  return null;
 }
 
 /// The same answer from the slicer's spelling of the property (`High Flow` /

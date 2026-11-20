@@ -68,11 +68,11 @@ class FinanceRepository {
     required BudgetInput budget,
     bool isActive = true,
   }) => guardKeepingDetail(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.financeCostCenters,
+      CostCenter.fromJson,
       data: {'name': name, 'is_active': isActive, ...budget.toJson()},
     );
-    return CostCenter.fromJson(res.data ?? const {});
   });
 
   /// PATCH /finance/cost-centers/{id} — name and active flag, and a 400 for a

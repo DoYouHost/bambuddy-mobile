@@ -129,8 +129,9 @@ class PrinterFilesRepository {
     bool asZip = true,
   }) => _downloadJobs.watching(
     () async {
-      final res = await _dio.post<Map<String, dynamic>>(
+      return _dio.postObject(
         Endpoints.printerFilesJob(printerId),
+        PrinterDownloadJob.fromJson,
         data: {
           'paths': paths,
           'sizes': ?_vouchedSizes(paths, sizes),
@@ -138,7 +139,6 @@ class PrinterFilesRepository {
           'as_zip': asZip,
         },
       );
-      return PrinterDownloadJob.fromJson(res.data ?? const {});
     },
     absent: () => null,
     // Not a 403: this runs because the user pressed Download, so a refusal

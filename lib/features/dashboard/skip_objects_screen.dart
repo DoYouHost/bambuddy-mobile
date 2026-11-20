@@ -382,13 +382,7 @@ class _InfoBanner extends StatelessWidget {
         horizontal: DashSpace.lg,
         vertical: DashSpace.md,
       ),
-      decoration: BoxDecoration(
-        color: t.accentBlue.withValues(alpha: DashAlpha.faint),
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(
-          color: t.accentBlue.withValues(alpha: DashAlpha.soft),
-        ),
-      ),
+      decoration: t.tintBox(t.accentBlue),
       child: LayoutBuilder(
         builder: (context, box) {
           final counter = l10n.skipObjectsCounter(

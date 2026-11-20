@@ -144,7 +144,11 @@ touch target stays 48 dp or more at every size.
   printing, Load and Unload carry a lock and the reason is their tooltip; there is
   no line of text for it. An external spool's side is a round `L` / `R` mark (the
   printer's own marks, like `AMS-A`), not a pill with the word, which covered the
-  spool.
+  spool. An H3C's AMS 3H takes two rows, 2-4-6-8 half a slot in behind 1-3-5-7-9
+  as on the unit: nine cards in one row were about 44 dp wide, too narrow for a
+  material name. Its dryer's two slots are tinted. The H3C's external inputs are
+  listed as on the card: only a loaded one, as an `Ext-n` pill, Ext-1 first, with
+  no Load or Unload (the web offers none), and one line when none is loaded.
 - **Icons** grow with the text, up to 150 % (`_IconScale` in the screen,
   `controllerIconSize(context, base)` for an icon with a size of its own). Inside
   the controller body an icon button has no padding: with the default 8 dp padding

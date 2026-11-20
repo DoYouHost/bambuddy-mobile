@@ -6,6 +6,8 @@ import '../../data/archive_repository.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
+import '../api/client_cert.dart';
+import '../api/tls_overrides.dart';
 import '../api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
@@ -26,8 +28,33 @@ import '../diagnostics/diagnostics_wiring.dart';
 /// outlives a switch to another server, where the same id is somebody else's.
 String serverTag(String baseUrl) => stableDigest(baseUrl).toRadixString(16);
 
-/// Action ID for "Mark Done" in maintenance notifications.
-/// The notification payload carries a comma-separated list of item IDs to reset.
+/// A payload that names things on the server: `<kind>:<field>:…:<serverTag>`.
+/// The one place the tag is appended, so a new kind of payload cannot forget it.
+/// A field must not contain the separator; the ones in use are numbers, hex and a
+/// bare `subtask_id`.
+String taggedPayload(
+  String kind,
+  Iterable<Object> fields, {
+  required String serverUrl,
+}) => [kind, ...fields, serverTag(serverUrl)].join(':');
+
+/// The fields and the server tag of a [kind] payload that has exactly
+/// [fieldCount] fields and a tag, or null for anything else: another kind, a
+/// shape an older build wrote, an empty tag. What a field means is for the
+/// caller to check.
+({List<String> fields, String server})? parseTaggedPayload(
+  String? payload,
+  String kind, {
+  required int fieldCount,
+}) {
+  if (payload == null || !payload.startsWith('$kind:')) return null;
+  final parts = payload.split(':');
+  if (parts.length != fieldCount + 2 || parts.last.isEmpty) return null;
+  return (fields: parts.sublist(1, parts.length - 1), server: parts.last);
+}
+
+/// Action ID for "Mark Done" in maintenance notifications; the items to reset
+/// travel in the payload ([maintenancePayload]).
 const String maintenancePerformActionId = 'maint_perform';
 
 /// Action IDs on an HMS alert are `hms:<HMSAction>`; the fault they apply to
@@ -42,7 +69,11 @@ String hmsPayload({
   required String fullCode,
   required String serverUrl,
   String? jobId,
-}) => 'hms:$printerId:$fullCode:${jobId ?? ''}:${serverTag(serverUrl)}';
+}) => taggedPayload('hms', [
+  printerId,
+  fullCode,
+  jobId ?? '',
+], serverUrl: serverUrl);
 
 /// The fault an HMS notification action refers to, or null when the payload is
 /// not one — including the four-part form builds before the server tag wrote:
@@ -50,29 +81,45 @@ String hmsPayload({
 /// resume sent to the wrong one is worse than a button that does nothing.
 ({int printerId, String fullCode, String? jobId, String server})?
 parseHmsPayload(String? payload) {
-  if (payload == null || !payload.startsWith('hms:')) return null;
-  final parts = payload.split(':');
-  if (parts.length != 5 || parts[4].isEmpty) return null;
-  final printerId = int.tryParse(parts[1]);
-  if (printerId == null || parts[2].isEmpty) return null;
+  final tagged = parseTaggedPayload(payload, 'hms', fieldCount: 3);
+  if (tagged == null) return null;
+  final [id, fullCode, jobId] = tagged.fields;
+  final printerId = int.tryParse(id);
+  if (printerId == null || fullCode.isEmpty) return null;
   return (
     printerId: printerId,
-    fullCode: parts[2],
-    jobId: parts[3].isEmpty ? null : parts[3],
-    server: parts[4],
+    fullCode: fullCode,
+    jobId: jobId.isEmpty ? null : jobId,
+    server: tagged.server,
   );
 }
 
-String maintenancePayload(Iterable<int> itemIds) => itemIds.join(',');
+/// Payload of a maintenance alert: `maint:<id,id,…>:<server>`. Item ids are
+/// autoincrement rows, so the [serverTag] is what keeps "Mark Done" from
+/// resetting another server's counter.
+String maintenancePayload(Iterable<int> itemIds, {required String serverUrl}) =>
+    taggedPayload('maint', [itemIds.join(',')], serverUrl: serverUrl);
 
-List<int> parseMaintenancePayload(String? payload) {
-  if (payload == null || payload.isEmpty) return const [];
+/// The items a maintenance payload names. `server` is null for the bare id
+/// list builds before the server tag wrote: such an alert is still on screen
+/// after the update, and its button keeps working as it did.
+({List<int> itemIds, String? server}) parseMaintenancePayload(String? payload) {
+  const none = (itemIds: <int>[], server: null);
+  if (payload == null || payload.isEmpty) return none;
+  var list = payload;
+  String? server;
+  if (payload.startsWith('maint:')) {
+    final tagged = parseTaggedPayload(payload, 'maint', fieldCount: 1);
+    if (tagged == null) return none;
+    list = tagged.fields.single;
+    server = tagged.server;
+  }
   final ids = <int>[];
-  for (final part in payload.split(',')) {
+  for (final part in list.split(',')) {
     final id = int.tryParse(part.trim());
     if (id != null) ids.add(id);
   }
-  return ids;
+  return (itemIds: ids, server: server);
 }
 
 /// The [AuthService] the isolates without Riverpod build; both leave the same mark in
@@ -103,6 +150,9 @@ Future<ApiClient?> buildBackgroundApiClient(
     'pass credentials and auth together',
   );
   final settings = SettingsRepository(prefs);
+  // Every isolate without Riverpod builds its client here before its first
+  // request, which is when Dio creates its `HttpClient`.
+  useTls(settings.loadCustomCa(), await loadClientCert(settings));
   final profile = settings.loadProfile();
   if (profile == null) return null;
   final creds = credentials ?? SecureCredentialsStore();
@@ -331,13 +381,20 @@ Future<void> handleHmsAction(NotificationResponse response) async {
 /// set, dismisses. Errors are swallowed (docs/notification-delivery.md, "Button taps").
 Future<void> handleMaintenanceAction(NotificationResponse response) async {
   if (response.actionId != maintenancePerformActionId) return;
-  final itemIds = parseMaintenancePayload(response.payload);
+  final (:itemIds, :server) = parseMaintenancePayload(response.payload);
   if (itemIds.isEmpty) return;
 
   await _runAction(
     maintenancePerformActionId,
     items: itemIds.length,
     run: (prefs, api) async {
+      if (server != null && !_isServer(prefs, server)) {
+        NotifProbe.actionFailed(const ServerChanged(), items: itemIds.length);
+        await _cancel(response.id);
+        return;
+      }
+      // The server these resets go to; the profile can change while they run.
+      final serverUrl = SettingsRepository(prefs).loadProfile()?.baseUrl ?? '';
       final repo = MaintenanceRepository(api.dio);
       var anyPerformed = false;
       for (final id in itemIds) {
@@ -358,7 +415,10 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
       // learns the counter never reset.
       final notified = settings.loadNotifiedMaintenanceDueIds()
         ..removeAll(itemIds);
-      await settings.saveNotifiedMaintenanceDueIds(notified);
+      await settings.saveNotifiedMaintenanceDueIds(
+        notified,
+        serverUrl: serverUrl,
+      );
       // Signal to UI: server state changed outside the app.
       // Maintenance screen will fetch fresh data on return instead of polling.
       if (anyPerformed) await settings.setMaintenanceDirty(true);

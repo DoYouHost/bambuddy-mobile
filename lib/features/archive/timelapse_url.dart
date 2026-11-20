@@ -19,9 +19,13 @@ typedef TimelapseSource = ({String url, MediaAuth auth});
 /// [version] is the cache-buster the web UI also appends: after an edit the
 /// file behind the URL is a different video. Returns null when there is no
 /// server profile; throws whatever minting the credential throws.
+///
+/// [runId] is one print's own video; without it the archive's, which is its
+/// latest print's.
 Future<TimelapseSource?> timelapseSource(
   WidgetRef ref,
   int archiveId, {
+  int? runId,
   int version = 0,
   bool freshToken = false,
 }) async {
@@ -32,7 +36,7 @@ Future<TimelapseSource?> timelapseSource(
       .auth(forceRefresh: freshToken);
   return (
     url: auth.sign(
-      '$baseUrl${Endpoints.archiveTimelapse(archiveId)}?v=$version',
+      '$baseUrl${runId == null ? Endpoints.archiveTimelapse(archiveId) : Endpoints.archiveRunTimelapse(archiveId, runId)}?v=$version',
     ),
     auth: auth,
   );

@@ -137,7 +137,9 @@ The traps that shaped them are written next to the code they bit:
 [contract-tests.yml](../.github/workflows/contract-tests.yml): a broker standing in
 for a printer, `ghcr.io/maziggy/bambuddy:<tag>` published on the docker bridge's
 gateway, the [fake WLED](../tool/ci/fake_wled.py) and Spoolman as containers, all
-seeded, under names that carry your user so another session's stack survives.
+seeded, under names that carry your user so another session's stack survives. The
+server gets `/srv/external/{rw,ro}` and `BAMBUDDY_EXTERNAL_ROOTS` for the
+external-folder tests.
 `just contract-test <tag> [files]` runs the suite against it, `just contract-down
 <tag>` removes it. The label printer and Manyfold are left out; their tests skip.
 
@@ -193,6 +195,10 @@ something else fails its widget test until the file is rewritten and replayed.
 `.git/info/exclude` so the tracked `.gitignore` stays untouched. It answers contract
 questions (see AGENTS.md); these are the ways it misleads.
 
+- **Keep it current: `just reference-pull`** clones it if missing, otherwise fetches
+  `dev` by name and fast-forwards, refusing local changes. `server_citations_test`
+  checks every `file.py::symbol` comment against this clone, so a stale one fails
+  `just test` (and `ship`) on a machine whose clone lags the code.
 - **Know what it stands on.** `git -C reference/bambuddy log -1 --format='%h %cs'`
   — the checkout moves between a tag, `dev` and a detached commit. Read an older
   state with `git show <tag>:<file>`. `git log A..B` does not cross the shallow

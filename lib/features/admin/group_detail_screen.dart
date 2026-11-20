@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/current_user.dart';
@@ -72,10 +73,7 @@ class GroupDetailScreen extends ConsumerWidget {
               children: [
                 _GroupHeader(group: group),
                 const SizedBox(height: DashSpace.xl),
-                Text(
-                  l10n.groupsMembersHeader,
-                  style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
-                ),
+                SectionLabel(l10n.groupsMembersHeader),
                 const SizedBox(height: DashSpace.sm),
                 if (group.members.isEmpty)
                   Text(
@@ -296,11 +294,7 @@ class _MemberRow extends StatelessWidget {
           DashSpace.sm,
           DashSpace.md,
         ),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashRadius.lg),
-          border: Border.all(color: t.subCardBorder),
-        ),
+        decoration: t.subCardBox(DashRadius.lg),
         child: Row(
           children: [
             Icon(

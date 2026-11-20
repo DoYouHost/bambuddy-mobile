@@ -16,6 +16,7 @@ import 'core/models/current_user.dart';
 import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/archive/outcome_sheet.dart';
+import 'features/dashboard/background_handover.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
@@ -67,8 +68,9 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
     _pushToWatch();
-    // Answer watch relay requests for as long as the app lives (plan 05).
-    unawaited(ref.read(wearRelayHandlerProvider).start());
+    // Stops a service left over from the last launch, then takes the watch
+    // relay and the finish-photo hunt, and follows pause and resume from here.
+    ref.read(backgroundHandoverProvider).start();
   }
 
   @override
@@ -231,7 +233,12 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     unawaited(
       ref
           .read(watchConfigSyncProvider)
-          .push(profile, theme: ref.read(watchThemeProvider)),
+          .push(
+            profile,
+            theme: ref.read(watchThemeProvider),
+            ca: ref.read(customCaProvider),
+            clientCert: ref.read(clientCertProvider),
+          ),
     );
   }
 
@@ -250,6 +257,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // watch is paired.
     ref.listen(serverProfileProvider, (_, _) => _pushToWatch());
     ref.listen(watchThemeProvider, (_, _) => _pushToWatch());
+    ref.listen(tlsIdentityProvider, (_, _) => _pushToWatch());
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
     final router = ref.watch(routerProvider);

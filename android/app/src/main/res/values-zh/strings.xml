@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+      <string name="widget_name">Bambuddy</string>
+      <string name="widget_description">打印机状态，附耗材扫描快捷入口</string>
+      <string name="widget_scan">扫描耗材</string>
+      <string name="widget_multi_name">Bambuddy · 打印机</string>
+      <string name="widget_multi_description">所有打印机一览</string>
+
+      <!-- 空闲/离线时的玩笑话：中文语境下另起一套，不与英文或波兰语逐句对应。
+           保持 PEGI 16。 -->
+      <string-array name="widget_idle_quips">
+                <item>打印板已清空，正在清空我的加班时长。</item>
+                <item>热床是冷的，心是热的，进度条是不动的。</item>
+                <item>请稍等，我正在进行一项非常重要的工作：发呆。</item>
+                <item>模型在切片，我在切水果。</item>
+                <item>我不是不打印，我只是在等一个合适的时机。</item>
+                <item>喷嘴干净，打印板干净，头脑一片空白。</item>
+                <item>调平靠手感，打印靠缘分，成功率靠运气。</item>
+                <item>耗材已装载，动力已卸载。</item>
+                <item>今天不宜打印，宜躺平。</item>
+                <item>温度到位了，情绪还没到位。</item>
+                <item>一切正常，除了什么都没在打印。</item>
+                <item>AMS 在待命，我在待机。</item>
+                <item>打印板空空如也，灵感也是。</item>
+                <item>任务已完成：成功什么也没做。</item>
+                <item>别催，正在预热我的耐心。</item>
+                <item>第一层要慢，我要更慢。</item>
+                <item>机器很安静，安静得有点可疑。</item>
+                <item>耗材还有，时间没有。</item>
+                <item>这不是故障，这是节能模式。</item>
+                <item>已进入省电状态：省的不只是电。</item>
+                <item>请在文件准备好之后，再叫我起床。</item>
+                <item>打印队列是空的，我的待办不是。</item>
+                <item>没有报错，也没有动作，完美平衡。</item>
+      </string-array>
+</resources>

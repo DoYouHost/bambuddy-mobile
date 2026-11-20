@@ -54,7 +54,7 @@ Future<void> pumpControllerScreen(
           ),
         ),
         inertStatusesOverride,
-        inertSmartPlugsOverride,
+        ...inertDashboardPollOverrides,
       ], overrides),
       child: plApp(const ControllerScreen(printerId: controllerTestPrinterId)),
     ),

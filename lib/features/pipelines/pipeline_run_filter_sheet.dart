@@ -7,6 +7,7 @@ import '../../core/models/pipeline_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'pipeline_run_status_labels.dart';
+import '../../providers.dart';
 import 'pipelines_providers.dart';
 
 /// Narrow the runs dashboard: which pipeline, which status, which target.
@@ -31,8 +32,7 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filter = ref.watch(pipelineRunFilterProvider);
     final pipelines = ref.watch(pipelinesProvider).value ?? const [];
-    final printers =
-        ref.watch(pipelineTargetPrintersProvider).value ?? const [];
+    final printers = ref.watch(printerListProvider).value ?? const [];
     final classes = ref.watch(pipelinePrinterClassesProvider).value ?? const [];
     final notifier = ref.read(pipelineRunFilterProvider.notifier);
 

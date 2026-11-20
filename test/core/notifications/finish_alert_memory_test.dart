@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
@@ -57,6 +59,71 @@ void main() {
 
       expect((await memory.recall(1, _now))!.id, 1001);
       expect((await memory.recall(2, _now))!.id, 1002);
+    });
+
+    // A farm finishing a batch: each write is a read of the whole map, a change
+    // and a write of the whole map, so two that overlap must not lose one.
+    test('alerts landing together are all kept', () async {
+      await Future.wait([
+        for (var printer = 1; printer <= 8; printer++)
+          memory.remember(_alert(printerId: printer)),
+      ]);
+
+      expect(
+        {for (final a in await memory.recallAll(_now)) a.printerId},
+        {1, 2, 3, 4, 5, 6, 7, 8},
+      );
+    });
+
+    // The service wraps one instance and its photo notifier holds another.
+    test('through separate instances as well', () async {
+      await Future.wait([
+        memory.remember(_alert(printerId: 1)),
+        FinishAlertMemory(prefs).remember(_alert(printerId: 2)),
+        memory.forget(9),
+      ]);
+
+      expect(
+        {for (final a in await memory.recallAll(_now)) a.printerId},
+        {1, 2},
+      );
+    });
+
+    // One platform call that never answers must not hold up every write
+    // behind it for the life of the isolate.
+    test('a write that never returns does not block the next one', () async {
+      final normal = FinishAlertMemory.writeTimeout;
+      FinishAlertMemory.writeTimeout = const Duration(milliseconds: 50);
+      addTearDown(() => FinishAlertMemory.writeTimeout = normal);
+      final stuck = _StuckOnce(prefs);
+
+      FinishAlertMemory(stuck).remember(_alert(printerId: 1)).ignore();
+      await FinishAlertMemory(
+        stuck,
+      ).remember(_alert(printerId: 2)).timeout(const Duration(seconds: 2));
+
+      expect((await memory.recall(2, _now))?.printerId, 2);
+    });
+
+    // The clock on a write starts with its turn. Started when it was queued,
+    // the second one's time is up the moment the stuck first one lets go, and
+    // the third runs into it.
+    test('the writes behind one that never returns still take turns', () async {
+      final normal = FinishAlertMemory.writeTimeout;
+      FinishAlertMemory.writeTimeout = const Duration(milliseconds: 50);
+      addTearDown(() => FinishAlertMemory.writeTimeout = normal);
+      final stuck = _StuckOnce(prefs);
+
+      FinishAlertMemory(stuck).remember(_alert(printerId: 1)).ignore();
+      await Future.wait([
+        FinishAlertMemory(stuck).remember(_alert(printerId: 2)),
+        FinishAlertMemory(stuck).remember(_alert(printerId: 3)),
+      ]).timeout(const Duration(seconds: 2));
+
+      expect(
+        {for (final a in await memory.recallAll(_now)) a.printerId},
+        {2, 3},
+      );
     });
 
     test('events other than print end are not remembered', () async {
@@ -251,4 +318,29 @@ void main() {
       reason: 'a photo already on it leaves nothing to look for',
     );
   });
+}
+
+/// Preferences whose first reload never answers, as a hung platform call.
+class _StuckOnce implements SharedPreferences {
+  _StuckOnce(this._real);
+
+  final SharedPreferences _real;
+  var _stuck = true;
+
+  @override
+  Future<void> reload() {
+    if (!_stuck) return _real.reload();
+    _stuck = false;
+    return Completer<void>().future;
+  }
+
+  @override
+  String? getString(String key) => _real.getString(key);
+
+  @override
+  Future<bool> setString(String key, String value) =>
+      _real.setString(key, value);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

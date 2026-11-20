@@ -43,6 +43,86 @@ first frame after the line to the server came up (`inTouchSince`), where nothing
 could contradict it. A frame with `connected == null` says nothing about
 reachability and is never read as offline.
 
+### The Panda Breath (#1466)
+
+A BIQU Panda Breath chamber heater bound to a printer arrives as `panda_breath`
+on its status. The server writes the key into every status, with `null` when no
+heater is bound, so the field is replaced on each frame, never inherited. An older
+server sends no key, so no heater shows and no `ServerFeature` gate is needed; the
+`POST /printers/{id}/panda-breath` route arrived together with the field.
+
+The heater runs without the printer, so it outlives the OFFLINE collapse. On a
+connected card it is the last tile of the temperature grid, as on the web. On the
+collapsed card the grid is gone, so it shows as a row with its own on/off switch.
+It appears in one of the two places at a time, never both. A heater the server
+reports `online: false` shows a dash, not its last reading, and offers no controls.
+The sheet sends one change per request, as the route accepts. Like the web, a
+command that goes through closes the sheet with "Sent", and the new state comes
+with the next frame. The server's `panda_breath_enabled` switch has no screen in
+the app: with it off, the server sends `null` and nothing shows.
+
+### A filament slot row (#64)
+
+The material alone cannot tell slots apart: most users load one material, and three
+white PLAs all read `PLA`. A row (`_FilamentRow`) therefore leads with the slot's
+name and puts its colour on the line below. The slot number sits inside the
+swatch, inked black or white by whichever has the higher contrast (`_inkOn`):
+`ThemeData.estimateBrightnessForColor` switches to black only above luminance
+0.34, while contrast flips near 0.18, and of 26 typical filament colours it left 9
+under 4.5:1, green and orange at 2.9:1.
+
+- **Name**: the preset bambuddy saved when the slot was configured
+  (`GET /printers/{id}/slot-presets`, one request per card, present on 1.2.5),
+  as the web's slot card leads with it, but only while `slotPresetDescribesTray`
+  says it still describes the tray; else the spool assigned to the slot
+  (`AssignedSpools.spoolOf`, the chain of `fillOf` without its weight conditions,
+  so a spool with no label weight still names it), else `tray_sub_brands`, else
+  `tray_type`. A spool the preset pushed out of the name gets a third line in the
+  colour's style, so "Generic PLA" in a slot holding an eSun spool shows both.
+- **Saving a preset** sends the slot's `tray_info_idx` with it. Without it the
+  server records none, and a slot reconfigured on the printer keeps a name that
+  no longer describes it.
+- **Colour**: the spool's `color_name`, else the catalogue's name for the hex. The
+  web's hover card uses the catalogue only; the spool's own name comes first here
+  because it is what the user wrote to tell those spools apart, and the queue's
+  mapping sheet already does the same.
+
+A slot is its tray id, not its place in the report (`AmsUnit.slotAt`, the web's
+`trayForSlot`): an AMS can report only some trays or report them out of order, and
+the row's number, fill, name, preset and every slot action follow the id. Only ids
+that do not tell the trays apart fall back to the position.
+
+The name is one line by decision: wrapped, a row at 200 % text turned into a block
+of text with no hierarchy. A material chip was tried and dropped: the name already
+carries the material.
+
+### Nozzle figures (#1908)
+
+A nozzle reports its own wear, print time (`p_t`), status code, temperature rating and
+serial in `nozzle_rack`, and the web lists them in a hover card. A phone has no hover, so
+two taps open the same rows (`NozzleFigures`, `printer_card_nozzle.dart`), in the web's
+order: diameter, type, flow, status, wear, print time, max temp, serial, filament.
+
+- **A rack chip opens a sheet** (`showNozzleSheet`). An empty dock is not a button: the web
+  shows a line for it, and there is nothing to show. The touch target is 48 dp, the chip's
+  40 plus half the old gap on each side, so the row is no wider than before.
+- **A hotend's temperature sheet ends with a "Nozzle" section** (`_NozzleSection`) of four
+  rows: diameter, flow, wear, print time. The tile's hardware index is the entry's id: 0 is
+  the right head (`nozzle_2`), 1 the left. The sheet already names the hotend, and its
+  status is the "Activate" control above, so the rest of the card is left out. A printer is
+  dual when it reports `nozzle_2` **or** lists a non-empty id 1: a frame can carry the list
+  before the temperature, and the one decision then drives the tile's target index, its
+  nozzle switch and its figures. An empty entry proves nothing (a stub), which is argued
+  from the H3C capture listing no id 1, not measured on a single-nozzle printer.
+- **A figure the nozzle did not report is not a row.** A null print time is older firmware
+  or a server before 1.3.1 (the key is absent, 1.3.0 measured), and "0h" would say the
+  nozzle never printed; a reported 0 is a row. Max temp 0 and an empty serial are "not set".
+- **Material and flow are ported from the web, not from `highFlowFromCode`.**
+  `nozzleMaterialOf` is `nozzleTypeName` and `nozzleHighFlowStated` is `nozzleFlowName`: a
+  code naming neither `HH` nor `HS` (`HT01`) has no flow row, where `highFlowFromCode` calls
+  it standard to rule a queue pick in or out. An unknown type is shown as the printer sent it.
+- **Reads only**, so an API key sees all of it (`PRINTERS_READ`).
+
 ### Smart plugs (`/api/v1/smart-plugs/`)
 
 - `GET /smart-plugs/` lists the plugs with `printer_id` (the plug-to-printer map in
@@ -77,6 +157,57 @@ UI decisions, reached over several rounds; ask before changing them:
 Tests: a provider that polls needs an inert override (`_InertStatuses`,
 `_InertSmartPlugs` in `test/helpers.dart`, applied by the shared harness), or the
 test hangs on the timer.
+
+### AI failure detection (`/obico/printer-status`, `/octoeverywhere/printer-status`)
+
+The server watches a print through the camera with one of two providers, Obico
+(#1546) or OctoEverywhere (#3169), and the web shows the verdict as a badge on the
+printer card. Here it is one item of the print panel's meta row
+([ai_detection_item.dart](../lib/features/dashboard/widgets/ai_detection_item.dart)):
+an eye and one word, in the class's colour. Read only.
+
+- **Which provider answers is the web's rule** (`aiPrinterStatus` in `PrintersPage.tsx`):
+  OctoEverywhere when it is enabled, otherwise Obico. The server refuses to enable
+  both (`routes/settings.py`). A server from before OctoEverywhere (1.2.5.7 and
+  older) 404s that route and Obico answers alone; one from before Obico's
+  `printer-status` (1.2.5 and 1.2.5.1, which have only the `settings:read`
+  `/obico/status`) 404s both and the card shows nothing
+  (`AiDetectionRepository.fetch`).
+- **A feed, not a `capabilityGate`**, for the same reason as the linked apps: the
+  payload is the answer, and a 404 or a 403 on either route reads as "nothing to
+  show". Neither handler looks up a row by id.
+- **`printers:read` is enough**, which a key holds as `can_read_status`. The routes
+  were made for the cards and carry no configuration. Without `settings:read` the
+  server withholds the reason of an error (it can name a configured URL) and still
+  sends the `error` class, so "Not checking" shows either way and only the sentence
+  behind it loses its reason.
+- **An unknown class is "Starting", never "Safe".** Collapsing everything that is
+  not a failure into a green badge is what made a print nothing was looking at read
+  as healthy (server #2952). The same for the measurement: Obico's score and
+  OctoEverywhere's print quality are quoted only beside a verdict.
+- **The two providers are told apart by the `print_quality` key**, as the web does
+  (`'print_quality' in aiDetection`): OctoEverywhere sends it as null before its
+  first result, Obico never sends it.
+- **Polling follows what there is to see** (`aiDetectionProvider`). The print panels
+  are its only watchers, so it exists while something prints. Detection that is off
+  is asked about once, and again on regained contact and pull-to-refresh; detection
+  that is on is re-read every 10 s like the web, while the app is in the foreground
+  and the dashboard is the tab on screen (`dashboardWatchedProvider`, which the
+  smart-plug poll runs on too). That flag lives outside the notifier because the
+  notifier comes and goes with the prints, and one born while the user sits on
+  another tab has to start silent.
+- **Deviations from the web.** No grey "Idle" badge between prints: the card is
+  tall already and the item would say nothing. No detail dialog (frames analysed,
+  the settings link): a tap on the item shows the web badge's `title` sentence as a
+  tooltip, which is also what a screen reader says. Configuring a provider, its
+  history and its test-connection are settings and stay in the web UI. The collapsed
+  card, the controller and the watch do not show it.
+- Seen on 1.2.5 (neither route), 1.2.5.7 (Obico only) and `dev` at 1.3.2b1
+  (both): `ai_detection_contract_test.dart` passes on the last two and, on
+  1.2.5, runs only the test that the app reads nothing.
+  No print reached the detection loop there, so an entry of `per_printer` is
+  checked against the shapes `get_per_printer` builds in both services, not
+  against a live one.
 
 ## Edit printer and printer locations
 

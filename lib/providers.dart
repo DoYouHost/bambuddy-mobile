@@ -12,6 +12,9 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/client_cert.dart';
+import 'core/api/custom_ca.dart';
+import 'core/api/tls_overrides.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
 import 'core/api/observed_capability.dart';
@@ -27,6 +30,7 @@ import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/serial_queue.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/server_settings.dart';
@@ -37,8 +41,13 @@ import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
+import 'core/models/inventory.dart'
+    show lowStockThresholdFrom, lowStockThresholdKey;
+import 'core/models/printer.dart';
+import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
+import 'data/ai_detection_repository.dart';
 import 'data/ams_history_repository.dart';
 import 'data/api_keys_repository.dart';
 import 'data/archive_repository.dart';
@@ -52,6 +61,7 @@ import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
 import 'data/profile_defaults_repository.dart';
+import 'data/label_templates_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/announcements_repository.dart';
@@ -189,6 +199,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> setLowFilamentThreshold(int value) =>
       _save(state.copyWith(lowFilamentThreshold: value));
+
+  Future<void> setAlarm(AlarmPrefs alarm) =>
+      _save(state.copyWith(alarm: alarm));
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
@@ -258,6 +271,82 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
   ref.onDispose(sender.dispose);
   return sender;
 });
+
+/// What this app shows a server's TLS on top of the system: the CA it trusts
+/// (#62) and the certificate it presents (#65). One state for both because one
+/// `SecurityContext` carries both: a change to both at once — "Remove all", a
+/// watch adopting both — is one rebuild of every client, not two.
+typedef TlsIdentity = ({CustomCa? ca, ClientCert? cert});
+
+/// The client certificate `main` read from secure storage and already presents;
+/// null in tests and on an install without one.
+final initialClientCertProvider = Provider<ClientCert?>((_) => null);
+
+final tlsIdentityProvider = NotifierProvider<TlsIdentityNotifier, TlsIdentity>(
+  TlsIdentityNotifier.new,
+);
+
+/// The CA alone, for what reads it; written through [tlsIdentityProvider].
+final customCaProvider = Provider<CustomCa?>(
+  (ref) => ref.watch(tlsIdentityProvider).ca,
+);
+
+/// The client certificate alone, as [customCaProvider].
+final clientCertProvider = Provider<ClientCert?>(
+  (ref) => ref.watch(tlsIdentityProvider).cert,
+);
+
+class TlsIdentityNotifier extends Notifier<TlsIdentity> {
+  @override
+  TlsIdentity build() => (
+    ca: ref.read(settingsRepositoryProvider).loadCustomCa(),
+    cert: ref.read(initialClientCertProvider),
+  );
+
+  final _writes = SerialQueue();
+
+  Future<void> setCa(CustomCa? ca) =>
+      _change((now) => (ca: ca, cert: now.cert));
+
+  Future<void> setCert(ClientCert? cert) =>
+      _change((now) => (ca: now.ca, cert: cert));
+
+  Future<void> setBoth(CustomCa? ca, ClientCert? cert) =>
+      _change((_) => (ca: ca, cert: cert));
+
+  /// Queued, so two calls cannot finish out of order, and [next] is computed
+  /// from the state as it is when its turn comes. Unchanged is skipped: the
+  /// invalidate rebuilds every API client and the watch's relay listener.
+  ///
+  /// Secure storage first, as the one write likely to throw, and before its
+  /// flag both ways: a write that throws leaves the store, the flag, the CA
+  /// and this state as they were, and a removal that fails keeps no key on
+  /// disk behind a flag that says there is none.
+  Future<void> _change(TlsIdentity Function(TlsIdentity now) next) =>
+      _writes.run(() async {
+        final now = state;
+        final target = next(now);
+        if (target == now) return;
+        final settings = ref.read(settingsRepositoryProvider);
+        if (target.cert != now.cert) {
+          await ref.read(clientCertStoreProvider).write(target.cert);
+          await settings.saveHasClientCert(target.cert != null);
+        }
+        if (target.ca != now.ca) await settings.saveCustomCa(target.ca);
+        useTls(target.ca, target.cert);
+        if (!ref.mounted) return;
+        state = target;
+        // Dio keeps the `HttpClient` it made on its first request, so a retry
+        // after importing would still be refused. The API client follows
+        // through `authServiceProvider`. Invalidated rather than watched:
+        // watching would make every Dio depend on preferences.
+        ref.invalidate(bareDioProvider);
+      });
+}
+
+final clientCertStoreProvider = Provider<ClientCertStore>(
+  (_) => ClientCertStore(),
+);
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());
 
@@ -344,7 +433,13 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
     await settings.markTourDue();
-    if (ref.mounted) state = profile;
+    if (!ref.mounted) return;
+    // What the last server answered says nothing about this one. Here and not in
+    // a provider's build: forgetting notifies the widgets that listen, and a
+    // build is the one place they may not be told. The same server under
+    // another login keeps what was learnt.
+    if (state?.baseUrl != profile.baseUrl) ServerReachability.instance.forget();
+    state = profile;
   }
 
   /// "Logout / change server": clear profile and all secrets.
@@ -355,7 +450,9 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     final credentials = ref.read(credentialsStoreProvider);
     await settings.clearProfile();
     await credentials.clearAll();
-    if (ref.mounted) state = null;
+    if (!ref.mounted) return;
+    ServerReachability.instance.forget();
+    state = null;
   }
 }
 
@@ -520,7 +617,24 @@ final apiKeyNotificationScopeProvider = capabilityGate(
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
-  (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrintersRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the server maps printer states to WLED presets. The printer
+/// listing settles it, so nothing probes.
+final wledSupportedProvider = capabilityGate(
+  (ref) => ref.watch(printersRepositoryProvider).wledCapability,
+);
+
+/// Every printer's configuration, without statuses: the pickers and filters
+/// that name printers. `autoDispose`, so each one that opens reads the fleet
+/// afresh. A queue item's target picker keeps a busy printer listed, since
+/// nothing here drops one (the web edit modal's `showInactive`).
+final printerListProvider = FutureProvider.autoDispose<List<Printer>>(
+  (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
 );
 
 /// Whether the server can hold a user's jobs for review (#1620). See
@@ -540,7 +654,16 @@ final skipObjectsRepositoryProvider = Provider<SkipObjectsRepository>(
 );
 
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
-  (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrinterCommandsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether load and unload reach an AMS-HT slot. See
+/// `PrinterCommandsRepository.amsHtLoadCapability`.
+final amsHtLoadProvider = capabilityGate(
+  (ref) => ref.watch(printerCommandsRepositoryProvider).amsHtLoadCapability,
 );
 
 /// Filament presets and the two slot-configuration commands.
@@ -574,6 +697,28 @@ final suppliersRepositoryProvider = Provider<SuppliersRepository>(
 /// the statistics screen's supplier card.
 final suppliersSupportedProvider = capabilityGate(
   (ref) => ref.watch(suppliersRepositoryProvider).capability,
+);
+
+/// Saved custom label sheets — one list for both inventory backends.
+final labelTemplatesRepositoryProvider = Provider<LabelTemplatesRepository>(
+  (ref) => LabelTemplatesRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// The saved custom sheets, asked again each time the picker opens: someone
+/// else may have saved or deleted one since. The request is also what settles
+/// [labelTemplatesSupportedProvider], so a failure is the picker's to ignore.
+final labelTemplatesProvider =
+    FutureProvider.autoDispose<List<SavedLabelTemplate>>(
+      (ref) => ref.watch(labelTemplatesRepositoryProvider).list(),
+    );
+
+/// Whether this server takes a custom label sheet, saved or one-off. The label
+/// picker's own listing settles it, so nothing probes.
+final labelTemplatesSupportedProvider = capabilityGate(
+  (ref) => ref.watch(labelTemplatesRepositoryProvider).capability,
 );
 
 /// Whether this server stores a material number on a spool. Whether the
@@ -764,6 +909,13 @@ final processOverridesProvider = capabilityGate(
 final labelStartingPositionProvider = capabilityGate(
   (ref) =>
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
+);
+
+/// Whether moving a spool may be one request (`move` on the assignment, server
+/// #1574) instead of an unassign and an assign. Version-only: an older server
+/// ignores the field without a word.
+final assignmentMoveProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).assignmentMoveCapability,
 );
 
 /// Whether the label sheet may choose the printed lines and a PNG output
@@ -1074,6 +1226,34 @@ final pipelineMaxCopiesProvider = serverValue<int>((settings) {
   return parsed > 0 ? parsed : 50;
 });
 
+/// Where the low-stock threshold is read from: `GET /settings`, or for a session
+/// that may not read that (`settings:read` is more than this number is worth,
+/// and a 403 there left it at the default) the flags every signed-in user can
+/// see (`GET /settings/ui-flags`, which carries `low_stock_threshold` on a
+/// server that has the route). Asked only when the first has no answer.
+final _lowStockSourceProvider = Provider<Map<String, dynamic>>((ref) {
+  final asked = ref.watch(serverSettingsProvider);
+  final settings = asked.value ?? const {};
+  if (settings.containsKey(lowStockThresholdKey)) return settings;
+  // Still on its way: the flags are for an answer without the key, not for the
+  // wait, or every session would make both requests on a cold start.
+  if (asked.isLoading && !asked.hasValue) return const {};
+  return ref.watch(serverUiFlagsProvider).value ?? const {};
+});
+
+/// The server-wide low-stock percentage (`low_stock_threshold`, 20 unless set):
+/// what a spool without a threshold of its own is measured against, in the
+/// list and in the background alert alike.
+final lowStockThresholdProvider = Provider<double>(
+  (ref) => lowStockThresholdFrom(ref.watch(_lowStockSourceProvider)),
+);
+
+/// Whether the server states a low-stock threshold at all. An older one does
+/// not, and the alert is then the phone's own.
+final serverHasLowStockProvider = Provider<bool>(
+  (ref) => ref.watch(_lowStockSourceProvider).containsKey(lowStockThresholdKey),
+);
+
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
 final currencySymbolProvider = serverValue<String>((settings) {
@@ -1134,6 +1314,11 @@ final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
+
+/// The server's AI failure detection as the printer cards read it.
+final aiDetectionRepositoryProvider = Provider<AiDetectionRepository>(
+  (ref) => AiDetectionRepository(ref.watch(apiClientProvider).dio),
+);
 
 /// The server's sidebar links and their counts, read only.
 final externalLinksRepositoryProvider = Provider<ExternalLinksRepository>(

@@ -10,15 +10,21 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 
+import '../common/fact_row.dart';
+import '../common/section_label.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/inventory_bulk.dart';
+import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/inventory_reference.dart';
+import '../../core/models/label_template.dart';
 import '../../core/models/location_sensor.dart';
 import '../../core/models/profile_default.dart';
 import '../../core/models/slicer_preset.dart';
@@ -45,7 +51,9 @@ import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
 import '../stats/stats_common.dart' show fmtGrams;
+import 'catalogue_colours.dart';
 import 'inventory_providers.dart';
+import 'label_sheet_draft.dart';
 import 'spool_scanner_screen.dart';
 import '../../core/diagnostics/filament_material.dart';
 
@@ -55,11 +63,13 @@ part 'inventory_sheets.dart';
 part 'inventory_form.dart';
 part 'inventory_labels.dart';
 part 'inventory_label_options.dart';
+part 'inventory_label_sheet.dart';
 part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
 part 'suppliers_sheet.dart';
 part 'spool_form_suppliers.dart';
 part 'spool_form_profile_default.dart';
+part 'color_catalogue_sheet.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
@@ -203,7 +213,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final climateAlerting = climates.values.any((c) => c.alerting);
     final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
     final visible = sortSpools(
-      _filter(async.value?.spools ?? const [], query, filters),
+      _filter(
+        async.value?.spools ?? const [],
+        query,
+        filters,
+        ref.watch(lowStockThresholdProvider),
+      ),
       filters.sort,
       descending: filters.descending,
     );
@@ -613,11 +628,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     List<Spool> spools,
     String query,
     InventoryFilters filters,
+    double lowStockThreshold,
   ) {
     return [
       for (final s in spools)
         if (filters.showArchived ? s.isArchived : !s.isArchived)
-          if (!filters.lowStockOnly || s.isLowStock)
+          if (!filters.lowStockOnly || s.isLowStock(lowStockThreshold))
             if (filters.materials.isEmpty ||
                 filters.materials.contains(s.material))
               if (filters.brands.isEmpty ||

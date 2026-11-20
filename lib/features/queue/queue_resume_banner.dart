@@ -116,13 +116,7 @@ class _ResumeBanner extends StatelessWidget {
             DashSpace.xs,
             DashSpace.xs,
           ),
-          decoration: BoxDecoration(
-            color: t.accentOrange.withValues(alpha: DashAlpha.faint),
-            borderRadius: BorderRadius.circular(DashRadius.lg),
-            border: Border.all(
-              color: t.accentOrange.withValues(alpha: DashAlpha.soft),
-            ),
-          ),
+          decoration: t.tintBox(t.accentOrange),
           // One line and one word on the button: what happened and what to do
           // about it. The confirmation says the rest.
           child: Row(

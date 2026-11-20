@@ -1,5 +1,8 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/auth/auth_service.dart';
+import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -113,6 +116,37 @@ void main() {
       expect(res.statusCode, 200);
       expect(res.data?['auth_enabled'], isA<bool>());
       expect(res.data?['requires_setup'], isA<bool>());
+    });
+
+    test('the probe recognises a real server as bambuddy', () async {
+      // The probe refuses an address whose version route does not name the
+      // bambuddy repo, so a renamed `repo` would lock every user out of setup.
+      final probe = await AuthService(
+        bareDio: Dio(),
+        credentials: InMemoryCredentialsStore(),
+      ).probeAuthStatus(contractBaseUrl);
+
+      expect(probe.authEnabled, isTrue);
+    });
+
+    test('an address with a path after the port is not a server', () async {
+      // #66: the SPA catch-all answers 200 with its web page for any path
+      // outside `api/`, so `host:8000/printers` reached a page, not the API.
+      final service = AuthService(
+        bareDio: Dio(),
+        credentials: InMemoryCredentialsStore(),
+      );
+
+      await expectLater(
+        service.probeAuthStatus('$contractBaseUrl/printers'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.notBambuddy,
+          ),
+        ),
+      );
     });
 
     test(

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/label_template.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:dio/dio.dart';
@@ -415,6 +416,179 @@ void main() {
         SpoolLabelField.qr,
         SpoolLabelField.spoolId,
       });
+    });
+  });
+
+  group('the PNG sheet cap', () {
+    // A sheet with one label per page: every spool is a page.
+    final single = LabelStock(
+      SpoolLabelTemplate.custom,
+      layout: const SheetLayout(
+        page: LabelPageSize.a4,
+        labelWidthMm: 100,
+        labelHeightMm: 100,
+        columns: 1,
+        rows: 1,
+        topMm: 0,
+        leftMm: 0,
+      ),
+    );
+
+    ({int pages, int maxPages})? over(
+      LabelStock stock,
+      int labels, {
+      int dpi = 300,
+      int start = 1,
+    }) => pngSheetOverCap(
+      stock,
+      labels: labels,
+      startingPosition: start,
+      dpi: dpi,
+    );
+
+    test(
+      'pages are the labels plus the blanks before the first, rounded up',
+      () {
+        expect(sheetPageCount(21, 21), 1);
+        expect(sheetPageCount(21, 22), 2);
+        expect(sheetPageCount(21, 3, 20), 2);
+        expect(sheetPageCount(21, 2, 20), 1);
+        expect(sheetPageCount(1, 500), 500);
+      },
+    );
+
+    test('the limit is pages × dpi up to and including 15 000', () {
+      // 25 pages at 600, 50 at 300 and 73 at 203, as the server's comment says.
+      expect(over(single, 25, dpi: 600), isNull);
+      expect(over(single, 26, dpi: 600)?.pages, 26);
+      expect(over(single, 26, dpi: 600)?.maxPages, 25);
+      expect(over(single, 50), isNull);
+      expect(over(single, 51)?.maxPages, 50);
+      expect(over(single, 73, dpi: 203), isNull);
+      expect(over(single, 74, dpi: 203)?.maxPages, 73);
+    });
+
+    test('a part-used sheet counts its blank slots as pages too', () {
+      // 2 slots a page, so the blank slot before the first label can add a page.
+      final pair = LabelStock(
+        SpoolLabelTemplate.custom,
+        layout: const SheetLayout(
+          page: LabelPageSize.a4,
+          labelWidthMm: 100,
+          labelHeightMm: 100,
+          columns: 2,
+          rows: 1,
+          topMm: 0,
+          leftMm: 0,
+        ),
+      );
+      // 50 labels fill 25 pages from slot 1, and start the 26th from slot 2.
+      expect(over(pair, 50, dpi: 600), isNull);
+      expect(over(pair, 50, start: 2, dpi: 600)?.pages, 26);
+    });
+
+    test('the built-in sheets always fit, at the largest batch', () {
+      for (final template in [
+        SpoolLabelTemplate.averyL7160,
+        SpoolLabelTemplate.avery5160,
+      ]) {
+        expect(
+          over(
+            LabelStock(template),
+            maxSpoolLabelsPerRequest,
+            dpi: 600,
+            start: template.sheetCapacity!,
+          ),
+          isNull,
+          reason: template.wire,
+        );
+      }
+    });
+
+    test('a roll template has no cap', () {
+      expect(
+        over(const LabelStock(SpoolLabelTemplate.box62x29), 500, dpi: 600),
+        isNull,
+      );
+    });
+  });
+
+  group('a custom sheet', () {
+    late Dio dio;
+    late _FakeAdapter adapter;
+
+    setUp(() {
+      dio = testDio();
+      adapter = _FakeAdapter(status: 200, bytes: _pdfBytes);
+      dio.httpClientAdapter = adapter;
+    });
+
+    Map<String, dynamic> body() =>
+        adapter.captured!.data as Map<String, dynamic>;
+
+    final custom = SpoolLabelRequest(
+      spoolIds: const [1],
+      template: SpoolLabelTemplate.custom,
+      layout: SheetLayout.starting,
+      startingPosition: 7,
+    );
+
+    test('goes out as "custom" with the layout beside it', () async {
+      await NativeInventorySource(dio).renderLabels(custom);
+
+      expect(body()['template'], 'custom');
+      expect(body()['layout'], SheetLayout.starting.toJson());
+      expect(body()['starting_position'], 7);
+    });
+
+    test('reaches the Spoolman route too', () async {
+      await SpoolmanInventorySource(dio).renderLabels(custom);
+
+      expect(adapter.captured!.path, '/api/v1/spoolman/labels');
+      expect(body()['layout'], SheetLayout.starting.toJson());
+    });
+
+    test('a built-in template sends no layout', () async {
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.averyL7160,
+        ),
+      );
+
+      expect(body().containsKey('layout'), isFalse);
+    });
+
+    test('the layout goes with the custom template and with no other', () {
+      // The server's `layout_only_for_custom` refuses both halves with a 422.
+      expect(
+        () => SpoolLabelRequest(
+          spoolIds: const [1],
+          template: SpoolLabelTemplate.custom,
+        ),
+        throwsAssertionError,
+      );
+      expect(
+        () => SpoolLabelRequest(
+          spoolIds: const [1],
+          template: SpoolLabelTemplate.box62x29,
+          layout: SheetLayout.starting,
+        ),
+        throwsAssertionError,
+      );
+    });
+
+    test('the capacity to start within is the layout\'s grid', () {
+      expect(
+        LabelStock(
+          SpoolLabelTemplate.custom,
+          layout: SheetLayout.starting,
+        ).capacity,
+        21,
+      );
+      expect(const LabelStock(SpoolLabelTemplate.averyL7160).capacity, 21);
+      expect(const LabelStock(SpoolLabelTemplate.avery5160).capacity, 30);
+      expect(const LabelStock(SpoolLabelTemplate.box62x29).capacity, isNull);
     });
   });
 }

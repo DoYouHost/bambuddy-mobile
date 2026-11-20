@@ -100,13 +100,116 @@ void main() {
       expect(spool(label: 1000, used: 750).remainingFraction, 0.25);
     });
 
-    test('isLowStock per the server threshold, 10% by default', () {
-      // 70g / 1000g = 7% ≤ 10% (default threshold)
-      expect(spool(label: 1000, used: 930).isLowStock, isTrue);
-      // 200g / 1000g = 20% > 10%
-      expect(spool(label: 1000, used: 800).isLowStock, isFalse);
-      // server threshold 25% → 20% is below it
-      expect(spool(label: 1000, used: 800, threshold: 25).isLowStock, isTrue);
+    test('isLowStock is strictly below the threshold the caller passes', () {
+      // 70g / 1000g = 7% < 20
+      expect(spool(label: 1000, used: 930).isLowStock(20), isTrue);
+      // exactly 20% is not below 20: the web's `pct < threshold`
+      expect(spool(label: 1000, used: 800).isLowStock(20), isFalse);
+      // 19%
+      expect(spool(label: 1000, used: 810).isLowStock(20), isTrue);
+      // the same spool, a stricter server setting
+      expect(spool(label: 1000, used: 810).isLowStock(10), isFalse);
+    });
+
+    test('a threshold of the spool\'s own beats the server one', () {
+      // 18% left: low for the server's 20, fine for its own 10
+      expect(spool(label: 1000, used: 820).isLowStock(20), isTrue);
+      expect(
+        spool(label: 1000, used: 820, threshold: 10).isLowStock(20),
+        isFalse,
+      );
+      // and the other way round: 22% is fine for 20, low for its own 25
+      expect(
+        spool(label: 1000, used: 780, threshold: 25).isLowStock(20),
+        isTrue,
+      );
+      // a zero falls through to the server's, like `pct or global`
+      expect(
+        spool(label: 1000, used: 820, threshold: 0).isLowStock(20),
+        isTrue,
+      );
+    });
+
+    test(
+      'a spool with no label weight has no percentage, and counts as 0%',
+      () {
+        // The web's `label_weight > 0 ? ... : 0`; the alert skips it instead
+        // (`lowStockSlots`, tested with the latch).
+        expect(spool(label: 0).remainingPercent, isNull);
+        expect(spool(label: 0).isLowStock(20), isTrue);
+        expect(spool(label: 1000, used: 1500).remainingPercent, 0);
+        expect(spool(label: 1000, used: 1500).isLowStock(20), isTrue);
+      },
+    );
+
+    group('parseLowStockThresholdInput', () {
+      test('takes a number the server takes', () {
+        expect(parseLowStockThresholdInput('20'), 20);
+        expect(parseLowStockThresholdInput(' 15.5 '), 15.5);
+        expect(parseLowStockThresholdInput('15,5'), 15.5);
+        expect(parseLowStockThresholdInput('0.1'), lowStockThresholdMin);
+        expect(parseLowStockThresholdInput('99.9'), lowStockThresholdMax);
+        expect(parseLowStockThresholdInput('5'), 5);
+        // What the web's field allows, and what the server holds when it was set
+        // through the API with more decimals.
+        expect(parseLowStockThresholdInput('.5'), 0.5);
+        expect(parseLowStockThresholdInput('12.'), 12);
+        expect(parseLowStockThresholdInput('12.04'), 12.04);
+      });
+
+      test('refuses what is empty, odd or outside 0.1 to 99.9', () {
+        for (final text in [
+          '',
+          ' ',
+          '.',
+          ',',
+          'abc',
+          '1e1',
+          '0',
+          '0.0',
+          '0.05',
+          '100',
+          '100.5',
+          '123',
+          '-5',
+          '1,2,3',
+          '5 %',
+        ]) {
+          expect(parseLowStockThresholdInput(text), isNull, reason: text);
+        }
+      });
+    });
+
+    test('formatLowStockThreshold drops a pointless .0, and only that', () {
+      expect(formatLowStockThreshold(20), '20');
+      expect(formatLowStockThreshold(20.0), '20');
+      expect(formatLowStockThreshold(15.5), '15.5');
+      expect(formatLowStockThreshold(0.1), '0.1');
+      expect(formatLowStockThreshold(99.9), '99.9');
+      expect(formatLowStockThreshold(12.04), '12.04');
+      expect(formatLowStockThreshold(19.99), '19.99');
+    });
+
+    group('lowStockThresholdFrom', () {
+      test('is the server\'s number inside 0 < v <= 100', () {
+        expect(lowStockThresholdFrom({'low_stock_threshold': 15.5}), 15.5);
+        expect(lowStockThresholdFrom({'low_stock_threshold': '30'}), 30);
+        expect(lowStockThresholdFrom({'low_stock_threshold': 100}), 100);
+      });
+
+      test('is 20 when missing, unreadable or out of range', () {
+        for (final settings in <Map<String, dynamic>>[
+          const {},
+          {'low_stock_threshold': null},
+          {'low_stock_threshold': 'abc'},
+          {'low_stock_threshold': 0},
+          {'low_stock_threshold': -5},
+          {'low_stock_threshold': 100.1},
+        ]) {
+          expect(lowStockThresholdFrom(settings), defaultLowStockThreshold);
+        }
+        expect(defaultLowStockThreshold, 20);
+      });
     });
 
     test('consumedWeight counts from the baseline, not from zero', () {
@@ -251,6 +354,54 @@ void main() {
       // Emptying it is the server's job (it nulls the zero tag before the app
       // ever sees it); doing it twice would hide a real, if odd, value.
       expect(normalizeTagUid('0000000000000000'), '0000000000000000');
+    });
+  });
+  group('Spool.matchesSearch by id', () {
+    Spool spool(int id) =>
+        Spool.fromNative({'id': id, 'material': 'PLA', 'material_number': '9'});
+
+    test('a bare number matches every id containing it', () {
+      expect(spool(23).matchesSearch('23'), isTrue);
+      expect(spool(123).matchesSearch(' 23 '), isTrue);
+      expect(spool(230).matchesSearch('2'), isTrue);
+      expect(spool(24).matchesSearch('23'), isFalse);
+    });
+
+    test('a hash-prefixed number matches that one spool only', () {
+      expect(spool(23).matchesSearch('#23'), isTrue);
+      expect(spool(123).matchesSearch('#23'), isFalse);
+      expect(spool(230).matchesSearch('#23'), isFalse);
+    });
+
+    test('a lone hash or a hash with text is an ordinary text query', () {
+      expect(spool(23).matchesSearch('#'), isFalse);
+      expect(spool(23).matchesSearch('#pla'), isFalse);
+      expect(spool(23).matchesSearch('#99999999999999999999'), isFalse);
+    });
+
+    test('note, slicer preset name and supplier article number match', () {
+      final s = Spool.fromNative({
+        'id': 1,
+        'material': 'PLA',
+        'note': 'Opened in May',
+        'slicer_filament_name': 'Bambu PLA Basic @BBL X1C',
+        'suppliers': [
+          {
+            'supplier_id': 4,
+            'supplier_name': 'Shop',
+            'supplier_article_number': 'ART-77',
+          },
+        ],
+      });
+      expect(s.matchesSearch('opened'), isTrue);
+      expect(s.matchesSearch('@bbl'), isTrue);
+      expect(s.matchesSearch('art-7'), isTrue);
+      expect(s.matchesSearch('art-8'), isFalse);
+    });
+
+    test('text fields still match alongside the id', () {
+      expect(spool(23).matchesSearch('pla'), isTrue);
+      expect(spool(23).matchesSearch('9'), isTrue);
     });
   });
 }

@@ -21,7 +21,11 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: DashIcon.sm, color: color),
         const SizedBox(width: DashSpace.sm),
-        Text(text, style: t.monoLabel.copyWith(color: color)),
+        // At 200 % text on a 360 dp phone one reading alone is wider than the
+        // card; it wraps instead of overflowing.
+        Flexible(
+          child: Text(text, style: t.monoLabel.copyWith(color: color)),
+        ),
       ],
     );
 
@@ -170,36 +174,28 @@ Color? parseTrayColor(String? hex) {
 
 /// Active print panel: cover, name, progress bar with %, ETA, and layer count.
 /// Restyled to a dark sub-card in the modernized card.
-class _PrintPanel extends StatelessWidget {
-  const _PrintPanel({required this.status});
+class _PrintPanel extends ConsumerWidget {
+  const _PrintPanel({required this.printerId, required this.status});
 
+  final int printerId;
   final PrinterStatus status;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final progress = status.progress;
     final name = status.currentPrint ?? status.gcodeFile;
 
-    final remaining = status.remainingTime;
     final meta = <PrintMetaItem>[
-      if (remaining != null && remaining > 0)
-        PrintMetaItem(
-          icon: Icons.schedule,
-          text: l10n.remaining(formatMinutes(l10n, remaining)),
-        ),
-      if (remaining != null && remaining > 0)
-        PrintMetaItem(
-          icon: Icons.flag_outlined,
-          text: l10n.eta(etaClock(DateTimeFormats.of(context), remaining)),
-        ),
-      if (status.layerNum != null && status.totalLayers != null)
-        PrintMetaItem(
-          icon: Icons.layers_outlined,
-          text: '${status.layerNum}/${status.totalLayers}',
-        ),
+      ...timeMetaItems(context, l10n, status),
+      ?layerMetaItem(status),
       ?pauseMetaItem(context, l10n, status),
+      ?aiDetectionMetaItem(
+        context,
+        l10n,
+        ref.watch(aiDetectionForProvider(printerId)),
+      ),
     ];
 
     final stage = status.preparingStage;
@@ -238,11 +234,7 @@ class _PrintPanel extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -410,6 +402,17 @@ int tempGridColumns({
 /// 1 dp of border on each side.
 const tileChrome = 2 * (DashSpace.md + 1);
 
+/// The nozzle a hotend tile belongs to, from the printer's `nozzle_rack`: ids 0
+/// and 1 are the hotends (right, left), and a placeholder with nothing in it is
+/// not one. Null for a sensor that is no nozzle.
+NozzleRackSlot? _hotendFigures(List<NozzleRackSlot>? nozzles, int? index) {
+  if (index == null) return null;
+  for (final slot in nozzles ?? const <NozzleRackSlot>[]) {
+    if (slot.id == index && !slot.isEmpty) return slot;
+  }
+  return null;
+}
+
 /// Grid of temperature tiles, two columns where the digits fit (see
 /// [tempGridColumns]). Tiles are tappable to set targets
 /// (see [_GaugeTile]); [printerId]/[model] are threaded down for the command
@@ -421,9 +424,18 @@ class _TempGrid extends StatelessWidget {
     required this.model,
     required this.activeExtruder,
     required this.printing,
+    this.panda,
+    this.nozzles,
   });
 
   final List<TempReading> readings;
+
+  /// What each nozzle reports about itself (`nozzle_rack`): a hotend's tile
+  /// finds its own entry by hardware index (0 right, 1 left).
+  final List<NozzleRackSlot>? nozzles;
+
+  /// The printer's Panda Breath, the grid's last tile when there is one.
+  final PandaBreathState? panda;
   final int printerId;
   final String? model;
   final int? activeExtruder;
@@ -438,6 +450,16 @@ class _TempGrid extends StatelessWidget {
     final hasSecondNozzle = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
+    // A second head is proven by its own temperature (`nozzle_2`) or by the
+    // printer's nozzle list naming a left head (id 1), which a frame can carry
+    // before it carries `nozzle_2`. An empty entry proves nothing: a single-nozzle
+    // printer's list may hold a stub.
+    final dual =
+        hasSecondNozzle ||
+        (nozzles?.any((n) => n.id == 1 && !n.isEmpty) ?? false);
+    int? hardwareIndex(TempReading r) => r.kind != TempKind.nozzle
+        ? null
+        : (r.index != null ? 0 : (dual ? 1 : 0));
     final tokens = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final digits = tokens.monoDisplay.copyWith(height: 1.0);
@@ -448,8 +470,11 @@ class _TempGrid extends StatelessWidget {
         final columns = tempGridColumns(
           width: constraints.maxWidth,
           digits: digits,
-          labels: [for (final r in readings) r.label(l10n).toUpperCase()],
-          label: tokens.micro.copyWith(letterSpacing: DashTracking.label),
+          labels: [
+            for (final r in readings) r.label(l10n).toUpperCase(),
+            if (panda != null) l10n.pandaBreath.toUpperCase(),
+          ],
+          label: tokens.caption,
           setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
           scaler: MediaQuery.textScalerOf(context),
           textDirection: Directionality.of(context),
@@ -468,13 +493,17 @@ class _TempGrid extends StatelessWidget {
                   reading: r,
                   printerId: printerId,
                   model: model,
-                  nozzleIndex: r.kind != TempKind.nozzle
-                      ? null
-                      : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0)),
-                  dualNozzle: hasSecondNozzle,
+                  nozzleIndex: hardwareIndex(r),
+                  dualNozzle: dual,
                   activeExtruder: activeExtruder,
                   printing: printing,
+                  nozzle: _hotendFigures(nozzles, hardwareIndex(r)),
                 ),
+              ),
+            if (panda case final panda?)
+              SizedBox(
+                width: tileWidth,
+                child: _PandaBreathTile(printerId: printerId, panda: panda),
               ),
           ],
         );
@@ -669,9 +698,6 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
   late int _speed = widget.initialSpeed.clamp(0, 100);
   bool _busy = false;
 
-  void _bump(int delta) =>
-      setState(() => _speed = (_speed + delta).clamp(0, 100));
-
   Future<void> _apply(int speed) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -712,56 +738,21 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
             children: [
               Text(widget.label, style: t.titleLg),
               const SizedBox(height: DashSpace.lg),
-              Center(
-                child: Text(
-                  _speed == 0 ? l10n.ctrlOff : '$_speed%',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: DashFontSize.numeral,
-                    fontWeight: DashWeight.bold,
-                    color: accent,
-                  ),
-                ),
+              _TargetNumeral(
+                _speed == 0 ? l10n.ctrlOff : '$_speed%',
+                color: accent,
               ),
               const SizedBox(height: DashSpace.sm),
-              Row(
-                children: [
-                  _StepButton(
-                    icon: Icons.remove,
-                    id: 'fan.step_down',
-                    label: '−1%',
-                    onTap: () => _bump(-1),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: _speed.toDouble(),
-                      max: 100,
-                      activeColor: accent,
-                      onChanged: (v) => setState(() => _speed = v.round()),
-                    ).tagged('fan.slider'),
-                  ),
-                  _StepButton(
-                    icon: Icons.add,
-                    id: 'fan.step_up',
-                    label: '+1%',
-                    onTap: () => _bump(1),
-                  ),
-                ],
-              ),
-              const SizedBox(height: DashSpace.md),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: DashSpace.sm,
-                runSpacing: DashSpace.sm,
-                children: [
-                  for (final p in _presets)
-                    _PresetChip(
-                      label: '$p%',
-                      id: 'fan.preset',
-                      selected: _speed == p,
-                      onTap: () => setState(() => _speed = p),
-                    ),
-                ],
+              _StepSlider(
+                value: _speed,
+                max: 100,
+                activeColor: accent,
+                onChanged: (v) => setState(() => _speed = v),
+                presets: _presets,
+                presetLabel: (p) => '$p%',
+                idFor: (part) => 'fan.$part',
+                lessLabel: '−1%',
+                moreLabel: '+1%',
               ),
               const SizedBox(height: DashSpace.xl),
               Row(

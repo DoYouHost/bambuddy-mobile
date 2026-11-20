@@ -20,11 +20,11 @@ class DiscoveryRepository {
   /// Start a background subnet scan; poll [scanStatus] until `running` is false.
   Future<ScanStatus> startScan(String subnet, {double timeout = 1.0}) =>
       guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.discoveryScan,
+          ScanStatus.fromJson,
           data: {'subnet': subnet, 'timeout': timeout},
         );
-        return ScanStatus.fromJson(res.data ?? const {});
       });
 
   Future<ScanStatus> scanStatus() => guard(() async {

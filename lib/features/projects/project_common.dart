@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/device_files.dart';
 
 /// Known project statuses. The server stores a free string, so the UI offers
 /// this fixed set but renders unknown values gracefully (raw text, neutral color).
@@ -198,13 +199,7 @@ class ProjectStatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: color.withValues(alpha: DashAlpha.outline)),
       ),
-      child: Text(
-        projectStatusLabel(l10n, status),
-        style: t.micro.copyWith(
-          color: color,
-          letterSpacing: DashTracking.label,
-        ),
-      ),
+      child: Text(projectStatusLabel(l10n, status), style: t.pillText(color)),
     );
   }
 }
@@ -213,4 +208,18 @@ class ProjectStatusChip extends StatelessWidget {
 double progressFraction(double? percent) {
   if (percent == null) return 0;
   return (percent / 100).clamp(0, 1).toDouble();
+}
+
+/// A file chosen for a project, or null: backing out is silent, and a picker
+/// the platform refused says so on [messenger].
+Future<PickedFile?> pickProjectFile(
+  ScaffoldMessengerState messenger,
+  AppLocalizations l10n, {
+  List<String>? allowedExtensions,
+}) async {
+  final picked = await pickFileFromDevice(allowedExtensions: allowedExtensions);
+  if (picked.outcome == DeviceFileOutcome.failed) {
+    messenger.snack(l10n.filePickerFailed);
+  }
+  return picked.file;
 }

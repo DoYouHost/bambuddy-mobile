@@ -58,6 +58,10 @@ enum ServerFeature {
   /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin.
   spoolModelPresets,
 
+  /// `POST /ams/load` and `/ams/unload` take an AMS-HT's unit id, 128..135;
+  /// a 400 below it.
+  amsHtLoad,
+
   /// `printer_id` / `target_model` on `POST /library/files/add-to-queue`,
   /// taken and ignored below it.
   libraryQueueTarget,
@@ -100,6 +104,34 @@ enum ServerFeature {
   /// `/inventory/profile-defaults/*` — the slicer preset, presets per model and
   /// K profiles a new spool of a product starts with (#1326).
   profileDefaults,
+
+  /// `move` on the two slot-assignment routes: the spool leaves its old slot in
+  /// the same commit. Taken and ignored below it, which leaves it in two slots.
+  assignmentMove,
+
+  /// Each print of an archive keeps its own note, photos, video and verdict: a
+  /// `notes` key on `PATCH /print-log/{id}` and `run_id` on `PATCH
+  /// /archives/{id}`. Both are taken and ignored below it.
+  archiveRuns,
+
+  /// `/archives/merge-count`, `merge-preview` and `merge`: duplicate archives
+  /// of one file merged into one. An older server answers 422 (its
+  /// `/archives/{archive_id}` takes the path), never a silent drop.
+  archiveMerge,
+
+  /// `/archives/prints`: every print that ended in a date range, the archive
+  /// calendar's source. An older server answers 422 (path capture as above).
+  archiveCalendar,
+
+  /// `/label-templates` and `template: "custom"` with a `layout` on the two
+  /// label routes: a sheet of the user's own measures, saved under a name. An
+  /// older server answers 404 to the first and 422 to the second.
+  labelTemplates,
+
+  /// `wled_config` on a printer and the `/printers/{id}/wled/*` routes: WLED
+  /// presets switched by printer state. `PrinterUpdate` takes and ignores the
+  /// field below it; the routes 404.
+  wled,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -196,6 +228,9 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
     ServerFeature.printerLocations: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
+    // Measured against the images: 1.2.5.7 answers 400 to tray_id 128, 1.3.0
+    // loads it.
+    ServerFeature.amsHtLoad: (1, 3, 0, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
     ServerFeature.libraryFileExtras: (1, 2, 6, 0),
     // Old numbering, as for the heater history: every 1.x outranks it.
@@ -208,6 +243,12 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
     ServerFeature.profileDefaults: (1, 2, 6, 0),
+    ServerFeature.assignmentMove: (1, 3, 1, 0),
+    ServerFeature.archiveRuns: (1, 3, 0, 0),
+    ServerFeature.archiveMerge: (1, 3, 0, 0),
+    ServerFeature.archiveCalendar: (1, 3, 0, 0),
+    ServerFeature.labelTemplates: (1, 3, 0, 0),
+    ServerFeature.wled: (1, 3, 1, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

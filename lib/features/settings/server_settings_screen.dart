@@ -73,6 +73,17 @@ class ServerSettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/profile-defaults'),
                 id: 'server_settings.profile_defaults',
               ),
+            // `printers:update`, which no API key holds; a server that would
+            // drop the mapping is never offered it.
+            if (ref.watch(wledSupportedProvider).orFalse &&
+                ref.watch(canUpdatePrintersProvider))
+              SettingsEntryTile(
+                icon: Icons.lightbulb_outline,
+                title: l10n.wledTitle,
+                subtitle: l10n.serverSettingsWledSubtitle,
+                onTap: () => context.push('/settings/wled'),
+                id: 'server_settings.wled',
+              ),
             SettingsEntryTile(
               icon: Icons.cloud_outlined,
               title: l10n.cloudAccountMenu,

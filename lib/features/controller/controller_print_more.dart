@@ -15,6 +15,7 @@ import '../common/dash_async.dart';
 import '../queue/job_cost_providers.dart';
 import '../queue/queue_cost_center_state.dart';
 import '../queue/queue_edit_screen.dart';
+import '../queue/queue_form_parts.dart';
 import '../queue/queue_providers.dart';
 import 'controller_print_parts.dart';
 import 'scale_to_fit.dart';

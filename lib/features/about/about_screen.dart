@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../common/section_label.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -174,14 +175,7 @@ class _AboutSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title != null)
-            Text(
-              title!,
-              style: t.bodyBold.copyWith(
-                color: t.accentGreenInk,
-                letterSpacing: DashTracking.label,
-              ),
-            ),
+          if (title != null) SectionLabel(title!),
           if (body != null) ...[
             const SizedBox(height: DashSpace.sm),
             Text(body!, style: t.bodySoft),
@@ -230,11 +224,7 @@ class _AboutRow extends StatelessWidget {
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.all(DashSpace.md),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(DashRadius.lg),
-              border: Border.all(color: t.subCardBorder),
-            ),
+            decoration: t.subCardBox(DashRadius.lg),
             child: Row(
               children: [
                 DashIconTile(

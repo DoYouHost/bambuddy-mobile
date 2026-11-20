@@ -35,6 +35,18 @@ enum TwoFactorFailure {
 class AuthProbe {
   const AuthProbe._();
 
+  /// What `/auth/status` said. Its body is not sampled, and a bare 200 is
+  /// followed by an auto-saved profile, a sign-in form or "finish setup in a
+  /// browser" alike — a report could not tell which screen the user got (#66).
+  static void serverProbed({
+    required bool authEnabled,
+    required bool requiresSetup,
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.app,
+    'server_probe',
+    fields: {'auth_enabled': authEnabled, 'requires_setup': requiresSetup},
+  );
+
   /// The password was accepted and the server asked for a second factor.
   ///
   /// `binding`, not `cookie`: the redactor blanks any field whose *name* looks

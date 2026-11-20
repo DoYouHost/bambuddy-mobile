@@ -21,6 +21,7 @@ void main() {
     'lib/l10n/app_de.arb',
     'lib/l10n/app_es.arb',
     'lib/l10n/app_fr.arb',
+    'lib/l10n/app_zh.arb',
   ];
 
   /// Top-level keys in the order they are written, `@`-entries included.

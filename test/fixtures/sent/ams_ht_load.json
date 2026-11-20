@@ -1,0 +1,10 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/printers/1/ams/load",
+    "body": null,
+    "query": {
+      "tray_id": 128
+    }
+  }
+]

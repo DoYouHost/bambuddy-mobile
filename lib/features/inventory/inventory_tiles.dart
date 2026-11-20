@@ -48,7 +48,7 @@ class _ListHeader extends StatelessWidget {
   }
 }
 
-class _SpoolTile extends StatelessWidget {
+class _SpoolTile extends ConsumerWidget {
   const _SpoolTile({
     required this.spool,
     this.assignment,
@@ -73,11 +73,13 @@ class _SpoolTile extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final frac = spool.remainingFraction;
-    final low = spool.isLowStock && !spool.isArchived;
+    final low =
+        spool.isLowStock(ref.watch(lowStockThresholdProvider)) &&
+        !spool.isArchived;
     final fillColor = low ? t.danger : t.accentGreen;
 
     // The weight line takes the leftover space and the slot label keeps its
@@ -252,7 +254,10 @@ class _SpoolTile extends StatelessWidget {
                               ),
                               const SizedBox(height: DashSpace.sm),
                               DashProgressBar(
-                                value: frac,
+                                // An empty track for a spool with no label
+                                // weight, as the web draws it; a null value
+                                // would animate an indeterminate bar.
+                                value: frac ?? 0,
                                 height: DashSize.d4,
                                 radius: DashRadius.xs,
                                 color: fillColor,
@@ -333,6 +338,7 @@ class _LowBadge extends StatelessWidget {
 /// consistent with dashboard; mapping from [SpoolAssignment.extruder].
 String assignmentSlotLabel(AppLocalizations l10n, SpoolAssignment a) {
   if (!a.isExternalSpool) return a.slotLabel;
+  if (a.isRackExternal) return rackExternalLabel(externalTrayId(a.trayId));
   return switch (a.extruder) {
     1 => l10n.extruderLeft,
     0 => l10n.extruderRight,
@@ -478,24 +484,31 @@ class _SpoolDetailSheet extends ConsumerWidget {
             _SpoolActions(spool: spool, assignment: assignment),
             const SizedBox(height: DashSpace.lg),
 
+            DashProgressBar(
+              value: spool.remainingFraction ?? 0,
+              height: DashSize.d8,
+              // The tile and this sheet say the same thing: an archived
+              // spool is not stock, so it is never marked low.
+              color:
+                  !spool.isArchived &&
+                      spool.isLowStock(ref.watch(lowStockThresholdProvider))
+                  ? t.danger
+                  : null,
+            ),
+            // No weight line without a label weight: "0 g of 0 g" says nothing.
             if (spool.remainingFraction != null) ...[
-              DashProgressBar(
-                value: spool.remainingFraction,
-                height: DashSize.d8,
-                color: spool.isLowStock ? t.danger : null,
-              ),
               const SizedBox(height: DashSpace.sm),
               Text(
                 '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
                 ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
                 style: t.label.copyWith(color: t.textSecondary),
               ),
-              const SizedBox(height: DashSpace.lg),
             ],
+            const SizedBox(height: DashSpace.lg),
 
             _DetailCard(
               children: [
-                _InfoRow(
+                FactRow(
                   icon: Icons.print_outlined,
                   label: l10n.inventoryDetailSlot,
                   value: assignment != null
@@ -507,7 +520,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
                       : l10n.inventoryDetailNotLoaded,
                 ),
                 if (spool.storageLocation != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.place_outlined,
                     label: l10n.inventoryLocation,
                     value: spool.storageLocation!,
@@ -523,19 +536,19 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 // that action had nothing to show for itself: it moves the
                 // baseline, never the remaining weight above.
                 if (spool.consumedWeight > 0)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.trending_down,
                     label: l10n.inventoryDetailConsumedSinceReset,
                     value: fmtGrams(spool.consumedWeight),
                   ),
                 if (spool.materialNumber case final number?)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.tag,
                     label: l10n.inventoryFieldMaterialNumber,
                     value: number,
                   ),
                 if (spool.lastDriedAt case final dried?)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.air,
                     label: l10n.inventoryLastDried,
                     value: [
@@ -544,33 +557,33 @@ class _SpoolDetailSheet extends ConsumerWidget {
                     ].join(' · '),
                   ),
                 if (spool.costPerKg != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.payments_outlined,
                     label: l10n.inventoryFieldCostPerKg,
                     value: spool.costPerKg!.toStringAsFixed(2),
                   ),
                 if (spool.slicerFilamentName ?? spool.slicerFilament
                     case final preset?)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.tune,
                     label: l10n.inventoryFieldSlicerPreset,
                     value: preset,
                   ),
                 if (spool.nozzleTempMin != null || spool.nozzleTempMax != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.thermostat_outlined,
                     label: l10n.inventoryNozzleTemp,
                     value:
                         '${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
                   ),
                 if (spool.tagUid != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.nfc_outlined,
                     label: l10n.inventoryTag,
                     value: spool.tagUid!,
                   ),
                 if (spool.note != null)
-                  _InfoRow(
+                  FactRow(
                     icon: Icons.sticky_note_2_outlined,
                     label: l10n.inventoryNote,
                     value: spool.note!,
@@ -586,7 +599,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
               _DetailCard(
                 children: [
                   for (final k in spool.kProfiles)
-                    _InfoRow(
+                    FactRow(
                       icon: Icons.tune,
                       label: k.name ?? '—',
                       value: l10n.inventoryKProfileLine(
@@ -656,7 +669,7 @@ class _SheetSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Text(label, style: t.bodyBold.copyWith(color: t.textPrimary));
+    return Text(label, style: t.bodyBoldPrimary);
   }
 }
 
@@ -735,90 +748,8 @@ class _DetailCard extends StatelessWidget {
         horizontal: DashSpace.lg,
         vertical: DashSpace.xs,
       ),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
-/// One fact about the spool: what it is on the left, its value on the right,
-/// read first. [stacked] puts the value under the label instead, for free text
-/// that would otherwise wrap into a narrow right-aligned column.
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.below,
-    this.stacked = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  /// Under the whole row, lined up with the label.
-  final Widget? below;
-  final bool stacked;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final labelText = Text(
-      label,
-      style: t.label.copyWith(color: t.textSecondary),
-    );
-    final valueText = Text(
-      value,
-      textAlign: stacked ? TextAlign.start : TextAlign.end,
-      style: t.body.copyWith(color: t.textPrimary),
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: _detailIconNudge),
-            child: Icon(icon, size: DashIcon.sm, color: t.textSecondary),
-          ),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (stacked) ...[
-                  labelText,
-                  const SizedBox(height: DashSpace.xs),
-                  valueText,
-                ] else
-                  Row(
-                    // Both sides loose: each wraps at half the row instead of
-                    // one squeezing the other to nothing at a large text size,
-                    // and spaceBetween keeps the value on the row's right edge
-                    // however short the label is.
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Flexible(child: labelText),
-                      const SizedBox(width: DashSpace.md),
-                      Flexible(child: valueText),
-                    ],
-                  ),
-                if (below != null) ...[
-                  const SizedBox(height: DashSpace.sm),
-                  below!,
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -884,7 +815,7 @@ class _SupplierLinkRow extends StatelessWidget {
                         link.supplierName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: t.bodyBold.copyWith(color: t.textPrimary),
+                        style: t.bodyBoldPrimary,
                       ),
                     ),
                     if (link.isPurchaseSource) ...[

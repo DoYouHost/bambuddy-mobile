@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 void main() {
   group('library contract', skip: contractSkipReason, () {
@@ -106,6 +107,38 @@ void main() {
 
         final finalFolders = await library.listFolders();
         expect(finalFolders.any((f) => f.id == created.id), isFalse);
+      },
+    );
+
+    test(
+      'a folder moves where the screen sends it, and back to the root',
+      () async {
+        final stamp = DateTime.now().millisecondsSinceEpoch;
+        await library.createFolder('contract-move-a-$stamp');
+        await library.createFolder('contract-move-b-$stamp');
+        Future<LibraryFolder> named(String name) async => flattenFolders(
+          await library.listFolders(),
+        ).firstWhere((f) => f.name == name);
+        final a = await named('contract-move-a-$stamp');
+        final b = await named('contract-move-b-$stamp');
+        createdFolderIds.addAll([a.id, b.id]);
+        await library.createFolder('contract-move-c-$stamp', parentId: a.id);
+        final c = await named('contract-move-c-$stamp');
+        expect(c.parentId, a.id);
+        createdFolderIds.add(c.id);
+
+        final res = (await replayWrites(
+          dio,
+          recordedWrites('library_folder_move'),
+          item: c.id,
+          ids: {'parent_id': b.id},
+        )).single;
+        expect(res.statusCode, 200);
+        expect((await named('contract-move-c-$stamp')).parentId, b.id);
+
+        // The root is 0 on the wire; both generations of server read it so.
+        await library.moveFolder(c.id);
+        expect((await named('contract-move-c-$stamp')).parentId, isNull);
       },
     );
 

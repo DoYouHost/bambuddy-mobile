@@ -80,6 +80,17 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// WLED behind a printer (server #1528), all `POST` with the URL in the body
+  /// so a URL not yet saved can be tried: `presets` lists WLED's own presets,
+  /// `test-connection` reads its name and version, `test-preset` switches one
+  /// on. None changes what is stored; a WLED that does not answer is a 502.
+  static String printerWledPresets(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/presets';
+  static String printerWledTestConnection(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-connection';
+  static String printerWledTestPreset(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-preset';
+
   /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
   /// [...]}`: grams left on the spool bound to each loaded slot, which the
   /// web's mapping sorts by when "prefer lowest remaining" is on
@@ -263,6 +274,13 @@ abstract final class Endpoints {
   static String chamberTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/chamber';
 
+  /// The Panda Breath bound to the printer (server #1466). JSON body with
+  /// exactly one of `work_on`, `mode`, `target_temp` (0–60), else 400; 404 when
+  /// no heater is bound, 503 when the server's MQTT broker is down. Offer it
+  /// only for a status that carries `panda_breath`: the route came with it.
+  static String pandaBreath(int printerId) =>
+      '$apiPrefix/printers/$printerId/panda-breath';
+
   /// Airduct flap mode. Query: `mode=cooling|heating`. Supported on
   /// P2S/X2D/H2* — gate via `supportsAirduct` first.
   static String airductMode(int printerId) =>
@@ -332,9 +350,11 @@ abstract final class Endpoints {
 
   /// Load filament into the extruder. Query: `tray_id`, the **global** tray
   /// number — `ams_id * 4 + slot` for a regular AMS (0..15, and 24..27 once the
-  /// A2L AMS-Lite is normalised to unit 6), 254 external / Ext-L, 255 Ext-R.
-  /// The server rejects everything else with 400, AMS-HT (unit 128+) included —
-  /// build the number with `amsLoadTrayId`, which answers null for those.
+  /// A2L AMS-Lite is normalised to unit 6), 28..36 for an H3C's AMS 3H, 254
+  /// external / Ext-L, 255 Ext-R.
+  /// 128..135, an AMS-HT's unit id, only from 1.3.0 (`ServerFeature.amsHtLoad`).
+  /// The server rejects everything else with 400; build the number with
+  /// `amsLoadTrayId`, which answers null where this server has no encoding.
   ///
   /// Optional `extruder_id` (0 = right/main, 1 = left/deputy) names the hotend
   /// to feed. Only a printer with a Filament Track Switch needs it — see
@@ -631,6 +651,41 @@ abstract final class Endpoints {
   /// a P1S until the server's background conversion catches up.
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
+
+  /// How many groups of duplicate archives there are (`{groups}`): same file,
+  /// owner and project. Cheap; reads no files. These three need
+  /// `archives:update_all` **and** `archives:delete_all`, and arrived with the
+  /// archive redesign (1.3.0). Older servers answer **422**: their
+  /// `/archives/{archive_id}` takes the path and fails to parse it as an id.
+  static const archivesMergeCount = '$apiPrefix/archives/merge-count';
+
+  /// The groups themselves (`{groups: [{survivor, merged, skipped}]}`); the
+  /// oldest archive of each stays. `skipped` is why a group is left out now.
+  static const archivesMergePreview = '$apiPrefix/archives/merge-preview';
+
+  /// `POST {survivor_ids}` (1..500) → `{merged: [{survivor_id, merged_ids}],
+  /// skipped: [{survivor_id, reason}]}`. Each group as it stands when the merge
+  /// runs; one failing leaves the others merged.
+  static const archivesMerge = '$apiPrefix/archives/merge';
+
+  /// Prints of the archives the caller sees that ended between `date_from` and
+  /// `date_to` (calendar days in `tz`), `PrintLogResponse`, ordered by id.
+  /// Query `printer_id`, `limit` (≤1000), `offset`. The archive calendar's
+  /// source, from the archive redesign (1.3.0); older servers answer 422, as
+  /// for [archivesMergeCount].
+  static const archivePrints = '$apiPrefix/archives/prints';
+
+  /// Every print of the archive (`PrintLogResponse`, `{items, total}`), newest
+  /// first, only those on the caller's printers. Served since #1378; each print's
+  /// own note, photos, video and plate estimate arrived with the archive
+  /// redesign (1.3.0).
+  static String archiveRuns(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/runs';
+
+  /// One print's own timelapse, `?token=` like [archiveTimelapse], which serves
+  /// only the latest print's. 404 when the print has none.
+  static String archiveRunTimelapse(int archiveId, int runId) =>
+      '$apiPrefix/archives/$archiveId/runs/$runId/timelapse';
 
   /// Recordings this print can still be given: the timelapse the server keeps,
   /// plus whatever the printer itself holds — an unattached timelapse and the
@@ -1116,6 +1171,13 @@ abstract final class Endpoints {
   /// 500 ids and 404s if any id is unknown.
   static const inventoryLabels = '$apiPrefix/inventory/labels';
 
+  /// Saved custom label sheets (`LabelTemplateResponse[]`, server #3296) —
+  /// `POST` here, `PUT`/`DELETE` on [labelTemplate]. One list for both
+  /// inventory backends, and everyone on the install sees it.
+  static const labelTemplates = '$apiPrefix/label-templates';
+
+  static String labelTemplate(int id) => '$apiPrefix/label-templates/$id';
+
   // --- Home Assistant sensors bound to a storage location (server #2827) ---
 
   /// Every configured binding (`LocationHASensorResponse[]`), optionally one
@@ -1172,6 +1234,12 @@ abstract final class Endpoints {
       '$apiPrefix/spoolman/inventory/spools/$spoolId/restore';
   static String spoolmanSpoolResetConsumedCounter(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-consumed-counter';
+
+  /// Spoolman twin of [inventorySpoolUsage]: the per-print charges Bambuddy
+  /// recorded against a Spoolman spool (`SpoolUsageHistoryResponse[]`). Newer
+  /// servers only (1.3.1); older ones answer 404.
+  static String spoolmanSpoolUsage(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/usage';
 
   /// Pre-rename twin of [spoolmanSpoolResetConsumedCounter] — see
   /// [inventorySpoolResetUsage].
@@ -1391,6 +1459,26 @@ abstract final class Endpoints {
   /// Permanently delete file from trash (`DELETE`).
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
+
+  // --- AI failure detection (Obico #1546, OctoEverywhere #3169) ---
+  //
+  // Two providers, one at a time (`routes/settings.py` refuses both enabled).
+  // Each has a `printer-status` made for the printer cards: no configuration,
+  // so `printers:read` (an API key's `can_read_status`) is enough, narrowed to
+  // the printers the caller may see. A server from before a provider 404s its
+  // route: Obico's is there from 1.2.5.2 (1.2.5 has `/obico/status` only, which
+  // wants `settings:read`), OctoEverywhere's from 1.3.0. The rest of both
+  // routers is settings, left to the web.
+
+  /// `GET` → `{enabled, monitored_printers, per_printer, last_error}`; an entry
+  /// of `per_printer` is `{class, frame_count, score, error}`.
+  static const obicoPrinterStatus = '$apiPrefix/obico/printer-status';
+
+  /// `GET` → the same envelope plus `last_error_code`; an entry carries
+  /// `print_quality` (1 to 10, null before the first result) instead of
+  /// `score`, and `error_code`.
+  static const octoEverywherePrinterStatus =
+      '$apiPrefix/octoeverywhere/printer-status';
 
   // --- Manyfold (#1471, server dev from 2026-10-04) ---
   //

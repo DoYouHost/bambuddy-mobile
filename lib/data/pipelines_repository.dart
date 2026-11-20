@@ -60,11 +60,11 @@ class PipelinesRepository {
   /// [update], which is the only schema that declares it.
   Future<SlicerPipeline> create(SlicerPipeline pipeline) =>
       writeCapability.watching(observing: treat404AsAbsent, () async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.slicerPipelines,
+          SlicerPipeline.fromJson,
           data: pipeline.toCreateJson(),
         );
-        return SlicerPipeline.fromJson(res.data ?? const {});
       });
 
   /// PUT /slicer-pipelines/{id} — partial: only the arguments passed are sent.
@@ -99,11 +99,11 @@ class PipelinesRepository {
       'target_model_class': ?targetModelClass,
       'fanout_strategy': ?fanoutStrategy?.wire,
     };
-    final res = await _dio.put<Map<String, dynamic>>(
+    return _dio.putObject(
       Endpoints.slicerPipeline(pipelineId),
+      SlicerPipeline.fromJson,
       data: body,
     );
-    return SlicerPipeline.fromJson(res.data ?? const {});
   });
 
   /// DELETE /slicer-pipelines/{id} — soft, so past runs keep their name.
@@ -116,11 +116,11 @@ class PipelinesRepository {
     int pipelineId, {
     required PipelineSource source,
   }) => readCapability.watching(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.slicerPipelineCheckEligibility(pipelineId),
+      EligibilityReport.fromJson,
       data: source.toJson(),
     );
-    return EligibilityReport.fromJson(res.data ?? const {});
   });
 
   /// POST /slicer-pipelines/{id}/run — slice once, dispatch [copies] prints.
@@ -132,11 +132,11 @@ class PipelinesRepository {
     bool force = false,
   }) => runCapability.watching(() async {
     try {
-      final res = await _dio.post<Map<String, dynamic>>(
+      return await _dio.postObject(
         Endpoints.slicerPipelineRun(pipelineId),
+        PipelineRun.fromJson,
         data: {...source.toJson(), 'copies': copies, if (force) 'force': true},
       );
-      return PipelineRun.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       final report = _eligibilityFrom(e);
       if (report != null) throw PipelineNotEligible(report);
@@ -188,20 +188,20 @@ class PipelinesRepository {
   /// POST /pipeline-runs/{id}/cancel — idempotent; a terminal run comes back
   /// unchanged rather than refused.
   Future<PipelineRun> cancel(int runId) => runCapability.watching(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.pipelineRunCancel(runId),
+      PipelineRun.fromJson,
     );
-    return PipelineRun.fromJson(res.data ?? const {});
   });
 
   /// POST /pipeline-runs/{id}/retry-failed — a **new** run of the parent's
   /// failed + cancelled copies, forced past the pre-flight.
   Future<PipelineRun> retryFailed(int runId) =>
       runCapability.watching(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.pipelineRunRetryFailed(runId),
+          PipelineRun.fromJson,
         );
-        return PipelineRun.fromJson(res.data ?? const {});
       });
 
   /// POST /pipeline-runs/clear — drop every terminal run. Returns how many.
