@@ -1,7 +1,11 @@
 import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/format/datetime_format.dart';
+import '../../../core/format/duration_format.dart';
+import '../../../core/models/printer_status.dart';
 import '../../../core/theme/dash_theme.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Print-panel metadata item (remaining/ETA/layers): mono text with a leading icon.
 class PrintMetaItem extends StatelessWidget {
@@ -93,6 +97,35 @@ class PrintMetaItem extends StatelessWidget {
             child: labelled,
           );
   }
+}
+
+/// The remaining time and the finish time of a running print: two items, or
+/// none while the server states no remaining time (0 is "unknown", not "done").
+List<PrintMetaItem> timeMetaItems(
+  BuildContext context,
+  AppLocalizations l10n,
+  PrinterStatus status,
+) {
+  final remaining = status.remainingTime;
+  if (remaining == null || remaining <= 0) return const [];
+  return [
+    PrintMetaItem(
+      icon: Icons.schedule,
+      text: l10n.remaining(formatMinutes(l10n, remaining)),
+    ),
+    PrintMetaItem(
+      icon: Icons.flag_outlined,
+      text: l10n.eta(etaClock(DateTimeFormats.of(context), remaining)),
+    ),
+  ];
+}
+
+/// The `layer/total` item, or null until the printer reports both figures.
+PrintMetaItem? layerMetaItem(PrinterStatus status) {
+  final layer = status.layerNum;
+  final total = status.totalLayers;
+  if (layer == null || total == null) return null;
+  return PrintMetaItem(icon: Icons.layers_outlined, text: '$layer/$total');
 }
 
 /// The metadata line under the progress bar, placed by measurement.
