@@ -71,8 +71,9 @@ class ScheduledDryingRepository {
   }) async {
     final start = startAfter == null ? null : instantToJson(startAfter);
     return schedulingCapability.watching(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
+      return _dio.postObject(
         Endpoints.scheduledDryings,
+        ScheduledDrying.fromJson,
         data: {
           'printer_id': printerId,
           'ams_id': amsId,
@@ -87,7 +88,6 @@ class ScheduledDryingRepository {
           'start_after': ?start,
         },
       );
-      return ScheduledDrying.fromJson(res.data ?? const {});
     });
   }
 

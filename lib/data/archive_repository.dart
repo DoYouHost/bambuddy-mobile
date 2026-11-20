@@ -339,11 +339,11 @@ class ArchiveRepository {
 
   /// POST /archives/merge — merges the groups of [survivorIds].
   Future<ArchiveMergeResult> merge(List<int> survivorIds) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.archivesMerge,
+      ArchiveMergeResult.fromJson,
       data: {'survivor_ids': survivorIds},
     );
-    return ArchiveMergeResult.fromJson(res.data ?? const {});
   });
 
   /// Every print that ended between [from] and [to] (calendar days in the

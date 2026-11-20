@@ -64,15 +64,15 @@ class TimelapseRepository {
       'speed': speed,
       'save_mode': 'replace',
     });
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.archiveTimelapseProcess(archiveId),
+      TimelapseProcessResult.fromJson,
       data: form,
       options: Options(
         receiveTimeout: _processTimeout,
         sendTimeout: _processTimeout,
       ),
     );
-    return TimelapseProcessResult.fromJson(res.data ?? const {});
   });
 
   /// Streams the video to [savePath] and answers with the `Content-Type` the

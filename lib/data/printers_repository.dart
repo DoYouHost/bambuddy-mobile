@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -275,8 +276,9 @@ class PrintersRepository {
     String? serialNumber,
     String? accessCode,
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.printersDiagnostic,
+      PrinterDiagnosticResult.fromJson,
       data: {
         'ip_address': ipAddress,
         if (serialNumber != null && serialNumber.isNotEmpty)
@@ -285,7 +287,6 @@ class PrintersRepository {
           'access_code': accessCode,
       },
     );
-    return PrinterDiagnosticResult.fromJson(res.data ?? const {});
   });
 
   /// Map a 400 body to a failure reason. FastAPI sends either
