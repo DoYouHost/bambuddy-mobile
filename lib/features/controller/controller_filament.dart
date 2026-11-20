@@ -20,6 +20,7 @@ import '../inventory/inventory_screen.dart' show parseSpoolColor;
 import 'controller_controls.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
+import '../../core/models/value_equality.dart';
 
 /// The fullest spool a card has to fit: 100 % of a kilogram, which is what the
 /// widest usage line reads.
@@ -1082,7 +1083,7 @@ class _SlotCard extends StatelessWidget {
 /// The colour of the spool drawing (`assets/icons/filament_spool_wound.svg`, made
 /// by Recraft) that stands for the filament: its winding. Everything else in it,
 /// the flanges and the outline, keeps its own.
-class _SpoolColors extends ColorMapper {
+class _SpoolColors extends ColorMapper with ValueEquality {
   const _SpoolColors(this.filament);
 
   final Color filament;
@@ -1106,11 +1107,7 @@ class _SpoolColors extends ColorMapper {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is _SpoolColors && other.filament == filament;
-
-  @override
-  int get hashCode => filament.hashCode;
+  List<Object?> get props => [filament];
 }
 
 /// Rocks [child] left and right, dying away, each time [play] turns true: the
