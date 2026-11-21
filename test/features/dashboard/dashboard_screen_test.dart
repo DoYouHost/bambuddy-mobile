@@ -74,6 +74,7 @@ class _NoopNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {}
   @override
   Future<bool> isAlertActive(int id) async => true;

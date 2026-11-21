@@ -65,4 +65,20 @@ void main() {
       expect([d.year, d.month, d.day], [2026, 7, 30]);
     });
   });
+
+  group('intListFromJson', () {
+    test('reads numbers, string-typed ones too', () {
+      expect(intListFromJson([1, '2', 3.0]), [1, 2, 3]);
+    });
+
+    test('anything but a list is empty', () {
+      expect(intListFromJson(null), isEmpty);
+      expect(intListFromJson('1,2'), isEmpty);
+      expect(intListFromJson({'a': 1}), isEmpty);
+    });
+
+    test('an entry that is no number is dropped, not the list', () {
+      expect(intListFromJson([1, null, 'x', true, {}, '4']), [1, 4]);
+    });
+  });
 }

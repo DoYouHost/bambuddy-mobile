@@ -11,6 +11,7 @@ extension AppApiExceptionL10n on AppApiException {
     AppErrorCode.forbidden => _forbidden(l10n),
     AppErrorCode.badResponse => l10n.errBadResponse(statusCode ?? 0),
     AppErrorCode.badCertificate => l10n.errBadCertificate,
+    AppErrorCode.clientCertRefused => l10n.errClientCertRefused,
     AppErrorCode.connectionError => l10n.errConnection,
     AppErrorCode.malformedResponse => l10n.errMalformedResponse,
     AppErrorCode.invalidCredentials => l10n.errInvalidCredentials,

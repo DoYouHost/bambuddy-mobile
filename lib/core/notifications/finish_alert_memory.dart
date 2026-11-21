@@ -254,6 +254,7 @@ class RememberingNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {
     await _inner.showAlert(
       event: event,
@@ -265,6 +266,7 @@ class RememberingNotifications implements NotificationService {
       actions: actions,
       picture: picture,
       quiet: quiet,
+      silent: silent,
     );
     // An update (the photo, the outcome buttons) is re-posted from an entry
     // this memory already holds, and the updater writes that entry itself;

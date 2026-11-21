@@ -30,6 +30,7 @@ class TimelapseExport {
   /// mean a hundred megabytes pulled for nothing.
   Future<void> saveToGallery(
     int archiveId, {
+    int? runId,
     required MediaAuth auth,
     required String name,
     void Function(double? progress)? onProgress,
@@ -40,6 +41,7 @@ class TimelapseExport {
     }
     final file = await _fetch(
       archiveId,
+      runId: runId,
       auth: auth,
       name: name,
       onProgress: onProgress,
@@ -49,12 +51,14 @@ class TimelapseExport {
 
   Future<void> share(
     int archiveId, {
+    int? runId,
     required MediaAuth auth,
     required String name,
     void Function(double? progress)? onProgress,
   }) async {
     final file = await _fetch(
       archiveId,
+      runId: runId,
       auth: auth,
       name: name,
       onProgress: onProgress,
@@ -70,6 +74,7 @@ class TimelapseExport {
   /// filed in the gallery under the wrong extension is one nothing will open.
   Future<File> _fetch(
     int archiveId, {
+    int? runId,
     required MediaAuth auth,
     required String name,
     void Function(double? progress)? onProgress,
@@ -77,6 +82,7 @@ class TimelapseExport {
     scratchName: 'timelapse-$archiveId.download',
     download: (savePath) => _repository.downloadTo(
       archiveId,
+      runId: runId,
       auth: auth,
       savePath: savePath,
       // A server that streams without a length reports -1 as the total; the

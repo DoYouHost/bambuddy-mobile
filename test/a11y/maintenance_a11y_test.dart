@@ -247,8 +247,8 @@ final _unreachable = const ApiException(
 Future<void> _openEveryPrinter(WidgetTester tester) async {
   final count = byLogId('maintenance.printer_toggle').evaluate().length;
   for (var i = 0; i < count; i++) {
-    await tester.tap(byLogId('maintenance.printer_toggle').at(i));
-    await settle(tester);
+    // Scrolled into view first: the demo fleet runs past the fold.
+    await a11yTap(tester, byLogId('maintenance.printer_toggle').at(i));
   }
 }
 

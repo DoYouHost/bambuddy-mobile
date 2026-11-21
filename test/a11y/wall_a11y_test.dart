@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -24,7 +25,7 @@ import 'a11y_harness.dart';
 /// checkboxes do one tap at a time.
 class _AllHidden extends WallHiddenPrintersNotifier {
   @override
-  Set<int> build() => {1, 2, 3, 4, 5, 6};
+  Set<int> build() => {...DemoBackend.instance.printerIds};
 }
 
 /// A roster of one printing printer with a fault, over the demo server (so the

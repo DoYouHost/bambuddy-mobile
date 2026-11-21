@@ -8,8 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Moving a spool from one slot to another: the old slot is cleared first,
-/// since neither backend takes a spool off the slot it leaves on its own.
+/// Moving a spool from one slot to another: on a server without `move` the old
+/// slot is cleared first, since neither backend takes a spool off the slot it
+/// leaves on its own; with it the move is the one request.
 class _FakeSource implements SpoolInventorySource {
   _FakeSource({this.refusesTray});
 
@@ -29,7 +30,7 @@ class _FakeSource implements SpoolInventorySource {
 
   @override
   Future<void> assignSpool(SpoolAssignmentDraft draft) async {
-    calls.add('assign ${draft.trayId}');
+    calls.add('assign ${draft.trayId}${draft.move ? ' move' : ''}');
     if (draft.trayId == refusesTray) {
       throw const ApiException(AppErrorCode.badResponse);
     }
@@ -47,10 +48,14 @@ class _FakeSource implements SpoolInventorySource {
 void main() {
   late RecordingCommands commands;
 
-  Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
+  Future<(ProviderContainer, _FakeSource)> harness(
+    _FakeSource source, {
+    bool atomicMove = false,
+  }) async {
     final container = ProviderContainer(
       retry: neverRetry,
       overrides: [
+        assignmentMoveProvider.overrideWithValue(AsyncData(atomicMove)),
         fakeServerProfileOverride(),
         inventoryBackendOverride(),
         inventorySourceProvider.overrideWith((ref) => source),
@@ -81,6 +86,60 @@ void main() {
         .assignSpool(to, from: from);
 
     expect(source.calls, ['unassign', 'assign 2']);
+  });
+
+  test('a move on a server with `move` is one request', () async {
+    final (container, source) = await harness(_FakeSource(), atomicMove: true);
+
+    await container
+        .read(inventoryProvider.notifier)
+        .assignSpool(to, from: from);
+
+    expect(source.calls, ['assign 2 move']);
+    expect(commands.calls, ['refreshStatus:1']);
+  });
+
+  test('an atomic move to another printer nudges both printers', () async {
+    final (container, source) = await harness(_FakeSource(), atomicMove: true);
+
+    await container
+        .read(inventoryProvider.notifier)
+        .assignSpool(
+          const SpoolAssignmentDraft(
+            spoolId: 1,
+            printerId: 2,
+            amsId: 0,
+            trayId: 0,
+          ),
+          from: from,
+        );
+
+    expect(source.calls, ['assign 0 move']);
+    expect(commands.calls, ['refreshStatus:2', 'refreshStatus:1']);
+  });
+
+  test('an atomic move the new slot refuses is not retried', () async {
+    final (container, source) = await harness(
+      _FakeSource(refusesTray: 2),
+      atomicMove: true,
+    );
+
+    await expectLater(
+      container.read(inventoryProvider.notifier).assignSpool(to, from: from),
+      throwsA(isA<ApiException>()),
+    );
+
+    // The server kept the spool in its old slot, so no put-back is sent.
+    expect(source.calls, ['assign 2 move']);
+    expect(commands.calls, isEmpty);
+  });
+
+  test('a plain assign never asks for a move, even on a new server', () async {
+    final (container, source) = await harness(_FakeSource(), atomicMove: true);
+
+    await container.read(inventoryProvider.notifier).assignSpool(to);
+
+    expect(source.calls, ['assign 2']);
   });
 
   test('a move the new slot refuses puts the spool back', () async {

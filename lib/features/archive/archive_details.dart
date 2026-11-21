@@ -184,6 +184,18 @@ class ArchiveHeaderChips extends ConsumerWidget {
             text: l10n.archiveRunCount(archive.runCount),
             ink: t.accentOrangeInk,
           ),
+        // How the prints ended, as the web's archive header counts them:
+        // whenever there is one to count, a single print included.
+        if (archive.successfulRunCount > 0)
+          _Chip(
+            text: l10n.archiveGoodCount(archive.successfulRunCount),
+            ink: t.accentGreenInk,
+          ),
+        if (archive.failedRunCount > 0)
+          _Chip(
+            text: l10n.archiveFailedCount(archive.failedRunCount),
+            ink: t.dangerInk,
+          ),
       ],
     );
   }
@@ -255,11 +267,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       padding: const EdgeInsets.all(DashSpace.md),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: DashSpace.sm,

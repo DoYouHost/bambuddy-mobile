@@ -71,6 +71,14 @@ class InventoryRepository {
     _serverVersion,
   );
 
+  /// Whether an assignment may carry `move` (server #1574). Never observed:
+  /// an older server takes the field and ignores it, and the reply is the
+  /// same assignment either way.
+  late final assignmentMoveCapability = ObservedCapability(
+    ServerFeature.assignmentMove,
+    _serverVersion,
+  );
+
   /// Whether this server stores a material number on a spool (#2870). One
   /// latch for both backends: Spoolman rows carry the key too, and only the
   /// native one is writable.

@@ -241,6 +241,95 @@ void main() {
         presetName: 'eSUN PETG',
       );
     });
+
+    test('saves the filament id the slot was configured with', () async {
+      // Without it the server records none and cannot tell when the slot is
+      // reconfigured elsewhere (#3216).
+      adapter.onPut(
+        '/api/v1/printers/1/slot-presets/0/2',
+        (s) => s.reply(200, {'ams_id': 0, 'tray_id': 2}),
+        queryParameters: {
+          'preset_id': 'local_7',
+          'preset_name': 'eSUN PETG',
+          'preset_source': 'local',
+          'tray_info_idx': 'P4d5e6f7',
+        },
+      );
+
+      await repo.saveSlotPreset(
+        1,
+        amsId: 0,
+        trayId: 2,
+        preset: const AmsFilamentPreset(
+          source: AmsPresetSource.local,
+          id: '7',
+          name: 'eSUN PETG',
+        ),
+        presetName: 'eSUN PETG',
+        trayInfoIdx: 'P4d5e6f7',
+      );
+    });
+
+    test('reads every slot of a printer by unit and tray, the external '
+        'holder by its own ids', () async {
+      // The server keys the external holder `255 * 4 + tray`, which is not the
+      // firmware's 254/255; the entry's own ids are what count.
+      adapter.onGet(
+        '/api/v1/printers/1/slot-presets',
+        (s) => s.reply(200, {
+          '2': {
+            'ams_id': 0,
+            'tray_id': 2,
+            'preset_id': 'local_7',
+            'preset_name': 'eSUN PETG',
+            'tray_info_idx': 'P4d5e6f7',
+          },
+          '1021': {
+            'ams_id': 255,
+            'tray_id': 1,
+            'preset_id': 'GFSL99',
+            'preset_name': 'Generic PLA',
+            'tray_info_idx': null,
+          },
+        }),
+      );
+
+      final presets = await repo.slotPresets(1);
+
+      expect(presets.keys, unorderedEquals([(0, 2), (255, 1)]));
+      expect(presets[(0, 2)]!.trayInfoIdx, 'P4d5e6f7');
+      expect(presets[(255, 1)]!.presetName, 'Generic PLA');
+      expect(presets[(255, 1)]!.trayInfoIdx, isNull);
+    });
+
+    test('a printer with nothing saved lists nothing', () async {
+      adapter.onGet(
+        '/api/v1/printers/1/slot-presets',
+        (s) => s.reply(200, <String, dynamic>{}),
+      );
+
+      expect(await repo.slotPresets(1), isEmpty);
+    });
+
+    for (final status in [403, 404, 500]) {
+      test('a $status reads as no presets saved', () async {
+        adapter.onGet(
+          '/api/v1/printers/1/slot-presets',
+          (s) => s.reply(status, {'detail': 'no'}),
+        );
+
+        expect(await repo.slotPresets(1), isEmpty);
+      });
+    }
+
+    test('a lost session still ends the session', () async {
+      adapter.onGet(
+        '/api/v1/printers/1/slot-presets',
+        (s) => s.reply(401, {'detail': 'Not authenticated'}),
+      );
+
+      await expectLater(repo.slotPresets(1), throwsA(isA<AuthException>()));
+    });
   });
 
   group('the two commands', () {

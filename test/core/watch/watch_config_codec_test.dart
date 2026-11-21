@@ -1,7 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:bambuddy_mobile/core/api/client_cert.dart';
+import 'package:bambuddy_mobile/core/api/custom_ca.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../helpers.dart';
+import '../../helpers/fake_watch_connectivity.dart';
 
 void main() {
   group('WatchConfigCodec.encode', () {
@@ -211,6 +219,107 @@ void main() {
       });
       expect(config, isNotNull);
       expect(config!.accent, isNull);
+    });
+  });
+
+  group('the CA', () {
+    const profile = ServerProfile(
+      baseUrl: 'https://host',
+      authMode: AuthMode.none,
+    );
+    final ca = CustomCa.parse(
+      'root.pem',
+      File('test/fixtures/tls/ca.pem').readAsBytesSync(),
+    )!;
+
+    test('round-trips with its name', () {
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(profile: profile, ca: ca),
+      );
+      expect(config?.ca?.name, 'root.pem');
+      expect(config?.ca?.pem, ca.pem);
+    });
+
+    test('a phone without one sends no CA keys, and the watch reads none', () {
+      final map = WatchConfigCodec.encode(profile: profile);
+      expect(map.keys, isNot(contains('caPem')));
+      expect(WatchConfigCodec.decode(map)?.ca, isNull);
+    });
+
+    test('a PEM that holds no certificate is no CA, not a broken config', () {
+      final config = WatchConfigCodec.decode({
+        'baseUrl': 'https://host',
+        'authMode': 'none',
+        'caName': 'root.pem',
+        'caPem': 'not a certificate',
+      });
+      expect(config, isNotNull);
+      expect(config!.ca, isNull);
+    });
+
+    test('the phone pushes the CA it trusts', () async {
+      final watch = FakeWatchConnectivity();
+      await WatchConfigSync(
+        watch: watch,
+        credentials: InMemoryCredentialsStore(),
+      ).push(profile, ca: ca);
+      expect(watch.contexts.single['caPem'], ca.pem);
+    });
+
+    test('a PEM without its name is dropped', () {
+      final config = WatchConfigCodec.decode({
+        'baseUrl': 'https://host',
+        'authMode': 'none',
+        'caPem': ca.pem,
+      });
+      expect(config!.ca, isNull);
+    });
+  });
+  group('the client certificate', () {
+    const profile = ServerProfile(
+      baseUrl: 'https://host',
+      authMode: AuthMode.none,
+    );
+    final cert = ClientCert.parse(
+      'phone.p12',
+      File('test/fixtures/tls/client.p12').readAsBytesSync(),
+      'fixture',
+    ).cert!;
+
+    test('round-trips with its name and password', () {
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(profile: profile, clientCert: cert),
+      );
+      expect(config?.clientCert, cert);
+    });
+
+    test('a phone without one sends no keys, and the watch reads none', () {
+      final map = WatchConfigCodec.encode(profile: profile);
+      expect(map.keys, isNot(contains('certData')));
+      expect(WatchConfigCodec.decode(map)?.clientCert, isNull);
+    });
+
+    test('bytes that are not one are no certificate, not a broken config', () {
+      for (final data in ['%%% not base64', base64.encode(utf8.encode('x'))]) {
+        final config = WatchConfigCodec.decode({
+          'baseUrl': 'https://host',
+          'authMode': 'none',
+          'certName': 'phone.p12',
+          'certData': data,
+          'certPassword': 'fixture',
+        });
+        expect(config, isNotNull);
+        expect(config!.clientCert, isNull);
+      }
+    });
+
+    test('the phone pushes the certificate it presents', () async {
+      final watch = FakeWatchConnectivity();
+      await WatchConfigSync(
+        watch: watch,
+        credentials: InMemoryCredentialsStore(),
+      ).push(profile, clientCert: cert);
+      expect(watch.contexts.single['certData'], cert.data);
     });
   });
 }

@@ -514,11 +514,7 @@ class _RecentRow extends StatelessWidget {
                 horizontal: DashSpace.md,
                 vertical: DashSpace.sm,
               ),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.lg),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.lg),
               child: Row(
                 children: [
                   ClipRRect(

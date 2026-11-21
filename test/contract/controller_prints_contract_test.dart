@@ -153,6 +153,7 @@ void main() {
               path: w.path,
               body: {...w.body! as Map<String, dynamic>}
                 ..remove('cost_center_id'),
+              query: w.query,
             ),
         ];
       }

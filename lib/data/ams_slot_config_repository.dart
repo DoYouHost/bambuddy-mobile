@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/ams/color_names.dart';
@@ -143,14 +144,42 @@ class AmsSlotConfigRepository {
     return json == null ? null : SlotPreset.fromJson(json);
   }
 
+  /// Every slot of [printerId] that has a saved preset, by its unit and local
+  /// tray id. Decorates the dashboard's slot names only, so any failure but a
+  /// lost session reads as none saved.
+  Future<Map<(int, int), SlotPreset>> slotPresets(int printerId) async {
+    final json = await guardOrNullAllowingForbidden(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.amsSlotPresets(printerId),
+      );
+      return res.data;
+    });
+    // Keyed by the server's own slot number, which for the external holder is
+    // not the firmware's; each entry carries its unit and tray, read instead.
+    return {
+      for (final entry in (json ?? const {}).values)
+        if (entry is Map<String, dynamic>)
+          (
+            toIntOrNull(entry['ams_id']) ?? -1,
+            toIntOrNull(entry['tray_id']) ?? -1,
+          ): SlotPreset.fromJson(
+            entry,
+          ),
+    };
+  }
+
   /// Remember which preset a slot was given. Parameters go in the query, not a
-  /// body — the route declares them as bare arguments.
+  /// body — the route declares them as bare arguments. [trayInfoIdx] is the
+  /// filament id the slot was configured with, stored with the mapping; without
+  /// it the card cannot tell when the slot is reconfigured elsewhere and keeps
+  /// naming it after this preset.
   Future<void> saveSlotPreset(
     int printerId, {
     required int amsId,
     required int trayId,
     required AmsFilamentPreset preset,
     required String presetName,
+    String? trayInfoIdx,
   }) async {
     try {
       await _dio.put<dynamic>(
@@ -159,6 +188,8 @@ class AmsSlotConfigRepository {
           'preset_id': preset.pickerId,
           'preset_name': presetName,
           'preset_source': preset.sourceKey,
+          if (trayInfoIdx != null && trayInfoIdx.isNotEmpty)
+            'tray_info_idx': trayInfoIdx,
         },
       );
     } on DioException catch (e) {

@@ -155,11 +155,7 @@ class _SlotBlock extends StatelessWidget {
     final type = sub.type.isEmpty ? null : sub.type;
     return Container(
       padding: const EdgeInsets.all(DashSpace.md),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(color: t.subCardBorder),
-      ),
+      decoration: t.subCardBox(DashRadius.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

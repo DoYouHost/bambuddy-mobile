@@ -171,5 +171,5 @@ One commit in the shared repo where every `ref:` in `packages/*/pubspec.yaml` al
 names the NEW tag, plus a `version:` bump of the changed package. The tag goes on that
 commit (tags are annotated and signed, so `git tag -m`), master and the tag are
 pushed, then every app-shared ref in this repo's `pubspec.yaml` moves to the same tag
-(`app_report_client` stays on its own `v0.2.0`). A push to master bypasses the PR
+(`app_report_client` included: since v0.14.7 `app_diagnostics` names its own tag for it, not `v0.2.0`). A push to master bypasses the PR
 rule, so do it only when the maintainer explicitly says so.

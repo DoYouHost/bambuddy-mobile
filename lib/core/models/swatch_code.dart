@@ -90,9 +90,7 @@ class SwatchCode {
 
   factory SwatchCode.fromJson(Map<String, dynamic> json) => SwatchCode(
     code: normalizeSwatchCode((json['code'] as String?) ?? ''),
-    material: ((json['material'] as String?)?.trim().isNotEmpty == true)
-        ? (json['material'] as String).trim()
-        : 'Unknown',
+    material: toStringOrNull(json['material']) ?? 'Unknown',
     brand: toStringOrNull(json['brand']),
     variant: toStringOrNull(json['variant']),
     colorName: toStringOrNull(json['color_name']),

@@ -19,6 +19,7 @@ import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
 /// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done
@@ -223,6 +224,22 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
             from.trayId == draft.trayId);
+    // One request, one commit: a refusal leaves the spool where it was, so
+    // there is nothing to clear first and nothing to put back.
+    if (moving && ref.read(assignmentMoveProvider).orFalse) {
+      await repo.assignSpool(
+        SpoolAssignmentDraft(
+          spoolId: draft.spoolId,
+          printerId: draft.printerId,
+          amsId: draft.amsId,
+          trayId: draft.trayId,
+          move: true,
+        ),
+      );
+      _nudgeRepublish(draft.printerId);
+      if (from.printerId != draft.printerId) _nudgeRepublish(from.printerId);
+      return null;
+    }
     // The old slot is cleared first: Spoolman takes a spool off by its id, so
     // clearing after the new assignment would take that off too.
     if (moving) {
@@ -514,6 +531,14 @@ class AssignedSpools {
   Spool? builtInAt(int amsId, int trayId) =>
       _builtInSlots[slotKey(amsId, trayId)];
 
+  /// Whether a spool is assigned to the slot: the web's
+  /// `rackExternalAssigned`, an inventory assignment or, in Spoolman mode, a
+  /// slot assignment.
+  bool assignedAt(int amsId, int trayId) =>
+      (_tagShelf != null ? _spoolmanSlots : _builtInSlots).containsKey(
+        slotKey(amsId, trayId),
+      );
+
   /// The fill a slot shows, the grams left on the spool it was read from and
   /// that spool — both null when the AMS's own reading won. A linked spool
   /// off the shelf still has its grams, from the linked map. The web's chain branch for branch
@@ -529,13 +554,7 @@ class AssignedSpools {
   }) {
     final shelf = _tagShelf;
     if (shelf != null) {
-      // `tray_uuid || tag_uid || fallback`: only the first one present is
-      // looked up, as the web keys its linked map by a single tag.
-      final tag =
-          _nonEmpty(tray.trayUuid) ??
-          _nonEmpty(tray.tagUid) ??
-          fallbackSpoolTag(serial, amsId, trayId);
-      final linked = tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
+      final linked = _linked(shelf, tray, amsId, trayId, serial);
       final remaining = linked?.remaining;
       final net = linked?.filament;
       // `getSpoolmanFillLevel`: no remaining weight (0 included) or no net
@@ -580,6 +599,53 @@ class AssignedSpools {
       }
     }
     return (percent: ams, grams: null, spool: null);
+  }
+
+  /// The spool a slot is named after: the one [fillOf] read its grams from —
+  /// none when that is a linked spool off the shelf, never a different one —
+  /// so the name and the grams always describe one spool. Without grams,
+  /// [fillOf]'s chain without its weight conditions, so a spool whose weight
+  /// is unknown still names the slot.
+  Spool? spoolOf(
+    AmsTray tray, {
+    required int amsId,
+    required int trayId,
+    String? serial,
+  }) {
+    final fill = fillOf(tray, amsId: amsId, trayId: trayId, serial: serial);
+    return fill.grams != null
+        ? fill.spool
+        : _unweighed(tray, amsId, trayId, serial);
+  }
+
+  Spool? _unweighed(AmsTray tray, int amsId, int trayId, String? serial) {
+    final shelf = _tagShelf;
+    if (shelf != null) {
+      final linked = _linked(shelf, tray, amsId, trayId, serial);
+      final byTag = linked == null
+          ? null
+          : shelf.spools.firstWhereOrNull((s) => s.id == linked.id);
+      if (byTag != null) return byTag;
+      final slot = _spoolmanSlots[slotKey(amsId, trayId)];
+      if (slot != null && !slot.isArchived) return slot;
+    }
+    return builtInAt(amsId, trayId);
+  }
+
+  /// `tray_uuid || tag_uid || fallback`: only the first one present is looked
+  /// up, as the web keys its linked map by a single tag.
+  static LinkedSpool? _linked(
+    InventoryState shelf,
+    AmsTray tray,
+    int amsId,
+    int trayId,
+    String? serial,
+  ) {
+    final tag =
+        _nonEmpty(tray.trayUuid) ??
+        _nonEmpty(tray.tagUid) ??
+        fallbackSpoolTag(serial, amsId, trayId);
+    return tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
   }
 
   static int _percentOf(Spool s) =>
@@ -973,16 +1039,18 @@ LocationClimate? climateOfSpool(
 final locationOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final catalog = ref.watch(locationCatalogProvider).value ?? const [];
   final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
-  final set = <String>{
-    for (final l in catalog)
-      if (l.name.trim().isNotEmpty) l.name.trim(),
-    for (final s in spools)
-      if (s.storageLocation != null && s.storageLocation!.trim().isNotEmpty)
-        s.storageLocation!.trim(),
-  };
-  final list = set.toList()..sort();
-  return list;
+  return sortedDistinct([
+    for (final l in catalog) l.name,
+    for (final s in spools) s.storageLocation,
+  ]);
 });
+
+/// A form's suggestions: trimmed, blanks dropped, each once, in plain `sort`
+/// order (capitals before lower case).
+List<String> sortedDistinct(Iterable<String?> values) => {
+  for (final v in values)
+    if (v?.trim() case final t? when t.isNotEmpty) t,
+}.toList()..sort();
 
 /// Material dropdown options: fixed popular ones + materials from catalog profiles
 /// and existing spools (preserved user values). Sorted, unique.
@@ -1033,14 +1101,10 @@ final materialOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final presets = ref.watch(filamentPresetsProvider).value ?? const [];
   final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
-  final set = <String>{
-    for (final p in presets)
-      if (p.brand != null && p.brand!.trim().isNotEmpty) p.brand!.trim(),
-    for (final s in spools)
-      if (s.brand != null && s.brand!.trim().isNotEmpty) s.brand!.trim(),
-  };
-  final list = set.toList()..sort();
-  return list;
+  return sortedDistinct([
+    for (final p in presets) p.brand,
+    for (final s in spools) s.brand,
+  ]);
 });
 
 /// Material numbers already in use, for the form's suggestions.
@@ -1055,11 +1119,8 @@ final materialNumberOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 
 final subtypeOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
-  final set = <String>{
+  return sortedDistinct([
     ..._commonSubtypes,
-    for (final s in spools)
-      if (s.subtype != null && s.subtype!.trim().isNotEmpty) s.subtype!.trim(),
-  };
-  final list = set.toList()..sort();
-  return list;
+    for (final s in spools) s.subtype,
+  ]);
 });

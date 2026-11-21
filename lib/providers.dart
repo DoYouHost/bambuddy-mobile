@@ -12,6 +12,9 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/client_cert.dart';
+import 'core/api/custom_ca.dart';
+import 'core/api/tls_overrides.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
 import 'core/api/observed_capability.dart';
@@ -27,6 +30,7 @@ import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/serial_queue.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/server_settings.dart';
@@ -189,6 +193,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> setLowFilamentThreshold(int value) =>
       _save(state.copyWith(lowFilamentThreshold: value));
+
+  Future<void> setAlarm(AlarmPrefs alarm) =>
+      _save(state.copyWith(alarm: alarm));
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
@@ -258,6 +265,82 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
   ref.onDispose(sender.dispose);
   return sender;
 });
+
+/// What this app shows a server's TLS on top of the system: the CA it trusts
+/// (#62) and the certificate it presents (#65). One state for both because one
+/// `SecurityContext` carries both: a change to both at once — "Remove all", a
+/// watch adopting both — is one rebuild of every client, not two.
+typedef TlsIdentity = ({CustomCa? ca, ClientCert? cert});
+
+/// The client certificate `main` read from secure storage and already presents;
+/// null in tests and on an install without one.
+final initialClientCertProvider = Provider<ClientCert?>((_) => null);
+
+final tlsIdentityProvider = NotifierProvider<TlsIdentityNotifier, TlsIdentity>(
+  TlsIdentityNotifier.new,
+);
+
+/// The CA alone, for what reads it; written through [tlsIdentityProvider].
+final customCaProvider = Provider<CustomCa?>(
+  (ref) => ref.watch(tlsIdentityProvider).ca,
+);
+
+/// The client certificate alone, as [customCaProvider].
+final clientCertProvider = Provider<ClientCert?>(
+  (ref) => ref.watch(tlsIdentityProvider).cert,
+);
+
+class TlsIdentityNotifier extends Notifier<TlsIdentity> {
+  @override
+  TlsIdentity build() => (
+    ca: ref.read(settingsRepositoryProvider).loadCustomCa(),
+    cert: ref.read(initialClientCertProvider),
+  );
+
+  final _writes = SerialQueue();
+
+  Future<void> setCa(CustomCa? ca) =>
+      _change((now) => (ca: ca, cert: now.cert));
+
+  Future<void> setCert(ClientCert? cert) =>
+      _change((now) => (ca: now.ca, cert: cert));
+
+  Future<void> setBoth(CustomCa? ca, ClientCert? cert) =>
+      _change((_) => (ca: ca, cert: cert));
+
+  /// Queued, so two calls cannot finish out of order, and [next] is computed
+  /// from the state as it is when its turn comes. Unchanged is skipped: the
+  /// invalidate rebuilds every API client and the watch's relay listener.
+  ///
+  /// Secure storage first, as the one write likely to throw, and before its
+  /// flag both ways: a write that throws leaves the store, the flag, the CA
+  /// and this state as they were, and a removal that fails keeps no key on
+  /// disk behind a flag that says there is none.
+  Future<void> _change(TlsIdentity Function(TlsIdentity now) next) =>
+      _writes.run(() async {
+        final now = state;
+        final target = next(now);
+        if (target == now) return;
+        final settings = ref.read(settingsRepositoryProvider);
+        if (target.cert != now.cert) {
+          await ref.read(clientCertStoreProvider).write(target.cert);
+          await settings.saveHasClientCert(target.cert != null);
+        }
+        if (target.ca != now.ca) await settings.saveCustomCa(target.ca);
+        useTls(target.ca, target.cert);
+        if (!ref.mounted) return;
+        state = target;
+        // Dio keeps the `HttpClient` it made on its first request, so a retry
+        // after importing would still be refused. The API client follows
+        // through `authServiceProvider`. Invalidated rather than watched:
+        // watching would make every Dio depend on preferences.
+        ref.invalidate(bareDioProvider);
+      });
+}
+
+final clientCertStoreProvider = Provider<ClientCertStore>(
+  (_) => ClientCertStore(),
+);
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());
 
@@ -540,7 +623,16 @@ final skipObjectsRepositoryProvider = Provider<SkipObjectsRepository>(
 );
 
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
-  (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrinterCommandsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether load and unload reach an AMS-HT slot. See
+/// `PrinterCommandsRepository.amsHtLoadCapability`.
+final amsHtLoadProvider = capabilityGate(
+  (ref) => ref.watch(printerCommandsRepositoryProvider).amsHtLoadCapability,
 );
 
 /// Filament presets and the two slot-configuration commands.
@@ -764,6 +856,13 @@ final processOverridesProvider = capabilityGate(
 final labelStartingPositionProvider = capabilityGate(
   (ref) =>
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
+);
+
+/// Whether moving a spool may be one request (`move` on the assignment, server
+/// #1574) instead of an unassign and an assign. Version-only: an older server
+/// ignores the field without a word.
+final assignmentMoveProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).assignmentMoveCapability,
 );
 
 /// Whether the label sheet may choose the printed lines and a PNG output

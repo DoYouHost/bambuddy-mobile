@@ -37,6 +37,10 @@ void main() {
           path: '/settings/notifications',
           builder: (_, _) => const Scaffold(body: Text('NOTIFICATIONS')),
         ),
+        GoRoute(
+          path: '/settings/alarm',
+          builder: (_, _) => const Scaffold(body: Text('ALARM')),
+        ),
       ],
     );
     late ProviderContainer container;
@@ -116,6 +120,15 @@ void main() {
     expect(find.text('NOTIFICATIONS'), findsOneWidget);
   });
 
+  testWidgets('the alarm has an entry of its own', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.tap(find.text(pl.alarmTitle));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ALARM'), findsOneWidget);
+  });
+
   testWidgets('every control is named for the log', (tester) async {
     await pumpScreen(tester);
 
@@ -127,6 +140,7 @@ void main() {
         'app_settings.collapse_printer_cards',
         'app_settings.wall_keep_awake',
         'app_settings.notifications',
+        'app_settings.alarm',
       ]),
     );
   });

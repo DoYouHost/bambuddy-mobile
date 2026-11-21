@@ -1,0 +1,11 @@
+[
+  {
+    "method": "PATCH",
+    "path": "/api/v1/archives/5",
+    "body": {
+      "run_id": 1,
+      "user_verdict": "good",
+      "user_verdict_source": "dialog"
+    }
+  }
+]

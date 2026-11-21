@@ -219,6 +219,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 me: me,
                 onOpen: () => notifier.openFolder(f.id),
                 onRename: () => _renameFolder(f),
+                onMove: () => _moveFolder(f),
                 onDelete: () => _deleteFolder(f),
               ),
             for (final f in files)
@@ -623,6 +624,28 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     }
   }
 
+  Future<void> _moveFolder(LibraryFolder folder) async {
+    final state = ref.read(fileManagerProvider).value;
+    if (state == null) return;
+    final target = await _pickFolder(
+      state,
+      candidates: folderMoveTargets(state.allFolders, folder),
+      allowRoot: folder.parentId != null,
+    );
+    if (target == null || !mounted) return; // cancelled
+    try {
+      await ref
+          .read(libraryRepositoryProvider)
+          .moveFolder(folder.id, parentId: target.moveTargetId);
+      if (!mounted) return;
+      await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
+      _snack(_l10n.fmMoved);
+    } on AppApiException catch (e) {
+      _failed(e, 'files.folder.move');
+    }
+  }
+
   Future<void> _deleteFolder(LibraryFolder folder) async {
     final ok = await confirmDialog(
       context,
@@ -667,7 +690,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _moveFile(LibraryFile file) async {
     final state = ref.read(fileManagerProvider).value;
     if (state == null) return;
-    final target = await _pickFolder(state, excludeFolderId: null);
+    final target = await _pickFolder(state);
     if (target == null || !mounted) return; // cancelled
     try {
       await ref.read(libraryRepositoryProvider).moveFiles([
@@ -1091,14 +1114,16 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     String? initial,
   }) => promptName(context, title: title, label: label, initial: initial);
 
-  /// Target folder picker (move). Includes "All Files" (root).
-  /// [excludeFolderId] skips folder and its subtree (folder move).
+  /// Target folder picker (move). Offers "All Files" (root) unless [allowRoot]
+  /// is off, and [candidates] (default: every folder) that are local and
+  /// writable.
   Future<LibraryFolder?> _pickFolder(
     FileManagerState s, {
-    int? excludeFolderId,
+    List<LibraryFolder>? candidates,
+    bool allowRoot = true,
   }) {
     final l10n = _l10n;
-    final folders = [...s.allFolders]
+    final folders = [...(candidates ?? s.allFolders)]
       ..sort((a, b) => compareIgnoringCase(a.name, b.name));
     return dashSheet<LibraryFolder>(
       context,
@@ -1117,16 +1142,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 style: Theme.of(ctx).textTheme.titleMedium,
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.home_outlined),
-              title: Text(l10n.fmRoot),
-              onTap: () => Navigator.pop(
-                ctx,
-                const LibraryFolder(id: -1, name: ''),
-              ), // Sentinel for root.
-            ).tagged('files.move_target_root'),
+            if (allowRoot)
+              ListTile(
+                leading: const Icon(Icons.home_outlined),
+                title: Text(l10n.fmRoot),
+                onTap: () => Navigator.pop(
+                  ctx,
+                  const LibraryFolder(id: -1, name: ''),
+                ), // Sentinel for root.
+              ).tagged('files.move_target_root'),
             for (final f in folders)
-              if (f.id != excludeFolderId && !f.isExternal && f.canWrite)
+              if (!f.isExternal && f.canWrite)
                 ListTile(
                   leading: const Icon(Icons.folder_outlined),
                   title: Text(f.name),
@@ -1308,6 +1334,7 @@ class _FolderTile extends StatelessWidget {
     required this.me,
     required this.onOpen,
     required this.onRename,
+    required this.onMove,
     required this.onDelete,
   });
 
@@ -1315,6 +1342,7 @@ class _FolderTile extends StatelessWidget {
   final CurrentUser? me;
   final VoidCallback onOpen;
   final VoidCallback onRename;
+  final VoidCallback onMove;
   final VoidCallback onDelete;
 
   @override
@@ -1342,11 +1370,7 @@ class _FolderTile extends StatelessWidget {
                 horizontal: DashSpace.lg,
                 vertical: DashSpace.md,
               ),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.xl),
               child: Row(
                 children: [
                   DashIconTile(
@@ -1381,8 +1405,11 @@ class _FolderTile extends StatelessWidget {
                       'files.folder_actions',
                       PopupMenuButton<String>(
                         icon: Icon(Icons.more_vert, color: t.textSecondary),
-                        onSelected: (v) =>
-                            v == 'rename' ? onRename() : onDelete(),
+                        onSelected: (v) => switch (v) {
+                          'rename' => onRename(),
+                          'move' => onMove(),
+                          _ => onDelete(),
+                        },
                         itemBuilder: (ctx) => [
                           if (mayRename)
                             PopupMenuItem(
@@ -1390,6 +1417,15 @@ class _FolderTile extends StatelessWidget {
                               child: logTag(
                                 'files.folder.rename',
                                 Text(l10n.fmRename),
+                              ),
+                            ),
+                          // Moving is an update, so it follows the rename right.
+                          if (mayRename)
+                            PopupMenuItem(
+                              value: 'move',
+                              child: logTag(
+                                'files.folder.move',
+                                Text(l10n.fmMoveTo),
                               ),
                             ),
                           if (mayDelete)

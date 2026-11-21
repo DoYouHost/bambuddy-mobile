@@ -1581,6 +1581,43 @@ void main() {
       expect(find.text('A2 · ${pl.sliceSpoolEmpty}'), findsOneWidget);
     });
 
+    testWidgets("a rack printer's inputs read Ext-n, not L and R", (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+        loaded: const [
+          LoadedSpoolPrinter(
+            id: 1,
+            name: 'H2D one',
+            // The list keeps printers of the sliced model, so the rack is told
+            // here by its AMS 3H (unit 32).
+            model: 'H2D',
+            ams: [
+              LoadedSpoolUnit(
+                id: 32,
+                isAmsHt: false,
+                trays: [LoadedSpoolTray(amsId: 32, trayId: 0, exists: false)],
+              ),
+            ],
+            externalHolders: 9,
+            // Inputs 250 and 255, stored as trays 5 and 1.
+            external: [
+              LoadedSpoolTray(amsId: 255, trayId: 5, exists: false),
+              LoadedSpoolTray(amsId: 255, trayId: 1, exists: false),
+            ],
+          ),
+        ],
+      );
+      await openFilament(tester);
+      expect(find.text('Ext-6 · ${pl.sliceSpoolEmpty}'), findsOneWidget);
+      expect(find.text('Ext-1 · ${pl.sliceSpoolEmpty}'), findsOneWidget);
+      expect(find.textContaining('Ext-R'), findsNothing);
+    });
+
     testWidgets('the spools tab says when no printer of the model is online', (
       tester,
     ) async {

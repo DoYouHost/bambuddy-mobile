@@ -35,13 +35,14 @@ is the map and the decisions.
 | What | Where |
 | --- | --- |
 | `DashIconTile`, `DashProgressBar`, `ThumbnailPlaceholder`, `SheetSurface`, `InlineNote`, `TappableCard`, `DashStepper`, `dashCombo` / `dashPickerField` (`dash_input.dart`), `screenListPadding` (padding of every screen list), `ButtonPair`, `confirmDialog` | `dash_kit` package |
-| `DashPill`, `DashSpace`, the `cardBox` decoration, `buildDashThemeData` | `dash_ui` package |
+| `DashPill`, `DashSpace`, the `cardBox` and `subCardBox(radius)` decorations, `buildDashThemeData` | `dash_ui` package |
 | `textWidth` (`text_measure.dart`), `classifyDioException` (`dio_failure.dart`), `ServerReachability` | `app_util` package |
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
 | `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
-| `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else | [json_utils.dart](../lib/core/models/json_utils.dart) |
+| `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else; `intListFromJson`: a server-sent id list | [json_utils.dart](../lib/core/models/json_utils.dart) |
+| `TrayLayout`, `globalTrayId`, `rackExternalLabel`: a slot's numbers on any printer, the H3C's rack included; `mappingSlotLabel`: a slot as the filament mapping names it, on the phone's form and the controller's | [slot_addressing.dart](../lib/core/ams/slot_addressing.dart), [filament_mapping.dart](../lib/core/ams/filament_mapping.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
 | `TimerFactory`, the injectable timer | [offline_debounce.dart](../lib/core/printers/offline_debounce.dart) |
 | `startQueueItem`, `removeFromQueue`: a job's Start and Remove, from the queue screen and the controller alike | [queue_actions.dart](../lib/features/queue/queue_actions.dart) |
@@ -50,10 +51,11 @@ is the map and the decisions.
 | `libraryFileQueueDraft`, `archiveQueueDraft`: what a print form, the phone's or the controller's, is opened on | [queue_drafts.dart](../lib/features/queue/queue_drafts.dart) |
 | `ColorDot`: a colour as a round mark (hairline or a ring); `colorDisplayName`, `colorNameCatalogProvider` and `ref.watchColorNames()`: a colour's name and the catalogue it comes from; `colorHexLabel` (`color_names.dart`): `#RRGGBB` | [color_dot.dart](../lib/features/common/color_dot.dart), [color_catalog.dart](../lib/features/common/color_catalog.dart) |
 | `printRunStatusLabel` and `printRunTone`: a run's status word and colour | [print_run_labels.dart](../lib/features/common/print_run_labels.dart) |
+| `ProgressRingPainter`: the screen saver's and the statistics' ring, pixel for pixel what each drew | [progress_ring.dart](../lib/features/common/progress_ring.dart) |
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
 | `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
-| `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
+| `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test; `firstRequest`: what the server published to the stand-in printer | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
 
 ## Traps that cost real debugging
 
@@ -92,9 +94,14 @@ is the map and the decisions.
 Each of these was measured; the merge either changes pixels or behaviour, or costs
 more than the lines it saves.
 
+- **`_rgb` and `_hexToHsl` vs `rgbFromHex`.** `filament_mapping.dart` and
+  `color_names.dart` keep their own readers instead of `app_util`'s. They port the web's per-channel `parseInt` and are pinned
+  by goldens generated from the web; `rgbFromHex` parses all six digits at once, so a
+  string like `+12345` reads as a colour there and as none here.
+
 - **A shared card tile.** `subCardBorder` stands in about 90 places in about 50
   files; one widget would be a design-system change, not de-duplication. The
-  decoration alone is shared (`cardBox`), without layout.
+  decoration alone is shared (`cardBox`, and `subCardBox` for the box inside a card), without layout.
 - **`_StateChip` (printer card header) vs `DashPill`.** Radius 14 vs 20, offline
   gets a solid 1.5 px border where `DashPill` has a 0.4-alpha one, upper-case, and an
   ellipsis that carries the header's layout. Four parameters for two users, and

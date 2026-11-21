@@ -5,6 +5,7 @@
 library;
 
 import 'package:app_util/app_util.dart';
+import 'json_utils.dart';
 
 /// A partial spool edit applied to a whole selection.
 ///
@@ -142,7 +143,7 @@ class BulkOutcome {
     String? skippedKey,
   }) {
     final data = json ?? const <String, dynamic>{};
-    final notFound = _idList(data['not_found']);
+    final notFound = intListFromJson(data['not_found']);
     final errors = data['errors'];
     final errorCount = errors is List ? errors.length : 0;
     return BulkOutcome(
@@ -199,13 +200,6 @@ class BulkOutcome {
     notFound: [...notFound, ...other.notFound],
     errorIds: [...errorIds, ...other.errorIds],
   );
-}
-
-/// Ints out of a server-sent id list, tolerant of the string-typed numbers an
-/// older build or a proxy may hand back.
-List<int> _idList(Object? value) {
-  if (value is! List) return const [];
-  return [for (final item in value) ?toIntOrNull(item)];
 }
 
 /// Length of a list, or the number itself — `already_archived` is a list of ids

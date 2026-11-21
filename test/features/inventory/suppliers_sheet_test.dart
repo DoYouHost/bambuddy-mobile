@@ -42,9 +42,24 @@ void main() {
     await settle(tester);
   }
 
-  Future<void> save(WidgetTester tester) async {
-    await tester.ensureVisible(byLogId('supplier_form.save'));
+  // Below the fold of the sheet's lazy list once the fields carry counters:
+  // not built until scrolled near.
+  Future<void> revealSave(WidgetTester tester) async {
+    await tester.scrollUntilVisible(
+      byLogId('supplier_form.save'),
+      100,
+      scrollable: find
+          .descendant(
+            of: byLogId('sheet.supplier_form'),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await settle(tester);
+  }
+
+  Future<void> save(WidgetTester tester) async {
+    await revealSave(tester);
     await tester.tap(byLogId('supplier_form.save'));
     await settle(tester);
   }
@@ -64,8 +79,7 @@ void main() {
       field('${pl.inventorySupplierFieldName} *'),
       'Extrudr',
     );
-    await tester.ensureVisible(byLogId('supplier_form.save'));
-    await settle(tester);
+    await revealSave(tester);
     final errors = await tapCapturingErrors(
       tester,
       byLogId('supplier_form.save'),

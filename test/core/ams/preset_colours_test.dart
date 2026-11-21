@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/core/ams/preset_colours.dart';
 import 'package:bambuddy_mobile/core/models/inventory_reference.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../features/common/colour_catalogue_kit.dart';
+
 ColorEntry entry(
   String name, {
   String hex = '#112233',
@@ -78,5 +80,23 @@ void main() {
     ], 'Generic PLA');
 
     expect(colours.map((c) => c.colorName), ['Fine']);
+  });
+
+  group('on the catalogue a server seeds', () {
+    test('Bambu PLA Basic gets the 30 Bambu Lab PLA Basic colours', () {
+      final colours = presetColours(realCatalogue, 'Bambu PLA Basic');
+      expect(colours, hasLength(30));
+      expect(colours.map((c) => c.manufacturer).toSet(), {'Bambu Lab'});
+      expect(colours.map((c) => c.material).toSet(), {'PLA Basic'});
+    });
+
+    test('Bambu PLA Matte gets Ivory White and not Jade White', () {
+      final names = presetColours(
+        realCatalogue,
+        'Bambu PLA Matte',
+      ).map((c) => c.colorName);
+      expect(names, contains('Ivory White'));
+      expect(names, isNot(contains('Jade White')));
+    });
   });
 }

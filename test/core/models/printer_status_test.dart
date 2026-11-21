@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/features/dashboard/temp_readings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -259,6 +260,93 @@ void main() {
       );
     });
 
+    group('AMS 3H dryer', () {
+      test('reads the drying zone apart from the unit readings', () {
+        final unit = AmsUnit.fromJson({
+          'id': 32,
+          'humidity': 40,
+          'temp': 26.0,
+          'dryer_slots': [3, 4],
+          'dryer_humidity': 12,
+          'dryer_temp': '55.5',
+        });
+        expect(unit.hasDryer, isTrue);
+        expect(unit.dryerSlots, [3, 4]);
+        expect(unit.dryerHumidity, 12);
+        expect(unit.dryerTemp, 55.5);
+        expect(unit.humidity, 40);
+        expect(unit.temp, 26.0);
+      });
+
+      test('an older server, without the fields, has no dryer', () {
+        final unit = AmsUnit.fromJson({'id': 0, 'humidity': 30});
+        expect(unit.hasDryer, isFalse);
+        expect(unit.dryerSlots, isEmpty);
+        expect(unit.dryerHumidity, isNull);
+        expect(unit.dryerTemp, isNull);
+      });
+
+      test('a unit without a dryer sends an empty list and nulls', () {
+        final unit = AmsUnit.fromJson({
+          'id': 0,
+          'dryer_slots': <int>[],
+          'dryer_humidity': null,
+          'dryer_temp': null,
+        });
+        expect(unit.hasDryer, isFalse);
+      });
+
+      test('odd entries are dropped instead of failing the unit', () {
+        expect(
+          AmsUnit.fromJson({
+            'id': 32,
+            'dryer_slots': [3, 'x', null, '4'],
+          }).dryerSlots,
+          [3, 4],
+        );
+        expect(
+          AmsUnit.fromJson({'id': 32, 'dryer_slots': 'nonsense'}).hasDryer,
+          isFalse,
+        );
+      });
+
+      test('the dryer is active from checking to stopping, as on the web', () {
+        bool active(Map<String, Object?> json) => AmsUnit.fromJson({
+          'id': 32,
+          'dryer_slots': [3, 4],
+          ...json,
+        }).isDryerActive;
+        expect(active({}), isFalse);
+        expect(active({'dry_time': 30}), isTrue);
+        for (final status in [1, 2, 3, 4]) {
+          expect(active({'dry_status': status}), isTrue, reason: '$status');
+        }
+        // 5 is an error, not a phase of a cycle.
+        expect(active({'dry_status': 5}), isFalse);
+        expect(active({'dry_status': 0}), isFalse);
+        // A parked timer is not a running cycle.
+        expect(
+          active({'dry_time': 30, 'dry_countdown_stalled': true}),
+          isFalse,
+        );
+        // A unit drying as a whole has no AMS 3H dryer to light.
+        expect(
+          AmsUnit.fromJson({'id': 0, 'dry_time': 30}).isDryerActive,
+          isFalse,
+        );
+      });
+
+      test('a changed dryer reading is a changed unit', () {
+        AmsUnit unit(int humidity) => AmsUnit.fromJson({
+          'id': 32,
+          'dryer_slots': [3, 4],
+          'dryer_humidity': humidity,
+        });
+        expect(unit(12), equals(unit(12)));
+        expect(unit(12), isNot(equals(unit(13))));
+      });
+    });
+
     test('parses external spool (vt_tray) and tray_now/model', () {
       final status = realStatus();
 
@@ -367,6 +455,44 @@ void main() {
         vtTray: [tpu, pla],
       );
       expect(onExt0.activeTray?.trayType, 'PLA');
+    });
+  });
+
+  group('tray_change_log', () {
+    test('reads [[tray, layer], …] and drops a malformed entry', () {
+      final s = PrinterStatus.fromJson({
+        'id': 1,
+        'tray_change_log': [
+          [2, 0],
+          ['1', '350'],
+          [7],
+          'x',
+        ],
+      });
+      expect(s.trayChangeLog, [(2, 0), (1, 350)]);
+      expect(PrinterStatus.fromJson({'id': 1}).trayChangeLog, isNull);
+    });
+
+    test('a frame without it keeps the last one; offline drops it', () {
+      const prev = PrinterStatus(
+        id: 1,
+        connected: true,
+        trayChangeLog: [(2, 0), (1, 5)],
+      );
+      expect(
+        const PrinterStatus(
+          id: 1,
+          connected: true,
+        ).mergedWith(prev).trayChangeLog,
+        [(2, 0), (1, 5)],
+      );
+      expect(
+        const PrinterStatus(
+          id: 1,
+          connected: false,
+        ).mergedWith(prev).trayChangeLog,
+        isNull,
+      );
     });
   });
 
@@ -866,6 +992,160 @@ void main() {
       );
 
       expect(offline.nozzleDiameterFor(0, 0), '0.6');
+    });
+  });
+
+  group('AmsTray.emptyKind (getEmptySlotKind)', () {
+    AmsTray tray(Map<String, Object?> json) => AmsTray.fromJson(json);
+
+    test('a named slot has none', () {
+      expect(tray({'tray_type': 'PLA', 'exists': false}).emptyKind, isNull);
+    });
+
+    test('the presence bit decides where it is sent', () {
+      expect(
+        tray({'exists': true, 'state': 9}).emptyKind,
+        EmptySlotKind.unconfigured,
+      );
+      expect(
+        tray({'exists': false, 'state': 11}).emptyKind,
+        EmptySlotKind.empty,
+      );
+    });
+
+    test('without it, states 9 and 10 are empty and anything else is not', () {
+      expect(tray({'state': 9}).emptyKind, EmptySlotKind.empty);
+      expect(tray({'state': '10'}).emptyKind, EmptySlotKind.empty);
+      expect(tray({'state': 11}).emptyKind, EmptySlotKind.unconfigured);
+      expect(tray({}).emptyKind, EmptySlotKind.unconfigured);
+      expect(tray({'tray_type': ''}).emptyKind, EmptySlotKind.unconfigured);
+    });
+  });
+
+  group('H3C (rack printer)', () {
+    // Shaped like the server's status for the live H3C capture in
+    // `test_h3c_ams3h.py`: one AMS 3H as unit 32, nine inputs 247-255.
+    PrinterStatus h3c({int? trayNow, int? amsType = 6}) =>
+        PrinterStatus.fromJson({
+          'id': 1,
+          'tray_now': trayNow,
+          'ams': [
+            {
+              'id': 32,
+              'ams_type': ?amsType,
+              'module_type': 'n10a',
+              'tray': [
+                for (var i = 0; i < 9; i++)
+                  {'id': i, 'tray_type': 'PLA', 'tray_color': '0000${i}0FF'},
+              ],
+            },
+          ],
+          'vt_tray': [
+            for (var id = 247; id <= 255; id++)
+              {'id': id, 'tray_type': id == 250 ? 'PETG' : ''},
+          ],
+        });
+
+    test('names the hotend on the toolhead by its rack position', () {
+      PrinterStatus withRack(List<Map<String, Object?>> rack, {int? unit}) =>
+          PrinterStatus.fromJson({
+            'id': 1,
+            'ams': [
+              if (unit != null) {'id': unit, 'tray': const <Object>[]},
+            ],
+            'nozzle_rack': rack,
+          });
+      final rack = [
+        {'id': 0, 'addr_id': 4},
+        {'id': 16, 'addr_id': 0},
+      ];
+      expect(withRack(rack, unit: 32).mountedRackPosition, 5);
+      // No AMS 3H: not a rack printer, whatever its rack says.
+      expect(withRack(rack, unit: 0).mountedRackPosition, isNull);
+      expect(
+        withRack([
+          {'id': 0},
+        ], unit: 32).mountedRackPosition,
+        isNull,
+      );
+    });
+
+    test('the nozzle reading takes the rack position as its name only', () {
+      final readings = buildTempReadings(
+        {'nozzle': 210, 'nozzle_target': 220, 'bed': 60},
+        null,
+        rackPosition: 5,
+      );
+      final nozzle = readings.firstWhere((r) => r.kind == TempKind.nozzle);
+      expect(nozzle.label(pl), pl.tempNozzleNumbered('5'));
+      expect(nozzle.index, isNull, reason: 'it addresses no second nozzle');
+      expect(
+        readings.firstWhere((r) => r.kind == TempKind.bed).label(pl),
+        pl.tempBed,
+      );
+    });
+
+    test('tray_now 28-36 names an AMS 3H slot, with or without ams_type', () {
+      for (final type in [6, null]) {
+        final status = h3c(trayNow: 34, amsType: type);
+        expect(status.trayLayout.rack, isTrue);
+        expect(status.activeTray?.trayColor, '000060FF', reason: '$type');
+      }
+    });
+
+    test('an H3C with its AMS unplugged still reads 255 as nothing loaded', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'model': 'H3C',
+        'tray_now': 255,
+        'ams': const <Object>[],
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'PLA'},
+          {'id': 255, 'tray_type': 'PLA'},
+        ],
+      });
+      expect(status.trayLayout.rack, isTrue);
+      expect(status.activeTray, isNull);
+    });
+
+    test('255 on a rack printer is nothing loaded, not Ext-1', () {
+      expect(h3c(trayNow: 255).activeTray, isNull);
+      expect(h3c(trayNow: 254).activeTray?.id, 254);
+    });
+
+    test('an input 247-253 is the active spool by its own id', () {
+      expect(h3c(trayNow: 250).activeTray?.trayType, 'PETG');
+      expect(h3c(trayNow: 250).activeTray?.id, 250);
+    });
+
+    test('the AMS 3H dries with the AMS-HT presets', () {
+      final unit = h3c().ams!.single;
+      expect(unit.isAms3h, isTrue);
+      expect(unit.canDry, isTrue);
+      expect(unit.isHtDryModule, isTrue);
+    });
+
+    test('an X1C-style report stays a regular printer', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'tray_now': 6,
+        'ams': [
+          {
+            'id': 1,
+            'module_type': 'ams',
+            'tray': [
+              for (var i = 0; i < 4; i++) {'id': i, 'tray_type': 'PLA'},
+            ],
+          },
+        ],
+        'vt_tray': [
+          {'id': 254},
+          {'id': 255},
+        ],
+      });
+      expect(status.trayLayout.rack, isFalse);
+      expect(status.activeTray, same(status.ams!.single.trays![2]));
+      expect(status.ams!.single.canDry, isFalse);
     });
   });
 

@@ -193,6 +193,10 @@
   "ctrlSet": "Set",
   "ctrlActivate": "Activate",
   "ctrlNozzleActive": "Active",
+  "amsDryer": "Dryer",
+  "@amsDryer": {
+    "description": "Screen-reader label of the AMS 3H built-in dryer: its readings chip and the mark on the slots it holds (a noun, the device)"
+  },
   "ctrlDry": "Dry",
   "ctrlDrying": "Drying",
   "ctrlDryNotRunning": "Not running",
@@ -1020,8 +1024,44 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "This demo printer is offline, so there is no camera picture.",
+  "nozzleRack": "Nozzle rack",
+  "nozzleRackMounted": "on the toolhead",
+  "@nozzleRackMounted": {
+    "description": "Screen-reader suffix of the rack position whose nozzle is on the toolhead"
+  },
+  "nozzleRackPosition": "Position {position}: {diameter} mm",
+  "@nozzleRackPosition": {
+    "description": "Screen-reader label of one nozzle rack position",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "diameter": {
+        "type": "String"
+      }
+    }
+  },
+  "nozzleRackPositionEmpty": "Position {position}: empty",
+  "@nozzleRackPositionEmpty": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "externalInputs": "External inputs",
+  "externalInputsEmpty": "All {count} external inputs are empty",
+  "@externalInputsEmpty": {
+    "description": "A rack printer (H3C) with none of its per-hotend external inputs loaded",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
+  "traySlotUnconfigured": "Not set up",
   "amsSlotFilament": "Filament",
   "amsLoad": "Load",
   "amsUnload": "Unload",
@@ -1041,6 +1081,33 @@
   "amsFeedAlreadyLoaded": "already loaded",
   "amsSwitchNotReady": "The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.",
   "amsUnloadSlotNotLoaded": "No nozzle is fed from this slot",
+  "amsUnloadAms3h": "Unloading slot {slot}. When the printer asks, pull the filament back out of the AMS 3H by hand.",
+  "@amsUnloadAms3h": {
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  },
+  "amsLoadAms3hEmpty": "Slot {slot} holds no filament. Push it into the inlet until the AMS 3H pulls it in, then load again.",
+  "@amsLoadAms3hEmpty": {
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  },
+  "dryAms3hSlots": "The AMS 3H dries slots {a} and {b} only",
+  "@dryAms3hSlots": {
+    "placeholders": {
+      "a": {
+        "type": "int"
+      },
+      "b": {
+        "type": "int"
+      }
+    }
+  },
   "amsActionsWhilePrinting": "Unavailable while the printer is printing",
   "amsSlotConfigure": "Configure slot",
   "amsSlotConfigTitle": "Slot configuration",
@@ -1106,7 +1173,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Catalogue colours",
-  "amsSlotConfigColourCustom": "Custom colour",
   "amsSlotReset": "Clear slot",
   "amsSlotResetConfirmTitle": "Clear this slot?",
   "amsSlotResetConfirmMessage": "The printer forgets the filament configured here, and bambuddy forgets which preset it was.",
@@ -1290,6 +1356,31 @@
     "description": "Why remember-me does nothing for a 2FA account; shown under the code field"
   },
   "tryDemo": "Try the demo",
+  "customCaTrusted": "Trusted CA: {name}",
+  "@customCaTrusted": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "customCaRemove": "Remove CA certificate",
+  "certificateImport": "Import certificate",
+  "certificateInvalid": "This file holds no certificate",
+  "clientCertInvalid": "This file holds no certificate with its key",
+  "customCaPickFailed": "Could not open the file",
+  "clientCertInUse": "Client certificate: {name}",
+  "@clientCertInUse": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "clientCertRemove": "Remove client certificate",
+  "clientCertWrongPassword": "Wrong certificate password",
+  "clientCertPasswordTitle": "Certificate password",
+  "certificatesTitle": "Certificates",
+  "customCaRemoveTitle": "Remove the CA certificate?",
+  "customCaRemoveMessage": "The app will stop trusting servers it signed.",
+  "clientCertRemoveTitle": "Remove the client certificate?",
+  "clientCertRemoveMessage": "A server that asks for it will refuse the app.",
+  "certificatesRemoveAll": "Remove all certificates",
+  "certificatesRemoveAllTitle": "Remove all certificates?",
+  "certificatesRemoveAllMessage": "The app will stop reaching servers that need them.",
+  "certificateRemoveConfirm": "Remove",
   "scanApiKeyTitle": "Scan API key",
   "scanApiKeyHint": "Point the camera at the API key QR code",
   "cameraPermissionTitle": "Camera access needed",
@@ -1322,7 +1413,8 @@
       }
     }
   },
-  "errBadCertificate": "Invalid TLS certificate (self-signed not supported in v1)",
+  "errBadCertificate": "The server's certificate is not trusted",
+  "errClientCertRefused": "The server needs a valid client certificate",
   "errConnection": "Connection error",
   "errMalformedResponse": "Malformed server response",
   "errInvalidCredentials": "Invalid username or password",
@@ -1504,6 +1596,45 @@
   "notifExtrasHeader": "Details",
   "notifFinishPhotoTitle": "Photo of the finished print",
   "notifFinishPhotoDesc": "Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives",
+  "alarmHeader": "Alarm",
+  "alarmTitle": "Wake me with an alarm",
+  "alarmDesc": "Rings over the lock screen until you stop it",
+  "alarmEvtFinished": "Print finished",
+  "alarmEvtFinishedDesc": "A print ended successfully",
+  "alarmEvtBlocked": "Print stopped by a fault",
+  "alarmEvtBlockedDesc": "A fault paused or stopped the print, or the print failed",
+  "alarmEvtDrying": "Drying finished",
+  "alarmEvtDryingDesc": "An AMS drying cycle ran to its end",
+  "alarmWindowTitle": "Only between set hours",
+  "alarmWindowDesc": "Outside these hours the alarm stays silent",
+  "alarmWindowFrom": "From",
+  "alarmWindowTo": "To",
+  "alarmRingFor": "Rings for {minutes} min",
+  "@alarmRingFor": {
+    "placeholders": {"minutes": {"type": "int"}}
+  },
+  "alarmRingForDesc": "Then it stops on its own",
+  "alarmMinutes": "{minutes} min",
+  "@alarmMinutes": {
+    "placeholders": {"minutes": {"type": "int"}}
+  },
+  "alarmStop": "Stop",
+  "alarmTest": "Test alarm",
+  "alarmTestBody": "This is how the alarm sounds",
+  "alarmTestFailed": "The alarm could not ring. Check that notifications are on.",
+  "alarmFullScreenNeeded": "Without permission the alarm will not cover the lock screen",
+  "alarmFullScreenAllow": "Allow",
+  "alarmHoursHeader": "Hours",
+  "alarmLengthHeader": "How long",
+  "alarmSettingsSubtitle": "What rings it, at which hours and for how long",
+  "alarmExcludedLocationsHeader": "Excluded locations",
+  "alarmExcludedPrintersHeader": "Excluded printers",
+  "alarmExcludeLocationDesc": "No printer here rings the alarm",
+  "alarmExcludePrinterDesc": "This printer never rings the alarm",
+  "alarmExcludedWithLocation": "Excluded with {location}",
+  "@alarmExcludedWithLocation": {
+    "placeholders": {"location": {"type": "String"}}
+  },
   "notifThresholdsHeader": "Thresholds",
   "notifEvtStarted": "Print started",
   "notifEvtStartedDesc": "When a print begins",
@@ -1994,7 +2125,7 @@
   "inventoryExtraColorsHint": "2–8 hex stops, comma-separated",
   "inventoryFieldEffect": "Effect",
   "inventoryEffectNone": "None",
-  "inventoryColorCommon": "Common colors",
+  "inventoryColorCatalog": "Color catalog",
   "inventoryColorSearchHint": "Search colors…",
   "inventoryColorPickTitle": "Pick a color",
   "inventoryColorSelect": "Select",
@@ -2039,6 +2170,7 @@
   "inventorySlotAms": "AMS slot",
   "inventoryAssignUnit": "AMS unit",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Input",
   "inventoryAssignExtruder": "Extruder",
   "inventoryAssignExternalHint": "Assigns to the external spool holder",
   "inventoryAssignConfirm": "Assign",
@@ -7005,5 +7137,357 @@
   },
   "@cameraDemoUnavailable": {
     "description": "Camera screen in demo mode, for the one demo printer that is offline; the others show a picture"
+  },
+  "archiveRunsTitle": "Print history",
+  "@archiveRunsTitle": {
+    "description": "Archive sheet: heading above the list of every print of this file"
+  },
+  "archiveRunsEmpty": "This file has not been printed yet.",
+  "@archiveRunsEmpty": {
+    "description": "Archive sheet: the file has no logged print"
+  },
+  "archiveRunsBeforeLog": "Printed before Bambuddy logged each print: {status}.",
+  "@archiveRunsBeforeLog": {
+    "description": "Archive sheet: the archive's one print predates per-print logging; status is the archive's outcome",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "No prints of this plate yet.",
+  "@archiveRunsPlateEmpty": {
+    "description": "Archive sheet: the plate filter matches no print"
+  },
+  "archiveRunsAllPlates": "All plates",
+  "@archiveRunsAllPlates": {
+    "description": "Archive sheet: plate filter chip that shows every print"
+  },
+  "archiveRunPlate": "Plate {plate}",
+  "@archiveRunPlate": {
+    "description": "Archive sheet: which plate of a multi-plate file one print ran, or a plate filter chip",
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Printer removed",
+  "@archiveRunNoPrinter": {
+    "description": "Archive sheet: a print whose printer was deleted"
+  },
+  "archiveRunWithEstimate": "{value} (est. {estimate})",
+  "@archiveRunWithEstimate": {
+    "description": "Archive sheet: a measured figure next to the slicer's estimate for the plate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} vs. {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "description": "Archive sheet: a finished print's time against the plate estimate; delta is like +4%",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} of {estimate}",
+  "@archiveRunTimeOf": {
+    "description": "Archive sheet: how far a print that stopped got, against the plate estimate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Started / ended",
+  "@archiveRunStartedEnded": {
+    "description": "Archive sheet: label of a print's start and end times"
+  },
+  "archiveRunEnergy": "Energy",
+  "@archiveRunEnergy": {
+    "description": "Archive sheet: label of a print's energy use"
+  },
+  "archiveRunFailureReason": "Failure reason",
+  "@archiveRunFailureReason": {
+    "description": "Archive sheet: label of why a print failed"
+  },
+  "archiveRunStartedBy": "Started by",
+  "@archiveRunStartedBy": {
+    "description": "Archive sheet: label of the user who started a print"
+  },
+  "archiveRunNote": "Note on this print",
+  "@archiveRunNote": {
+    "description": "Archive sheet: label of one print's own note"
+  },
+  "archiveRunVideo": "Timelapse video",
+  "@archiveRunVideo": {
+    "description": "Archive sheet: button that plays one print's timelapse"
+  },
+  "archiveRunPhotos": "Photos ({count})",
+  "@archiveRunPhotos": {
+    "description": "Archive sheet: button that opens one print's finish photos",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Good: {count}",
+  "@archiveGoodCount": {
+    "description": "Archive sheet header chip: how many prints of the file completed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Failed: {count}",
+  "@archiveFailedCount": {
+    "description": "Archive sheet header chip: how many prints of the file failed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Set outcome",
+  "@archiveRunSetOutcome": {
+    "description": "Archive sheet: button that asks how one print came out"
+  },
+  "archiveRunChangeOutcome": "Change outcome",
+  "@archiveRunChangeOutcome": {
+    "description": "Archive sheet: button that changes one print's recorded verdict"
+  },
+  "archiveRunAddNote": "Add note",
+  "@archiveRunAddNote": {
+    "description": "Archive sheet: button that writes a note on one print"
+  },
+  "archiveRunEditNote": "Edit note",
+  "@archiveRunEditNote": {
+    "description": "Archive sheet: button that edits one print's note"
+  },
+  "archiveRunNoteSaved": "Note saved",
+  "@archiveRunNoteSaved": {
+    "description": "Snack after one print's note was stored"
+  },
+  "archivePlatesTitle": "Plates",
+  "@archivePlatesTitle": {
+    "description": "Archive sheet: heading above the cards of a multi-plate file's plates"
+  },
+  "archivePlateEstimate": "Estimate {value}",
+  "@archivePlateEstimate": {
+    "description": "Archive sheet plate card: the slicer's time and weight for the plate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Last print vs. estimate: {value}",
+  "@archivePlateLastVsEstimate": {
+    "description": "Archive sheet plate card: the newest finished print of the plate against its estimate; value is like +4%",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Print this plate",
+  "@archivePrintThisPlate": {
+    "description": "Archive sheet plate card: button that opens the print form on this plate"
+  },
+  "archiveShowPlatePrints": "Show its prints",
+  "@archiveShowPlatePrints": {
+    "description": "Archive sheet plate card: button that filters the print history to this plate"
+  },
+  "archiveRunReprint": "Reprint this print",
+  "@archiveRunReprint": {
+    "description": "Archive sheet: button that opens the print form on the plate one print ran"
+  },
+  "archiveMergeBanner": "{count, plural, =1{1 group of duplicate archives} other{{count} groups of duplicate archives}}",
+  "@archiveMergeBanner": {
+    "description": "Archive list banner: how many groups of archives hold the same file",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Merge",
+  "@archiveMergeButton": {
+    "description": "Archive list banner: one-word button that opens the merge sheet"
+  },
+  "archiveMergeDismiss": "Dismiss",
+  "@archiveMergeDismiss": {
+    "description": "Archive list banner: tooltip of the button that hides the merge banner"
+  },
+  "archiveMergeMenu": "Merge duplicates",
+  "@archiveMergeMenu": {
+    "description": "Archive menu entry that opens the merge sheet"
+  },
+  "archiveMergeTitle": "Merge duplicate archives",
+  "@archiveMergeTitle": {
+    "description": "Merge sheet title"
+  },
+  "archiveMergeEffectKeep": "The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.",
+  "@archiveMergeEffectKeep": {
+    "description": "Merge sheet: what a merge does, first point"
+  },
+  "archiveMergeEffectLinks": "The others disappear from the archives; their old links open the one they went into.",
+  "@archiveMergeEffectLinks": {
+    "description": "Merge sheet: what a merge does, second point"
+  },
+  "archiveMergeEffectMoney": "Wallet charges and budget reservations stay where they were booked.",
+  "@archiveMergeEffectMoney": {
+    "description": "Merge sheet: what a merge does, third point"
+  },
+  "archiveMergeNone": "No duplicates to merge.",
+  "@archiveMergeNone": {
+    "description": "Merge sheet: the server found no duplicate groups"
+  },
+  "archiveMergeMember": "{name} · created {date} · {count, plural, =1{1 print} other{{count} prints}}",
+  "@archiveMergeMember": {
+    "description": "Merge sheet: one archive of a group, when it was created and how many prints it has",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Stays",
+  "@archiveMergeStays": {
+    "description": "Merge sheet: marks the archive of a group that stays"
+  },
+  "archiveMergeWaiting": "Left out for now",
+  "@archiveMergeWaiting": {
+    "description": "Merge sheet: heading above the groups the server leaves out for now"
+  },
+  "archiveMergeLeftOut": "Left out by the merge",
+  "@archiveMergeLeftOut": {
+    "description": "Merge sheet: heading above the groups the merge itself left out"
+  },
+  "archiveMergeSkipBusy": "In use: printing, queued or just printed. Try again later.",
+  "@archiveMergeSkipBusy": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipConflicting": "The archives carry different source or design files, or videos. Keep one by hand first.",
+  "@archiveMergeSkipConflicting": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipFailed": "The merge failed.",
+  "@archiveMergeSkipFailed": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipNotAGroup": "No longer a group of duplicates.",
+  "@archiveMergeSkipNotAGroup": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeAction": "{count, plural, =1{Merge 1 group} other{Merge {count} groups}}",
+  "@archiveMergeAction": {
+    "description": "Merge sheet: the button that merges the ticked groups",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "This cannot be undone in the app.",
+  "@archiveMergeConfirmBody": {
+    "description": "Merge confirmation dialog body"
+  },
+  "archiveMergeDone": "{count, plural, =1{Merged 1 group.} other{Merged {count} groups.}}",
+  "@archiveMergeDone": {
+    "description": "Snack after a merge that merged every ticked group",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Merged: {count}. Left out: {left}.",
+  "@archiveMergeDoneSome": {
+    "description": "Snack after a merge that left some groups out",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Calendar view",
+  "@archiveCalendarView": {
+    "description": "Archive app bar: tooltip of the button that shows the month calendar"
+  },
+  "archiveListView": "List view",
+  "@archiveListView": {
+    "description": "Archive app bar: tooltip of the button that goes back to the list"
+  },
+  "archiveCalendarToday": "Today",
+  "@archiveCalendarToday": {
+    "description": "Archive calendar: button that jumps to the current month"
+  },
+  "archiveCalendarPrevious": "Previous month",
+  "@archiveCalendarPrevious": {
+    "description": "Archive calendar: tooltip of the previous-month button"
+  },
+  "archiveCalendarNext": "Next month",
+  "@archiveCalendarNext": {
+    "description": "Archive calendar: tooltip of the next-month button"
+  },
+  "archiveCalendarPrints": "Prints this month",
+  "@archiveCalendarPrints": {
+    "description": "Archive calendar: label under the month's print count"
+  },
+  "archiveCalendarSuccessful": "Successful",
+  "@archiveCalendarSuccessful": {
+    "description": "Archive calendar: label under the month's successful print count"
+  },
+  "archiveCalendarFailed": "Failed",
+  "@archiveCalendarFailed": {
+    "description": "Archive calendar: label under the month's failed print count"
+  },
+  "archiveCalendarNoPrints": "No prints on this day",
+  "@archiveCalendarNoPrints": {
+    "description": "Archive calendar: the selected day has no prints"
+  },
+  "archiveCalendarSelectDay": "Select a day to see its prints",
+  "@archiveCalendarSelectDay": {
+    "description": "Archive calendar: hint before a day is picked"
+  },
+  "archiveCalendarDay": "{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}",
+  "@archiveCalendarDay": {
+    "description": "Archive calendar: screen-reader label of a day cell",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

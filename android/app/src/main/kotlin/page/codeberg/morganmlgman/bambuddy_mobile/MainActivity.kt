@@ -18,7 +18,7 @@ import java.util.TimeZone
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
- * Native side of four platform channels.
+ * Native side of four platform channels, plus the print alarm's ([PrintAlarm]).
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, opens the app's settings page — that exemption is what
@@ -63,6 +63,7 @@ class MainActivity : FlutterActivity() {
         for (channel in listOf(BATTERY_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL)) {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler(null)
         }
+        PrintAlarm.release(flutterEngine.dartExecutor.binaryMessenger)
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
@@ -71,6 +72,8 @@ class MainActivity : FlutterActivity() {
         flutterEngine.serveWearOngoing(this)
         flutterEngine.serveWearPhoneApp(this)
         flutterEngine.serveWatchFaceColours(this)
+        // The settings screen asks about the full-screen permission and rings a test alarm.
+        PrintAlarm.serve(flutterEngine.dartExecutor.binaryMessenger, this, this)
         flutterEngine.serve(
             BATTERY_CHANNEL,
             mapOf<String, MethodHandler>(

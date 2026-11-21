@@ -300,7 +300,17 @@ void main() {
       ),
       'Prusament',
     );
-    await tester.ensureVisible(byLogId('supplier_form.save'));
+    // Below the fold of the sheet's lazy list: not built until scrolled near.
+    await tester.scrollUntilVisible(
+      byLogId('supplier_form.save'),
+      100,
+      scrollable: find
+          .descendant(
+            of: byLogId('sheet.supplier_form'),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await settle(tester);
     await tester.tap(byLogId('supplier_form.save'));
     await settle(tester);

@@ -135,6 +135,7 @@ class SlotPreset {
     required this.presetId,
     required this.presetName,
     this.presetSource,
+    this.trayInfoIdx,
   });
 
   factory SlotPreset.fromJson(Map<String, dynamic> json) => SlotPreset(
@@ -143,6 +144,7 @@ class SlotPreset {
     presetId: json['preset_id']?.toString() ?? '',
     presetName: json['preset_name'] as String? ?? '',
     presetSource: json['preset_source'] as String?,
+    trayInfoIdx: json['tray_info_idx'] as String?,
   );
 
   final int amsId;
@@ -154,6 +156,12 @@ class SlotPreset {
 
   /// `local` / `cloud` / `builtin`, absent on the read routes.
   final String? presetSource;
+
+  /// The filament id the slot was configured with alongside the preset
+  /// (#3216): a different id in the slot now means it was reconfigured
+  /// elsewhere and this name no longer describes it. Null from a server that
+  /// predates it, or when the save did not send one.
+  final String? trayInfoIdx;
 }
 
 /// `compatible_printers` arrives as a JSON-encoded array inside a string field.

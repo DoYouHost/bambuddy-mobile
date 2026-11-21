@@ -477,7 +477,14 @@ class _PrinterSpools extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
 
-    String externalLabel(LoadedSpoolTray tray) => printer.externalHolders > 1
+    // A rack printer's inputs are Ext-n, as everywhere else on the web; its
+    // slicer list alone (`SliceSpoolPicker.tsx`) would call them L and R.
+    final rack =
+        isRackPrinterModel(printer.model) ||
+        printer.ams.any((u) => isRackAms(unitAmsType(u.id)));
+    String externalLabel(LoadedSpoolTray tray) => rack
+        ? rackExternalLabel(externalTrayId(tray.trayId))
+        : printer.externalHolders > 1
         ? (tray.trayId == 0 ? 'Ext-L' : 'Ext-R')
         : l10n.mappingExternalSpool;
 

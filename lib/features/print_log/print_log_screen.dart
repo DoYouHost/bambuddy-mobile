@@ -398,11 +398,7 @@ class _PrintLogCard extends ConsumerWidget {
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.lg),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(DashRadius.xl),
-                border: Border.all(color: t.subCardBorder),
-              ),
+              decoration: t.subCardBox(DashRadius.xl),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

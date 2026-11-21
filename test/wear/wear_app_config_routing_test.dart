@@ -1,4 +1,9 @@
 import 'dart:async';
+import 'dart:io';
+
+import 'package:bambuddy_mobile/core/api/client_cert.dart';
+import 'package:bambuddy_mobile/core/api/custom_ca.dart';
+import 'package:bambuddy_mobile/core/api/tls_overrides.dart';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
@@ -9,6 +14,7 @@ import 'package:bambuddy_mobile/wear/wear_theme.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -124,6 +130,161 @@ void main() {
 
     expect(sync.applied.single.apiKey, 'bb_rotated');
     expect(profile.builds, 1, reason: 'nothing about the server changed');
+  });
+
+  group('the CA', () {
+    late HttpOverrides? saved;
+    setUp(() => saved = HttpOverrides.current);
+    tearDown(() => HttpOverrides.global = saved);
+
+    final ca = CustomCa.parse(
+      'root.pem',
+      File('test/fixtures/tls/ca.pem').readAsBytesSync(),
+    );
+    WatchConfig withCa(CustomCa? ca) =>
+        WatchConfig(profile: _workshop, apiKey: 'bb_secret', ca: ca);
+
+    testWidgets('rides along on a silent adopt and rebuilds the client', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      final before = container.read(apiClientProvider);
+
+      sync.pushes.add(withCa(ca));
+      await tester.pumpAndSettle();
+
+      expect(container.read(customCaProvider)?.name, 'root.pem');
+      expect(
+        container.read(settingsRepositoryProvider).loadCustomCa()?.pem,
+        ca!.pem,
+      );
+      expect(HttpOverrides.current, isNot(same(saved)));
+      // Dio keeps the HttpClient of its first request, so the old one would
+      // never trust the CA. Rebuilt through `bareDioProvider`.
+      expect(container.read(apiClientProvider), isNot(same(before)));
+    });
+
+    testWidgets('is stored before the profile is', (tester) async {
+      sync = FakeWatchConfigSync(applyGate: Completer<void>());
+      final container = await pumpApp(tester, profile: _workshop);
+
+      final adopting = container
+          .read(pendingWatchConfigProvider.notifier)
+          .adopt(withCa(ca));
+      await tester.pump();
+
+      // A profile written first and a CA write that then failed left a server
+      // the watch could not reach after every restart.
+      expect(container.read(customCaProvider)?.name, 'root.pem');
+      sync.applyGate!.complete();
+      await adopting;
+    });
+
+    testWidgets('the same CA again keeps the client', (tester) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      await container
+          .read(pendingWatchConfigProvider.notifier)
+          .adopt(withCa(ca));
+      final before = container.read(apiClientProvider);
+
+      await container
+          .read(pendingWatchConfigProvider.notifier)
+          .adopt(withCa(ca));
+
+      expect(container.read(apiClientProvider), same(before));
+    });
+
+    testWidgets('a phone that dropped its CA clears the watch\'s', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      await container
+          .read(pendingWatchConfigProvider.notifier)
+          .adopt(withCa(ca));
+
+      await container
+          .read(pendingWatchConfigProvider.notifier)
+          .adopt(withCa(null));
+
+      expect(container.read(customCaProvider), isNull);
+      expect(container.read(settingsRepositoryProvider).loadCustomCa(), isNull);
+    });
+  });
+
+  group('the client certificate', () {
+    late HttpOverrides? saved;
+    setUp(() {
+      saved = HttpOverrides.current;
+      FlutterSecureStorage.setMockInitialValues({});
+    });
+    tearDown(() {
+      useTls(null, null);
+      HttpOverrides.global = saved;
+    });
+
+    final cert = ClientCert.parse(
+      'phone.p12',
+      File('test/fixtures/tls/client.p12').readAsBytesSync(),
+      'fixture',
+    ).cert;
+    WatchConfig withCert(ClientCert? cert) =>
+        WatchConfig(profile: _workshop, apiKey: 'bb_secret', clientCert: cert);
+
+    testWidgets('rides along on a silent adopt and rebuilds the client', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      final before = container.read(apiClientProvider);
+
+      sync.pushes.add(withCert(cert));
+      await tester.pumpAndSettle();
+
+      expect(container.read(clientCertProvider), cert);
+      expect(
+        await loadClientCert(container.read(settingsRepositoryProvider)),
+        cert,
+      );
+      expect(container.read(apiClientProvider), isNot(same(before)));
+    });
+
+    testWidgets('two pushes in a row are adopted one after the other', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      addTearDown(() => gate.isCompleted ? null : gate.complete());
+      sync = FakeWatchConfigSync(applyGate: gate);
+      final container = await pumpApp(tester, profile: _workshop);
+      final adopt = container.read(pendingWatchConfigProvider.notifier).adopt;
+
+      final added = adopt(withCert(cert));
+      final removed = adopt(withCert(null));
+      await tester.pump();
+      expect(sync.applied, hasLength(1), reason: 'the second waits its turn');
+
+      gate.complete();
+      await Future.wait([added, removed]);
+      expect(sync.applied, hasLength(2));
+      expect(container.read(clientCertProvider), isNull);
+      expect(
+        container.read(settingsRepositoryProvider).loadHasClientCert(),
+        isFalse,
+      );
+    });
+
+    testWidgets('a phone that dropped it clears the watch\'s', (tester) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      final adopt = container.read(pendingWatchConfigProvider.notifier).adopt;
+      await adopt(withCert(cert));
+      expect(container.read(clientCertProvider), cert);
+
+      await adopt(withCert(null));
+
+      expect(container.read(clientCertProvider), isNull);
+      expect(
+        container.read(settingsRepositoryProvider).loadHasClientCert(),
+        isFalse,
+      );
+    });
   });
 
   testWidgets('adopting a different server does re-read it', (tester) async {

@@ -512,7 +512,16 @@ void main() {
       await openConfig(tester);
       await a11yTap(tester, byLogId('ams_slot_config.colour'));
     },
-    shows: byLogId('ams_slot_colour.swatch'),
+    shows: byLogId('ams_slot_colour.confirm'),
+  );
+  _card(
+    'slot configuration, colour catalogue',
+    status: _status(1, _idle),
+    arrange: (tester) async {
+      await openConfig(tester);
+      await a11yTap(tester, byLogId('ams_slot_config.colour_catalog'));
+    },
+    shows: byLogId('ams_slot_colour.color_search'),
   );
   _card(
     'slot configuration, reset confirmation',

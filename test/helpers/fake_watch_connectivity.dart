@@ -44,6 +44,13 @@ class FakeWatchConnectivity implements WatchConnectivity {
 
   void deliver(Map<String, dynamic> message) => _incoming.add(message);
 
+  /// Every application context pushed, oldest first.
+  final contexts = <Map<String, dynamic>>[];
+
+  @override
+  Future<void> updateApplicationContext(Map<String, dynamic> context) async =>
+      contexts.add(context);
+
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName}');
