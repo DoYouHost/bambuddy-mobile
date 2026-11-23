@@ -406,13 +406,13 @@ class DemoBackend {
         // gated control appears over data that is not there — and the queue
         // form would offer two states over three-state calibrations.
         //
-        // 1.3.1 is the newest row of the gate table (`move` on an assignment);
+        // 1.3.3 is the newest row of the gate table (Unload All on an AMS 3H);
         // the beta suffix because that is where the contract really lives
         // today. Every older row is below it, so no gate hides a demo feature —
         // the users listing is the one thing decided by probing instead.
         if (at(1, 'version')) {
           return demoOk(const {
-            'version': '1.3.1b1',
+            'version': '1.3.3b1',
             'repo': 'maziggy/bambuddy',
           });
         }
@@ -560,6 +560,18 @@ class DemoBackend {
         if (at(2, 'ams')) {
           // `ams/{ams}/tray/{tray}/reset` — the tray id sits past the literal.
           if (at(6, 'reset')) return _resetSlot(pid, id(3) ?? 0, id(5) ?? 0);
+          // Unload All names its refusals: only the H3C has an AMS 3H, and it
+          // has one slot on the toolhead.
+          if (at(3, 'unload-all')) {
+            if (pid != 7) {
+              return demoRefuse(400, 'Unload all needs an AMS 3H');
+            }
+            return demoOk(const {
+              'success': true,
+              'message': 'Unloading 1 AMS 3H slots',
+              'count': 1,
+            });
+          }
           // Load, unload and the RFID re-read change nothing a demo can show:
           // there is no filament path to move anything along.
           return demoOk(const {'ok': true});
@@ -2089,6 +2101,8 @@ class DemoBackend {
                       'tray_color': colour,
                       'tray_info_idx': 'GFA00',
                       'remain': 40 + i * 6,
+                      // Slot 6 is the one on the toolhead.
+                      if (i == 6) 'state': ams3hTrayInHotend,
                     },
           ],
         },

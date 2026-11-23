@@ -806,6 +806,13 @@ final amsHtLoadProvider = capabilityGate(
   (ref) => ref.watch(printerCommandsRepositoryProvider).amsHtLoadCapability,
 );
 
+/// Whether the server has Unload All for an AMS 3H. See
+/// `PrinterCommandsRepository.ams3hUnloadAllCapability`.
+final ams3hUnloadAllProvider = capabilityGate(
+  (ref) =>
+      ref.watch(printerCommandsRepositoryProvider).ams3hUnloadAllCapability,
+);
+
 /// Filament presets and the two slot-configuration commands.
 final amsSlotConfigRepositoryProvider = Provider<AmsSlotConfigRepository>(
   (ref) => AmsSlotConfigRepository(ref.watch(apiClientProvider).dio),

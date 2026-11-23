@@ -282,6 +282,23 @@ void main() {
       },
     );
 
+    test(
+      'Unload All is answered for the H3C and refused for the rest',
+      () async {
+        final repo = PrinterCommandsRepository(dio);
+        final h3c = (await PrintersRepository(dio).fetchStatus(7))!;
+
+        expect(h3c.ams!.single.hasAms3hSlotInHotend, isTrue);
+        await repo.amsUnloadAll(7);
+        await expectLater(
+          repo.amsUnloadAll(1),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', 400),
+          ),
+        );
+      },
+    );
+
     test('queue has pending items', () async {
       final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));

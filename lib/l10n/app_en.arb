@@ -7971,5 +7971,10 @@
   "edgeSessionBanner": "Cloudflare session expired",
   "notifEdgeTokenTitle": "Cloudflare refused the service token",
   "notifEdgeTokenBody": "Alerts are off. Replace the service token to turn them back on.",
-  "edgeTokenBanner": "Cloudflare refused the service token"
+  "edgeTokenBanner": "Cloudflare refused the service token",
+  "amsUnloadAll": "Unload all",
+  "amsUnloadAllTitle": "Unload all slots?",
+  "amsUnloadAllMessage": "The printer unloads every loaded AMS 3H slot, one after another. When it asks, pull the filament back out of the AMS 3H by hand, so stay at the printer.",
+  "amsUnloadAllStarted": "Unloading all loaded slots. When the printer asks, pull the filament out of the AMS 3H by hand.",
+  "amsUnloadAllNoneLoaded": "No slot has its filament in a hotend"
 }

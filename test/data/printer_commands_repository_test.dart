@@ -215,6 +215,14 @@ void main() {
     await repo.amsUnload(1, trayId: 0);
   });
 
+  test('unload-all posts to the printer, with nothing else', () async {
+    adapter.onPost(
+      '/api/v1/printers/7/ams/unload-all',
+      (s) => s.reply(200, {'success': true, 'message': 'x', 'count': 2}),
+    );
+    await repo.amsUnloadAll(7);
+  });
+
   test('the RFID re-read addresses the slot locally, in the path', () async {
     adapter.onPost(
       '/api/v1/printers/2/ams/1/slot/3/refresh',

@@ -5028,5 +5028,10 @@
   "edgeSessionBanner": "La sesión de Cloudflare caducó",
   "notifEdgeTokenTitle": "Cloudflare rechazó el token de servicio",
   "notifEdgeTokenBody": "Las alertas están desactivadas. Cambia el token de servicio para reactivarlas.",
-  "edgeTokenBanner": "Cloudflare rechazó el token de servicio"
+  "edgeTokenBanner": "Cloudflare rechazó el token de servicio",
+  "amsUnloadAll": "Descargar todo",
+  "amsUnloadAllTitle": "¿Descargar todas las ranuras?",
+  "amsUnloadAllMessage": "La impresora descarga una a una todas las ranuras cargadas del AMS 3H. Cuando lo pida, retira a mano el filamento del AMS 3H, así que quédate junto a la impresora.",
+  "amsUnloadAllStarted": "Descargando todas las ranuras cargadas. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.",
+  "amsUnloadAllNoneLoaded": "Ninguna ranura tiene su filamento en un hotend"
 }

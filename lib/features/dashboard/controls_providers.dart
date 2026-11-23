@@ -452,6 +452,11 @@ class ControlsNotifier extends Notifier<ControlsState> {
   Future<ActionOutcome> amsUnload(int id, {int? trayId}) =>
       _run(id, ControlAction.ams, () => _repo.amsUnload(id, trayId: trayId));
 
+  /// Unload every loaded slot of an H3C's AMS 3H. In [ControlAction.ams] like
+  /// the single-slot actions: it moves the same filament path.
+  Future<ActionOutcome> amsUnloadAll(int id) =>
+      _run(id, ControlAction.ams, () => _repo.amsUnloadAll(id));
+
   /// Re-read one slot's RFID tag. Ids are local to the unit.
   ///
   /// The only route on the card behind [ControlPermission.amsRfid]: a key that

@@ -1364,6 +1364,7 @@ void main() {
         double scale,
         PrinterWithStatus item, {
         bool expand = true,
+        List<Override> extra = const [],
       }) async {
         tester.view.physicalSize = const Size(360, 3000);
         tester.view.devicePixelRatio = 1;
@@ -1378,6 +1379,7 @@ void main() {
               Scaffold(
                 body: SingleChildScrollView(child: PrinterCard(item: item)),
               ),
+              extra: extra,
             ),
           ),
         );
@@ -1720,6 +1722,345 @@ void main() {
           expectSentAsRecorded(recording, writesOf(log.requests));
         });
       }
+
+      // Unload All of an AMS 3H (#3531): under the slots, only while a slot has
+      // its filament in the hotend, on a server that has the route.
+      final unloadAllGate = ams3hUnloadAllProvider.overrideWithValue(
+        const AsyncData(true),
+      );
+      final idle = {'state': 'IDLE'};
+      Finder unloadAll() => byLogId('printer.ams3h_unload_all');
+      bool unloadAllEnabled(WidgetTester tester) =>
+          tester
+              .widget<ButtonStyleButton>(
+                find.descendant(
+                  of: unloadAll(),
+                  matching: find.byWidgetPredicate(
+                    (w) => w is ButtonStyleButton,
+                  ),
+                ),
+              )
+              .onPressed !=
+          null;
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('Unload all sits under the slots at text scale $scale', (
+          tester,
+        ) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: idle),
+            extra: [unloadAllGate],
+          );
+
+          expect(find.text(pl.amsUnloadAll), findsOneWidget);
+          expect(tester.getSize(unloadAll()).height, greaterThanOrEqualTo(48));
+          expect(unloadAllEnabled(tester), isTrue);
+        });
+      }
+
+      // Each case in a test of its own: a scope cannot change its overrides.
+      for (final (why, build, extra)
+          in <(String, PrinterWithStatus Function(), List<Override>)>[
+            (
+              // State 26 is the inlet, not the hotend.
+              'no slot has its filament in a hotend',
+              () => realItem(
+                unit: dryer,
+                top: idle,
+                trays: {
+                  for (var i = 0; i < 4; i++) i: {'state': 26},
+                },
+              ),
+              [unloadAllGate],
+            ),
+            (
+              'the server predates the route',
+              () => realItem(unit: dryer, top: idle),
+              [],
+            ),
+            (
+              'the key may not drive the printer',
+              () => realItem(unit: dryer, top: idle),
+              [
+                unloadAllGate,
+                controlRefusedProvider(
+                  ControlPermission.control,
+                ).overrideWithValue(true),
+              ],
+            ),
+            (
+              // State 27 on a regular AMS is not an AMS 3H slot in its hotend.
+              'the unit is a regular AMS',
+              () => realItem(top: idle),
+              [unloadAllGate],
+            ),
+          ]) {
+        testWidgets('Unload all is not offered when $why', (tester) async {
+          await pumpAt(tester, 1.0, build(), extra: extra);
+          await tester.pump(const Duration(seconds: 1));
+
+          expect(unloadAll(), findsNothing);
+        });
+      }
+
+      testWidgets('Unload all waits while a print runs', (tester) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'state': 'RUNNING'}),
+          extra: [unloadAllGate],
+        );
+
+        expect(unloadAll(), findsOneWidget);
+        expect(unloadAllEnabled(tester), isFalse);
+      });
+
+      testWidgets('Unload all stays available on a paused print', (
+        tester,
+      ) async {
+        await pumpAt(
+          tester,
+          1.0,
+          realItem(unit: dryer, top: {'state': 'PAUSE'}),
+          extra: [unloadAllGate],
+        );
+
+        expect(unloadAllEnabled(tester), isTrue);
+      });
+
+      testWidgets(
+        'Unload all locks when the printer drops off, before the card '
+        'goes offline',
+        (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          Widget card(PrinterWithStatus item) => _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: item)),
+            ),
+            extra: [unloadAllGate],
+          );
+          await tester.pumpWidget(card(realItem(unit: dryer, top: idle)));
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+          expect(unloadAllEnabled(tester), isTrue);
+
+          // The frame that says the printer is gone, inside the debounce.
+          await tester.pumpWidget(
+            card(realItem(unit: dryer, top: {...idle, 'connected': false})),
+          );
+          await tester.pump();
+
+          expect(unloadAll(), findsOneWidget);
+          expect(unloadAllEnabled(tester), isFalse);
+        },
+      );
+
+      testWidgets(
+        'a slot sheet opened as the printer drops off locks Load, Unload '
+        'and the RFID re-read',
+        (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          Widget card(PrinterWithStatus item) => _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: item)),
+            ),
+          );
+          bool enabled(String id) =>
+              tester
+                  .widget<ButtonStyleButton>(
+                    find.descendant(
+                      of: byLogId(id),
+                      matching: find.byWidgetPredicate(
+                        (w) => w is ButtonStyleButton,
+                      ),
+                    ),
+                  )
+                  .onPressed !=
+              null;
+          Future<void> settle() async {
+            for (var i = 0; i < 5; i++) {
+              await tester.pump(const Duration(milliseconds: 200));
+            }
+          }
+
+          await tester.pumpWidget(card(realItem(unit: dryer, top: idle)));
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          await settle();
+          // The frame that says the printer is gone, inside the debounce.
+          await tester.pumpWidget(
+            card(realItem(unit: dryer, top: {...idle, 'connected': false})),
+          );
+          await tester.pump();
+          final row = find
+              .byWidgetPredicate(
+                (w) =>
+                    w is Semantics &&
+                    (w.properties.identifier ?? '') == 'printer.ams_slot@PLA',
+              )
+              .first;
+          await tester.ensureVisible(row);
+          await tester.tap(row);
+          await settle();
+
+          expect(enabled('assign_spool.ams_load'), isFalse);
+          expect(enabled('assign_spool.ams_unload'), isFalse);
+          expect(enabled('assign_spool.rfid_reread'), isFalse);
+        },
+      );
+
+      testWidgets('Unload all asks first, and a cancel sends nothing', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final dio = testDio();
+        final log = captureRequests(dio);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(unit: dryer, top: idle),
+                ),
+              ),
+            ),
+            extra: [
+              unloadAllGate,
+              printerCommandsRepositoryProvider.overrideWithValue(
+                PrinterCommandsRepository(dio),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+
+        await tester.ensureVisible(unloadAll());
+        await tester.tap(unloadAll());
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text(pl.amsUnloadAllTitle), findsOneWidget);
+        await tester.tap(byLogId('printer.ams3h_unload_all_confirm.cancel'));
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(log.requests, isEmpty);
+        expect(find.text(pl.amsUnloadAllTitle), findsNothing);
+      });
+
+      testWidgets(
+        'Unload all words the 409 of slots that were unloaded since',
+        (tester) async {
+          tester.view.physicalSize = const Size(360, 3000);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final dio = testDio();
+          mockServer(dio).onPost(
+            '/api/v1/printers/1/ams/unload-all',
+            (server) =>
+                server.reply(409, {'detail': 'No AMS 3H slot is loaded'}),
+          );
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: realItem(unit: dryer, top: idle),
+                  ),
+                ),
+              ),
+              extra: [
+                unloadAllGate,
+                printerCommandsRepositoryProvider.overrideWithValue(
+                  PrinterCommandsRepository(dio),
+                ),
+              ],
+            ),
+          );
+          await tester.pump();
+          await tester.tap(find.text(pl.detailsShow));
+          for (var i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+
+          await tester.ensureVisible(unloadAll());
+          await tester.tap(unloadAll());
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.tap(byLogId('printer.ams3h_unload_all_confirm.confirm'));
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.pump(const Duration(milliseconds: 400));
+
+          expect(find.text(pl.amsUnloadAllNoneLoaded), findsOneWidget);
+        },
+      );
+
+      testWidgets('Unload all sends what the server replays, once, and says '
+          'what to do next', (tester) async {
+        tester.view.physicalSize = const Size(360, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final dio = testDio();
+        mockServer(dio).onPost(
+          '/api/v1/printers/1/ams/unload-all',
+          (server) => server.reply(200, {
+            'success': true,
+            'message': 'x',
+            'count': 2,
+          }, delay: const Duration(seconds: 1)),
+        );
+        final log = captureRequests(dio);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(unit: dryer, top: idle),
+                ),
+              ),
+            ),
+            extra: [
+              unloadAllGate,
+              printerCommandsRepositoryProvider.overrideWithValue(
+                PrinterCommandsRepository(dio),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+
+        await tester.ensureVisible(unloadAll());
+        await tester.tap(unloadAll());
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(byLogId('printer.ams3h_unload_all_confirm.confirm'));
+        await tester.pump(const Duration(milliseconds: 400));
+        // In the air: the button is locked, so a second tap cannot send again.
+        expect(unloadAllEnabled(tester), isFalse);
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // Replayed on an H3C by `h3c_contract_test.dart`.
+        expectSentAsRecorded('ams3h_unload_all', writesOf(log.requests));
+        expect(find.text(pl.amsUnloadAllStarted), findsOneWidget);
+        // Still there after the usual four seconds: the next step is by hand.
+        await tester.pump(const Duration(seconds: 5));
+        expect(find.text(pl.amsUnloadAllStarted), findsOneWidget);
+      });
 
       testWidgets('without the drying control a chip shows the readings', (
         tester,

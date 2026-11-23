@@ -132,6 +132,10 @@ enum ServerFeature {
   /// presets switched by printer state. `PrinterUpdate` takes and ignores the
   /// field below it; the routes 404.
   wled,
+
+  /// `POST /printers/{id}/ams/unload-all`: every loaded AMS 3H slot of an H3C
+  /// at once, as its touchscreen's Unload All. An older server answers 404.
+  ams3hUnloadAll,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -249,6 +253,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.archiveCalendar: (1, 3, 0, 0),
     ServerFeature.labelTemplates: (1, 3, 0, 0),
     ServerFeature.wled: (1, 3, 1, 0),
+    ServerFeature.ams3hUnloadAll: (1, 3, 3, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

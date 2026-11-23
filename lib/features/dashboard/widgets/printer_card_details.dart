@@ -641,6 +641,8 @@ class _DetailsPanel extends ConsumerWidget {
           serial: serial,
           printerId: printerId,
           supportsDrying: status.supportsDrying ?? false,
+          printing: status.isPrinting && !status.isPaused,
+          connected: status.connected != false,
           slotRef: (trayIndex) => _amsSlotRef(
             status: status,
             dual: dual,
@@ -739,6 +741,7 @@ _SlotRef _amsSlotRef({
     trayId: slot,
     label: amsSlotName(amsId, slot),
     printing: status.isPrinting && !status.isPaused,
+    connected: status.connected != false,
     loadTrayId: amsLoadTrayId(amsId: amsId, trayId: slot, amsHt: amsHtLoad),
     canRereadRfid: true,
     tagUid: tray.tagUid,
@@ -792,6 +795,7 @@ _SlotRef _externalSlotRef({
             _ => l10n.externalSpool,
           },
     printing: status.isPrinting && !status.isPaused,
+    connected: status.connected != false,
     // The web offers no load or unload on a rack printer's inputs; assigning
     // and configuring stay.
     loadTrayId: rack
@@ -899,6 +903,8 @@ class _AmsSection extends ConsumerWidget {
     required this.serial,
     required this.printerId,
     required this.supportsDrying,
+    required this.printing,
+    required this.connected,
     required this.slotRef,
   });
 
@@ -916,6 +922,14 @@ class _AmsSection extends ConsumerWidget {
   final String? serial;
   final int printerId;
   final bool supportsDrying;
+
+  /// A print is running: the filament path is the printer's, as for the slot
+  /// sheet's own Load and Unload.
+  final bool printing;
+
+  /// The card shows the last known filament for a few seconds after the printer
+  /// drops off (the offline debounce); a command sent then is a 400.
+  final bool connected;
 
   /// What the slot sheet needs for slot [trayIndex] of this unit, built by
   /// [_amsSlotRef] so the card and the single-printer controller open the same
@@ -1071,7 +1085,80 @@ class _AmsSection extends ConsumerWidget {
                   : null,
               slot: slotRef(i),
             ),
+        // Under the rows, where a thumb is after reading what is loaded; the
+        // web puts it in the header, which a phone's header has no room for at
+        // large text.
+        if (unit.hasAms3hSlotInHotend &&
+            (ref.watch(ams3hUnloadAllProvider).orFalse) &&
+            !ref.watch(controlRefusedProvider(ControlPermission.control)))
+          _AmsUnloadAllButton(
+            printerId: printerId,
+            locked: printing || !connected,
+          ),
       ],
+    );
+  }
+}
+
+/// Unloads every AMS 3H slot of an H3C whose filament is in its hotend, as the
+/// printer's own Unload All. Asks first: it moves every loaded slot, and the
+/// printer then waits for the filament to be pulled out by hand.
+class _AmsUnloadAllButton extends ConsumerWidget {
+  const _AmsUnloadAllButton({required this.printerId, required this.locked});
+
+  final int printerId;
+
+  /// A print is running or the printer is out of reach.
+  final bool locked;
+
+  Future<void> _unloadAll(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final controls = ref.read(controlsProvider.notifier);
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.amsUnloadAllTitle,
+      message: l10n.amsUnloadAllMessage,
+      confirmLabel: l10n.amsUnloadAll,
+      id: 'printer.ams3h_unload_all_confirm',
+    );
+    if (!confirmed || !context.mounted) return;
+    await _runSlotAction(
+      context,
+      l10n,
+      () => controls.amsUnloadAll(printerId),
+      l10n.amsUnloadAllStarted,
+      // The printer's next step is a hand pull, so the toast stays long enough
+      // to be read at the machine.
+      startedFor: const Duration(seconds: 8),
+      // The slots were unloaded between the frame and the tap.
+      wordFailure: (e) =>
+          e.statusCode == 409 ? l10n.amsUnloadAllNoneLoaded : null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final busy = ref.watch(
+      controlsProvider.select(
+        (s) => s.pendingFor(printerId).isBusy(ControlAction.ams),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton.tonalIcon(
+          onPressed: busy || locked
+              ? null
+              : () => _unloadAll(context, ref, l10n),
+          icon: const Icon(Icons.logout, size: DashIcon.md),
+          label: Text(l10n.amsUnloadAll),
+        ).tagged('printer.ams3h_unload_all'),
+      ),
     );
   }
 }
@@ -2343,6 +2430,7 @@ class _SlotRef {
     required this.trayId,
     required this.label,
     required this.printing,
+    required this.connected,
     this.loadTrayId,
     this.canRereadRfid = false,
     this.tagUid,
@@ -2373,6 +2461,10 @@ class _SlotRef {
   /// so the slot the user tapped and the state that disables it come from one
   /// frame.
   final bool printing;
+
+  /// The printer answers: false for the few seconds the card keeps the last
+  /// known filament after it drops off, when a command is a 400.
+  final bool connected;
 
   /// Global tray number for the load command, or null where this server cannot
   /// address the slot by it (an AMS-HT before 1.3.0, a rack input) — see
@@ -2502,7 +2594,7 @@ class _SlotActions extends ConsumerWidget {
         (s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams),
       ),
     );
-    final enabled = !busy && !slot.printing;
+    final enabled = !busy && !slot.printing && slot.connected;
     final controls = ref.read(controlsProvider.notifier);
 
     // Two equal halves and a full-width third, rather than a Wrap: the buttons

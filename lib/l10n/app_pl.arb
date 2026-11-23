@@ -4339,5 +4339,10 @@
   "edgeSessionBanner": "Sesja Cloudflare wygasła",
   "notifEdgeTokenTitle": "Cloudflare odrzucił token usługi",
   "notifEdgeTokenBody": "Powiadomienia są wyłączone. Wymień token usługi, aby je włączyć.",
-  "edgeTokenBanner": "Cloudflare odrzucił token usługi"
+  "edgeTokenBanner": "Cloudflare odrzucił token usługi",
+  "amsUnloadAll": "Wyładuj wszystko",
+  "amsUnloadAllTitle": "Wyładować wszystkie sloty?",
+  "amsUnloadAllMessage": "Drukarka wyładuje po kolei każdy załadowany slot AMS 3H. Gdy o to poprosi, wyciągnij filament z AMS 3H ręcznie, więc zostań przy drukarce.",
+  "amsUnloadAllStarted": "Wyładowywanie wszystkich załadowanych slotów. Gdy drukarka o to poprosi, wyciągnij filament z AMS 3H ręcznie.",
+  "amsUnloadAllNoneLoaded": "Żaden slot nie ma filamentu w dyszy"
 }

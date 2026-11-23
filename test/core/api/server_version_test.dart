@@ -200,6 +200,12 @@ void main() {
     expect(parse('1.3.1').supports(ServerFeature.amsHtLoad), isTrue);
   });
 
+  test('Unload All of an AMS 3H is offered from 1.3.3, not before', () {
+    expect(parse('1.3.2').supports(ServerFeature.ams3hUnloadAll), isFalse);
+    expect(parse('1.3.3b1').supports(ServerFeature.ams3hUnloadAll), isTrue);
+    expect(parse('1.3.3').supports(ServerFeature.ams3hUnloadAll), isTrue);
+  });
+
   test('an assignment takes `move` from 1.3.1, not before', () {
     expect(parse('1.3.0').supports(ServerFeature.assignmentMove), isFalse);
     expect(parse('1.3.0b1').supports(ServerFeature.assignmentMove), isFalse);

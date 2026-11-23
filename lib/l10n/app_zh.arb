@@ -3010,5 +3010,10 @@
   "edgeSessionBanner": "Cloudflare 会话已过期",
   "notifEdgeTokenTitle": "Cloudflare 拒绝了服务令牌",
   "notifEdgeTokenBody": "提醒已关闭。请更换服务令牌以恢复。",
-  "edgeTokenBanner": "Cloudflare 拒绝了服务令牌"
+  "edgeTokenBanner": "Cloudflare 拒绝了服务令牌",
+  "amsUnloadAll": "全部卸载",
+  "amsUnloadAllTitle": "卸载所有槽位？",
+  "amsUnloadAllMessage": "打印机会依次卸载 AMS 3H 中所有已装载的槽位。打印机提示时，请手动将耗材从 AMS 3H 中拉出，因此请留在打印机旁。",
+  "amsUnloadAllStarted": "正在卸载所有已装载的槽位。打印机提示时，请手动将耗材从 AMS 3H 中拉出。",
+  "amsUnloadAllNoneLoaded": "没有槽位的耗材在热端中"
 }

@@ -10311,4 +10311,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get edgeTokenBanner => 'Cloudflare 拒绝了服务令牌';
+
+  @override
+  String get amsUnloadAll => '全部卸载';
+
+  @override
+  String get amsUnloadAllTitle => '卸载所有槽位？';
+
+  @override
+  String get amsUnloadAllMessage =>
+      '打印机会依次卸载 AMS 3H 中所有已装载的槽位。打印机提示时，请手动将耗材从 AMS 3H 中拉出，因此请留在打印机旁。';
+
+  @override
+  String get amsUnloadAllStarted => '正在卸载所有已装载的槽位。打印机提示时，请手动将耗材从 AMS 3H 中拉出。';
+
+  @override
+  String get amsUnloadAllNoneLoaded => '没有槽位的耗材在热端中';
 }

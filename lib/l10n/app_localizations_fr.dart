@@ -10975,4 +10975,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get edgeTokenBanner => 'Cloudflare a refusé le jeton de service';
+
+  @override
+  String get amsUnloadAll => 'Tout décharger';
+
+  @override
+  String get amsUnloadAllTitle => 'Décharger tous les emplacements ?';
+
+  @override
+  String get amsUnloadAllMessage =>
+      'L\'imprimante décharge tous les emplacements chargés de l\'AMS 3H, l\'un après l\'autre. Quand elle le demande, retirez le filament de l\'AMS 3H à la main : restez près de l\'imprimante.';
+
+  @override
+  String get amsUnloadAllStarted =>
+      'Déchargement de tous les emplacements chargés. Quand l\'imprimante le demande, retirez le filament de l\'AMS 3H à la main.';
+
+  @override
+  String get amsUnloadAllNoneLoaded =>
+      'Aucun emplacement n\'a son filament dans un hotend';
 }

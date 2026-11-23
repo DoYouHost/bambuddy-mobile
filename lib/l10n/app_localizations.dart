@@ -17884,6 +17884,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cloudflare refused the service token'**
   String get edgeTokenBanner;
+
+  /// No description provided for @amsUnloadAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload all'**
+  String get amsUnloadAll;
+
+  /// No description provided for @amsUnloadAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload all slots?'**
+  String get amsUnloadAllTitle;
+
+  /// No description provided for @amsUnloadAllMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer unloads every loaded AMS 3H slot, one after another. When it asks, pull the filament back out of the AMS 3H by hand, so stay at the printer.'**
+  String get amsUnloadAllMessage;
+
+  /// No description provided for @amsUnloadAllStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading all loaded slots. When the printer asks, pull the filament out of the AMS 3H by hand.'**
+  String get amsUnloadAllStarted;
+
+  /// No description provided for @amsUnloadAllNoneLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No slot has its filament in a hotend'**
+  String get amsUnloadAllNoneLoaded;
 }
 
 class _AppLocalizationsDelegate

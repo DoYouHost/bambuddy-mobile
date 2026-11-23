@@ -10890,4 +10890,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get edgeTokenBanner => 'Cloudflare rechazó el token de servicio';
+
+  @override
+  String get amsUnloadAll => 'Descargar todo';
+
+  @override
+  String get amsUnloadAllTitle => '¿Descargar todas las ranuras?';
+
+  @override
+  String get amsUnloadAllMessage =>
+      'La impresora descarga una a una todas las ranuras cargadas del AMS 3H. Cuando lo pida, retira a mano el filamento del AMS 3H, así que quédate junto a la impresora.';
+
+  @override
+  String get amsUnloadAllStarted =>
+      'Descargando todas las ranuras cargadas. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.';
+
+  @override
+  String get amsUnloadAllNoneLoaded =>
+      'Ninguna ranura tiene su filamento en un hotend';
 }

@@ -947,6 +947,12 @@ class AmsUnit with ValueEquality {
   /// The H3C's nine-slot AMS 3H.
   bool get isAms3h => unitAmsType(id ?? -1, amsType) == AmsType.zmultiA;
 
+  /// Whether any slot has its filament in its hotend: what the web's Unload
+  /// all waits for (`ams3hHasLoadedSlot`).
+  bool get hasAms3hSlotInHotend =>
+      isAms3h &&
+      (trays ?? const <AmsTray>[]).any((t) => t.state == ams3hTrayInHotend);
+
   /// Wider than [isDrying]: the web lights the dryer through every phase from
   /// checking to stopping (`ams3hDryerActive`, `PrintersPage.tsx`), not only 2.
   /// Unlike the web's dryer box, a parked timer stays dark — the server flags

@@ -376,6 +376,11 @@ abstract final class Endpoints {
   static String amsUnload(int printerId) =>
       '$apiPrefix/printers/$printerId/ams/unload';
 
+  /// Unload every loaded slot of an H3C's AMS 3H. 400 when the printer has no
+  /// AMS 3H or is not connected, 409 when no slot has its filament in a hotend.
+  static String amsUnloadAll(int printerId) =>
+      '$apiPrefix/printers/$printerId/ams/unload-all';
+
   /// Re-read one AMS slot's RFID tag. Path ids are **local** (unit id, slot
   /// within the unit) — not the global number [amsLoad] takes. Gated on
   /// `printers:ams_rfid`, a permission of its own: a key allowed to control the

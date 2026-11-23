@@ -29,6 +29,13 @@ class PrinterCommandsRepository {
     _serverVersion,
   );
 
+  /// Whether the server has the Unload All route of an AMS 3H. Never observed:
+  /// the app sends nothing until this says yes.
+  late final ams3hUnloadAllCapability = ObservedCapability(
+    ServerFeature.ams3hUnloadAll,
+    _serverVersion,
+  );
+
   Future<void> pause(int printerId) => _post(Endpoints.printPause(printerId));
 
   Future<void> resume(int printerId) => _post(Endpoints.printResume(printerId));
@@ -288,6 +295,11 @@ class PrinterCommandsRepository {
     );
     return _post(Endpoints.amsUnload(printerId), query: {'tray_id': ?trayId});
   }
+
+  /// Unload every loaded slot of the printer's AMS 3H, one after another. The
+  /// printer then asks for the filament to be pulled out by hand.
+  Future<void> amsUnloadAll(int printerId) =>
+      _post(Endpoints.amsUnloadAll(printerId));
 
   /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
   Future<void> refreshAmsSlot(

@@ -10755,4 +10755,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edgeTokenBanner => 'Cloudflare refused the service token';
+
+  @override
+  String get amsUnloadAll => 'Unload all';
+
+  @override
+  String get amsUnloadAllTitle => 'Unload all slots?';
+
+  @override
+  String get amsUnloadAllMessage =>
+      'The printer unloads every loaded AMS 3H slot, one after another. When it asks, pull the filament back out of the AMS 3H by hand, so stay at the printer.';
+
+  @override
+  String get amsUnloadAllStarted =>
+      'Unloading all loaded slots. When the printer asks, pull the filament out of the AMS 3H by hand.';
+
+  @override
+  String get amsUnloadAllNoneLoaded => 'No slot has its filament in a hotend';
 }

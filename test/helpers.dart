@@ -829,6 +829,11 @@ class RecordingCommands implements PrinterCommandsRepository {
   /// No version behind it, so it answers no, as a server too old to say.
   @override
   final amsHtLoadCapability = ObservedCapability(ServerFeature.amsHtLoad, null);
+  @override
+  final ams3hUnloadAllCapability = ObservedCapability(
+    ServerFeature.ams3hUnloadAll,
+    null,
+  );
 
   @override
   Future<Object?> fetchOpenApi() async => null;
@@ -908,6 +913,8 @@ class RecordingCommands implements PrinterCommandsRepository {
   @override
   Future<void> amsUnload(int id, {int? trayId}) =>
       _do('amsUnload:$id:${trayId ?? '-'}');
+  @override
+  Future<void> amsUnloadAll(int id) => _do('amsUnloadAll:$id');
   @override
   Future<void> refreshAmsSlot(
     int id, {

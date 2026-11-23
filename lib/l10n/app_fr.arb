@@ -5028,5 +5028,10 @@
   "edgeSessionBanner": "Session Cloudflare expirée",
   "notifEdgeTokenTitle": "Cloudflare a refusé le jeton de service",
   "notifEdgeTokenBody": "Les alertes sont coupées. Remplacez le jeton de service pour les réactiver.",
-  "edgeTokenBanner": "Cloudflare a refusé le jeton de service"
+  "edgeTokenBanner": "Cloudflare a refusé le jeton de service",
+  "amsUnloadAll": "Tout décharger",
+  "amsUnloadAllTitle": "Décharger tous les emplacements ?",
+  "amsUnloadAllMessage": "L'imprimante décharge tous les emplacements chargés de l'AMS 3H, l'un après l'autre. Quand elle le demande, retirez le filament de l'AMS 3H à la main : restez près de l'imprimante.",
+  "amsUnloadAllStarted": "Déchargement de tous les emplacements chargés. Quand l'imprimante le demande, retirez le filament de l'AMS 3H à la main.",
+  "amsUnloadAllNoneLoaded": "Aucun emplacement n'a son filament dans un hotend"
 }

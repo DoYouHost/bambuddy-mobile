@@ -761,3 +761,18 @@ The three routes settle nothing: a 404 there is a printer gone, a 403 a missing
 the hub entry until the first printer listing comes back without the key. On 1.2.5 the
 three routes answer 405, not 404 (a `GET` route takes the path); the app never calls
 them there, so nothing reads that status.
+
+### ams3hUnloadAll — 1.3.3 (server #3531, commit e45aead)
+
+`POST /printers/{id}/ams/unload-all`: unloads every AMS 3H slot of an H3C whose filament
+is in its hotend, one after another, as the printer's own Unload All. The commit landed
+on the 1.3.3b1 dailies on 2026-11-21, so the row is 1.3.3 and the release that carries it
+is not out yet. Measured on the images (`h3c_contract_test.dart`): 1.3.2 answers 404 or
+405 to the path, the 1.3.3b1 daily serves it. A refusal and not a silent drop, but the app
+sends nothing until the row says yes, so nothing is observed and the row decides. Being early costs one 404 shown after a tap, on a 1.3.3b1 daily older
+than the commit; being late hides the button, as every app version before this one did.
+The route's own refusals are 400 (no AMS 3H on the printer, or the printer not connected)
+and 409 (no slot has its filament in the hotend). The button's visibility rule (`state == 27`
+on a tray of the unit) and its lock while the printer is out of reach keep both from being
+common, but a frame that went stale between the render and the tap still gets a 409, which
+the button words (`amsUnloadAllNoneLoaded`).

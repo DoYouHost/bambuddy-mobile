@@ -5028,5 +5028,10 @@
   "edgeSessionBanner": "Cloudflare-Sitzung abgelaufen",
   "notifEdgeTokenTitle": "Cloudflare hat das Service-Token abgelehnt",
   "notifEdgeTokenBody": "Hinweise sind aus. Tausche das Service-Token aus, um sie wieder zu aktivieren.",
-  "edgeTokenBanner": "Cloudflare hat das Service-Token abgelehnt"
+  "edgeTokenBanner": "Cloudflare hat das Service-Token abgelehnt",
+  "amsUnloadAll": "Alle entladen",
+  "amsUnloadAllTitle": "Alle Slots entladen?",
+  "amsUnloadAllMessage": "Der Drucker entlädt nacheinander jeden geladenen Slot des AMS 3H. Sobald er dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück. Bleib also am Drucker.",
+  "amsUnloadAllStarted": "Alle geladenen Slots werden entladen. Sobald der Drucker dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück.",
+  "amsUnloadAllNoneLoaded": "Kein Slot hat sein Filament im Hotend"
 }
