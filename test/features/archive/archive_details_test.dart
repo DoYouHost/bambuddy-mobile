@@ -201,6 +201,30 @@ void main() {
       expect(find.text('1.50'), findsOneWidget);
     });
 
+    testWidgets('printed more than once, the sum is what all the runs cost', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        ArchiveStatsPanel(
+          archive: _part.copyWith(
+            runCount: 3,
+            totalFilamentCost: 0.51,
+            totalEnergyKwh: 0.9,
+            totalEnergyCost: 0.21,
+            totalWearCost: 0.54,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1.26'), findsOneWidget);
+      expect(find.text('0.51'), findsOneWidget);
+      expect(find.text('0.21'), findsOneWidget);
+      expect(find.text('0.54'), findsOneWidget);
+      expect(find.text('0.42'), findsNothing);
+    });
+
     testWidgets('one line per slot when the slicer listed them', (
       tester,
     ) async {

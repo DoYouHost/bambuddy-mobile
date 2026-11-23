@@ -63,6 +63,11 @@ abstract class _$ArchiveCWProxy {
     double? energyKwh,
     double? energyCost,
     double? wearCost,
+    double? totalFilamentCost,
+    double? totalEnergyKwh,
+    double? totalEnergyCost,
+    double? totalWearCost,
+    bool hasRunTotals,
     String? createdByUsername,
     List<FilamentSlot> filamentSlots,
   });
@@ -132,6 +137,11 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? energyKwh = const $CopyWithPlaceholder(),
     Object? energyCost = const $CopyWithPlaceholder(),
     Object? wearCost = const $CopyWithPlaceholder(),
+    Object? totalFilamentCost = const $CopyWithPlaceholder(),
+    Object? totalEnergyKwh = const $CopyWithPlaceholder(),
+    Object? totalEnergyCost = const $CopyWithPlaceholder(),
+    Object? totalWearCost = const $CopyWithPlaceholder(),
+    Object? hasRunTotals = const $CopyWithPlaceholder(),
     Object? createdByUsername = const $CopyWithPlaceholder(),
     Object? filamentSlots = const $CopyWithPlaceholder(),
   }) {
@@ -340,6 +350,27 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.wearCost
           // ignore: cast_nullable_to_non_nullable
           : wearCost as double?,
+      totalFilamentCost: totalFilamentCost == const $CopyWithPlaceholder()
+          ? _value.totalFilamentCost
+          // ignore: cast_nullable_to_non_nullable
+          : totalFilamentCost as double?,
+      totalEnergyKwh: totalEnergyKwh == const $CopyWithPlaceholder()
+          ? _value.totalEnergyKwh
+          // ignore: cast_nullable_to_non_nullable
+          : totalEnergyKwh as double?,
+      totalEnergyCost: totalEnergyCost == const $CopyWithPlaceholder()
+          ? _value.totalEnergyCost
+          // ignore: cast_nullable_to_non_nullable
+          : totalEnergyCost as double?,
+      totalWearCost: totalWearCost == const $CopyWithPlaceholder()
+          ? _value.totalWearCost
+          // ignore: cast_nullable_to_non_nullable
+          : totalWearCost as double?,
+      hasRunTotals:
+          hasRunTotals == const $CopyWithPlaceholder() || hasRunTotals == null
+          ? _value.hasRunTotals
+          // ignore: cast_nullable_to_non_nullable
+          : hasRunTotals as bool,
       createdByUsername: createdByUsername == const $CopyWithPlaceholder()
           ? _value.createdByUsername
           // ignore: cast_nullable_to_non_nullable
@@ -414,6 +445,11 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   energyKwh: (json['energy_kwh'] as num?)?.toDouble(),
   energyCost: (json['energy_cost'] as num?)?.toDouble(),
   wearCost: (json['wear_cost'] as num?)?.toDouble(),
+  totalFilamentCost: (json['total_cost'] as num?)?.toDouble(),
+  totalEnergyKwh: (json['total_energy_kwh'] as num?)?.toDouble(),
+  totalEnergyCost: (json['total_energy_cost'] as num?)?.toDouble(),
+  totalWearCost: (json['total_wear_cost'] as num?)?.toDouble(),
+  hasRunTotals: _sentRunTotals(json, 'has_run_totals') as bool? ?? false,
   createdByUsername: json['created_by_username'] as String?,
   filamentSlots: _readExtraData(json, 'filament_slots') == null
       ? const []

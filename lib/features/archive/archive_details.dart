@@ -336,11 +336,11 @@ class ArchiveStatsPanel extends ConsumerWidget {
     final total = archive.totalCost;
     if (total == null) return null;
     final currency = ref.watch(currencySymbolProvider);
-    final kwh = archive.energyKwh;
+    final kwh = archive.shownEnergyKwh;
     final parts = [
-      if (archive.cost case final v?)
+      if (archive.shownFilamentCost case final v?)
         (Icons.toll_outlined, l10n.statsFilamentCost, v, null),
-      if (archive.energyCost case final v?)
+      if (archive.shownEnergyCost case final v?)
         (
           Icons.bolt,
           l10n.statsEnergyCost,
@@ -349,7 +349,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
               ? null
               : '${l10n.statsEnergyUsed}: ${kwh.toStringAsFixed(3)} kWh',
         ),
-      if (archive.wearCost case final v?)
+      if (archive.shownWearCost case final v?)
         (Icons.build_outlined, l10n.statsWearCost, v, null),
     ];
     return Column(

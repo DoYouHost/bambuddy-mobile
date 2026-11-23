@@ -232,6 +232,56 @@ void main() {
       expect(list.every((a) => a.createdByUsername != null), isTrue);
     });
 
+    test('a print run more than once totals what its runs cost', () async {
+      final repo = ArchiveRepository(dio);
+      final drawer = (await repo.list()).firstWhere(
+        (a) => a.printName == 'Bag dispenser',
+      );
+      final runs = await repo.runs(drawer.id);
+
+      expect(runs.length, drawer.runCount);
+      expect(drawer.showsRunTotals, isTrue);
+      expect(
+        drawer.totalFilamentCost,
+        closeTo(runs.fold<double>(0, (sum, r) => sum + (r.cost ?? 0)), 0.005),
+      );
+      expect(drawer.totalFilamentCost, isNot(drawer.cost));
+    });
+
+    test(
+      'deleting prints of an archive brings its counts and totals along',
+      () async {
+        // Own backend: the deletion must not leak into the shared one.
+        final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+          ..httpClientAdapter = DemoHttpClientAdapter(
+            DemoBackend.fresh().handle,
+            latency: Duration.zero,
+          );
+        final repo = ArchiveRepository(own);
+        final log = PrintLogRepository(own);
+        Future<Archive> drawer() async => (await repo.list()).firstWhere(
+          (a) => a.printName == 'Bag dispenser',
+        );
+        final before = await drawer();
+        final runs = await repo.runs(before.id);
+
+        await log.deleteEntry(runs.first.id);
+        final two = await drawer();
+        expect(two.runCount, before.runCount - 1);
+        expect(two.showsRunTotals, isTrue);
+        expect(two.totalFilamentCost, lessThan(before.totalFilamentCost!));
+
+        for (final run in runs.skip(1)) {
+          await log.deleteEntry(run.id);
+        }
+        final none = await drawer();
+        expect(none.runCount, 0);
+        expect(none.showsRunTotals, isFalse);
+        expect(none.totalFilamentCost, isNull);
+        expect(none.totalCost, isNotNull, reason: 'its own figures come back');
+      },
+    );
+
     test('queue has pending items', () async {
       final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));
@@ -944,7 +994,17 @@ void main() {
       expect(result.merged, [group.survivor.id]);
       expect(result.skipped.single.reason, 'not_a_group');
       expect((await repo.list()).length, before - 1);
-      expect(await repo.runs(group.survivor.id), hasLength(2));
+      final runs = await repo.runs(group.survivor.id);
+      expect(runs, hasLength(2));
+      // The merged archive's totals are those of both prints, not the one the
+      // survivor had before.
+      final merged = (await repo.list()).firstWhere(
+        (a) => a.id == group.survivor.id,
+      );
+      expect(
+        merged.totalFilamentCost,
+        closeTo(runs.fold<double>(0, (sum, r) => sum + (r.cost ?? 0)), 0.005),
+      );
       expect(await repo.mergeCount(), 0);
     });
 

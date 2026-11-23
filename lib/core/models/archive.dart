@@ -7,6 +7,9 @@ import 'json_utils.dart';
 
 part 'archive.g.dart';
 
+Object? _sentRunTotals(Map<dynamic, dynamic> json, String key) =>
+    json.containsKey('total_cost');
+
 /// Archive entry from `ArchiveResponse`.
 /// Defensive parsing: all fields except id/filename/status are nullable, unknown
 /// keys ignored — the API is young and evolving.
@@ -67,6 +70,11 @@ class Archive {
     this.energyKwh,
     this.energyCost,
     this.wearCost,
+    this.totalFilamentCost,
+    this.totalEnergyKwh,
+    this.totalEnergyCost,
+    this.totalWearCost,
+    this.hasRunTotals = false,
     this.createdByUsername,
     this.filamentSlots = const [],
   });
@@ -280,6 +288,21 @@ class Archive {
   final double? energyCost;
   final double? wearCost;
 
+  /// What all the runs of this file cost, summed as Statistics does (#3609);
+  /// the fields above stay the file's own and the first run's. Each is null
+  /// where no run has the figure. `total_cost` is the filament part only.
+  @JsonKey(name: 'total_cost')
+  final double? totalFilamentCost;
+  final double? totalEnergyKwh;
+  final double? totalEnergyCost;
+  final double? totalWearCost;
+
+  /// Whether the server sent the four totals at all. `run_count` is older than
+  /// they are, so a server between the two reports several runs and no totals;
+  /// null there means "not sent", where on a newer one it means "no figure".
+  @JsonKey(readValue: _sentRunTotals, defaultValue: false)
+  final bool hasRunTotals;
+
   final String? createdByUsername;
 
   /// The slicer's per-filament usage, one entry per AMS slot the print drew
@@ -304,9 +327,25 @@ class Archive {
       ? externalUrl
       : ((makerworldUrl ?? '').isNotEmpty ? makerworldUrl : null);
 
-  /// The three costs added up, or null when the server sent none of them.
+  /// The web card's rule (`totals` in `ArchivesPage.tsx`): with more than one
+  /// run the card shows what all of them cost, and a figure no run has stays
+  /// hidden rather than falling back to the first run's.
+  bool get showsRunTotals =>
+      runCount > 1 &&
+      (hasRunTotals ||
+          totalFilamentCost != null ||
+          totalEnergyKwh != null ||
+          totalEnergyCost != null ||
+          totalWearCost != null);
+
+  double? get shownFilamentCost => showsRunTotals ? totalFilamentCost : cost;
+  double? get shownEnergyKwh => showsRunTotals ? totalEnergyKwh : energyKwh;
+  double? get shownEnergyCost => showsRunTotals ? totalEnergyCost : energyCost;
+  double? get shownWearCost => showsRunTotals ? totalWearCost : wearCost;
+
+  /// The three shown costs added up, or null when there are none.
   double? get totalCost {
-    final parts = [?cost, ?energyCost, ?wearCost];
+    final parts = [?shownFilamentCost, ?shownEnergyCost, ?shownWearCost];
     return parts.isEmpty ? null : parts.reduce((a, b) => a + b);
   }
 

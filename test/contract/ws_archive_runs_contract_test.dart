@@ -98,6 +98,39 @@ void main() {
       expect(run.ownMediaReported, served);
     });
 
+    test(
+      'the run totals of the card are read from the keys the server sends',
+      () async {
+        final rows = (await dio.get<List<dynamic>>(
+          Endpoints.archives,
+        )).data!.whereType<Map<String, dynamic>>();
+        expect(rows, isNotEmpty);
+        const keys = [
+          'total_cost',
+          'total_energy_kwh',
+          'total_energy_cost',
+          'total_wear_cost',
+        ];
+        var withFigures = 0;
+        for (final row in rows) {
+          final archive = Archive.fromJson(row);
+          // The four keys arrived together with #3609: all of them, or none.
+          expect(
+            keys.map(row.containsKey).toSet(),
+            hasLength(1),
+            reason: 'the totals come as one set',
+          );
+          double? raw(String key) => (row[key] as num?)?.toDouble();
+          expect(archive.totalFilamentCost, raw('total_cost'));
+          expect(archive.totalEnergyKwh, raw('total_energy_kwh'));
+          expect(archive.totalEnergyCost, raw('total_energy_cost'));
+          expect(archive.totalWearCost, raw('total_wear_cost'));
+          if (keys.any((k) => row[k] != null)) withFigures++;
+        }
+        printOnFailure('$withFigures archives carry a run total');
+      },
+    );
+
     test('a print takes a note of its own on a server that has it', () async {
       final answered = await log.updateEntry(run.id, notes: 'contract note');
       final stored = (await archives.runs(

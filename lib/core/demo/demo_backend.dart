@@ -1444,6 +1444,7 @@ class DemoBackend {
       'wear_cost': null,
       'created_at': isoUtc(DateTime.now()),
     };
+    _setRunTotals(archive, _printLog);
     _archives.insert(0, archive);
     return archive;
   }
@@ -3858,7 +3859,14 @@ class DemoBackend {
 
   // --- Archives + stats ---
 
-  late final List<Map<String, dynamic>> _archives = _buildArchives();
+  late final List<Map<String, dynamic>> _archiveRows = _buildArchives();
+
+  /// Reading the archives builds the print log first: the run totals on each
+  /// row are summed from it (`_setRunTotals`).
+  List<Map<String, dynamic>> get _archives {
+    _printLog;
+    return _archiveRows;
+  }
 
   List<Map<String, dynamic>> _buildArchives() {
     var id = 40;
@@ -4236,7 +4244,7 @@ class DemoBackend {
       };
     }
 
-    final multi = _archives.firstWhere((a) => a['run_count'] == 3);
+    final multi = _archiveRows.firstWhere((a) => a['run_count'] == 3);
 
     Map<String, dynamic> orphan(
       String name,
@@ -4276,7 +4284,7 @@ class DemoBackend {
       };
     }
 
-    return [
+    final log = [
       // Newest first, the order the server sorts by.
       orphan(
         'Bracket v3 (deleted archive)',
@@ -4286,7 +4294,7 @@ class DemoBackend {
         failureReason: 'cloggedNozzle',
         energyKwh: 0.06,
       ),
-      for (final a in _archives) row(a),
+      for (final a in _archiveRows) row(a),
       earlier(
         multi,
         plateId: 1,
@@ -4304,6 +4312,47 @@ class DemoBackend {
       ),
       orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
     ];
+    for (final a in _archiveRows) {
+      _setRunTotals(a, log);
+    }
+    return log;
+  }
+
+  /// The run counts and totals of an archive whose prints were moved or
+  /// deleted, read again from the print log.
+  void _syncRuns(Map<String, dynamic> archive) {
+    final runs = _printLog.where((e) => e['archive_id'] == archive['id']);
+    archive['run_count'] = runs.length;
+    archive['successful_run_count'] = runs
+        .where((e) => e['status'] == 'completed')
+        .length;
+    archive['failed_run_count'] = runs
+        .where((e) => e['status'] == 'failed')
+        .length;
+    _setRunTotals(archive, _printLog);
+  }
+
+  /// The four `total_*` figures the server sums over an archive's prints
+  /// (`_load_run_aggregates`, #3609); null where no print has the figure.
+  void _setRunTotals(
+    Map<String, dynamic> archive,
+    List<Map<String, dynamic>> log,
+  ) {
+    final runs = log.where((e) => e['archive_id'] == archive['id']);
+    double? sum(String key, int digits) {
+      final values = [
+        for (final r in runs)
+          if (r[key] case final num v) v,
+      ];
+      if (values.isEmpty) return null;
+      final total = values.reduce((a, b) => a + b);
+      return double.parse(total.toStringAsFixed(digits));
+    }
+
+    archive['total_cost'] = sum('cost', 2);
+    archive['total_energy_kwh'] = sum('energy_kwh', 3);
+    archive['total_energy_cost'] = sum('energy_cost', 2);
+    archive['total_wear_cost'] = sum('wear_cost', 2);
   }
 
   String? _printerName(int? printerId) {
@@ -4340,6 +4389,7 @@ class DemoBackend {
         // Clears every row, ignoring the filters above — as the route does.
         final deleted = _printLog.length;
         _printLog.clear();
+        _archives.forEach(_syncRuns);
         return demoOk({'deleted': deleted});
       }
       return _fallback(m);
@@ -4352,6 +4402,8 @@ class DemoBackend {
 
     if (m == 'DELETE') {
       _printLog.remove(entry);
+      final owner = rowById(_archives, entry['archive_id']);
+      if (owner != null) _syncRuns(owner);
       return demoOk({'status': 'deleted', 'id': entryId});
     }
     if (m == 'PATCH') {
@@ -4716,14 +4768,7 @@ class DemoBackend {
           run['archive_id'] = survivor['id'];
         }
       }
-      final runs = _printLog.where((e) => e['archive_id'] == survivor['id']);
-      survivor['run_count'] = runs.length;
-      survivor['successful_run_count'] = runs
-          .where((e) => e['status'] == 'completed')
-          .length;
-      survivor['failed_run_count'] = runs
-          .where((e) => e['status'] == 'failed')
-          .length;
+      _syncRuns(survivor);
       _archives.removeWhere(others.contains);
       merged.add({
         'survivor_id': survivor['id'],
