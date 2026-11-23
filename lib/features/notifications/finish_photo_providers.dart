@@ -14,10 +14,13 @@ import '../dashboard/ws_providers.dart';
 /// notification to update comes from [FinishAlertMemory], since the isolate that
 /// posted it is gone by then.
 ///
-/// Exactly one of the two may run: the dashboard's lifecycle hooks stop this one
-/// as the service takes over and start it again only once the service is down.
+/// Exactly one of the two may run: `BackgroundHandover` stops this one as the
+/// service takes over and starts it again only once the service is down.
 /// Overlapping them would fetch every photo twice and let their read-modify-write
 /// on the shared memory drop an entry, stranding a notification without a photo.
+///
+/// Built stopped for that reason: on a cold start it exists before a service
+/// that survived a swipe-away has been stopped.
 final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
@@ -40,15 +43,14 @@ final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     ),
     notifications: ref.watch(notificationServiceProvider),
     memory: FinishAlertMemory(prefs),
     // Read per frame rather than captured: this provider outlives a trip to the
     // settings screen, and the switch there is meant to take effect at once.
     isEnabled: () => settings.loadNotificationPrefs().finishPhoto,
-  )..start();
+  );
   ref.onDispose(notifier.stop);
   return notifier;
 });

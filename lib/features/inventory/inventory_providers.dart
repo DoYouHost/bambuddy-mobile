@@ -224,9 +224,9 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
             from.trayId == draft.trayId);
-    // One request, one commit: a refusal leaves the spool where it was, so
-    // there is nothing to clear first and nothing to put back.
     if (moving && ref.read(assignmentMoveProvider).orFalse) {
+      // One request, one commit: a refusal leaves the spool where it was, so
+      // there is nothing to clear first and nothing to put back.
       await repo.assignSpool(
         SpoolAssignmentDraft(
           spoolId: draft.spoolId,
@@ -236,37 +236,35 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
           move: true,
         ),
       );
-      _nudgeRepublish(draft.printerId);
-      if (from.printerId != draft.printerId) _nudgeRepublish(from.printerId);
-      return null;
-    }
-    // The old slot is cleared first: Spoolman takes a spool off by its id, so
-    // clearing after the new assignment would take that off too.
-    if (moving) {
-      await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
-    }
-    try {
-      await repo.assignSpool(draft);
-    } on Object {
-      // A move that fails halfway puts the spool back where it was, rather
-      // than leaving it in neither slot. If that fails too, the reload after
-      // the error shows where the spool really is.
+    } else {
+      // The old slot is cleared first: Spoolman takes a spool off by its id,
+      // so clearing after the new assignment would take that off too.
       if (moving) {
-        await repo
-            .assignSpool(
-              SpoolAssignmentDraft(
-                spoolId: from.spoolId,
-                printerId: from.printerId,
-                amsId: from.amsId,
-                trayId: from.trayId,
-              ),
-            )
-            .then(
-              (_) => _nudgeRepublish(from.printerId),
-              onError: (Object _) {},
-            );
+        await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
       }
-      rethrow;
+      try {
+        await repo.assignSpool(draft);
+      } on Object {
+        // A move that fails halfway puts the spool back where it was, rather
+        // than leaving it in neither slot. If that fails too, the reload after
+        // the error shows where the spool really is.
+        if (moving) {
+          await repo
+              .assignSpool(
+                SpoolAssignmentDraft(
+                  spoolId: from.spoolId,
+                  printerId: from.printerId,
+                  amsId: from.amsId,
+                  trayId: from.trayId,
+                ),
+              )
+              .then(
+                (_) => _nudgeRepublish(from.printerId),
+                onError: (Object _) {},
+              );
+        }
+        rethrow;
+      }
     }
     _nudgeRepublish(draft.printerId);
     if (moving && from.printerId != draft.printerId) {

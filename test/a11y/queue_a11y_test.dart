@@ -491,7 +491,7 @@ Future<void> main() async {
   a11ySurface(
     'edit form, any printer of a model',
     home: () => edit(anyModel),
-    shows: find.text(pl.queueEditFilamentOverride),
+    shows: find.text(pl.queueEditFilamentOverride.toUpperCase()),
   );
 
   a11ySurface(
@@ -581,7 +581,7 @@ Future<void> main() async {
       ),
     ],
     home: () => edit(unbilled),
-    shows: find.text(pl.queueCostCenterTitle),
+    shows: find.text(pl.queueCostCenterTitle.toUpperCase()),
   );
 
   // --- Create mode ---

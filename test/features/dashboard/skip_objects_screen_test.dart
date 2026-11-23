@@ -137,12 +137,7 @@ void main() {
         ),
         objectPickMaskProvider(1).overrideWith((ref) async => mask),
       ],
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
-      ),
+      builder: textScaled(textScale),
     );
     await tester.pumpAndSettle();
     return repo;

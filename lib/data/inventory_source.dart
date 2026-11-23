@@ -685,19 +685,13 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   /// The route is newer than Spoolman mode itself; below it the 404 means "no
   /// history kept", and the handler looks no spool up, so it has no other cause.
   @override
-  Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
-    try {
-      return await guard(
-        () => _dio.getList(
-          Endpoints.spoolmanSpoolUsage(spoolId),
-          SpoolUsageEntry.fromNative,
-        ),
-      );
-    } on AppApiException catch (e) {
-      if (e.statusCode == 404) return const [];
-      rethrow;
-    }
-  }
+  Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) => guardAbsent(
+    () => _dio.getList(
+      Endpoints.spoolmanSpoolUsage(spoolId),
+      SpoolUsageEntry.fromNative,
+    ),
+    const [],
+  );
 
   @override
   Future<Spool> createSpool(SpoolDraft draft) => guard(() async {

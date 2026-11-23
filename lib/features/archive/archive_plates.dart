@@ -9,9 +9,9 @@ import '../../core/models/print_log_entry.dart';
 import '../../core/models/print_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/filament_dot.dart';
 import '../common/print_thumbnail.dart';
 import '../slicer/slice_providers.dart';
-import 'archive_details.dart';
 import 'archive_providers.dart';
 import 'archive_runs.dart';
 
@@ -48,7 +48,7 @@ class ArchivePlatesSection extends ConsumerWidget {
         children: [
           Text(
             AppLocalizations.of(context).archivePlatesTitle,
-            style: t.bodyBold.copyWith(color: t.textPrimary),
+            style: t.bodyBoldPrimary,
           ),
           for (final plate in plates)
             _PlateCard(
@@ -177,7 +177,7 @@ class _PlateCard extends ConsumerWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FilamentDot(hex: f.color),
+                      FilamentDot.hex(f.color),
                       const SizedBox(width: DashSpace.xs),
                       Text(f.type, style: t.labelSoft),
                     ],

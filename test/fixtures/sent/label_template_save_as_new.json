@@ -1,0 +1,20 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/label-templates",
+    "body": {
+      "name": "Address copy",
+      "layout": {
+        "page": "a4",
+        "label_w_mm": 63.5,
+        "label_h_mm": 38.1,
+        "cols": 2,
+        "rows": 7,
+        "top_mm": 15.15,
+        "left_mm": 7.0,
+        "col_gap_mm": 2.5,
+        "row_gap_mm": 0.0
+      }
+    }
+  }
+]

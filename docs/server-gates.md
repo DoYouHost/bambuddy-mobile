@@ -412,7 +412,9 @@ the inventory backend from `/spoolman/status`). Nor the Manyfold tab of Model
 Sources (#1471): the screen needs `/manyfold/status`'s payload anyway — whether
 a connection exists decides the tab too — so that one read, made each time the
 screen opens, answers 404 (older server) and 403 (no `manyfold:view`) as "no
-tab", and no latch would learn anything it does not.
+tab", and no latch would learn anything it does not. The AI failure detection item on
+the print panel is the same kind of read (two routes, 404 and 403 as "nothing to
+show"); see [screens.md](screens.md).
 
 ### Why the path is shaped like this
 
@@ -710,3 +712,52 @@ spool listing. An empty inventory says nothing and the version row answers,
 which costs nothing: the date is written only to a spool that exists (neither
 create schema takes it), and that spool's own row has already settled the gate.
 Reading needs no gate: an older server never sends a date to show.
+
+### labelTemplates — 1.3.0 (server #3296, PR #3385, commit 9a92f7d)
+
+Custom label sheets: `GET/POST/PUT/DELETE /label-templates` for the saved list, and
+`template: "custom"` with a `layout` on the two label routes. Printing never reads the
+saved list — the layout travels with the request, so a saved sheet and a one-off one print
+the same way and anyone who may print may use either; saving, renaming and deleting need
+`inventory:update`.
+
+Not a silent drop: an older server answers **404** to the list and **422** to `custom`
+(measured on 1.2.5: its `template` is a `Literal` of the built-in names), so the listing
+settles `LabelTemplatesRepository.capability` — `treat404AsAbsent`, since the handler looks
+no row up — and nothing is ever sent to a server that would drop it. The label picker
+fetches that listing every time it opens, so no probe is needed.
+
+The commit landed on 1.3.1b1 dailies (2026-11-02) and is in the 1.3.0 release image, the
+same way the archive redesign is, so the row is 1.3.0: a 1.3.0b1 daily older than the
+commit is told yes and corrected by its 404. Being early costs the "Custom sheet" entry
+for the length of one request.
+
+Two things the 1.3.0 release and the dailies agree on, measured on both images
+(`label_templates_contract_test.dart`): a name clashes ignoring case (409, on create and on
+rename), and saving a template again under its own name is not a clash. The client's
+`SheetLayout.problem` is a mirror of the server's `SheetLayout.problem()`, one case per
+condition; the contract test posts each case and fails when the two disagree.
+
+### wled — 1.3.1 (server #1528, PR #3124, commit 0bf86c2)
+
+`wled_config` on a printer row and on `PATCH /printers/{id}`, and the three
+`POST /printers/{id}/wled/{presets|test-connection|test-preset}` routes: the server
+switches a WLED controller to the preset mapped to the printer's state. Measured on the
+images: 1.3.0 has none of the routes, the 1.3.1 release has them (the commit landed on
+1.3.2b1 dailies on 2026-11-08 and went into the release too).
+
+The write is a silent drop: `PrinterUpdate` forbids no extra fields, so an older server
+answers 200 and stores nothing. What settles `PrintersRepository.wledCapability` is the
+**key on the printer row**: `PrinterResponse` sends `wled_config`, null or not, from the
+commit on, and the dashboard lists printers anyway, so no probe is needed. An empty fleet
+settles nothing, and the version decides; the screen has nothing to offer then either.
+`saveWledConfig` reads the same key off the `PATCH` reply and throws when it is missing,
+so even a server downgraded mid-session cannot report a save that did not happen.
+
+The three routes settle nothing: a 404 there is a printer gone, a 403 a missing
+`printers:update` on that printer, and a 502 a WLED that did not answer. All four need
+`printers:update`, which no API key can hold, so the hub entry also reads
+`canUpdatePrintersProvider`. Being early costs a 1.3.1b1 daily older than the commit
+the hub entry until the first printer listing comes back without the key. On 1.2.5 the
+three routes answer 405, not 404 (a `GET` route takes the path); the app never calls
+them there, so nothing reads that status.

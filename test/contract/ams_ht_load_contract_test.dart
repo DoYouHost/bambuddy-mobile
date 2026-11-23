@@ -36,12 +36,7 @@ void main() {
       final sent = recordedWrites('ams_ht_load');
       if (!supported) {
         // The harness's client hands every status back rather than throwing.
-        final answers = await replayWrites(
-          dio,
-          sent,
-          item: printerId,
-          itemIn: RegExp(r'(?<=/printers/)\d+'),
-        );
+        final answers = await replayWrites(dio, sent, item: printerId);
         expect(
           answers.single.statusCode,
           400,
@@ -52,12 +47,7 @@ void main() {
       late List<Response<dynamic>> answers;
       final command = await firstRequest(
         serial,
-        () async => answers = await replayWrites(
-          dio,
-          sent,
-          item: printerId,
-          itemIn: RegExp(r'(?<=/printers/)\d+'),
-        ),
+        () async => answers = await replayWrites(dio, sent, item: printerId),
         where: (print) => print['command'] == 'ams_change_filament',
       );
       expect(answers.single.statusCode, 200, reason: '${answers.single.data}');

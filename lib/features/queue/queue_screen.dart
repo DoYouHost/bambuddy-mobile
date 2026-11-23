@@ -340,8 +340,8 @@ class _QueueList extends ConsumerWidget {
       ),
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       physics: const AlwaysScrollableScrollPhysics(),
-      // No default long-press drag — reorder only via explicit handle on left
-      // side of tile.
+      // No default long-press drag — reorder only via the explicit handle left
+      // of the picture.
       buildDefaultDragHandles: false,
       itemCount: reorderable.length,
       onReorderItem: (oldIndex, newIndex) async {
@@ -361,6 +361,12 @@ class _QueueList extends ConsumerWidget {
   }
 }
 
+/// The text scale from which the card stacks the name above the picture.
+const _stackedFromTextScale = 1.5;
+
+/// The drag handle's slot: as wide as a touch target.
+const _handleWidth = DashSize.d48;
+
 class _QueueCard extends ConsumerWidget {
   const _QueueCard({
     super.key,
@@ -375,8 +381,8 @@ class _QueueCard extends ConsumerWidget {
   /// (not wrapped in Dismissible).
   final bool pinned;
 
-  /// Index in reorderable list; when provided, show explicit drag handle on left
-  /// (`ReorderableDragStartListener`). Null for pinned items.
+  /// Index in reorderable list; when provided, show the explicit drag handle
+  /// left of the picture (`ReorderableDragStartListener`). Null for pinned items.
   final int? dragIndex;
 
   @override
@@ -426,57 +432,128 @@ class _QueueCard extends ConsumerWidget {
                   : t.cardBorder,
             ),
           ),
-          child: Row(
-            children: [
-              if (idx != null && !selecting)
-                logTag(
-                  'queue.reorder',
-                  ReorderableDragStartListener(
-                    index: idx,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: DashSpace.md),
-                      child: Icon(Icons.drag_indicator, color: t.textTertiary),
+          child: Builder(
+            builder: (context) {
+              // From 150% text the name of a reorderable card would get under
+              // 140 dp beside the handle, the picture and the menu and break in
+              // the middle of words; it takes a row of its own, next to the
+              // menu, instead.
+              final stacked =
+                  MediaQuery.textScalerOf(context).scale(DashFontSize.lead) /
+                      DashFontSize.lead >=
+                  _stackedFromTextScale;
+              // A selection takes the handle away and the picture, now a tick,
+              // moves to the card's edge. The handle's width goes to the far end
+              // of the row instead, so the name and the status line keep their
+              // width and the cards do not reflow under the finger.
+              final spare = idx != null && selecting;
+              final handle = <Widget>[
+                if (idx != null && !selecting)
+                  logTag(
+                    'queue.reorder',
+                    ReorderableDragStartListener(
+                      index: idx,
+                      // Opaque, as tall as the picture: without the colour the
+                      // listener answers only on the 24 dp glyph.
+                      child: ColoredBox(
+                        color: Colors.transparent,
+                        child: SizedBox(
+                          width: _handleWidth,
+                          height: DashSize.d56,
+                          child: Center(
+                            child: Icon(
+                              Icons.drag_indicator,
+                              size: DashIcon.lg,
+                              // Fixed: a glyph that grew with the text would
+                              // fill the slot and crowd the picture.
+                              applyTextScaling: false,
+                              color: t.textTertiary,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ).tourTarget('queue.reorder.${item.id}'),
-                ),
+              ];
               // A tick in place of the picture, as the archive marks a pick.
-              if (selected)
-                Container(
-                  width: DashSize.d56,
-                  height: DashSize.d56,
-                  decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: DashAlpha.wash),
-                    borderRadius: BorderRadius.circular(DashRadius.lg),
-                  ),
-                  child: Icon(Icons.check, color: t.accentGreenInk),
-                )
-              else
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(DashRadius.lg),
-                  child: QueueThumbnail(item: item, size: DashSize.d56),
-                ),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.titleMd,
+              final picture = selected
+                  ? Container(
+                      width: DashSize.d56,
+                      height: DashSize.d56,
+                      decoration: BoxDecoration(
+                        color: t.accentGreen.withValues(alpha: DashAlpha.wash),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
+                      ),
+                      child: Icon(
+                        Icons.check,
+                        size: DashIcon.lg,
+                        // The box is 56 dp whatever the text size.
+                        applyTextScaling: false,
+                        color: t.accentGreenInk,
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(DashRadius.lg),
+                      child: QueueThumbnail(item: item, size: DashSize.d56),
+                    );
+              final name = Text(
+                item.displayName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: t.titleMd,
+              );
+              // The menu's removal and the swipe both act on one item, and a
+              // selection is about several: they wait until it is over. Its
+              // slot stays, or the name reflows and the card shrinks.
+              final menu = selecting
+                  ? const SizedBox.square(dimension: DashSize.d48)
+                  : _QueueActions(item: item);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (stacked) ...[
+                    Row(
+                      children: [
+                        Expanded(child: name),
+                        menu,
+                      ],
                     ),
                     const SizedBox(height: DashSpace.sm),
-                    _Subtitle(item: item),
-                    QueueFilamentChips(item: item),
+                    Row(
+                      children: [
+                        ...handle,
+                        picture,
+                        const SizedBox(width: DashSpace.md),
+                        Expanded(child: _StatusLine(item: item)),
+                        if (spare) const SizedBox(width: _handleWidth),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        ...handle,
+                        picture,
+                        const SizedBox(width: DashSpace.md),
+                        Expanded(child: name),
+                        menu,
+                        if (spare) const SizedBox(width: _handleWidth),
+                      ],
+                    ),
+                    const SizedBox(height: DashSpace.sm),
+                    _StatusLine(item: item),
                   ],
-                ),
-              ),
-              // The menu's removal and the swipe both act on one item, and a
-              // selection is about several: they wait until it is over.
-              if (!selecting) _QueueActions(item: item),
-            ],
+                  QueueFilamentChips(
+                    item: item,
+                    // Left out when there is nothing to show: a zero-size child
+                    // that lands on a new run still costs a `runSpacing`.
+                    leading: [
+                      if (item.colorSubstitutions.isNotEmpty)
+                        ColorSubstitutionChip(item: item),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -533,8 +610,10 @@ class _QueueCard extends ConsumerWidget {
   }
 }
 
-class _Subtitle extends ConsumerWidget {
-  const _Subtitle({required this.item});
+/// The line under the name: the status, the web's Staged badge and the printer
+/// and time.
+class _StatusLine extends ConsumerWidget {
+  const _StatusLine({required this.item});
 
   final QueueItem item;
 
@@ -559,37 +638,28 @@ class _Subtitle extends ConsumerWidget {
       // appears.
       if (item.archiveHasSlicerAmsMapping) l10n.queueAmsFromSlicer,
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      spacing: DashSpace.xs,
+      runSpacing: DashSpace.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: DashSpace.xs,
-          runSpacing: DashSpace.xs,
-          children: [
-            _StatusChip(item: item),
-            // The web's Staged badge, which says who starts the job to a user
-            // held for review (#1620).
-            if (item.manualStart)
-              _Chip(
-                label: queueStagedLabel(
-                  l10n,
-                  awaitingReview: ref.watch(awaitingReviewProvider),
-                ),
-                accent: t.textTertiary,
-              ),
-            ColorSubstitutionChip(item: item),
-          ],
-        ),
-        if (parts.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: DashSpace.xs),
-            child: Text(
-              parts.join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.monoLabel,
+        _StatusChip(item: item),
+        // The web's Staged badge, which says who starts the job to a user
+        // held for review (#1620).
+        if (item.manualStart)
+          _Chip(
+            label: queueStagedLabel(
+              l10n,
+              awaitingReview: ref.watch(awaitingReviewProvider),
             ),
+            accent: t.textTertiary,
+          ),
+        if (parts.isNotEmpty)
+          Text(
+            parts.join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoLabel,
           ),
       ],
     );
@@ -641,13 +711,7 @@ class _Chip extends StatelessWidget {
               : accent.withValues(alpha: DashAlpha.outline),
         ),
       ),
-      child: Text(
-        label,
-        style: t.micro.copyWith(
-          color: accent,
-          letterSpacing: DashTracking.label,
-        ),
-      ),
+      child: Text(label, style: t.pillText(accent)),
     );
   }
 }
@@ -694,7 +758,12 @@ class _QueueActions extends ConsumerWidget {
     return logTag(
       'queue.actions',
       PopupMenuButton<String>(
-        icon: Icon(Icons.more_vert, color: t.textSecondary),
+        icon: Icon(
+          Icons.more_vert,
+          // Grown with the text it took 64 dp of the card's width.
+          applyTextScaling: false,
+          color: t.textSecondary,
+        ),
         onSelected: (value) async {
           if (value == 'preview') {
             _previewGcode(context);

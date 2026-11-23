@@ -5,6 +5,7 @@ import 'package:json_annotation/json_annotation.dart';
 import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
 import 'next_pause.dart';
+import 'panda_breath.dart';
 import 'value_equality.dart';
 import 'json_utils.dart';
 
@@ -63,6 +64,7 @@ class PrinterStatus {
     this.trayChangeLog,
     this.extruderSlots,
     this.nextPause,
+    this.pandaBreath,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -264,6 +266,15 @@ class PrinterStatus {
   @JsonKey(fromJson: nextPauseFromJson)
   final NextPause? nextPause;
 
+  /// The BIQU Panda Breath bound to this printer, null without one and on a
+  /// server before #1466. **Not inherited by [mergedWith]**, for the reason
+  /// [nextPause] is not: the server writes the key into every status with null
+  /// for "none bound", so a heater unbound or switched off in bambuddy goes
+  /// away on the next frame. Survives [_clearedIfOffline]: the heater runs
+  /// without the printer, and the server keeps reporting it for an offline one.
+  @JsonKey(fromJson: pandaBreathFromJson)
+  final PandaBreathState? pandaBreath;
+
   /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
   /// main, 1 = left / deputy). Null on servers and printers that do not report
   /// it; [trayNow] is printer-wide and cannot answer the same question, because
@@ -356,6 +367,7 @@ class PrinterStatus {
     amsFilamentBackup,
     trayChangeLog,
     nextPause,
+    pandaBreath,
   ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -445,6 +457,7 @@ class PrinterStatus {
       amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
       trayChangeLog: trayChangeLog ?? previous.trayChangeLog,
       nextPause: nextPause,
+      pandaBreath: pandaBreath,
     )._clearedIfOffline();
   }
 
@@ -504,6 +517,7 @@ class PrinterStatus {
       extruderSlots: extruderSlots,
       hmsErrors: hmsErrors,
       awaitingPlateClear: awaitingPlateClear,
+      pandaBreath: pandaBreath,
     );
   }
 
@@ -1126,10 +1140,9 @@ class NozzleInfo with ValueEquality {
 /// translation, and the recovery of the position the carriage emptied, live in
 /// `core/printers/nozzle_rack.dart`.
 ///
-/// Only what choosing a position needs is read — the diameter and flow type the
-/// pick is checked against, and the filament sitting there so the row can say
-/// which nozzle is which. Wear, temperature rating and serial number are the
-/// server's business.
+/// What the nozzle reports about itself rides along: the diameter and flow type
+/// a queue pick is checked against, the filament sitting there, and wear, print
+/// time, status, temperature rating and serial number for the nozzle's own card.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class NozzleRackSlot with ValueEquality {
   const NozzleRackSlot({
@@ -1139,6 +1152,11 @@ class NozzleRackSlot with ValueEquality {
     this.filamentColor,
     this.filamentType,
     this.addrId,
+    this.wear,
+    this.printTimeS,
+    this.stat,
+    this.maxTemp,
+    this.serialNumber,
   });
 
   factory NozzleRackSlot.fromJson(Map<String, dynamic> json) =>
@@ -1159,8 +1177,8 @@ class NozzleRackSlot with ValueEquality {
   /// RGBA hex of the filament loaded on this nozzle, `00000000` when none.
   final String? filamentColor;
 
-  /// Material loaded on this nozzle (`PLA`, `PETG`). Absent from the WebSocket
-  /// frame, which carries every other field of this record.
+  /// Material loaded on this nozzle (`PLA`, `PETG`). An older server's
+  /// WebSocket frame leaves it out.
   final String? filamentType;
 
   /// H3C only: every nozzle's home rack position (0-8), the docked ones and
@@ -1168,6 +1186,27 @@ class NozzleRackSlot with ValueEquality {
   /// Null on an H2C and an older server.
   @JsonKey(fromJson: toIntOrNull)
   final int? addrId;
+
+  /// Wear in percent, as the nozzle reports it. Null when it does not.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? wear;
+
+  /// Seconds this nozzle has printed (`p_t`, server #1908, 1.3.1). H2C firmware
+  /// only: null on other models, on older firmware and on a server that does not
+  /// send it, and a null row is left out rather than shown as "0h".
+  @JsonKey(fromJson: toIntOrNull)
+  final int? printTimeS;
+
+  /// The printer's own status code for the nozzle (mounted, docked).
+  @JsonKey(fromJson: toIntOrNull)
+  final int? stat;
+
+  /// Temperature rating in °C; 0 and null both mean "not reported".
+  @JsonKey(fromJson: toIntOrNull)
+  final int? maxTemp;
+
+  /// Empty or null when the nozzle does not report one.
+  final String? serialNumber;
 
   /// Whether the position holds a nozzle at all. A dock the operator left
   /// empty still arrives, with its properties blank.
@@ -1183,6 +1222,11 @@ class NozzleRackSlot with ValueEquality {
     filamentColor,
     filamentType,
     addrId,
+    wear,
+    printTimeS,
+    stat,
+    maxTemp,
+    serialNumber,
   ];
 }
 

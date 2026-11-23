@@ -706,13 +706,7 @@ class _No3mfBanner extends ConsumerWidget {
           DashSpace.sm,
           DashSpace.md,
         ),
-        decoration: BoxDecoration(
-          color: t.accentOrange.withValues(alpha: DashAlpha.faint),
-          borderRadius: BorderRadius.circular(DashRadius.lg),
-          border: Border.all(
-            color: t.accentOrange.withValues(alpha: DashAlpha.soft),
-          ),
-        ),
+        decoration: t.tintBox(t.accentOrange),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1602,7 +1596,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(archiveFiltersProvider);
     final notifier = ref.read(archiveFiltersProvider.notifier);
-    final printers = ref.watch(printersForPickerProvider).value ?? const [];
+    final printers = ref.watch(printerListProvider).value ?? const [];
 
     final materials = <String>{
       for (final a in archives) ...filamentTypeTokens(a.filamentType),

@@ -7,6 +7,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/models/panda_breath.dart';
 import '../../core/printers/bed_jog.dart';
 import '../../core/printers/hms_readback.dart';
 import '../../data/ams_slot_config_repository.dart';
@@ -29,6 +30,7 @@ enum ControlAction {
   move,
   hms,
   ams,
+  pandaBreath,
 }
 
 /// The server permission a control route is gated on.
@@ -384,6 +386,28 @@ class ControlsNotifier extends Notifier<ControlsState> {
     rollback: (before, rolled) =>
         rolled.withFanSpeed(fan, before.fanSpeed(fan)),
     clearKey: 'fan:$fan',
+  );
+
+  /// The printer's Panda Breath. No optimistic overlay, as on the web: the
+  /// heater's reply reaches the status within a frame, and one in-flight flag
+  /// for all three keeps a second change from racing the first.
+  Future<ActionOutcome> setPandaBreathOn(int id, {required bool on}) => _run(
+    id,
+    ControlAction.pandaBreath,
+    () => _repo.setPandaBreathOn(id, on: on),
+  );
+
+  Future<ActionOutcome> setPandaBreathMode(int id, PandaBreathMode mode) =>
+      _run(
+        id,
+        ControlAction.pandaBreath,
+        () => _repo.setPandaBreathMode(id, mode),
+      );
+
+  Future<ActionOutcome> setPandaBreathTarget(int id, int target) => _run(
+    id,
+    ControlAction.pandaBreath,
+    () => _repo.setPandaBreathTarget(id, target),
   );
 
   /// Start AMS drying. No optimistic overlay — the AMS `dry_time`/`dry_status`

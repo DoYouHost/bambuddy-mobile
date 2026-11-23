@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../common/section_label.dart';
 import '../../core/models/calibration_option.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -61,12 +62,7 @@ class QueueSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final fold = collapse;
-    final heading = title == null
-        ? null
-        : Text(
-            title!,
-            style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
-          );
+    final heading = title == null ? null : SectionLabel(title!);
     final open = fold?.open ?? true;
     // The gap under the title belongs to an open card only.
     EdgeInsets headerPadding({required bool open}) => EdgeInsets.fromLTRB(

@@ -1,3 +1,5 @@
+import 'printer.dart' show PrinterKey;
+
 /// Request body for `POST /printers/` (PrinterCreate). Write-only shape — the
 /// server tests the MQTT connection with these before persisting, so a wrong
 /// access code / IP is rejected instead of creating a dead printer row.
@@ -49,7 +51,8 @@ class PrinterUpdate {
     this.accessCode,
     this.model,
     this.wearCostPerHour,
-    this.sendWearCost = false,
+    this.dispatchPriority,
+    this.served = const {},
   });
 
   final String name;
@@ -65,8 +68,14 @@ class PrinterUpdate {
   /// Null or 0 turns wear cost off, as the web sends it.
   final double? wearCostPerHour;
 
-  /// Left out for a server that does not know the field.
-  final bool sendWearCost;
+  /// Null clears it; the server accepts 0 to 100000 and answers 422 outside.
+  final int? dispatchPriority;
+
+  /// The row's `Printer.servedKeys`. A field from [PrinterKey] is sent only
+  /// when its key is in here: an older server takes it and drops it unseen.
+  /// Every key in here is sent, null included, and null clears the field: give
+  /// each one its current value unless the edit means to clear it.
+  final Set<String> served;
 
   Map<String, dynamic> toJson() => {
     'name': name,
@@ -79,7 +88,17 @@ class PrinterUpdate {
     // Always sent, as the web does: null or empty clears it.
     'location': (location == null || location!.isEmpty) ? null : location,
     if (accessCode != null && accessCode!.isNotEmpty) 'access_code': accessCode,
-    if (sendWearCost)
-      'wear_cost_per_hour': (wearCostPerHour ?? 0) > 0 ? wearCostPerHour : null,
+    if (served.contains(PrinterKey.wearCostPerHour))
+      PrinterKey.wearCostPerHour: (wearCostPerHour ?? 0) > 0
+          ? wearCostPerHour
+          : null,
+    if (served.contains(PrinterKey.dispatchPriority))
+      PrinterKey.dispatchPriority: dispatchPriority?.clamp(
+        0,
+        maxDispatchPriority,
+      ),
   };
+
+  /// `PrinterUpdate.dispatch_priority`'s `le=100000`.
+  static const maxDispatchPriority = 100000;
 }

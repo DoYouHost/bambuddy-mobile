@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import 'package:app_util/app_util.dart';
 
 import '../ams/slot_addressing.dart';
@@ -10,9 +12,12 @@ import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
 import '../models/queue_item.dart'
     show kModelGateWaitReason, kPreviousFailureGate;
+import '../models/label_template.dart';
+import '../models/panda_breath.dart';
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_result.dart';
+import 'demo_label_templates.dart';
 import 'demo_labels.dart';
 import 'demo_finance.dart';
 import 'demo_manyfold.dart';
@@ -174,6 +179,10 @@ class DemoBackend {
   final List<Map<String, dynamic>> _scheduledDryings = [];
   int _nextScheduledDryingId = 1;
   final Map<int, bool> _plugOn = {1: true, 2: false, 3: true};
+  // The P1S's Panda Breath (#1466), the one heater in the fleet.
+  bool _pandaOn = true;
+  String _pandaMode = 'auto mode';
+  int _pandaTarget = 45;
   // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
   // over the generated status so a demo write shows on the card, the way the
   // printer's own push would.
@@ -458,6 +467,7 @@ class DemoBackend {
               return demoOk(const {'ok': true});
           }
         }
+        if (at(2, 'panda-breath')) return _pandaBreathCommand(pid, body);
         if (at(2, 'airduct-mode')) {
           _airductMode[pid] = q['mode'] == 'heating' ? 1 : 0;
           return demoOk(const {'ok': true});
@@ -489,6 +499,17 @@ class DemoBackend {
           return demoOk(const {'success': true});
         }
         if (at(2, 'clear-plate')) return demoOk(const {'ok': true});
+        if (at(2, 'wled') && s.length == 4 && m == 'POST') {
+          return switch (s[3]) {
+            'presets' => demoOk(_wledPresets),
+            'test-connection' => demoOk(const {
+              'name': 'Workshop strip',
+              'version': '0.15.1',
+            }),
+            'test-preset' => demoOk(const {'success': true}),
+            _ => demoNotFound(),
+          };
+        }
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') {
             return demoOk(_printerFiles(q['path'] ?? '/', pid));
@@ -649,6 +670,25 @@ class DemoBackend {
         if (s.length == 1 && m == 'GET') return demoOk(_externalLinks);
         return demoNotFound();
 
+      case 'obico':
+        // One provider at a time, as on the server: the demo runs
+        // OctoEverywhere, so Obico answers that it is off.
+        if (at(1, 'printer-status') && m == 'GET') {
+          return demoOk({
+            'enabled': false,
+            'monitored_printers': null,
+            'per_printer': <String, dynamic>{},
+            'last_error': null,
+          });
+        }
+        return demoNotFound();
+
+      case 'octoeverywhere':
+        if (at(1, 'printer-status') && m == 'GET') {
+          return demoOk(_aiDetectionStatus());
+        }
+        return demoNotFound();
+
       case 'manyfold':
         if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
         return _manyfold.route(m, s, q, body);
@@ -702,9 +742,15 @@ class DemoBackend {
 
       case 'finance':
         return _finance.route(m, s.skip(1).toList(), q, body);
+
+      case 'label-templates':
+        return _labelTemplates.route(m, s, body);
     }
     return null;
   }
+
+  /// Saved custom label sheets: two to start with, and state.
+  final _labelTemplates = DemoLabelTemplates();
 
   /// Billing: the cost centers, their members and the ledger.
   final _finance = DemoFinance();
@@ -796,6 +842,13 @@ class DemoBackend {
     'queue_keep_warm_max_minutes': 45,
     // Off the server's default of 5, like the rows above it.
     'pause_warning_minutes': 10,
+    // Off the server's default of `fewest_hours`, so the row visibly reads it:
+    // the two X1 Carbons carry priorities 2 and 1 in `_printers`, and the rest
+    // none, which is last.
+    'model_dispatch_order': 'priority',
+    // Off the server's default of 20, so the spool list and the notification
+    // settings row visibly read it. The Silk Gold spool (9.5% left) is below it.
+    'low_stock_threshold': 15.0,
   };
 
   Map<String, dynamic> get _demoUser => {
@@ -1436,6 +1489,21 @@ class DemoBackend {
   /// service isolate, which has no status poll of its own, not at all.
   List<int> get printerIds => [for (final p in _printers) p['id'] as int];
 
+  /// A printer deleted on the server, which the app cannot do itself (the web
+  /// UI does): for the test that watches the background service find out.
+  @visibleForTesting
+  void removePrinter(int id) => _printers.removeWhere((p) => p['id'] == id);
+
+  /// What the demo's WLED controller answers to `/presets.json`, as the server
+  /// lists it. Preset 4, mapped to Failed on the X1 Carbon, is missing on
+  /// purpose: the screen's "saved preset" row is on show.
+  static const _wledPresets = [
+    {'id': 1, 'name': 'Calm white'},
+    {'id': 2, 'name': 'Progress green'},
+    {'id': 3, 'name': 'Done rainbow'},
+    {'id': 5, 'name': 'Night off'},
+  ];
+
   final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
@@ -1446,8 +1514,15 @@ class DemoBackend {
       'model': 'X1C',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': 2,
       'nozzle_count': 1,
       'wear_cost_per_hour': _demoWearCostPerHour,
+      'wled_config': {
+        'enabled': true,
+        'base_url': 'http://192.168.4.40',
+        'presets': {'idle': 1, 'printing': 2, 'finished': 3, 'error': 4},
+        'finished_timeout_seconds': 300,
+      },
     },
     {
       'id': 2,
@@ -1458,6 +1533,7 @@ class DemoBackend {
       'model': 'P1S',
       'location': 'Office',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     {
@@ -1469,6 +1545,7 @@ class DemoBackend {
       'model': 'A1 mini',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     // Carries both P2S accessory fan kits — the only configuration that shows
@@ -1483,6 +1560,7 @@ class DemoBackend {
       'model': 'P2S',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     // The second X1C, and the only reason the fleet is five rather than four:
@@ -1501,6 +1579,7 @@ class DemoBackend {
       'model': 'X1C',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': 1,
       'nozzle_count': 1,
     },
     // The only machine with two nozzles and a chamber heater, so the four
@@ -1515,6 +1594,7 @@ class DemoBackend {
       'model': 'H2D',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 2,
     },
     // The only rack printer: an AMS 3H numbered 28-36 with its dryer, nine
@@ -1529,6 +1609,7 @@ class DemoBackend {
       'model': 'H3C',
       'location': 'Office',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
   ];
@@ -1541,9 +1622,8 @@ class DemoBackend {
   };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(
-    printerId,
-    switch (printerId) {
+  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(printerId, {
+    ...switch (printerId) {
       1 => _statusPrinting(),
       2 => _maybePrinting(2, _statusIdle(), 'Mop station'),
       4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
@@ -1560,7 +1640,61 @@ class DemoBackend {
         'state': null,
       },
     },
-  );
+    // Written for every printer, null where none is bound, as the server does.
+    'panda_breath': printerId == 2 ? _pandaBreathJson() : null,
+  });
+
+  Map<String, dynamic> _pandaBreathJson() {
+    final drying = _pandaOn && _pandaMode == 'filament drying';
+    return {
+      'device_id': 'pb-demo',
+      'online': true,
+      'chamber_temp': _r1(
+        _pandaOn ? _pandaTarget - 2 + _wiggle(0.8, phase: 45) : 27,
+      ),
+      'target_temp': _pandaTarget.toDouble(),
+      'work_on': _pandaOn,
+      'mode': _pandaMode,
+      'filament_drying_mode': drying ? 'PLA' : null,
+      'drying_running': drying,
+      'drying_remaining_min': drying ? 95.0 : null,
+    };
+  }
+
+  /// Mirrors the route's checks in its order: the body's validation (422),
+  /// exactly one field (400), then a heater on the printer (404).
+  DemoResult _pandaBreathCommand(int pid, Map<String, dynamic> body) {
+    bool valid(String key, Object value) => switch (key) {
+      'work_on' => value is bool,
+      'mode' => PandaBreathMode.values.any((m) => m.wire == value),
+      _ => value is int && value >= 0 && value <= pandaBreathMaxTargetC,
+    };
+    // Unknown keys are dropped and nulls mean "not sent", as in Pydantic.
+    final changes = {
+      for (final MapEntry(:key, :value) in body.entries)
+        if (value != null &&
+            const {'work_on', 'mode', 'target_temp'}.contains(key))
+          key: value as Object,
+    };
+    for (final MapEntry(:key, :value) in changes.entries) {
+      if (!valid(key, value)) return demoRefuse(422, 'Invalid $key');
+    }
+    if (changes.length != 1) {
+      return demoRefuse(400, 'Send exactly one of work_on, mode, target_temp');
+    }
+    if (pid != 2) {
+      return demoRefuse(404, 'No Panda Breath is bound to this printer');
+    }
+    switch (changes.entries.single) {
+      case MapEntry(key: 'work_on', :final bool value):
+        _pandaOn = value;
+      case MapEntry(key: 'mode', :final String value):
+        _pandaMode = value;
+      case MapEntry(key: 'target_temp', :final int value):
+        _pandaTarget = value;
+    }
+    return demoOk(const {'success': true});
+  }
 
   /// Lays whatever the slot sheet wrote over the generated trays.
   ///
@@ -1853,6 +1987,31 @@ class DemoBackend {
     // heats ([_maybePrinting] sets only that one): index 0 is the right head,
     // `nozzle_2`, which would be marked active while it sat cold.
     'active_extruder': 1,
+    // The two heads' own figures, as a H2D sends them: id 0 is the right one
+    // (`nozzle_2`), id 1 the left, and neither is a rack dock. The left one
+    // reports no wear, which the sheet has to leave out.
+    'nozzle_rack': [
+      {
+        'id': 0,
+        'nozzle_type': 'HS01',
+        'nozzle_diameter': '0.6',
+        'wear': 18,
+        'print_time_s': 7320,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0R001',
+      },
+      {
+        'id': 1,
+        'nozzle_type': 'HH01',
+        'nozzle_diameter': '0.4',
+        'wear': null,
+        'print_time_s': 3661,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0L001',
+      },
+    ],
     'hms_errors': const <Object>[],
     'firmware_version': '01.01.00.00',
     'cover_url': null,
@@ -1958,6 +2117,16 @@ class DemoBackend {
             'nozzle_diameter': i == 3 ? '0.6' : '0.4',
             'filament_color': colours[i] ?? '00000000',
             'filament_type': colours[i] == null ? '' : 'PLA',
+            // What each nozzle reports about itself: the mounted one has
+            // printed longest, 7 is a newer nozzle, and 8 reports no print time
+            // (older firmware), so the card has to leave that row out.
+            'wear': [12, 8, 21, 3, 15, 30, 44, 0, 6][i],
+            'print_time_s': i == 8
+                ? null
+                : [14400, 90061, 7320, 600, 28800, 3600, 172800, 0][i],
+            'stat': i == 6 ? 1 : 0,
+            'max_temp': i == 7 ? 300 : 280,
+            'serial_number': '0K00A9${i}C3X00${i + 1}',
           },
       ],
       'hms_errors': const <Object>[],
@@ -6565,7 +6734,23 @@ class DemoBackend {
       return demoRefuse(422, 'unknown template ${body['template']}');
     }
 
-    final capacity = template.sheetCapacity;
+    // `LabelOptions.layout_only_for_custom`: a layout goes with the custom
+    // template and with no other, and one the renderer cannot fit is refused.
+    final rawLayout = body['layout'];
+    final layout = rawLayout is Map<String, dynamic>
+        ? SheetLayout.tryFromJson(rawLayout)
+        : null;
+    if ((template == SpoolLabelTemplate.custom) != (rawLayout != null)) {
+      return demoRefuse(
+        422,
+        'layout is required for template "custom" and not allowed otherwise',
+      );
+    }
+    if (rawLayout != null && (layout == null || layout.problem != null)) {
+      return demoRefuse(422, 'invalid sheet layout');
+    }
+
+    final capacity = layout?.capacity ?? template.sheetCapacity;
     final start = (body['starting_position'] as num?)?.toInt() ?? 1;
     if (start < 1 || start > (capacity ?? 1)) {
       return demoRefuse(
@@ -6610,6 +6795,7 @@ class DemoBackend {
           DemoLabelSpool.fromJson(_spools.firstWhere((x) => x['id'] == id)),
       ],
       template: template,
+      layout: layout,
       fields: fields,
       monochrome: body['monochrome'] == true,
       startingPosition: start,
@@ -7340,6 +7526,35 @@ class DemoBackend {
       'update_available': false,
     },
   ];
+
+  // --- AI failure detection ---
+
+  /// `GET /octoeverywhere/printer-status`: every printer monitored, an entry
+  /// per running print as the server keeps them. The demo's own print is rated
+  /// well; the second machine carries a warning, so both colours are on screen
+  /// with the default two printers printing.
+  Map<String, dynamic> _aiDetectionStatus() {
+    final running = [
+      for (final id in _printOrder)
+        if (_printsNow(id) && !(id == 1 && _stopped)) id,
+    ];
+    return {
+      'enabled': true,
+      'monitored_printers': null,
+      'per_printer': {
+        for (final (i, id) in running.indexed)
+          '$id': {
+            'class': i == 1 ? 'warning' : 'safe',
+            'print_quality': i == 1 ? 4 : 9,
+            'frame_count': _elapsedSec ~/ 10,
+            'error': null,
+            'error_code': null,
+          },
+      },
+      'last_error': null,
+      'last_error_code': null,
+    };
+  }
 
   // --- Manyfold ---
 

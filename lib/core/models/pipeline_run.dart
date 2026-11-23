@@ -12,6 +12,7 @@ import 'package:app_util/app_util.dart';
 
 import 'json_utils.dart';
 import 'slicer_pipeline.dart';
+import 'value_equality.dart';
 
 /// Why a pipeline cannot (or should not) run, per
 /// `services/pipeline_eligibility.py`.
@@ -419,7 +420,7 @@ class PipelineRun {
 /// — so an in-flight run can sit under `dispatching` until its next transition
 /// writes through, and filtering the fetched page on [PipelineRun.status] would
 /// disagree with what the server counted in `total`.
-class PipelineRunFilter {
+class PipelineRunFilter with ValueEquality {
   const PipelineRunFilter({
     this.pipelineId,
     this.status,
@@ -483,16 +484,12 @@ class PipelineRunFilter {
   );
 
   @override
-  bool operator ==(Object other) =>
-      other is PipelineRunFilter &&
-      other.pipelineId == pipelineId &&
-      other.status == status &&
-      other.targetPrinterId == targetPrinterId &&
-      other.targetModelClass == targetModelClass;
-
-  @override
-  int get hashCode =>
-      Object.hash(pipelineId, status, targetPrinterId, targetModelClass);
+  List<Object?> get props => [
+    pipelineId,
+    status,
+    targetPrinterId,
+    targetModelClass,
+  ];
 }
 
 /// A page of runs (`PipelineRunListResponse`).

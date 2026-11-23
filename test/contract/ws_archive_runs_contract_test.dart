@@ -147,7 +147,6 @@ void main() {
         dio,
         recordedWrites('archive_run_note'),
         item: run.id,
-        itemIn: RegExp(r'(?<=/print-log/)\d+'),
       );
 
       expect(answers.single.statusCode, 200);
@@ -163,7 +162,6 @@ void main() {
         dio,
         recordedWrites('archive_run_verdict'),
         item: archiveId,
-        itemIn: RegExp(r'(?<=/archives/)\d+'),
         ids: {'run_id': run.id},
       );
 

@@ -2215,6 +2215,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errMalformedResponse => 'Malformed server response';
 
   @override
+  String get errNotBambuddy =>
+      'This address is not a Bambuddy server — check the port and remove any path after it.';
+
+  @override
   String get errInvalidCredentials => 'Invalid username or password';
 
   @override
@@ -2829,7 +2833,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryNoMatches => 'No filaments match your search';
 
   @override
-  String get inventorySearchHint => 'Search material, brand, color…';
+  String get inventorySearchHint => 'Search ID, material, brand, color…';
 
   @override
   String get inventoryLowStock => 'Low';
@@ -3673,6 +3677,150 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String inventoryLabelsStartSlot(int position) {
     return 'Position $position';
+  }
+
+  @override
+  String get labelSheetCustom => 'Custom sheet';
+
+  @override
+  String get labelSheetCustomHint => 'Your own page, label size and grid';
+
+  @override
+  String get labelSheetSavedTitle => 'Saved templates';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count labels',
+      one: '$count label',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Page';
+
+  @override
+  String get labelSheetLabelWidth => 'Label width, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Label height, mm';
+
+  @override
+  String get labelSheetColumns => 'Columns';
+
+  @override
+  String get labelSheetRows => 'Rows';
+
+  @override
+  String get labelSheetTopMargin => 'Top margin, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Left margin, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Column gap, mm';
+
+  @override
+  String get labelSheetRowGap => 'Row gap, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Fill in every field with a number.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Labels must be at least $minWidth mm wide and $minHeight mm tall.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Sizes, margins and gaps can be at most $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Columns must be a whole number from 1 to $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Rows must be a whole number from 1 to $max.';
+  }
+
+  @override
+  String get labelSheetNegative => 'Margins and gaps must not be negative.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'The labels are $size mm wide with the left margin, but the page is $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'The labels are $size mm tall with the top margin, but the page is $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Use this sheet';
+
+  @override
+  String get labelSheetName => 'Template name';
+
+  @override
+  String get labelSheetNameTaken => 'A template with this name already exists.';
+
+  @override
+  String get labelSheetSaveAs => 'Save as template';
+
+  @override
+  String get labelSheetSaveChanges => 'Save changes';
+
+  @override
+  String get labelSheetDelete => 'Delete template';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Template “$name” saved';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Template “$name” deleted';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Labels already printed with it are unaffected.';
+
+  @override
+  String get labelSheetEdit => 'Edit template';
+
+  @override
+  String get labelSheetSaveAsNew => 'Save as new';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG is limited to $maxPages sheet pages at $dpi dpi, and this needs $pages. Use PDF, a lower resolution or fewer spools.';
   }
 
   @override
@@ -10133,4 +10281,478 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$date: $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle => 'Light presets for printer states';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Colours and effects are set in WLED. The server only switches to the preset mapped to the printer\'s state.';
+
+  @override
+  String get wledPrinter => 'Printer';
+
+  @override
+  String get wledEnabled => 'WLED integration';
+
+  @override
+  String get wledEnabledDesc =>
+      'Switch presets as this printer\'s state changes';
+
+  @override
+  String get wledUrl => 'WLED address';
+
+  @override
+  String get wledUrlRequired => 'Needed while the integration is on';
+
+  @override
+  String get wledLoadPresets => 'Load presets';
+
+  @override
+  String get wledTestConnection => 'Test connection';
+
+  @override
+  String wledConnected(String name) {
+    return 'Connected to $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Connected to $name, version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED did not answer';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presets loaded',
+      one: '1 preset loaded',
+      zero: 'WLED has no presets',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED is unreachable. Saved presets are kept.';
+
+  @override
+  String get wledMappingHeader => 'Preset per state';
+
+  @override
+  String get wledSegmentHint =>
+      'When you create a preset in WLED, select its segment and turn on “Checked segments only”.';
+
+  @override
+  String get wledNoPreset => 'No preset';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Saved preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Test preset for $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset switched on';
+
+  @override
+  String get wledPresetTestFailed => 'WLED did not switch the preset';
+
+  @override
+  String get wledFinishedTimeout => 'Back to Idle after (seconds)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Seconds after a print finishes before the Idle preset takes over. 0 turns this off.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'A whole number from 0 to 86400';
+
+  @override
+  String get wledSave => 'Save';
+
+  @override
+  String get wledSaved => 'WLED settings saved';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Not accepted: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'No printers to set up';
+
+  @override
+  String get wledStateIdle => 'Idle';
+
+  @override
+  String get wledStatePrepare => 'Preparing';
+
+  @override
+  String get wledStatePrinting => 'Printing';
+
+  @override
+  String get wledStatePaused => 'Paused';
+
+  @override
+  String get wledStateFinished => 'Finished';
+
+  @override
+  String get wledStateError => 'Failed';
+
+  @override
+  String get wledStateQueueWaiting => 'Waiting for the plate to be cleared';
+
+  @override
+  String get wledStateFilamentProblem => 'Filament problem';
+
+  @override
+  String get wledStateHmsError => 'HMS error';
+
+  @override
+  String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Already here';
+
+  @override
+  String get fmMoveBlockedSelf => 'The folder being moved';
+
+  @override
+  String get fmMoveBlockedInside => 'Inside the folder being moved';
+
+  @override
+  String get fmMoveBlockedExternal => 'External folder';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Not yours and not shared';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Read-only folder';
+
+  @override
+  String get fmNotMoved => 'File not moved';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'File not moved: $reason';
+  }
+
+  @override
+  String get aiDetectionSafe => 'Safe';
+
+  @override
+  String get aiDetectionWarning => 'Warning';
+
+  @override
+  String get aiDetectionFailure => 'Failure';
+
+  @override
+  String get aiDetectionNotChecking => 'Not checking';
+
+  @override
+  String get aiDetectionStarting => 'Starting';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'AI failure detection: $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'AI failure detection: $status (score $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'AI failure detection: $status (print quality $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'AI failure detection is not checking this print: $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'AI failure detection is not checking this print';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'AI failure detection: waiting for the first result';
+
+  @override
+  String get aiDetectionLimitReached => 'usage limit reached';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Low filament below $percent%';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Set on the server for everyone. A spool\'s own threshold wins.';
+
+  @override
+  String get notifLowStockEdit => 'Change the low filament threshold';
+
+  @override
+  String get notifLowStockInputLabel => 'Percent of the label weight';
+
+  @override
+  String get notifLowStockInvalid => 'Enter a number from 0.1 to 99.9.';
+
+  @override
+  String get pandaBreath => 'Panda Breath';
+
+  @override
+  String get pandaBreathSent => 'Sent to the Panda Breath';
+
+  @override
+  String get pandaBreathOffline => 'Heater offline';
+
+  @override
+  String get pandaBreathTurnOn => 'Turn on';
+
+  @override
+  String get pandaBreathTurnOff => 'Turn off';
+
+  @override
+  String get pandaBreathMode => 'Mode';
+
+  @override
+  String get pandaBreathModeOn => 'Always on';
+
+  @override
+  String get pandaBreathModeDrying => 'Drying';
+
+  @override
+  String pandaBreathDryingLeft(int minutes) {
+    return 'Drying, $minutes min left';
+  }
+
+  @override
+  String pandaBreathTarget(int max) {
+    return 'Target temperature 0–$max °C';
+  }
+
+  @override
+  String get queueSettingsDispatchLabel => 'Printer for any-model jobs';
+
+  @override
+  String get queueSettingsDispatchDesc =>
+      'Which printer takes a job queued for a whole model. Busy or offline ones are skipped.';
+
+  @override
+  String get queueSettingsDispatchFewestHours => 'Fewest print hours';
+
+  @override
+  String get queueSettingsDispatchMostHours => 'Most print hours';
+
+  @override
+  String get queueSettingsDispatchLeastRecentlyUsed => 'Idle the longest';
+
+  @override
+  String get queueSettingsDispatchPriority => 'Printer priority';
+
+  @override
+  String get editPrinterDispatchPriority => 'Priority for any-model jobs';
+
+  @override
+  String get editPrinterDispatchPriorityHelp =>
+      'Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.';
+
+  @override
+  String get editPrinterDispatchPriorityInvalid =>
+      'Enter a whole number from 0 to 100000';
+
+  @override
+  String nozzleSheetTitle(int position) {
+    return 'Position $position';
+  }
+
+  @override
+  String get nozzleSectionTitle => 'Nozzle';
+
+  @override
+  String get nozzleLabelDiameter => 'Diameter';
+
+  @override
+  String get nozzleLabelType => 'Type';
+
+  @override
+  String get nozzleLabelFlow => 'Flow';
+
+  @override
+  String get nozzleLabelStatus => 'Status';
+
+  @override
+  String get nozzleLabelWear => 'Wear';
+
+  @override
+  String get nozzleLabelPrintTime => 'Print time';
+
+  @override
+  String get nozzleLabelMaxTemp => 'Max temp';
+
+  @override
+  String get nozzleLabelSerial => 'Serial';
+
+  @override
+  String get nozzleLabelFilament => 'Filament';
+
+  @override
+  String get nozzleMaterialStainless => 'Stainless steel';
+
+  @override
+  String get nozzleMaterialHardened => 'Hardened steel';
+
+  @override
+  String get nozzleMaterialTungsten => 'Tungsten carbide';
+
+  @override
+  String get nozzleStatusDocked => 'Docked';
+
+  @override
+  String get nozzleStatusMounted => 'On the toolhead';
+
+  @override
+  String nozzleWearValue(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String nozzleMaxTempValue(int degrees) {
+    return '$degrees °C';
+  }
+
+  @override
+  String nozzleDiameterValue(String diameter) {
+    return '$diameter mm';
+  }
+
+  @override
+  String get errEdgeAccessRequired => 'The server is behind Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access did not accept the saved credential';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Set up';
+
+  @override
+  String get edgeAccessServiceToken => 'Service token';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Works in the background, so alerts and the watch keep working.';
+
+  @override
+  String get edgeAccessClientId => 'Client ID';
+
+  @override
+  String get edgeAccessClientSecret => 'Client secret';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'For $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Service token for $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Save';
+
+  @override
+  String get edgeAccessRemove => 'Remove';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Remove Cloudflare Access?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'The app cannot reach this server until you set it up again.';
+
+  @override
+  String get edgeAccessRecommended => 'Recommended';
+
+  @override
+  String get edgeAccessBrowser => 'Browser sign-in';
+
+  @override
+  String get edgeAccessBrowserHint => 'Expires. You sign in again by hand.';
+
+  @override
+  String get edgeAccessSignIn => 'Sign in';
+
+  @override
+  String get edgeAccessWarnTitle => 'Browser sign-in expires';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'When the Cloudflare session ends, alerts, the ongoing notification, widgets and the watch stop working until you sign in again. A service token needs no sign-in. Some providers, Google among them, refuse sign-in in an embedded browser; use a service token then.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Continue anyway';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Use service token';
+
+  @override
+  String get edgeAccessSignInFailed => 'The page did not load.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Browser sign-in for $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Cloudflare session expired';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Alerts are off. Sign in again to turn them back on.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'When Cloudflare stops accepting the app\'s sign-in or service token and alerts stop';
+
+  @override
+  String get edgeSessionBanner => 'Cloudflare session expired';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare refused the service token';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Alerts are off. Replace the service token to turn them back on.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare refused the service token';
 }

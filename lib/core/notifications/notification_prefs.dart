@@ -37,6 +37,12 @@ enum NotifEvent {
   /// Source: `next_pause` on the status frames (server #2984), so it needs
   /// no route and works with an API key.
   pauseUpcoming,
+
+  /// Cloudflare stopped accepting the credential the app presents (#72), a
+  /// browser session or a service token, so every request, alert and widget
+  /// behind it stops until the user signs in again or replaces the token. Source:
+  /// the probe on the app's own requests, not a server frame.
+  edgeSessionEnded,
 }
 
 /// User's notification preferences: which events trigger notifications and with what thresholds.
@@ -103,6 +109,9 @@ class NotificationPrefs {
     // On: the print stands still and waits for somebody at the pause, and
     // missing it costs more than a warning nobody needed.
     NotifEvent.pauseUpcoming,
+    // On: everything else on this list goes quiet with it, and nothing else
+    // says why.
+    NotifEvent.edgeSessionEnded,
   };
 
   static const NotificationPrefs defaults = NotificationPrefs(

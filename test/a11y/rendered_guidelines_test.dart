@@ -92,7 +92,7 @@ final _dashboardOverrides = [
   ),
   fakeServerProfileOverride(),
   inertStatusesOverride,
-  inertSmartPlugsOverride,
+  ...inertDashboardPollOverrides,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
   inertExternalLinksOverride,

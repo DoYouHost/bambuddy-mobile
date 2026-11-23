@@ -736,4 +736,96 @@ void main() {
       },
     );
   });
+
+  group('every kind of frame has its own stream', () {
+    // One frame of each kind the client routes, and the stream that must hear it.
+    // A kind missing from the client's list of feeds is a frame nobody hears.
+    final cases = <(String, String, Stream<Object> Function(WsClient))>[
+      (
+        'printer_status',
+        '{"type":"printer_status","printer_id":1,"data":{"id":1,"name":"A","connected":true,"state":"IDLE"}}',
+        (c) => c.statusFrames,
+      ),
+      (
+        'plate_not_empty',
+        '{"type":"plate_not_empty","printer_id":1,"printer_name":"A"}',
+        (c) => c.plateAlerts,
+      ),
+      (
+        'print_start',
+        '{"type":"print_start","printer_id":1}',
+        (c) => c.printEvents,
+      ),
+      (
+        'archive_updated',
+        '{"type":"archive_updated","data":{"id":5}}',
+        (c) => c.archiveUpdates,
+      ),
+      (
+        'pipeline_run_updated',
+        '{"type":"pipeline_run_updated","run":{"id":3}}',
+        (c) => c.pipelineRunUpdates,
+      ),
+      (
+        'inventory_changed',
+        '{"type":"inventory_changed"}',
+        (c) => c.inventoryChanges,
+      ),
+      (
+        'announcements_changed',
+        '{"type":"announcements_changed"}',
+        (c) => c.announcementChanges,
+      ),
+      (
+        'print_confirm_request',
+        '{"type":"print_confirm_request","printer_id":1,"data":{"archive_id":5}}',
+        (c) => c.confirmRequests,
+      ),
+      (
+        'kill_switch_triggered',
+        '{"type":"kill_switch_triggered","printer_id":1}',
+        (c) => c.billingAlerts,
+      ),
+    ];
+
+    for (final (name, frame, streamOf) in cases) {
+      test('$name reaches its stream, and only that one', () {
+        fakeAsync((async) {
+          final (:client, :conns) = build();
+          final heard = <String>[];
+          final streams = {for (final c in cases) c.$1: c.$3(client)};
+          for (final e in streams.entries) {
+            e.value.listen((_) => heard.add(e.key));
+          }
+          client.start();
+          async.flushMicrotasks();
+          conns[0].connectOk();
+          async.flushMicrotasks();
+
+          conns[0].push(frame);
+          async.flushMicrotasks();
+
+          expect(heard, [name]);
+          expect(streamOf(client), isNotNull);
+          client.dispose();
+          async.flushMicrotasks();
+        });
+      });
+    }
+
+    test('a disposed client has closed every one of them', () {
+      fakeAsync((async) {
+        final (:client, :conns) = build();
+        var done = 0;
+        for (final c in cases) {
+          c.$3(client).listen((_) {}, onDone: () => done++);
+        }
+        client.start();
+        async.flushMicrotasks();
+        client.dispose();
+        async.flushMicrotasks();
+        expect(done, cases.length);
+      });
+    });
+  });
 }

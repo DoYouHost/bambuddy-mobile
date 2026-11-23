@@ -58,6 +58,18 @@ void main() {
       expect(jsonl, isNot(contains('3mf')));
     });
 
+    test('taking an alert back is recorded, with its id only', () async {
+      final inner = RecordingNotifications();
+      final service = LoggingNotifications(inner);
+
+      await service.cancelAlert(77);
+
+      final rows = await notifRows();
+      expect(rows.single['evt'], 'withdrawn');
+      expect(rows.single['nid'], 77);
+      expect(inner.cancelled, [77]);
+    });
+
     test('the record still says enough to place the alert', () async {
       // Dropping the text is only acceptable because what is left answers
       // "which alert, for which printer, when".

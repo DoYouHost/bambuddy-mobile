@@ -214,6 +214,7 @@ void main() {
     (ServerFeature.archiveCalendar, 'the archive calendar reads prints'),
     (ServerFeature.archiveMerge, 'duplicate archives merge'),
     (ServerFeature.archiveRuns, 'each print keeps its own note and verdict'),
+    (ServerFeature.labelTemplates, 'a label sheet is saved under a name'),
   ]) {
     test('$what from the 1.3.0 release', () {
       expect(parse('1.2.5.7').supports(feature), isFalse);
@@ -223,6 +224,16 @@ void main() {
       expect(parse('1.3.1b1').supports(feature), isTrue);
     });
   }
+
+  // Measured on the images: 1.3.0 has no WLED routes, 1.3.1 has them. A
+  // 1.3.1b1 daily from before the commit is told yes and corrected by the
+  // first printer row it sends without `wled_config`.
+  test('WLED from 1.3.1, not 1.3.0', () {
+    expect(parse('1.3.0').supports(ServerFeature.wled), isFalse);
+    expect(parse('1.3.1b1').supports(ServerFeature.wled), isTrue);
+    expect(parse('1.3.1').supports(ServerFeature.wled), isTrue);
+    expect(parse('1.3.2b1').supports(ServerFeature.wled), isTrue);
+  });
 
   test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
     expect(

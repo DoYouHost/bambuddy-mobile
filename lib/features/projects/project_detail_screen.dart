@@ -226,10 +226,7 @@ class _Header extends ConsumerWidget {
             ),
           if (project.children.isNotEmpty) ...[
             const SizedBox(height: DashSpace.sm),
-            Text(
-              l10n.projectChildren,
-              style: t.bodyBold.copyWith(color: t.textPrimary),
-            ),
+            Text(l10n.projectChildren, style: t.bodyBoldPrimary),
             const SizedBox(height: DashSpace.sm),
             Wrap(
               spacing: DashSpace.sm,

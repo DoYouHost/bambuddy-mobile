@@ -80,6 +80,17 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// WLED behind a printer (server #1528), all `POST` with the URL in the body
+  /// so a URL not yet saved can be tried: `presets` lists WLED's own presets,
+  /// `test-connection` reads its name and version, `test-preset` switches one
+  /// on. None changes what is stored; a WLED that does not answer is a 502.
+  static String printerWledPresets(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/presets';
+  static String printerWledTestConnection(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-connection';
+  static String printerWledTestPreset(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-preset';
+
   /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
   /// [...]}`: grams left on the spool bound to each loaded slot, which the
   /// web's mapping sorts by when "prefer lowest remaining" is on
@@ -262,6 +273,13 @@ abstract final class Endpoints {
   /// calling.
   static String chamberTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/chamber';
+
+  /// The Panda Breath bound to the printer (server #1466). JSON body with
+  /// exactly one of `work_on`, `mode`, `target_temp` (0–60), else 400; 404 when
+  /// no heater is bound, 503 when the server's MQTT broker is down. Offer it
+  /// only for a status that carries `panda_breath`: the route came with it.
+  static String pandaBreath(int printerId) =>
+      '$apiPrefix/printers/$printerId/panda-breath';
 
   /// Airduct flap mode. Query: `mode=cooling|heating`. Supported on
   /// P2S/X2D/H2* — gate via `supportsAirduct` first.
@@ -1153,6 +1171,13 @@ abstract final class Endpoints {
   /// 500 ids and 404s if any id is unknown.
   static const inventoryLabels = '$apiPrefix/inventory/labels';
 
+  /// Saved custom label sheets (`LabelTemplateResponse[]`, server #3296) —
+  /// `POST` here, `PUT`/`DELETE` on [labelTemplate]. One list for both
+  /// inventory backends, and everyone on the install sees it.
+  static const labelTemplates = '$apiPrefix/label-templates';
+
+  static String labelTemplate(int id) => '$apiPrefix/label-templates/$id';
+
   // --- Home Assistant sensors bound to a storage location (server #2827) ---
 
   /// Every configured binding (`LocationHASensorResponse[]`), optionally one
@@ -1434,6 +1459,26 @@ abstract final class Endpoints {
   /// Permanently delete file from trash (`DELETE`).
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
+
+  // --- AI failure detection (Obico #1546, OctoEverywhere #3169) ---
+  //
+  // Two providers, one at a time (`routes/settings.py` refuses both enabled).
+  // Each has a `printer-status` made for the printer cards: no configuration,
+  // so `printers:read` (an API key's `can_read_status`) is enough, narrowed to
+  // the printers the caller may see. A server from before a provider 404s its
+  // route: Obico's is there from 1.2.5.2 (1.2.5 has `/obico/status` only, which
+  // wants `settings:read`), OctoEverywhere's from 1.3.0. The rest of both
+  // routers is settings, left to the web.
+
+  /// `GET` → `{enabled, monitored_printers, per_printer, last_error}`; an entry
+  /// of `per_printer` is `{class, frame_count, score, error}`.
+  static const obicoPrinterStatus = '$apiPrefix/obico/printer-status';
+
+  /// `GET` → the same envelope plus `last_error_code`; an entry carries
+  /// `print_quality` (1 to 10, null before the first result) instead of
+  /// `score`, and `error_code`.
+  static const octoEverywherePrinterStatus =
+      '$apiPrefix/octoeverywhere/printer-status';
 
   // --- Manyfold (#1471, server dev from 2026-10-04) ---
   //

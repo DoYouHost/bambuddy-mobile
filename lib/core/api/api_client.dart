@@ -8,6 +8,7 @@ import '../demo/demo_backend.dart';
 import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
 import 'api_exceptions.dart';
+import 'edge_access_probe.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
 /// for [ApiClient]. Single place for timeouts.
@@ -17,9 +18,9 @@ import 'api_exceptions.dart';
 /// the chain, so its duration covers reading the credentials in
 /// [AuthInterceptor] and it sees a 401 before the retry hides it.
 Dio createBareDio() {
-  // A new Dio is a new server, or a fresh start: what the last one answered
-  // says nothing about this one.
-  ServerReachability.instance.forget();
+  // Does not touch [ServerReachability]: a notification button tapped with the
+  // app open builds clients here too, and that is no new server. The profile
+  // notifier forgets it when the server changes.
   return Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 8),
@@ -30,7 +31,10 @@ Dio createBareDio() {
     ..interceptors.add(HttpProbe(config: bambuddyHttpProbe))
     // After the probe, so the log keeps the whole exchange, and on the bare Dio
     // so the login and the auth probe answer for reachability too.
-    ..interceptors.add(ReachabilityProbe(ServerReachability.instance));
+    ..interceptors.add(ReachabilityProbe(ServerReachability.instance))
+    // After the probes, so an answer that is a Cloudflare sign-in page is still
+    // logged and still counts as the server being reachable.
+    ..interceptors.add(EdgeAccessProbe());
 }
 
 /// Authenticated HTTP client for a single [ServerProfile].
@@ -89,7 +93,12 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    options.headers.addAll(await authHeaders(authMode, credentials));
+    // A retry already carries the token [refreshAuth] returned; reading the
+    // store again would put back whatever it holds, which is the same token
+    // only when the refresh stored it before answering.
+    if (options.extra[_retriedFlag] != true) {
+      options.headers.addAll(await authHeaders(authMode, credentials));
+    }
     handler.next(options);
   }
 
@@ -105,11 +114,19 @@ class AuthInterceptor extends Interceptor {
         authMode == AuthMode.jwt &&
         refreshAuth != null &&
         !alreadyRetried) {
+      // A throw here is the re-login meeting Cloudflare, not a wrong password
+      // (`AuthService.silentReLogin` lets that one out); Dio passes it on as the
+      // request's error, which is what the saved login below must not hide.
       final newToken = await refreshAuth!();
       if (newToken != null) {
         final opts = err.requestOptions
           ..headers['Authorization'] = 'Bearer $newToken'
           ..extra[_retriedFlag] = true;
+        // Dio sends a FormData once and the first attempt already did; without
+        // a copy the retry of an upload dies on "already been finalized" after
+        // the re-login has succeeded.
+        final body = opts.data;
+        if (body is FormData) opts.data = body.clone();
         try {
           handler.resolve(await retryDio.fetch<dynamic>(opts));
         } on DioException catch (retryErr) {

@@ -207,6 +207,10 @@ void main() {
       )).singleWhere((a) => a.spoolId == spool.id);
       expect(row.spool?.id, spool.id);
       expect(row.spool?.remainingWeight, 102);
+      // What the background low-stock look reads off it instead of the whole
+      // spool list (`lowStockSlots`).
+      expect(row.spool?.remainingPercent, isNotNull);
+      expect(row.spool?.isArchived, isFalse);
     });
 
     test("a user's AMS label names the unit, not the slot", () async {

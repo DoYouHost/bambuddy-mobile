@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/client_cert.dart';
 import 'package:bambuddy_mobile/core/api/custom_ca.dart';
+import 'package:bambuddy_mobile/core/api/edge_access.dart';
 import 'package:bambuddy_mobile/core/api/tls_overrides.dart';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -284,6 +285,77 @@ void main() {
         container.read(settingsRepositoryProvider).loadHasClientCert(),
         isFalse,
       );
+    });
+  });
+
+  group('the Cloudflare Access credential', () {
+    setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+    tearDown(() => useTls(null, null));
+
+    final token = ServiceToken(
+      host: 'workshop.example.com',
+      clientId: 'abc.access',
+      clientSecret: 's3cret',
+    );
+    WatchConfig withEdge(EdgeAccess? edge) =>
+        WatchConfig(profile: _workshop, apiKey: 'bb_secret', edge: edge);
+
+    testWidgets('rides along on a silent adopt, stored and presented', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, profile: _workshop);
+
+      sync.pushes.add(withEdge(token));
+      await tester.pumpAndSettle();
+
+      expect(container.read(edgeAccessProvider), isA<ServiceToken>());
+      expect(
+        await loadEdgeAccess(container.read(settingsRepositoryProvider)),
+        isA<ServiceToken>(),
+      );
+      expect(presentedEdgeAccess(), isA<ServiceToken>());
+    });
+
+    testWidgets('a phone that dropped it clears the watch\'s', (tester) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      final adopt = container.read(pendingWatchConfigProvider.notifier).adopt;
+      await adopt(withEdge(token));
+      expect(container.read(edgeAccessProvider), isNotNull);
+
+      await adopt(withEdge(null));
+
+      expect(container.read(edgeAccessProvider), isNull);
+      expect(presentedEdgeAccess(), isNull);
+      expect(
+        container.read(settingsRepositoryProvider).loadHasEdgeAccess(),
+        isFalse,
+      );
+    });
+
+    testWidgets('the certificates a push carries are kept with it', (
+      tester,
+    ) async {
+      // setAll replaces setBoth on the watch: a push with a credential and no
+      // CA must not leave the CA of an earlier one behind.
+      final container = await pumpApp(tester, profile: _workshop);
+      final adopt = container.read(pendingWatchConfigProvider.notifier).adopt;
+      await adopt(
+        WatchConfig(
+          profile: _workshop,
+          apiKey: 'bb_secret',
+          edge: token,
+          ca: CustomCa.parse(
+            'a.pem',
+            File('test/fixtures/tls/ca.pem').readAsBytesSync(),
+          ),
+        ),
+      );
+      expect(container.read(customCaProvider), isNotNull);
+
+      await adopt(withEdge(token));
+
+      expect(container.read(customCaProvider), isNull);
+      expect(container.read(edgeAccessProvider), isA<ServiceToken>());
     });
   });
 

@@ -63,11 +63,13 @@ PrinterStatus _printing({
   int? speed = 2,
   bool? light = false,
   int? extruder,
+  int? airduct,
   String state = 'RUNNING',
 }) => PrinterStatus(
   id: 1,
   connected: true,
   state: state,
+  airductMode: airduct,
   progress: 40,
   currentPrint: 'Benchy.3mf',
   speedLevel: speed,
@@ -159,6 +161,21 @@ void main() {
       expect(find.bySemanticsLabel('${pl.tempChamber} 34°'), findsOne);
     });
 
+    testWidgets('speak the chamber\'s duct mode, which its drawing shows', (
+      tester,
+    ) async {
+      await pump(tester, _printing(airduct: 1));
+
+      expect(
+        find.bySemanticsLabel(
+          '${pl.tempChamber} 34° ${pl.ctrlAirduct}: ${pl.ctrlAirductHeating}',
+        ),
+        findsOne,
+      );
+      // The other sensors say nothing of a duct.
+      expect(find.bySemanticsLabel('${pl.tempBed} 60° / 60°'), findsOne);
+    });
+
     testWidgets('have a bar each and no state label', (tester) async {
       await pump(tester, _printing());
 
@@ -196,10 +213,17 @@ void main() {
         ),
       );
       expect(tiles, findsNWidgets(4));
-      // Nothing in a tile is scaled by a FittedBox: that is what made each
-      // tile's text a size of its own.
+      // No text in a tile is scaled by a FittedBox: that is what made each
+      // tile's text a size of its own. (The pictogram's SVG has a FittedBox of
+      // its own, with no text in it.)
       expect(
-        find.descendant(of: tiles, matching: find.byType(FittedBox)),
+        find.descendant(
+          of: tiles,
+          matching: find.ancestor(
+            of: find.byType(Text),
+            matching: find.byType(FittedBox),
+          ),
+        ),
         findsNothing,
       );
       // The same style in every tile, and no target beside the reading.

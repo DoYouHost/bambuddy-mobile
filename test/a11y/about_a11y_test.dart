@@ -47,7 +47,7 @@ void _about() {
   a11ySurface(
     'about',
     home: () => const AboutScreen(),
-    shows: find.text(pl.aboutLicenseHeader),
+    shows: find.text(pl.aboutLicenseHeader.toUpperCase()),
   );
 
   a11ySurface(

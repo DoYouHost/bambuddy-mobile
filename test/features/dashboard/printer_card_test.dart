@@ -13,8 +13,10 @@ import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:clock/clock.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/next_pause.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/format/duration_format.dart';
@@ -25,6 +27,8 @@ import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
 import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
+import 'package:bambuddy_mobile/features/dashboard/temp_glyph.dart';
+import 'package:bambuddy_mobile/features/dashboard/temp_readings.dart';
 import 'package:bambuddy_mobile/core/printers/hms_readback.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
@@ -45,6 +49,7 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dar
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
@@ -345,6 +350,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         inertChamberMaxOverride,
         ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(() => stub),
+        aiDetectionOverride(),
       ],
       child: plApp(
         Scaffold(
@@ -375,6 +381,10 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 /// [media] is a parameter rather than something [extra] can add: the first
 /// override of a provider is the one the scope uses, so a second one for the
 /// same provider is silently ignored.
+/// A temperature tile's pictogram, by what it draws: the tile has no text name.
+Finder _glyph(TempKind kind) =>
+    find.byWidgetPredicate((w) => w is TempGlyph && w.kind == kind);
+
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
@@ -400,7 +410,7 @@ Widget _scope(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    inertSmartPlugsOverride,
+    ...inertDashboardPollOverrides,
   ], extra),
   // On the app, not on the card: a sheet is a route above the card and would
   // otherwise open at 100 %.
@@ -445,7 +455,7 @@ Widget _cardSwap(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    inertSmartPlugsOverride,
+    ...inertDashboardPollOverrides,
   ],
   child: plApp(
     Scaffold(
@@ -488,10 +498,10 @@ void main() {
     expect(find.textContaining('43%'), findsOneWidget);
     expect(find.textContaining('87/203'), findsOneWidget);
     expect(find.textContaining(pl.remaining('2h 17min')), findsOneWidget);
-    // Gauge tile: label (uppercase) and value are separate texts.
-    expect(find.text('DYSZA'), findsOneWidget);
+    // Temperature tile: the pictogram names the sensor, the value is text.
+    expect(_glyph(TempKind.nozzle), findsOneWidget);
     expect(find.text('220°'), findsOneWidget);
-    expect(find.text(pl.tempBed.toUpperCase()), findsOneWidget);
+    expect(_glyph(TempKind.bed), findsOneWidget);
     expect(find.text('60°'), findsOneWidget);
     // The print's progress, and the bar of every temperature tile (each has
     // one arrow for its setpoint).
@@ -537,8 +547,11 @@ void main() {
 
     // Always visible: light (toggle row), pause/stop.
     expect(find.text(pl.ctrlLight), findsOneWidget);
-    // Chamber fan (mode 0 = cooling) → snowflake icon before the value.
-    expect(find.byIcon(Icons.ac_unit), findsOneWidget);
+    // Air-duct mode 0 = cooling: the chamber's drawing is the snowflake one.
+    expect(
+      tester.widget<TempGlyph>(_glyph(TempKind.chamber)).airductIsHeating,
+      isFalse,
+    );
     expect(find.text(pl.ctrlPause), findsOneWidget);
     expect(find.text(pl.ctrlStop), findsOneWidget);
 
@@ -552,6 +565,34 @@ void main() {
     expect(find.text('73%'), findsOneWidget); // auxiliary
     expect(find.text('60%'), findsOneWidget); // chamber
     expect(find.text(pl.speedStandard), findsOneWidget); // speed (level 2)
+  });
+
+  testWidgets('the light row is a washed box with the row radius', (
+    tester,
+  ) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+    await tester.pumpWidget(_cardWithProviders(item));
+
+    final box =
+        tester
+                .widget<Container>(
+                  find
+                      .descendant(
+                        of: byLogId('controls.light'),
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                )
+                .decoration!
+            as BoxDecoration;
+    final t = DashTokens.of(tester.element(byLogId('controls.light')));
+    expect(box.borderRadius, BorderRadius.circular(DashRadius.xl));
+    expect(box.color, t.accentGreen.withValues(alpha: DashAlpha.faint));
   });
 
   testWidgets('controls bar does not render without control data', (
@@ -592,17 +633,18 @@ void main() {
     await tester.pumpWidget(_cardWithProviders(item));
 
     // Current value large; target inside the ring (dash when no target).
-    expect(find.text(pl.tempBed.toUpperCase()), findsOneWidget);
+    expect(_glyph(TempKind.bed), findsOneWidget);
     // Bed: current 70 and target 70 → two "70°" texts (value + gauge center).
     expect(find.text('70°'), findsNWidgets(2));
-    expect(find.text('DYSZA'), findsOneWidget);
+    // Two heads: the plain key is the left one.
+    expect(find.text(pl.extruderLeftShort), findsOneWidget);
     expect(find.text('244°'), findsOneWidget); // nozzle current
     expect(find.text('245°'), findsOneWidget); // nozzle target in ring
     // Target = 0 → dash in ring, current value visible.
-    expect(find.text('DYSZA 2'), findsOneWidget);
+    expect(find.text(pl.extruderRightShort), findsOneWidget);
     expect(find.text('47°'), findsOneWidget);
     // No target.
-    expect(find.text('KOMORA'), findsOneWidget);
+    expect(_glyph(TempKind.chamber), findsOneWidget);
     expect(find.text('30°'), findsOneWidget);
     // Unknown key stays raw (uppercase as label).
     expect(find.text('UNKNOWNTHING'), findsOneWidget);
@@ -639,7 +681,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('DYSZA'));
+      await tester.tap(_glyph(TempKind.nozzle));
       await tester.pumpAndSettle();
 
       final controls = {
@@ -678,7 +720,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('DYSZA'));
+    await tester.tap(_glyph(TempKind.nozzle));
     await tester.pumpAndSettle();
 
     final errors = await tapCapturingErrors(
@@ -816,7 +858,7 @@ void main() {
     await tester.pumpWidget(historyCard());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('DYSZA'));
+    await tester.tap(_glyph(TempKind.nozzle));
     await tester.pumpAndSettle();
 
     // Opens on the setting tab.
@@ -873,7 +915,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('DYSZA'));
+    await tester.tap(_glyph(TempKind.nozzle));
     await tester.pumpAndSettle();
 
     expect(byLogId('sheet.heater_history'), findsOneWidget);
@@ -895,7 +937,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('DYSZA'));
+    await tester.tap(_glyph(TempKind.nozzle));
     await tester.pumpAndSettle();
 
     expect(byLogId('temperature.set'), findsOneWidget);
@@ -1599,8 +1641,12 @@ void main() {
           ),
           expand: false,
         );
+        // The mounted nozzle's rack position is the mark beside its pictogram.
         expect(
-          find.text(pl.tempNozzleNumbered('5').toUpperCase()),
+          find.descendant(
+            of: byLogId('printer.temperature_nozzle'),
+            matching: find.text('5'),
+          ),
           findsOneWidget,
         );
       });
@@ -1830,6 +1876,337 @@ void main() {
           expect(chipLabelled(RegExp(pl.nozzleRackMounted)), findsOneWidget);
         });
       }
+
+      // The rack with what nozzle 17 (position 2) reports about itself.
+      List<Map<String, Object?>> figuredRack({Map<String, Object?>? extra}) => [
+        for (final n in h3cRack())
+          if (n['id'] == 17)
+            {
+              ...n,
+              'nozzle_type': 'HS01',
+              'wear': 8,
+              'print_time_s': 90061,
+              'stat': 0,
+              'max_temp': 280,
+              'serial_number': '0K00A91C3X002',
+              'filament_type': 'PLA',
+              ...?extra,
+            }
+          else
+            n,
+      ];
+
+      Future<void> tapPosition(WidgetTester tester, int n) async {
+        await tester.tap(
+          find.descendant(
+            of: chipLabelled(pl.nozzleRackPosition(n, '0.4')),
+            matching: find.byType(InkWell),
+          ),
+        );
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      // Top to bottom of the sheet: where each row's label sits.
+      List<String> sheetLabels(WidgetTester tester) {
+        final labels = [
+          pl.nozzleLabelDiameter,
+          pl.nozzleLabelType,
+          pl.nozzleLabelFlow,
+          pl.nozzleLabelStatus,
+          pl.nozzleLabelWear,
+          pl.nozzleLabelPrintTime,
+          pl.nozzleLabelMaxTemp,
+          pl.nozzleLabelSerial,
+          pl.nozzleLabelFilament,
+        ];
+        final shown = [
+          for (final l in labels)
+            if (find.text(l).evaluate().isNotEmpty) l,
+        ];
+        shown.sort(
+          (a, b) => tester
+              .getTopLeft(find.text(a))
+              .dy
+              .compareTo(tester.getTopLeft(find.text(b)).dy),
+        );
+        return shown;
+      }
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        testWidgets('a rack chip opens the nozzle\'s figures, in the web\'s '
+            'order, at text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
+          expect(find.text(pl.nozzleDiameterValue('0.4')), findsOneWidget);
+          expect(find.text(pl.nozzleMaterialHardened), findsOneWidget);
+          expect(find.text(pl.nozzleFlowStandard), findsOneWidget);
+          expect(find.text(pl.nozzleStatusDocked), findsOneWidget);
+          expect(find.text(pl.nozzleWearValue(8)), findsOneWidget);
+          // 90061 s is 25 h 1 min.
+          expect(find.text(formatMinutes(pl, 1501)), findsOneWidget);
+          expect(find.text(pl.nozzleMaxTempValue(280)), findsOneWidget);
+          expect(find.text('0K00A91C3X002'), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(FittedSheetSurface),
+              matching: find.text('PLA'),
+            ),
+            findsOneWidget,
+          );
+          expect(sheetLabels(tester), [
+            pl.nozzleLabelDiameter,
+            pl.nozzleLabelType,
+            pl.nozzleLabelFlow,
+            pl.nozzleLabelStatus,
+            pl.nozzleLabelWear,
+            pl.nozzleLabelPrintTime,
+            pl.nozzleLabelMaxTemp,
+            pl.nozzleLabelSerial,
+            pl.nozzleLabelFilament,
+          ]);
+        });
+      }
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('every value sits against the right edge of its row, at '
+            'text scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          for (final value in [
+            pl.nozzleWearValue(8),
+            formatMinutes(pl, 1501),
+            pl.nozzleStatusDocked,
+            pl.nozzleMaxTempValue(280),
+          ]) {
+            expect(
+              tester.getRect(find.text(value)).right,
+              closeTo(right, 0.5),
+              reason: value,
+            );
+          }
+        });
+      }
+
+      testWidgets('a long value may use more than half the row when its label '
+          'is short, at 200% text', (tester) async {
+        await pumpAt(
+          tester,
+          2,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+        await tapPosition(tester, 2);
+
+        final row = tester.getRect(find.byType(NozzleFigures)).width;
+        expect(
+          tester.getRect(find.text('0K00A91C3X002')).width,
+          greaterThan(row / 2),
+          reason: 'two flexible children would cap it at half the row',
+        );
+      });
+
+      testWidgets(
+        'a filament colour with no name sits against the row\'s end',
+        (tester) async {
+          await pumpAt(
+            tester,
+            1,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final right = tester.getRect(find.byType(NozzleFigures)).right;
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          expect(dot, findsOneWidget);
+          expect(tester.getRect(dot).right, closeTo(right, 0.5));
+        },
+      );
+
+      for (final name in [
+        'PLA Matte Silk Dual Colour',
+        // A first word wider than the room beside the dot.
+        'Polycarbonate-Translucent-Green',
+      ]) {
+        testWidgets('a wrapping filament name "$name" keeps the dot on its '
+            'first line, at 200% text', (tester) async {
+          await pumpAt(
+            tester,
+            2,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': name}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          final value = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.text(name),
+          );
+          final paragraph = tester.renderObject<RenderParagraph>(value);
+          final line = paragraph.getFullHeightForCaret(
+            const TextPosition(offset: 0),
+          );
+          // More than one line, or the test proves nothing.
+          expect(paragraph.size.height, greaterThan(line * 1.5));
+          // The dot is on the name's first line, not stranded above it.
+          final top = tester.getTopLeft(value).dy;
+          expect(tester.getCenter(dot).dy, greaterThan(top));
+          expect(tester.getCenter(dot).dy, lessThan(top + line));
+        });
+      }
+
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('a lone colour dot is centred on a line of text, at text '
+            'scale $scale', (tester) async {
+          await pumpAt(
+            tester,
+            scale,
+            realItem(
+              unit: dryer,
+              top: {
+                'nozzle_rack': figuredRack(extra: {'filament_type': ''}),
+              },
+            ),
+          );
+          await tapPosition(tester, 2);
+
+          final dot = find.descendant(
+            of: find.byType(NozzleFigures),
+            matching: find.byType(FilamentDot),
+          );
+          // One line of the row's text: the wear value is a single body line.
+          final line = tester.getSize(find.text(pl.nozzleWearValue(8))).height;
+          final rowTop = tester
+              .getTopLeft(find.text(pl.nozzleLabelFilament))
+              .dy;
+          // A dot left at the top of its row is half a line above this.
+          expect(tester.getCenter(dot).dy, closeTo(rowTop + line / 2, 2));
+        });
+      }
+
+      testWidgets('a nozzle that reports no print time shows no such row, '
+          'and none shows zero hours', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': figuredRack(extra: {'print_time_s': null}),
+            },
+          ),
+        );
+        await tapPosition(tester, 2);
+
+        expect(find.text(pl.nozzleSheetTitle(2)), findsOneWidget);
+        expect(find.text(pl.nozzleLabelPrintTime), findsNothing);
+        expect(find.text(pl.nozzleLabelWear), findsOneWidget);
+      });
+
+      testWidgets('the nozzle on the toolhead says so, and a nozzle that has '
+          'printed for no time shows zero, not a missing row', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': [
+                for (final n in figuredRack())
+                  if (n['id'] == 0) {...n, 'print_time_s': 0} else n,
+              ],
+            },
+          ),
+        );
+        await tester.tap(
+          find.descendant(
+            of: chipLabelled(
+              '${pl.nozzleRackPosition(7, '0.6')}, ${pl.nozzleRackMounted}',
+            ),
+            matching: find.byType(InkWell),
+          ),
+        );
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+
+        expect(find.text(pl.nozzleSheetTitle(7)), findsOneWidget);
+        expect(find.text(pl.nozzleStatusMounted), findsOneWidget);
+        expect(find.text(pl.nozzleStatusDocked), findsNothing);
+        expect(find.text(pl.nozzleLabelPrintTime), findsOneWidget);
+        expect(find.text(pl.durationSeconds(0)), findsOneWidget);
+      });
+
+      testWidgets('an empty dock is not a button', (tester) async {
+        await pumpAt(
+          tester,
+          1,
+          realItem(
+            unit: dryer,
+            top: {
+              'nozzle_rack': [
+                for (final n in h3cRack())
+                  if (n['id'] == 23)
+                    {
+                      'id': 23,
+                      'nozzle_diameter': '',
+                      'nozzle_type': '',
+                      'addr_id': 7,
+                    }
+                  else
+                    n,
+              ],
+            },
+          ),
+        );
+
+        expect(byLogId('printer.rack_nozzle'), findsNWidgets(8));
+      });
+
+      testWidgets('a screen reader can open a nozzle: the node has a tap', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpAt(
+          tester,
+          1,
+          realItem(unit: dryer, top: {'nozzle_rack': figuredRack()}),
+        );
+
+        final node = tester.getSemantics(
+          chipLabelled(pl.nozzleRackPosition(2, '0.4')),
+        );
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+        handle.dispose();
+      });
 
       for (final scale in [1.0, 1.5, 2.0]) {
         testWidgets('nine positions sit 5 over 4, both rows centred, at text '
@@ -3242,7 +3619,7 @@ void main() {
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
-          inertSmartPlugsOverride,
+          ...inertDashboardPollOverrides,
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
@@ -4121,7 +4498,7 @@ void main() {
       overrides: [
         fakeServerProfileOverride(),
         mediaAuthOverride(),
-        inertSmartPlugsOverride,
+        ...inertDashboardPollOverrides,
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
       child: plApp(
@@ -4191,7 +4568,7 @@ void main() {
         overrides: layerOverrides([
           fakeServerProfileOverride(),
           mediaAuthOverride(),
-          inertSmartPlugsOverride,
+          ...inertDashboardPollOverrides,
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
@@ -4202,6 +4579,197 @@ void main() {
       expect(find.text('X2D'), findsOneWidget); // card survives
       expect(find.byIcon(Icons.system_update), findsNothing);
       expect(find.byIcon(Icons.memory), findsNothing);
+    });
+  });
+
+  group('a hotend\'s own figures in its temperature sheet', () {
+    // The H2D: `nozzle_2` is the right head (id 0), the plain `nozzle` the left
+    // (id 1), and each reports what it knows about itself in `nozzle_rack`.
+    PrinterWithStatus h2d(List<NozzleRackSlot>? rack) => PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'H2D'),
+      status: PrinterStatus(
+        id: 1,
+        model: 'H2D',
+        connected: true,
+        state: 'IDLE',
+        temperatures: const {
+          'nozzle': 24,
+          'nozzle_target': 0,
+          'nozzle_2': 25,
+          'nozzle_2_target': 0,
+          'bed': 24,
+        },
+        nozzleRack: rack,
+      ),
+    );
+
+    const right = NozzleRackSlot(
+      id: 0,
+      nozzleType: 'HS01',
+      nozzleDiameter: '0.6',
+      wear: 18,
+      printTimeS: 7320,
+      maxTemp: 300,
+      serialNumber: 'RIGHT-SN',
+    );
+    const left = NozzleRackSlot(
+      id: 1,
+      nozzleType: 'HH01',
+      nozzleDiameter: '0.4',
+      printTimeS: 3661,
+    );
+
+    // The card behind the sheet repeats labels such as the nozzle's name.
+    Finder inSheet(Finder f) =>
+        find.descendant(of: find.byType(FittedSheetSurface), matching: f);
+
+    Future<void> openTile(
+      WidgetTester tester,
+      String id,
+      PrinterWithStatus item, {
+      double scale = 1,
+    }) async {
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId(id));
+      await tester.pumpAndSettle();
+    }
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the right head\'s sheet shows its own nozzle, at text scale '
+          '$scale', (tester) async {
+        await openTile(
+          tester,
+          'printer.temperature_nozzle_2',
+          h2d(const [right, left]),
+          scale: scale,
+        );
+
+        expect(
+          inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+          findsOneWidget,
+        );
+        expect(
+          inSheet(find.text(pl.nozzleDiameterValue('0.6'))),
+          findsOneWidget,
+        );
+        expect(inSheet(find.text(pl.nozzleFlowStandard)), findsOneWidget);
+        expect(inSheet(find.text(pl.nozzleWearValue(18))), findsOneWidget);
+        expect(inSheet(find.text(formatMinutes(pl, 122))), findsOneWidget);
+        // The hotend's section is the short one: no serial, rating or status.
+        expect(inSheet(find.text('RIGHT-SN')), findsNothing);
+        expect(inSheet(find.text(pl.nozzleMaxTempValue(300))), findsNothing);
+      });
+    }
+
+    testWidgets('the left head\'s sheet shows the left nozzle, without a wear '
+        'row it did not report', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        h2d(const [right, left]),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleFlowHigh)), findsOneWidget);
+      expect(inSheet(find.text(formatMinutes(pl, 61))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleLabelWear)), findsNothing);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+    });
+
+    testWidgets('a frame without nozzle_2 yet still gives the left head its '
+        'own figures, not the right one\'s', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2D'),
+          status: const PrinterStatus(
+            id: 1,
+            model: 'H2D',
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right, left],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.4'))), findsOneWidget);
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsNothing);
+      // The same head throughout: the sheet that shows the left nozzle is the
+      // one that offers to make it the active extruder.
+      expect(inSheet(find.text(pl.ctrlActivate)), findsOneWidget);
+    });
+
+    testWidgets('a single-nozzle printer keeps its one nozzle\'s figures', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle',
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'H2C'),
+          status: const PrinterStatus(
+            id: 1,
+            connected: true,
+            state: 'IDLE',
+            temperatures: {'nozzle': 24, 'nozzle_target': 0, 'bed': 24},
+            nozzleRack: [right],
+          ),
+        ),
+      );
+
+      expect(inSheet(find.text(pl.nozzleDiameterValue('0.6'))), findsOneWidget);
+    });
+
+    testWidgets('a printer that reports no nozzle figures has no section', (
+      tester,
+    ) async {
+      await openTile(tester, 'printer.temperature_nozzle_2', h2d(null));
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a head whose entry is an empty placeholder has no section', (
+      tester,
+    ) async {
+      await openTile(
+        tester,
+        'printer.temperature_nozzle_2',
+        h2d(const [NozzleRackSlot(id: 0), left]),
+      );
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the bed\'s sheet has no nozzle section', (tester) async {
+      await openTile(
+        tester,
+        'printer.temperature_bed',
+        h2d(const [right, left]),
+      );
+
+      expect(
+        inSheet(find.text(pl.nozzleSectionTitle.toUpperCase())),
+        findsNothing,
+      );
     });
   });
 
@@ -4367,6 +4935,51 @@ void main() {
           );
         }
       });
+
+      if (scale == 1.0) {
+        testWidgets('a chamber target held by the cooling duct takes no '
+            'keyboard focus', (tester) async {
+          tester.view.physicalSize = const Size(411, 2400);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(
+                    item: PrinterWithStatus(
+                      printer: idle.printer,
+                      status: PrinterStatus(
+                        id: 1,
+                        model: 'H2D',
+                        connected: true,
+                        state: 'IDLE',
+                        airductMode: 0,
+                        temperatures: const {
+                          'chamber': 40,
+                          'chamber_target': 0,
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            byLogId('printer.temperature_chamber'),
+            warnIfMissed: false,
+          );
+          await tester.pumpAndSettle();
+
+          final step = find.descendant(
+            of: byLogId('temperature.step_up'),
+            matching: find.byType(Icon),
+          );
+          expect(Focus.of(tester.element(step)).canRequestFocus, isFalse);
+        });
+      }
 
       testWidgets('the movement sheet rows hold at text $scale', (
         tester,
@@ -5569,6 +6182,37 @@ void main() {
         handle.dispose();
       });
 
+      /// The editor's ids are the log's vocabulary for both rows; the drying
+      /// rows spell them with an underscore, the other sheets with a dot.
+      testWidgets('both rows keep their log ids', (tester) async {
+        await openSheet(tester);
+
+        for (final row in ['drying.temp', 'drying.hours']) {
+          expect(byLogId('${row}_step_down'), findsOneWidget);
+          expect(byLogId('${row}_slider'), findsOneWidget);
+          expect(byLogId('${row}_step_up'), findsOneWidget);
+          expect(byLogId('${row}_preset'), findsWidgets);
+        }
+      });
+
+      /// The dryer starts at 45 °C, not at zero: the lower end of the range is
+      /// the row's own, so minus at 45 stays at 45.
+      testWidgets('the temperature step stops at the bottom of its range', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+
+        await tester.tap(byLogId('drying.temp_step_down'));
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        expect(find.text('44°'), findsNothing);
+        handle.dispose();
+      });
+
       testWidgets('the duration slider reads in hours', (tester) async {
         final handle = tester.ensureSemantics();
         await openSheet(tester);
@@ -5694,7 +6338,7 @@ void main() {
         expect(find.text('43%'), findsOneWidget);
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
         expect(find.text('benchy.3mf'), findsNothing);
-        expect(find.text('DYSZA'), findsNothing);
+        expect(_glyph(TempKind.nozzle), findsNothing);
         expect(find.text(pl.detailsShow), findsNothing);
         expect(find.byTooltip(pl.pfmTooltip), findsNothing);
       },
@@ -5769,7 +6413,7 @@ void main() {
       await tester.pump();
 
       expect(asked, [false]);
-      expect(find.text('DYSZA'), findsOneWidget);
+      expect(_glyph(TempKind.nozzle), findsOneWidget);
       expectSameLine(
         collapsed,
         firstLine(
@@ -5844,7 +6488,7 @@ void main() {
       // Width, text scale, columns the grid must pick, tile height measured.
       for (final (width, scale, columns, height) in [
         (320.0, 1.0, 2, 88.0),
-        (320.0, 1.3, 1, 100.0),
+        (320.0, 1.3, 2, 100.0),
         (360.0, 2.0, 1, 129.0),
       ]) {
         testWidgets(
@@ -5908,83 +6552,442 @@ void main() {
               expect(rect.bottom, lessThanOrEqualTo(tile.bottom));
             }
 
-            // The setpoint shares the label's line, so no label may be cut.
-            final labels = find.byWidgetPredicate(
-              (w) => w is Text && w.style?.letterSpacing == DashTracking.label,
+            // The pictogram and its L or R mark share the setpoint's line: each
+            // pictogram sits whole inside its tile, and no mark is cut.
+            final glyphs = find.byType(TempGlyph);
+            expect(glyphs, findsNWidgets(4));
+            for (final glyph in glyphs.evaluate()) {
+              final rect = tester.getRect(find.byWidget(glyph.widget));
+              final tile = tileRects.firstWhere((r) => r.contains(rect.center));
+              expect(rect.left, greaterThanOrEqualTo(tile.left));
+              expect(rect.right, lessThanOrEqualTo(tile.right));
+            }
+            final marks = find.byWidgetPredicate(
+              (w) =>
+                  w is Text &&
+                  (w.data == pl.extruderLeftShort ||
+                      w.data == pl.extruderRightShort),
             );
-            expect(labels, findsAtLeastNWidgets(4));
-            for (final label in labels.evaluate()) {
+            expect(marks, findsNWidgets(2));
+            for (final mark in marks.evaluate()) {
               final paragraph = tester.renderObject<RenderParagraph>(
-                find.byWidget(label.widget),
+                find.byWidget(mark.widget),
               );
-              expect(
-                paragraph.didExceedMaxLines,
-                isFalse,
-                reason:
-                    '${paragraph.text.toPlainText()} at $width dp, scale $scale',
-              );
+              expect(paragraph.didExceedMaxLines, isFalse);
               expect(paragraph.size.width, greaterThan(0));
             }
 
-            // The chamber's glyph stops before its digits, inside the tile.
-            final glyph = find.byIcon(Icons.local_fire_department);
-            expect(glyph, findsOneWidget);
-            final glyphRect = tester.getRect(glyph);
-            final chamberDigits = tester.getRect(
-              find.ancestor(of: glyph, matching: find.byType(Row)).first,
-            );
-            final chamberTile = tileRects.firstWhere(
-              (r) => r.contains(glyphRect.center),
-            );
-            expect(glyphRect.left, greaterThanOrEqualTo(chamberTile.left));
-            expect(chamberDigits.right, lessThanOrEqualTo(chamberTile.right));
+            // The air-duct mode is the chamber's drawing, not a glyph before
+            // the digits.
+            expect(find.byIcon(Icons.local_fire_department), findsNothing);
+            expect(find.byIcon(Icons.ac_unit), findsNothing);
           },
         );
       }
 
+      const digits = TextStyle(
+        fontFamily: 'JetBrainsMono',
+        fontSize: 26,
+        fontWeight: FontWeight.w500,
+        height: 1.0,
+      );
+      const setpoint = TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11);
+
       test('the grid is one column exactly where the digits would not fit', () {
-        const digits = TextStyle(
-          fontFamily: 'JetBrainsMono',
-          fontSize: 26,
-          fontWeight: FontWeight.w500,
-          height: 1.0,
+        int columns(double width, double scale) => tempGridColumns(
+          width: width,
+          digits: digits,
+          scaler: TextScaler.linear(scale),
+          textDirection: TextDirection.ltr,
         );
-        int columns(double width, double scale, {bool glyph = false}) =>
-            tempGridColumns(
-              width: width,
-              digits: digits,
-              scaler: TextScaler.linear(scale),
-              textDirection: TextDirection.ltr,
-              airductGlyph: glyph,
-            );
 
         expect(columns(254, 1.0), 2);
         expect(columns(254, 1.3), 2);
         expect(columns(294, 2.0), 1);
         expect(columns(150, 1.0), 1);
-        // The air-duct glyph alone tips a width the nozzle's digits still fit.
-        expect(columns(226, 1.3), 2);
-        expect(columns(226, 1.3, glyph: true), 1);
       });
 
-      test('the grid is one column where the label and setpoint line would '
+      test('the grid is one column where the name and setpoint line would '
           'not fit', () {
-        const digits = TextStyle(fontFamily: 'JetBrainsMono', fontSize: 26);
-        const label = TextStyle(fontSize: 11, letterSpacing: 0.4);
-        const setpoint = TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11);
-        int columns(List<String> labels) => tempGridColumns(
+        int columns(double lead) => tempGridColumns(
           width: 254,
           digits: digits,
-          labels: labels,
-          label: label,
+          leads: [lead],
           setpoint: setpoint,
           scaler: TextScaler.noScaling,
           textDirection: TextDirection.ltr,
-          airductGlyph: false,
         );
 
-        expect(columns(['BED']), 2);
-        expect(columns(['BED', 'A VERY LONG SENSOR NAME']), 1);
+        expect(columns(20), 2);
+        expect(columns(45), 2);
+        expect(columns(60), 1);
+        expect(columns(120), 1);
+      });
+
+      test('three tiles take a row only where the row is allowed and they '
+          'fit, then two, then one', () {
+        int columns(
+          double width,
+          double scale, {
+          double lead = 20,
+          bool row = true,
+        }) => tempGridColumns(
+          width: width,
+          digits: digits,
+          leads: [lead],
+          setpoint: setpoint,
+          scaler: TextScaler.linear(scale),
+          textDirection: TextDirection.ltr,
+          row: row,
+        );
+
+        // A 296 dp card at the default text size holds three.
+        expect(columns(296, 1.0), 3);
+        // Without the permission the same width gives two.
+        expect(columns(296, 1.0, row: false), 2);
+        // A larger text size drops the row, a still larger one the grid.
+        expect(columns(296, 1.3), 2);
+        expect(columns(296, 2.0), 1);
+        // A longer first line (a pictogram and a rack position) than a third of
+        // the card has room for.
+        expect(columns(296, 1.0, lead: 60), 2);
+        // A row does not fit a narrow card.
+        expect(columns(240, 1.0), 2);
+      });
+
+      test('the setpoint arrow is measured at its own size, which the text '
+          'scale does not change', () {
+        int columns(double width) => tempGridColumns(
+          width: width,
+          digits: digits,
+          leads: [15],
+          setpoint: setpoint,
+          scaler: TextScaler.linear(0.85),
+          textDirection: TextDirection.ltr,
+        );
+        final number = TextPainter(
+          text: const TextSpan(text: '000°', style: setpoint),
+          textDirection: TextDirection.ltr,
+          textScaler: TextScaler.linear(0.85),
+        )..layout();
+        // The first line of a two-column tile: the lead, the gaps, the 12 dp
+        // arrow the Icon draws whatever the scale, and the number.
+        final line = 15 + 4 + 12 + 4 + number.width;
+        double widthFor(double inner) => (inner + tileChrome) * 2 + 8;
+        expect(columns(widthFor(line - 0.5)), 1);
+        expect(columns(widthFor(line + 0.5)), 2);
+      });
+    });
+
+    group('the temperature tiles name a sensor with its pictogram', () {
+      PrinterWithStatus card(
+        Map<String, double> temps, {
+        String model = 'X1C',
+        int? airductMode,
+      }) => PrinterWithStatus(
+        printer: Printer(id: 1, name: model, model: model),
+        status: PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'IDLE',
+          airductMode: airductMode,
+          temperatures: temps,
+        ),
+      );
+      const idle = {
+        'nozzle': 25.0,
+        'nozzle_target': 0.0,
+        'bed': 24.0,
+        'bed_target': 0.0,
+        'chamber': 26.0,
+        'chamber_target': 0.0,
+      };
+
+      Future<void> pumpCard(
+        WidgetTester tester,
+        PrinterWithStatus item, {
+        double width = 412,
+        double scale = 1.0,
+      }) async {
+        tester.view.physicalSize = Size(width, 2400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: Scaffold(
+                  body: SingleChildScrollView(child: PrinterCard(item: item)),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      }
+
+      // The tops and lefts of the tiles, by the diagnostic id each is tagged
+      // with.
+      List<Rect> tileRects(WidgetTester tester, List<String> ids) => [
+        for (final id in ids) tester.getRect(byLogId(id)),
+      ];
+      const ids = [
+        'printer.temperature_nozzle',
+        'printer.temperature_bed',
+        'printer.temperature_chamber',
+      ];
+
+      testWidgets('one nozzle, the bed and the chamber share a row on a wide '
+          'phone, each inside the card', (tester) async {
+        await pumpCard(tester, card(idle));
+
+        final rects = tileRects(tester, ids);
+        expect({for (final r in rects) r.top.round()}, hasLength(1));
+        expect({for (final r in rects) r.left.round()}, hasLength(3));
+        for (var i = 1; i < rects.length; i++) {
+          expect(rects[i - 1].right, lessThanOrEqualTo(rects[i].left + 0.5));
+        }
+        for (final r in rects) {
+          expect(r.height, closeTo(rects.first.height, 0.5));
+        }
+      });
+
+      testWidgets('a larger text size drops the row to a grid', (tester) async {
+        await pumpCard(tester, card(idle), scale: 2.0);
+
+        final rects = tileRects(tester, ids);
+        expect({for (final r in rects) r.top.round()}.length, greaterThan(1));
+      });
+
+      testWidgets('two heads keep the grid: four tiles never make a row', (
+        tester,
+      ) async {
+        await pumpCard(
+          tester,
+          card({
+            ...idle,
+            'nozzle_2': 24.0,
+            'nozzle_2_target': 0.0,
+          }, model: 'H2D'),
+        );
+
+        final rects = tileRects(tester, [
+          ...ids,
+          'printer.temperature_nozzle_2',
+        ]);
+        expect({for (final r in rects) r.top.round()}.length, greaterThan(1));
+        expect(find.text(pl.extruderLeftShort), findsOneWidget);
+        expect(find.text(pl.extruderRightShort), findsOneWidget);
+      });
+
+      testWidgets('the heat colour is on the pictogram alone', (tester) async {
+        await pumpCard(
+          tester,
+          card({
+            'nozzle': 25.0,
+            'nozzle_target': 220.0,
+            'bed': 24.0,
+            'bed_target': 0.0,
+            'chamber': 26.0,
+            'chamber_target': 0.0,
+          }),
+        );
+
+        final t = DashTokens.of(tester.element(find.byType(PrinterCard)));
+        final colours = {
+          for (final glyph in tester.widgetList<TempGlyph>(
+            find.byType(TempGlyph),
+          ))
+            glyph.kind: glyph.color,
+        };
+        // Heating is orange, an idle heater blue.
+        expect(colours[TempKind.nozzle], t.accentOrangeInk);
+        expect(colours[TempKind.bed], t.accentBlueInk);
+        // The digits keep the primary ink whatever the heat.
+        final digitTexts = find.byWidgetPredicate(
+          (w) => w is Text && w.style?.fontSize == 26,
+        );
+        expect(digitTexts, findsNWidgets(3));
+        for (final text in tester.widgetList<Text>(digitTexts)) {
+          expect(text.style?.color, t.textPrimary);
+        }
+      });
+
+      testWidgets('the chamber drawing carries the air-duct mode', (
+        tester,
+      ) async {
+        for (final (mode, heating) in [(1, true), (0, false), (null, null)]) {
+          await pumpCard(tester, card(idle, airductMode: mode));
+          final chamber = tester
+              .widgetList<TempGlyph>(find.byType(TempGlyph))
+              .singleWhere((g) => g.kind == TempKind.chamber);
+          expect(chamber.airductIsHeating, heating, reason: 'mode $mode');
+        }
+      });
+
+      testWidgets('a pictogram speaks its name and the duct mode', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpCard(tester, card(idle, airductMode: 1));
+
+        expect(find.bySemanticsLabel(pl.tempNozzle), findsOneWidget);
+        expect(find.bySemanticsLabel(pl.tempBed), findsOneWidget);
+        expect(
+          find.bySemanticsLabel(
+            '${pl.tempChamber}, ${pl.ctrlAirduct}: ${pl.ctrlAirductHeating}',
+          ),
+          findsOneWidget,
+        );
+        // Released here: the harness checks for live handles before teardowns.
+        handle.dispose();
+      });
+
+      testWidgets('two heads are spoken as Nozzle 1 and Nozzle 2', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await pumpCard(
+          tester,
+          card({
+            ...idle,
+            'nozzle_2': 24.0,
+            'nozzle_2_target': 0.0,
+          }, model: 'H2D'),
+        );
+
+        expect(
+          find.bySemanticsLabel(pl.tempNozzleNumbered('1')),
+          findsOneWidget,
+        );
+        expect(
+          find.bySemanticsLabel(pl.tempNozzleNumbered('2')),
+          findsOneWidget,
+        );
+        handle.dispose();
+      });
+
+      testWidgets('the sheet of the first of two heads is headed Nozzle 1', (
+        tester,
+      ) async {
+        await pumpCard(
+          tester,
+          card({
+            ...idle,
+            'nozzle_2': 24.0,
+            'nozzle_2_target': 0.0,
+          }, model: 'H2D'),
+        );
+        await tester.tap(byLogId('printer.temperature_nozzle'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.text(pl.tempNozzleNumbered('1')),
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets(
+        'a pictogram without a name stays out of the semantics tree',
+        (tester) async {
+          await tester.pumpWidget(
+            const Directionality(
+              textDirection: TextDirection.ltr,
+              child: MediaQuery(
+                data: MediaQueryData(),
+                child: TempGlyph(
+                  kind: TempKind.nozzle,
+                  color: Color(0xFF000000),
+                ),
+              ),
+            ),
+          );
+          await tester.pump();
+
+          expect(
+            tester
+                .widget<SvgPicture>(find.byType(SvgPicture))
+                .excludeFromSemantics,
+            isTrue,
+          );
+        },
+      );
+
+      testWidgets('two heads at the largest text size fit a narrow card', (
+        tester,
+      ) async {
+        await pumpCard(
+          tester,
+          card({
+            ...idle,
+            'nozzle_2': 24.0,
+            'nozzle_2_target': 0.0,
+          }, model: 'X2D'),
+          width: 240,
+          scale: 2.0,
+        );
+
+        // Any overflow fails pumpCard; the marks are still whole.
+        expect(find.text(pl.extruderLeftShort), findsOneWidget);
+        expect(find.text(pl.extruderRightShort), findsOneWidget);
+      });
+
+      test('the pictograms and their marks', () {
+        expect(
+          TempGlyph.assetFor(TempKind.chamber, airductIsHeating: true),
+          'assets/icons/temp_chamber_heating.svg',
+        );
+        expect(
+          TempGlyph.assetFor(TempKind.chamber, airductIsHeating: false),
+          'assets/icons/temp_chamber_cooling.svg',
+        );
+        expect(
+          TempGlyph.assetFor(TempKind.chamber),
+          'assets/icons/temp_chamber.svg',
+        );
+        // An unknown sensor has no drawing, so it keeps its name as text.
+        expect(TempGlyph.assetFor(TempKind.unknown), isNull);
+
+        const left = TempReading(
+          kind: TempKind.nozzle,
+          raw: 'nozzle',
+          actual: 1,
+          target: 0,
+        );
+        const right = TempReading(
+          kind: TempKind.nozzle,
+          raw: 'nozzle_2',
+          index: 2,
+          actual: 1,
+          target: 0,
+        );
+        const rack = TempReading(
+          kind: TempKind.nozzle,
+          raw: 'nozzle',
+          rackPosition: 6,
+          actual: 1,
+          target: 0,
+        );
+        const bed = TempReading(
+          kind: TempKind.bed,
+          raw: 'bed',
+          actual: 1,
+          target: 0,
+        );
+        String? tag(TempReading r, {required bool dual}) =>
+            tempGlyphTag(r, dualNozzle: dual, l10n: pl);
+        expect(tag(left, dual: true), pl.extruderLeftShort);
+        expect(tag(right, dual: true), pl.extruderRightShort);
+        expect(tag(rack, dual: false), '6');
+        expect(tag(left, dual: false), isNull);
+        expect(tag(bed, dual: true), isNull);
       });
     });
 
@@ -6495,6 +7498,145 @@ void main() {
 
       expect(tick(), findsNothing);
     });
+  });
+
+  group('AI failure detection on the print panel', () {
+    // The widest row the panel has: time left, ETA, layers, a pause and the
+    // detection item.
+    const item = PrinterWithStatus(
+      printer: Printer(id: 1, name: 'X1C'),
+      status: PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'RUNNING',
+        progress: 20,
+        remainingTime: 80,
+        layerNum: 40,
+        totalLayers: 200,
+        nextPause: NextPause(layer: 120, minutes: 40),
+      ),
+    );
+
+    Future<void> pumpCard(
+      WidgetTester tester,
+      AiDetectionStatus? status, {
+      double scale = 1,
+    }) async {
+      await tester.pumpWidget(
+        _scope(
+          const Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: item)),
+          ),
+          extra: [aiDetectionOverride(status)],
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    AiDetectionStatus one(AiDetection detection, {Set<int>? monitored}) =>
+        AiDetectionStatus(
+          enabled: true,
+          monitoredPrinters: monitored,
+          perPrinter: {1: detection},
+        );
+
+    Finder eye() => find.byIcon(Icons.visibility_outlined);
+    Finder eyeOff() => find.byIcon(Icons.visibility_off_outlined);
+
+    for (final (cls, label) in [
+      (AiDetectionClass.safe, pl.aiDetectionSafe),
+      (AiDetectionClass.warning, pl.aiDetectionWarning),
+      (AiDetectionClass.failure, pl.aiDetectionFailure),
+      (AiDetectionClass.unknown, pl.aiDetectionStarting),
+    ]) {
+      testWidgets('${cls.name} shows its word beside an eye', (tester) async {
+        await pumpCard(tester, one(AiDetection(cls: cls, score: 0.01)));
+
+        expect(find.text(label), findsOneWidget);
+        expect(eye(), findsOneWidget);
+        expect(eyeOff(), findsNothing);
+      });
+    }
+
+    testWidgets('a print that is not being checked says so, eye crossed out', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpCard(
+        tester,
+        one(
+          const AiDetection(
+            cls: AiDetectionClass.error,
+            score: 0,
+            error: 'ML API unreachable',
+          ),
+        ),
+      );
+
+      expect(find.text(pl.aiDetectionNotChecking), findsOneWidget);
+      expect(eye(), findsNothing);
+      expect(
+        tester.getSemantics(eyeOff()).label,
+        contains(pl.aiDetectionTipError('ML API unreachable')),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a tap shows the sentence behind the word', (tester) async {
+      await pumpCard(
+        tester,
+        one(
+          const AiDetection(
+            cls: AiDetectionClass.safe,
+            printQuality: 8,
+            ratesQuality: true,
+          ),
+        ),
+      );
+      final sentence = pl.aiDetectionTipQuality(pl.aiDetectionSafe, 8);
+      expect(find.text(sentence), findsNothing);
+
+      await tester.tap(find.text(pl.aiDetectionSafe));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text(sentence), findsOneWidget);
+      // Let the tooltip's own timer run out before the test ends.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('nothing without an entry, without detection, or outside the '
+        'monitored printers', (tester) async {
+      const safe = AiDetection(cls: AiDetectionClass.safe, score: 0);
+      for (final status in [
+        null,
+        const AiDetectionStatus(enabled: true),
+        const AiDetectionStatus(enabled: false, perPrinter: {1: safe}),
+        one(safe, monitored: {2}),
+      ]) {
+        await pumpCard(tester, status);
+        expect(eye(), findsNothing, reason: '$status');
+        expect(find.text(pl.aiDetectionSafe), findsNothing);
+      }
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the widest row lays out at ${scale}x text', (tester) async {
+        // The longest label of the five, on a 360 dp phone.
+        tester.view.physicalSize = const Size(360, 1600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await pumpCard(
+          tester,
+          one(const AiDetection(cls: AiDetectionClass.error)),
+          scale: scale,
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text(pl.aiDetectionNotChecking), findsOneWidget);
+        expect(find.byIcon(Icons.pause_circle_outline), findsOneWidget);
+      });
+    }
   });
 }
 

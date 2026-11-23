@@ -9,6 +9,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../api/client_cert.dart';
 import '../api/custom_ca.dart';
+import '../api/edge_access.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
@@ -28,6 +29,7 @@ class WatchConfig {
     this.watchFace = false,
     this.ca,
     this.clientCert,
+    this.edge,
   });
 
   final ServerProfile profile;
@@ -51,6 +53,12 @@ class WatchConfig {
   /// The certificate the phone presents to this server, so the direct fallback
   /// passes a proxy that asks for one; null clears the watch's.
   final ClientCert? clientCert;
+
+  /// The Cloudflare Access credential the phone presents to this server (#72),
+  /// so the watch's direct fallback passes the same sign-in. The watch has no
+  /// screen to set one up or to sign in with: it only ever holds what the phone
+  /// pushed, and null clears its own.
+  final EdgeAccess? edge;
 
   /// Whether [current] already points at this server in this auth mode.
   ///
@@ -89,6 +97,9 @@ class WatchConfigCodec {
   static const _kCertName = 'certName';
   static const _kCertData = 'certData';
   static const _kCertPassword = 'certPassword';
+  // The credential as the phone stores it: one JSON string, so a new kind of it
+  // needs no new key here. Both secrets and the cookie ride in it.
+  static const _kEdge = 'edge';
 
   /// Build the context map. Only non-null keys are included — the Data Layer
   /// rejects null values in the map.
@@ -100,6 +111,7 @@ class WatchConfigCodec {
     WatchTheme? theme,
     CustomCa? ca,
     ClientCert? clientCert,
+    EdgeAccess? edge,
   }) => <String, dynamic>{
     _kVersion: version,
     _kBaseUrl: profile.baseUrl,
@@ -122,6 +134,10 @@ class WatchConfigCodec {
       _kCertData: clientCert.data,
       _kCertPassword: clientCert.password,
     },
+    // Only one that is for this server: a stale one from a server the phone has
+    // since left would sit on the watch for a host it never talks to.
+    if (edge != null && _forServer(edge, profile.baseUrl))
+      _kEdge: jsonEncode(edge.toJson()),
   };
 
   /// Parse an incoming context. Returns null for empty/foreign/malformed maps
@@ -169,7 +185,35 @@ class WatchConfigCodec {
           _clientCert(name, data, password),
         _ => null,
       },
+      edge: _edge(map[_kEdge], baseUrl),
     );
+  }
+
+  static bool _forServer(EdgeAccess edge, String baseUrl) {
+    final url = Uri.tryParse(baseUrl);
+    return url != null && edge.appliesTo(url);
+  }
+
+  /// Read again, not trusted: a browser session's expiry is taken from its
+  /// cookie, as when it is signed in, and not from what the wire says. Null for
+  /// anything this build cannot read, so a newer phone's credential kind reads
+  /// as none rather than breaking the whole config.
+  static EdgeAccess? _edge(Object? raw, String baseUrl) {
+    if (raw is! String) return null;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      final edge = json['kind'] == BrowserSession.kind
+          ? BrowserSession.fromCookie(
+              host: json['host'] as String,
+              cookie: json['cookie'] as String,
+            )
+          : EdgeAccess.fromJson(json);
+      // Bound to the host it was issued for, and to https: one that is not for
+      // this server is none, whatever the wire says.
+      return edge != null && _forServer(edge, baseUrl) ? edge : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Parsed again rather than trusted, as the CA is.
@@ -208,6 +252,7 @@ class WatchConfigSync {
     WatchTheme? theme,
     CustomCa? ca,
     ClientCert? clientCert,
+    EdgeAccess? edge,
   }) async {
     try {
       final map = WatchConfigCodec.encode(
@@ -224,6 +269,7 @@ class WatchConfigSync {
         theme: theme,
         ca: ca,
         clientCert: clientCert,
+        edge: edge,
       );
       await _watch.updateApplicationContext(map);
     } catch (_) {

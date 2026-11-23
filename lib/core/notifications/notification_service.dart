@@ -91,6 +91,11 @@ abstract class NotificationService {
     bool silent = false,
   });
 
+  /// Takes the notification [id] off the screen, when what it said is no longer
+  /// true (the Cloudflare session it reported ended has recovered). A no-op for
+  /// one that is not there, or already swiped away.
+  Future<void> cancelAlert(int id);
+
   /// Whether the notification [id] is still on screen. False for one the user
   /// swiped away — re-posting that one to add a photo would resurrect a
   /// notification they already dealt with.
@@ -235,6 +240,9 @@ class LocalNotificationService implements NotificationService {
       payload: payload,
     );
   }
+
+  @override
+  Future<void> cancelAlert(int id) => _plugin.cancel(id: id);
 
   @override
   Future<bool> isAlertActive(int id) async {

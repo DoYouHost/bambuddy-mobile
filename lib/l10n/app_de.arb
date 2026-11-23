@@ -1072,6 +1072,7 @@
   "errClientCertRefused": "Der Server verlangt ein gültiges Client-Zertifikat",
   "errConnection": "Verbindungsfehler",
   "errMalformedResponse": "Ungültige Serverantwort",
+  "errNotBambuddy": "Unter dieser Adresse läuft kein Bambuddy-Server — prüfe den Port und entferne einen eventuellen Pfad dahinter.",
   "errInvalidCredentials": "Ungültiger Benutzername oder ungültiges Passwort",
   "errTwoFactorUnsupported": "Konto erfordert 2FA — in dieser Version nicht unterstützt. Verwende einen API-Schlüssel (Einstellungen → API-Schlüssel auf dem Server).",
   "errTwoFactorCodeRejected": "Falscher Code — überprüfe ihn und versuche es erneut.",
@@ -1416,7 +1417,7 @@
   "navFilaments": "Filamente",
   "inventoryEmpty": "Keine Spulen im Bestand",
   "inventoryNoMatches": "Keine Filamente entsprechen deiner Suche",
-  "inventorySearchHint": "Material, Marke, Farbe suchen…",
+  "inventorySearchHint": "ID, Material, Marke, Farbe suchen…",
   "inventoryLowStock": "Niedrig",
   "inventoryFilters": "Filter",
   "inventoryFilterStatus": "Status",
@@ -1880,6 +1881,149 @@
   "@inventoryLabelsStartSlot": {
     "placeholders": {
       "position": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetCustom": "Eigener Bogen",
+  "labelSheetCustomHint": "Eigene Seite, Etikettengröße und Raster",
+  "labelSheetSavedTitle": "Gespeicherte Vorlagen",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} Etikett} other{{count} Etiketten}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Seite",
+  "labelSheetLabelWidth": "Etikettenbreite, mm",
+  "labelSheetLabelHeight": "Etikettenhöhe, mm",
+  "labelSheetColumns": "Spalten",
+  "labelSheetRows": "Zeilen",
+  "labelSheetTopMargin": "Oberer Rand, mm",
+  "labelSheetLeftMargin": "Linker Rand, mm",
+  "labelSheetColumnGap": "Spaltenabstand, mm",
+  "labelSheetRowGap": "Zeilenabstand, mm",
+  "labelSheetIncomplete": "In jedes Feld eine Zahl eintragen.",
+  "labelSheetTooSmall": "Etiketten müssen mindestens {minWidth} mm breit und {minHeight} mm hoch sein.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Größen, Ränder und Abstände dürfen höchstens {max} mm betragen.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Die Spaltenzahl muss eine ganze Zahl von 1 bis {max} sein.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Die Zeilenzahl muss eine ganze Zahl von 1 bis {max} sein.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Ränder und Abstände dürfen nicht negativ sein.",
+  "labelSheetTooWide": "Die Etiketten sind mit dem linken Rand {size} mm breit, die Seite aber nur {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Die Etiketten sind mit dem oberen Rand {size} mm hoch, die Seite aber nur {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Diesen Bogen verwenden",
+  "labelSheetName": "Vorlagenname",
+  "labelSheetNameTaken": "Eine Vorlage mit diesem Namen gibt es schon.",
+  "labelSheetSaveAs": "Als Vorlage speichern",
+  "labelSheetSaveChanges": "Änderungen speichern",
+  "labelSheetDelete": "Vorlage löschen",
+  "labelSheetSaved": "Vorlage „{name}“ gespeichert",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Vorlage „{name}“ gelöscht",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "„{name}“ löschen?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Bereits gedruckte Etiketten bleiben unverändert.",
+  "labelSheetEdit": "Vorlage bearbeiten",
+  "labelSheetSaveAsNew": "Als neu speichern",
+  "labelPngTooLarge": "PNG ist bei {dpi} dpi auf {maxPages} Bogenseiten begrenzt, dieser Druck braucht {pages}. PDF, eine niedrigere Auflösung oder weniger Spulen wählen.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
         "type": "int"
       }
     }
@@ -4749,5 +4893,140 @@
         "type": "int"
       }
     }
-  }
+  },
+  "serverSettingsWledSubtitle": "Licht-Presets je Druckerstatus",
+  "wledTitle": "WLED",
+  "wledDescription": "Farben und Effekte stellst du in WLED ein. Der Server wechselt nur zum Preset, das dem Druckerstatus zugeordnet ist.",
+  "wledPrinter": "Drucker",
+  "wledEnabled": "WLED-Integration",
+  "wledEnabledDesc": "Presets wechseln, wenn sich der Druckerstatus ändert",
+  "wledUrl": "WLED-Adresse",
+  "wledUrlRequired": "Erforderlich, solange die Integration aktiv ist",
+  "wledLoadPresets": "Presets laden",
+  "wledTestConnection": "Verbindung testen",
+  "wledConnected": "Verbunden mit {name}",
+  "wledConnectedVersion": "Verbunden mit {name}, Version {version}",
+  "wledUnreachable": "WLED antwortet nicht",
+  "wledPresetsLoaded": "{count, plural, =0{WLED hat keine Presets} =1{1 Preset geladen} other{{count} Presets geladen}}",
+  "wledPresetsOffline": "WLED ist nicht erreichbar. Gespeicherte Presets bleiben erhalten.",
+  "wledMappingHeader": "Preset je Status",
+  "wledSegmentHint": "Wähle beim Anlegen eines Presets in WLED sein Segment und aktiviere „Checked segments only“.",
+  "wledNoPreset": "Kein Preset",
+  "wledPresetSaved": "Gespeichertes Preset {id}",
+  "wledPresetOption": "{name} ({id})",
+  "wledTestPreset": "Preset für {state} testen",
+  "wledPresetTested": "Preset aktiviert",
+  "wledPresetTestFailed": "WLED hat das Preset nicht gewechselt",
+  "wledFinishedTimeout": "Zurück zu „Bereit“ nach (Sekunden)",
+  "wledFinishedTimeoutHint": "Sekunden nach einem fertigen Druck, bis das Preset für „Bereit“ übernimmt. 0 schaltet das ab.",
+  "wledFinishedTimeoutInvalid": "Eine ganze Zahl von 0 bis 86400",
+  "wledSave": "Speichern",
+  "wledSaved": "WLED-Einstellungen gespeichert",
+  "wledRefused": "Nicht angenommen: {reason}",
+  "wledNoPrinters": "Keine Drucker zum Einrichten",
+  "wledStateIdle": "Bereit",
+  "wledStatePrepare": "Vorbereitung",
+  "wledStatePrinting": "Druckt",
+  "wledStatePaused": "Pausiert",
+  "wledStateFinished": "Abgeschlossen",
+  "wledStateError": "Fehler",
+  "wledStateQueueWaiting": "Wartet auf leere Druckplatte",
+  "wledStateFilamentProblem": "Filamentproblem",
+  "wledStateHmsError": "HMS-Fehler",
+  "wledStateOffline": "Offline",
+  "fmMoveBlockedCurrent": "Bereits hier",
+  "fmMoveBlockedSelf": "Der verschobene Ordner",
+  "fmMoveBlockedInside": "Im verschobenen Ordner",
+  "fmMoveBlockedExternal": "Externer Ordner",
+  "fmMoveBlockedNotWritable": "Nicht deiner und nicht freigegeben",
+  "fmMoveBlockedReadOnly": "Schreibgeschützter Ordner",
+  "fmNotMoved": "Datei nicht verschoben",
+  "fmNotMovedReason": "Datei nicht verschoben: {reason}",
+  "aiDetectionSafe": "Sicher",
+  "aiDetectionWarning": "Warnung",
+  "aiDetectionFailure": "Fehldruck",
+  "aiDetectionNotChecking": "Prüft nicht",
+  "aiDetectionStarting": "Startet",
+  "aiDetectionTipStatus": "KI-Fehlererkennung: {status}",
+  "aiDetectionTipScore": "KI-Fehlererkennung: {status} (Score {score})",
+  "aiDetectionTipQuality": "KI-Fehlererkennung: {status} (Druckqualität {quality}/10)",
+  "aiDetectionTipError": "KI-Fehlererkennung prüft diesen Druck nicht: {reason}",
+  "aiDetectionTipErrorNoReason": "KI-Fehlererkennung prüft diesen Druck nicht",
+  "aiDetectionTipStarting": "KI-Fehlererkennung: warte auf das erste Ergebnis",
+  "aiDetectionLimitReached": "Nutzungslimit erreicht",
+  "notifLowStockTitle": "Niedriger Filamentstand unter {percent}%",
+  "notifLowStockDesc": "Wird am Server für alle festgelegt. Der eigene Schwellenwert einer Spule hat Vorrang.",
+  "notifLowStockEdit": "Schwellenwert für niedrigen Filamentstand ändern",
+  "notifLowStockInputLabel": "Prozent des Etikettengewichts",
+  "notifLowStockInvalid": "Gib eine Zahl von 0,1 bis 99,9 ein.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "An Panda Breath gesendet",
+  "pandaBreathOffline": "Heizung offline",
+  "pandaBreathTurnOn": "Einschalten",
+  "pandaBreathTurnOff": "Ausschalten",
+  "pandaBreathMode": "Modus",
+  "pandaBreathModeOn": "Immer an",
+  "pandaBreathModeDrying": "Trocknen",
+  "pandaBreathDryingLeft": "Trocknen, noch {minutes} Min.",
+  "pandaBreathTarget": "Zieltemperatur 0–{max} °C",
+  "queueSettingsDispatchLabel": "Drucker für Aufträge an ein beliebiges Modell",
+  "queueSettingsDispatchDesc": "Welcher Drucker einen Auftrag für ein ganzes Modell bekommt. Beschäftigte oder Offline-Drucker werden übergangen.",
+  "queueSettingsDispatchFewestHours": "Wenigste Betriebsstunden",
+  "queueSettingsDispatchMostHours": "Meiste Betriebsstunden",
+  "queueSettingsDispatchLeastRecentlyUsed": "Am längsten unbenutzt",
+  "queueSettingsDispatchPriority": "Druckerpriorität",
+  "editPrinterDispatchPriority": "Priorität für Aufträge an ein beliebiges Modell",
+  "editPrinterDispatchPriorityHelp": "Niedrigste Zahl zuerst, leer zuletzt. Gilt, wenn Aufträge für ein beliebiges Modell nach Druckerpriorität vergeben werden.",
+  "editPrinterDispatchPriorityInvalid": "Ganze Zahl von 0 bis 100000 eingeben",
+  "nozzleSheetTitle": "Position {position}",
+  "nozzleSectionTitle": "Düse",
+  "nozzleLabelDiameter": "Durchmesser",
+  "nozzleLabelType": "Typ",
+  "nozzleLabelFlow": "Durchfluss",
+  "nozzleLabelStatus": "Status",
+  "nozzleLabelWear": "Verschleiß",
+  "nozzleLabelPrintTime": "Druckzeit",
+  "nozzleLabelMaxTemp": "Max. Temp.",
+  "nozzleLabelSerial": "Seriennummer",
+  "nozzleLabelFilament": "Filament",
+  "nozzleMaterialStainless": "Edelstahl",
+  "nozzleMaterialHardened": "Gehärteter Stahl",
+  "nozzleMaterialTungsten": "Wolframkarbid",
+  "nozzleStatusDocked": "Im Düsenhalter",
+  "nozzleStatusMounted": "Am Werkzeugkopf",
+  "nozzleWearValue": "{percent} %",
+  "nozzleMaxTempValue": "{degrees} °C",
+  "nozzleDiameterValue": "{diameter} mm",
+  "errEdgeAccessRequired": "Der Server liegt hinter Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access hat die gespeicherten Zugangsdaten nicht akzeptiert",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Einrichten",
+  "edgeAccessServiceToken": "Service-Token",
+  "edgeAccessServiceTokenHint": "Funktioniert im Hintergrund, sodass Hinweise und die Uhr weiter laufen.",
+  "edgeAccessClientId": "Client-ID",
+  "edgeAccessClientSecret": "Client-Secret",
+  "edgeAccessFor": "Für {host}",
+  "edgeAccessConfigured": "Service-Token für {host}",
+  "edgeAccessSave": "Speichern",
+  "edgeAccessRemove": "Entfernen",
+  "edgeAccessRemoveTitle": "Cloudflare Access entfernen?",
+  "edgeAccessRemoveMessage": "Die App erreicht diesen Server erst wieder, wenn du es neu einrichtest.",
+  "edgeAccessRecommended": "Empfohlen",
+  "edgeAccessBrowser": "Anmeldung im Browser",
+  "edgeAccessBrowserHint": "Läuft ab. Du meldest dich von Hand neu an.",
+  "edgeAccessSignIn": "Anmelden",
+  "edgeAccessWarnTitle": "Die Browser-Anmeldung läuft ab",
+  "edgeAccessWarnMessage": "Endet die Cloudflare-Sitzung, funktionieren Hinweise, die laufende Benachrichtigung, Widgets und die Uhr nicht mehr, bis du dich neu anmeldest. Ein Service-Token braucht keine Anmeldung. Manche Anbieter, darunter Google, lehnen die Anmeldung in einem eingebetteten Browser ab; nimm dann ein Service-Token.",
+  "edgeAccessWarnConfirm": "Trotzdem fortfahren",
+  "edgeAccessWarnUseToken": "Service-Token verwenden",
+  "edgeAccessSignInFailed": "Die Seite wurde nicht geladen.",
+  "edgeAccessConfiguredBrowser": "Browser-Anmeldung für {host}",
+  "notifEdgeSessionTitle": "Cloudflare-Sitzung abgelaufen",
+  "notifEdgeSessionBody": "Hinweise sind aus. Melde dich neu an, um sie wieder zu aktivieren.",
+  "notifEvtEdgeSession": "Cloudflare Access",
+  "notifEvtEdgeSessionDesc": "Wenn Cloudflare die Anmeldung oder das Service-Token der App nicht mehr annimmt und Hinweise ausbleiben",
+  "edgeSessionBanner": "Cloudflare-Sitzung abgelaufen",
+  "notifEdgeTokenTitle": "Cloudflare hat das Service-Token abgelehnt",
+  "notifEdgeTokenBody": "Hinweise sind aus. Tausche das Service-Token aus, um sie wieder zu aktivieren.",
+  "edgeTokenBanner": "Cloudflare hat das Service-Token abgelehnt"
 }

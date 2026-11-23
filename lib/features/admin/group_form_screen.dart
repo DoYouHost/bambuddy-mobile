@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/group_summary.dart';
@@ -154,12 +155,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                l10n.groupsPermissionsHeader,
-                style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
-              ),
-            ),
+            Expanded(child: SectionLabel(l10n.groupsPermissionsHeader)),
             Text(
               l10n.groupsPermissionsSelected(_permissions.length),
               style: t.monoLabel,
@@ -202,7 +198,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       Expanded(
                         child: Text(
                           l10n.groupsAdvancedPermissions,
-                          style: t.bodyBold.copyWith(color: t.textPrimary),
+                          style: t.bodyBoldPrimary,
                         ),
                       ),
                       if (advancedSelected > 0)
@@ -423,13 +419,7 @@ class _LockedNotice extends StatelessWidget {
         horizontal: DashSpace.md,
         vertical: DashSpace.md,
       ),
-      decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
-        borderRadius: BorderRadius.circular(DashRadius.lg),
-        border: Border.all(
-          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
-        ),
-      ),
+      decoration: t.tintBox(t.accentOrange),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

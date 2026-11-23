@@ -3,6 +3,8 @@ import 'package:app_util/app_util.dart';
 
 import 'package:clock/clock.dart';
 
+import '../../core/models/value_equality.dart';
+import 'low_stock.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
@@ -267,7 +269,7 @@ typedef _JobFrame = ({int? layer, int? progress, String? job});
 /// notification actually shows — which printer leads, its whole percent, its ETA
 /// minute and how many are running. Anything else would redraw it on a WS frame
 /// that changes nothing a reader can see.
-class _OngoingKey {
+class _OngoingKey with ValueEquality {
   const _OngoingKey(this.printerId, this.percent, this.etaMinutes, this.count);
   final int printerId;
   final int percent;
@@ -275,15 +277,7 @@ class _OngoingKey {
   final int count;
 
   @override
-  bool operator ==(Object other) =>
-      other is _OngoingKey &&
-      other.printerId == printerId &&
-      other.percent == percent &&
-      other.etaMinutes == etaMinutes &&
-      other.count == count;
-
-  @override
-  int get hashCode => Object.hash(printerId, percent, etaMinutes, count);
+  List<Object?> get props => [printerId, percent, etaMinutes, count];
 }
 
 /// Notification brain: observes latest printer statuses and controls
@@ -347,6 +341,12 @@ class PrintMonitor {
   final String? Function(HmsError)? _hmsDescribe;
 
   final Map<int, _PrinterMemo> _memo = {};
+
+  /// Where "low filament" is read from. The phone's own rule until the service
+  /// says it is asking the inventory ([awaitLowStockInventory]); a monitor with
+  /// no inventory to ask (the tests, a server that refuses it) stays on it.
+  LowStockSource _lowStockSource = LowStockSource.phone;
+  final LowStockLatch _lowStock = LowStockLatch();
 
   /// The frames the last [update] brought: a held fault is judged against the
   /// printer as it is when the hold runs out, not as it was when it started.
@@ -485,6 +485,59 @@ class PrintMonitor {
     for (final memo in _memo.values) {
       memo.hmsLastSeen.updateAll((_, _) => now);
     }
+  }
+
+  /// The service is about to ask the inventory for low spools: the phone's own
+  /// rule keeps quiet until the answer says which one applies.
+  void awaitLowStockInventory() => _lowStockSource = LowStockSource.pending;
+
+  /// The inventory cannot be read in this session (403, or no such route on an
+  /// older server): back to the phone's own rule, which needs nothing from it.
+  void lowStockUnavailable() => _lowStockSource = LowStockSource.phone;
+
+  /// The server's rule (`print_scheduler._check_filament_low`) over the spools
+  /// the inventory says sit in a slot: one alert per printer whose slots newly
+  /// dropped below their threshold, naming the emptiest. See [LowStockLatch]
+  /// for what counts as new.
+  void updateLowStock(Map<LowStockKey, LowStockSlot> slots) {
+    _lowStockSource = LowStockSource.inventory;
+    final crossed = _lowStock.look(
+      slots,
+      onlyIf: (key) => _latest.containsKey(key.printerId),
+    );
+    final emptiest = <int, double>{};
+    for (final key in crossed) {
+      final percent = slots[key]!.percent;
+      emptiest.update(
+        key.printerId,
+        (known) => percent < known ? percent : known,
+        ifAbsent: () => percent,
+      );
+    }
+    for (final MapEntry(key: id, value: percent) in emptiest.entries) {
+      final status = _latest[id]!;
+      _alertOrRecordOff(
+        id,
+        NotifEvent.lowFilament,
+        () => _alertLowFilament(id, status, percent.toInt()),
+      );
+    }
+  }
+
+  /// Printers deleted on the server: their timers and memory go, and the
+  /// ongoing notification is worked out again without them. Not [update]: that
+  /// would run every other printer's last frame through the rules as if it had
+  /// just arrived, and reset the clock the HMS memory measures a feed gap by.
+  void forget(Set<int> printerIds) {
+    for (final id in printerIds) {
+      _memo.remove(id)?.dispose();
+    }
+    _lowStock.forget(printerIds);
+    _latest = {
+      for (final e in _latest.entries)
+        if (!printerIds.contains(e.key)) e.key: e.value,
+    };
+    _updateOngoing(_latest);
   }
 
   /// Cancels every pending per-printer timer (offline grace, HMS holds), so none
@@ -726,7 +779,8 @@ class PrintMonitor {
     }
     memo.paused = status.isPaused;
 
-    // 8) Low filament (hysteresis per tray).
+    // 8) Low filament: the server's rule from the inventory, or this phone's own
+    // per-tray rule when the inventory cannot be read.
     _processLowFilament(id, status, memo);
 
     // 9) High AMS humidity (hysteresis per unit).
@@ -1122,8 +1176,16 @@ class PrintMonitor {
   }
 
   void _processLowFilament(int id, PrinterStatus status, _PrinterMemo memo) {
+    if (_lowStockSource != LowStockSource.phone) return;
     final threshold = _prefs.lowFilamentThreshold;
     final remains = _trayRemains(status);
+    // A tray reported empty has lost the spool that was said to be low, so the
+    // next one in it is a new alert. Only a tray the frame reports as empty:
+    // one missing from the frame, or a reading gone unknown with the spool
+    // still in, says nothing about the spool.
+    for (final (key, tray) in _trays(status)) {
+      if (_slotEmptied(tray)) memo.lowFilamentTrays.remove(key);
+    }
     var triggered = false;
     int? triggeredRemain;
     for (final entry in remains.entries) {
@@ -1466,33 +1528,47 @@ class PrintMonitor {
     );
   }
 
-  /// Maps filament trays (AMS + external spools) to remaining amount (%).
-  /// Skip `remain == -1` (unknown — no RFID tag) and empty trays.
-  /// Keyed by [globalTrayId], so the latch survives an AMS being re-seated.
-  Map<int, int> _trayRemains(PrinterStatus status) {
-    final out = <int, int>{};
+  /// Whether the printer says this slot holds no spool at all, which is stricter
+  /// than [AmsTray.isEmpty]: a spool it sees but cannot name has a blank type too
+  /// (`emptyKind` "unconfigured"), and so does a slot between two readings while
+  /// the presence bit says it is still occupied. Letting go of the latch on those
+  /// would alert twice for one spool. A colour with alpha 00 and a type is not
+  /// empty either. A tray with no id cannot be told apart from slot 0.
+  bool _slotEmptied(AmsTray t) =>
+      t.id != null &&
+      (t.trayType?.trim().isEmpty ?? true) &&
+      t.exists != true &&
+      t.state != 11;
+
+  /// Every tray the frame reports, AMS units and external spools, by the id the
+  /// low-filament latch is keyed on: [globalTrayId], so the latch survives an AMS
+  /// being re-seated.
+  Iterable<(int, AmsTray)> _trays(PrinterStatus status) sync* {
     final List<AmsUnit> units = status.ams ?? const [];
     for (var u = 0; u < units.length; u++) {
       final int unitId = units[u].id ?? u;
       for (final AmsTray t in units[u].trays ?? const []) {
-        final int? remain = t.remain;
-        if (remain != null && remain >= 0 && !t.isEmpty) {
-          out[globalTrayId(
-                amsId: unitId,
-                trayId: t.id ?? 0,
-                amsType: units[u].amsType,
-              )] =
-              remain;
-        }
+        yield (
+          globalTrayId(
+            amsId: unitId,
+            trayId: t.id ?? 0,
+            amsType: units[u].amsType,
+          ),
+          t,
+        );
       }
     }
     for (final t in status.externalSpools) {
-      final remain = t.remain;
-      if (remain != null && remain >= 0 && !t.isEmpty) {
-        // `vt_tray` already reports the holder's global id.
-        out[t.id ?? externalTrayIdBase] = remain;
-      }
+      // `vt_tray` already reports the holder's global id.
+      yield (t.id ?? externalTrayIdBase, t);
     }
-    return out;
   }
+
+  /// Maps filament trays to remaining amount (%). Skips `remain == -1` (unknown —
+  /// no RFID tag) and empty trays.
+  Map<int, int> _trayRemains(PrinterStatus status) => {
+    for (final (key, t) in _trays(status))
+      if (t.remain case final remain? when remain >= 0 && !t.isEmpty)
+        key: remain,
+  };
 }

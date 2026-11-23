@@ -118,4 +118,68 @@ void main() {
       await expectLater(dio.getList('/x', _id), throwsA(isA<DioException>()));
     });
   });
+
+  // The three writers share one shape; each verb is checked on its own so a
+  // helper that sends the wrong method fails by name.
+  final writers = <String, Future<int> Function(Dio, {Object? data})>{
+    'POST': (dio, {data}) => dio.postObject(
+      '/x',
+      _id,
+      data: data,
+      query: {'q': 1},
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    ),
+    'PUT': (dio, {data}) => dio.putObject(
+      '/x',
+      _id,
+      data: data,
+      query: {'q': 1},
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    ),
+    'PATCH': (dio, {data}) => dio.patchObject(
+      '/x',
+      _id,
+      data: data,
+      query: {'q': 1},
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    ),
+  };
+
+  for (final MapEntry(key: verb, value: write) in writers.entries) {
+    group('${verb.toLowerCase()}Object', () {
+      test('sends the verb, body, query and options, decodes a map', () async {
+        final dio = _dio((_) => _json({'id': 7}));
+        final log = captureRequests(dio);
+        expect(await write(dio, data: {'name': 'a'}), 7);
+        expect(log.calls, ['$verb /x']);
+        expect(log.requests.single.data, {'name': 'a'});
+        expect(log.requests.single.queryParameters, {'q': 1});
+        expect(log.requests.single.receiveTimeout, const Duration(seconds: 60));
+      });
+
+      test('an empty body decodes as an empty object', () async {
+        final dio = _dio((_) => ResponseBody.fromString('', 204));
+        expect(await write(dio), -1);
+      });
+
+      test('a 409 stays a DioException', () async {
+        final dio = _dio((_) => _json({'detail': 'taken'}, 409));
+        await expectLater(
+          write(dio),
+          throwsA(
+            isA<DioException>().having(
+              (e) => e.response?.statusCode,
+              'status',
+              409,
+            ),
+          ),
+        );
+      });
+
+      test('a list body is not decoded as an object', () async {
+        final dio = _dio((_) => _json([1, 2]));
+        await expectLater(write(dio), throwsA(isA<DioException>()));
+      });
+    });
+  }
 }

@@ -40,11 +40,11 @@ class GroupsRepository {
   /// POST /groups/ — the group as the server stored it.
   Future<GroupSummary> create(GroupCreateInput body) {
     return guardKeepingDetail(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
+      return _dio.postObject(
         Endpoints.groups,
+        GroupSummary.fromJson,
         data: body.toJson(),
       );
-      return GroupSummary.fromJson(res.data ?? const {});
     });
   }
 
@@ -53,11 +53,11 @@ class GroupsRepository {
   /// try.
   Future<GroupSummary> update(int groupId, GroupUpdateInput body) {
     return guardKeepingDetail(() async {
-      final res = await _dio.patch<Map<String, dynamic>>(
+      return _dio.patchObject(
         Endpoints.groupById(groupId),
+        GroupSummary.fromJson,
         data: body.toJson(),
       );
-      return GroupSummary.fromJson(res.data ?? const {});
     });
   }
 

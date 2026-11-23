@@ -674,5 +674,5 @@ final _faultOverrides = [
     ),
   ),
   inertStatusesOverride,
-  inertSmartPlugsOverride,
+  ...inertDashboardPollOverrides,
 ];

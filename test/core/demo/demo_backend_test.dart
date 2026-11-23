@@ -6,7 +6,11 @@ import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
+import 'package:collection/collection.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
+import 'package:bambuddy_mobile/core/models/queue_settings.dart';
+import 'package:bambuddy_mobile/core/models/wled_config.dart';
+import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
@@ -22,6 +26,8 @@ import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
+import 'package:bambuddy_mobile/data/ai_detection_repository.dart';
 import 'package:bambuddy_mobile/data/external_links_repository.dart';
 import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
@@ -51,7 +57,6 @@ import 'package:bambuddy_mobile/data/profile_defaults_repository.dart';
 import 'package:bambuddy_mobile/core/models/spool_preset_override.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
-import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
@@ -65,6 +70,7 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/features/queue/queue_filaments.dart';
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,6 +104,87 @@ void main() {
             if (p.mounted) p.position,
         ],
         [7],
+      );
+    });
+
+    test('the H3C rack nozzles report their own figures, one without a print '
+        'time', () async {
+      final h3c = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 7).status!;
+      final rack = h3c.nozzleRack!;
+
+      expect(rack, hasLength(rackSlotCount));
+      expect(rack.every((n) => n.wear != null && n.stat != null), isTrue);
+      expect(rack.every((n) => (n.serialNumber ?? '').isNotEmpty), isTrue);
+      expect(rack.singleWhere((n) => n.stat == 1).id, 0);
+      expect(
+        rack.where((n) => n.printTimeS == null),
+        hasLength(1),
+        reason: 'the card must show it with no print time row',
+      );
+      expect(rack.map((n) => n.printTimeS).whereType<int>().toSet(), {
+        14400,
+        90061,
+        7320,
+        600,
+        28800,
+        3600,
+        172800,
+        0,
+      });
+    });
+
+    test(
+      'every printer serves a dispatch priority, and the order is set',
+      () async {
+        final printers = await PrintersRepository(dio).fetchPrinters();
+
+        expect(printers.every((p) => p.servesDispatchPriority), isTrue);
+        expect(
+          {for (final p in printers) p.id: p.dispatchPriority},
+          {1: 2, 2: null, 3: null, 4: null, 5: 1, 6: null, 7: null},
+        );
+        expect(
+          QueueSettings.fromSettings(
+            await ServerSettingsRepository(dio).fetch(),
+          ).dispatchOrder,
+          ModelDispatchOrder.priority,
+        );
+      },
+    );
+
+    test('the P1S has a Panda Breath, and a command reaches it', () async {
+      final repo = PrintersRepository(dio);
+      final commands = PrinterCommandsRepository(dio);
+      Future<PandaBreathState?> panda(int id) async => (await repo.fetchAll())
+          .firstWhere((p) => p.printer.id == id)
+          .status
+          ?.pandaBreath;
+
+      expect(await panda(1), isNull);
+      final before = (await panda(2))!;
+      expect(before.knownMode, isNotNull);
+      addTearDown(() async {
+        await commands.setPandaBreathOn(2, on: before.workOn!);
+        await commands.setPandaBreathMode(2, before.knownMode!);
+        await commands.setPandaBreathTarget(2, before.targetTemp!.round());
+      });
+
+      await commands.setPandaBreathMode(2, PandaBreathMode.drying);
+      await commands.setPandaBreathTarget(2, 55);
+      final drying = (await panda(2))!;
+      expect(drying.knownMode, PandaBreathMode.drying);
+      expect(drying.targetTemp, 55);
+      expect(drying.dryingRunning, isTrue);
+
+      await commands.setPandaBreathOn(2, on: false);
+      expect((await panda(2))!.workOn, isFalse);
+
+      // A printer without one answers as the server does.
+      await expectLater(
+        commands.setPandaBreathOn(1, on: true),
+        throwsA(isA<ApiException>()),
       );
     });
 
@@ -1543,6 +1630,32 @@ void main() {
     });
   });
 
+  group('AI failure detection', () {
+    test('every running print has an entry, the idle machines none', () async {
+      final status = (await AiDetectionRepository(dio).fetch())!;
+
+      expect(status.enabled, isTrue);
+      expect(status.monitoredPrinters, isNull);
+      // The default: printers 1 and 6 print.
+      expect(status.perPrinter.keys, unorderedEquals([1, 6]));
+      expect(status.detectionFor(1)!.cls, AiDetectionClass.safe);
+      expect(status.detectionFor(1)!.printQuality, 9);
+      expect(status.detectionFor(6)!.cls, AiDetectionClass.warning);
+      expect(status.detectionFor(2), isNull);
+    });
+
+    test('with nobody printing there is nothing to rate', () async {
+      DemoBackend.printingPrinters = 0;
+      addTearDown(
+        () =>
+            DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+      );
+      final status = (await AiDetectionRepository(dio).fetch())!;
+      expect(status.enabled, isTrue);
+      expect(status.perPrinter, isEmpty);
+    });
+  });
+
   group('external links', () {
     test(
       'parse, with a count, none, a count past 99 and no field at all',
@@ -2530,6 +2643,48 @@ void main() {
       for (final f in ServerFeature.values)
         if (!version!.supports(f)) f.name,
     ], isEmpty);
+  });
+
+  group('WLED', () {
+    final repo = PrintersRepository(dio);
+
+    test('every printer row carries the key, so the gate opens off the '
+        'listing', () async {
+      await repo.fetchPrinters();
+      expect(repo.wledCapability.observedAnswer, isTrue);
+    });
+
+    test('the mapped preset WLED no longer has is missing from its list, '
+        'so the screen shows a saved id', () async {
+      final printer = (await repo.fetchPrinters()).first;
+      final config = printer.wledConfig!;
+      final presets = await repo.fetchWledPresets(printer.id, config.baseUrl!);
+      expect(config.enabled, isTrue);
+      expect(
+        config.presets.values.where((id) => presets.none((p) => p.id == id)),
+        [4],
+      );
+    });
+
+    test('a save is kept and read back', () async {
+      const next = WledConfig(
+        enabled: true,
+        baseUrl: 'http://192.168.4.41',
+        presets: {WledState.paused: 5},
+      );
+      final saved = await repo.saveWledConfig(2, next);
+      expect(saved.wledConfig?.baseUrl, 'http://192.168.4.41');
+      final row = (await repo.fetchPrinters()).firstWhere((p) => p.id == 2);
+      expect(row.wledConfig?.presets, {WledState.paused: 5});
+    });
+
+    test('both tests answer', () async {
+      expect(
+        (await repo.testWledConnection(1, 'http://192.168.4.40')).name,
+        isNotNull,
+      );
+      await repo.testWledPreset(1, 'http://192.168.4.40', 1);
+    });
   });
 
   group('material numbers', () {

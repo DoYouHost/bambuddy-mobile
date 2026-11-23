@@ -2251,6 +2251,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get errMalformedResponse => 'Réponse du serveur malformée';
 
   @override
+  String get errNotBambuddy =>
+      'Cette adresse n\'est pas un serveur Bambuddy — vérifiez le port et supprimez le chemin qui le suit, s\'il y en a un.';
+
+  @override
   String get errInvalidCredentials =>
       'Nom d\'utilisateur ou mot de passe incorrect';
 
@@ -2879,7 +2883,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventorySearchHint =>
-      'Rechercher un matériau, une marque, une couleur…';
+      'Rechercher un ID, un matériau, une marque, une couleur…';
 
   @override
   String get inventoryLowStock => 'Faible';
@@ -3742,6 +3746,152 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String inventoryLabelsStartSlot(int position) {
     return 'Position $position';
+  }
+
+  @override
+  String get labelSheetCustom => 'Planche personnalisée';
+
+  @override
+  String get labelSheetCustomHint =>
+      'Votre propre page, la taille des étiquettes et la grille';
+
+  @override
+  String get labelSheetSavedTitle => 'Modèles enregistrés';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count étiquettes',
+      one: '$count étiquette',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Page';
+
+  @override
+  String get labelSheetLabelWidth => 'Largeur de l’étiquette, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Hauteur de l’étiquette, mm';
+
+  @override
+  String get labelSheetColumns => 'Colonnes';
+
+  @override
+  String get labelSheetRows => 'Lignes';
+
+  @override
+  String get labelSheetTopMargin => 'Marge supérieure, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Marge gauche, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Espace entre colonnes, mm';
+
+  @override
+  String get labelSheetRowGap => 'Espace entre lignes, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Saisissez un nombre dans chaque champ.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Les étiquettes doivent mesurer au moins $minWidth mm de large et $minHeight mm de haut.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Les tailles, marges et espaces ne peuvent pas dépasser $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Le nombre de colonnes doit être un entier de 1 à $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Le nombre de lignes doit être un entier de 1 à $max.';
+  }
+
+  @override
+  String get labelSheetNegative =>
+      'Les marges et les espaces ne peuvent pas être négatifs.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'Avec la marge gauche, les étiquettes font $size mm de large, mais la page ne fait que $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'Avec la marge supérieure, les étiquettes font $size mm de haut, mais la page ne fait que $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Utiliser cette planche';
+
+  @override
+  String get labelSheetName => 'Nom du modèle';
+
+  @override
+  String get labelSheetNameTaken => 'Un modèle portant ce nom existe déjà.';
+
+  @override
+  String get labelSheetSaveAs => 'Enregistrer comme modèle';
+
+  @override
+  String get labelSheetSaveChanges => 'Enregistrer les modifications';
+
+  @override
+  String get labelSheetDelete => 'Supprimer le modèle';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Modèle « $name » enregistré';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Modèle « $name » supprimé';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Supprimer « $name » ?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Les étiquettes déjà imprimées ne changent pas.';
+
+  @override
+  String get labelSheetEdit => 'Modifier le modèle';
+
+  @override
+  String get labelSheetSaveAsNew => 'Enregistrer comme nouveau';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'Le PNG est limité à $maxPages pages de planche à $dpi dpi, et cette impression en demande $pages. Utilisez le PDF, une résolution plus basse ou moins de bobines.';
   }
 
   @override
@@ -10343,4 +10493,486 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$date : $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle =>
+      'Préréglages lumineux selon l\'état de l\'imprimante';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Les couleurs et les effets se règlent dans WLED. Le serveur bascule seulement sur le préréglage associé à l\'état de l\'imprimante.';
+
+  @override
+  String get wledPrinter => 'Imprimante';
+
+  @override
+  String get wledEnabled => 'Intégration WLED';
+
+  @override
+  String get wledEnabledDesc =>
+      'Changer de préréglage quand l\'état de l\'imprimante change';
+
+  @override
+  String get wledUrl => 'Adresse WLED';
+
+  @override
+  String get wledUrlRequired => 'Requise tant que l\'intégration est active';
+
+  @override
+  String get wledLoadPresets => 'Charger les préréglages';
+
+  @override
+  String get wledTestConnection => 'Tester la connexion';
+
+  @override
+  String wledConnected(String name) {
+    return 'Connecté à $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Connecté à $name, version $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED ne répond pas';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count préréglages chargés',
+      one: '1 préréglage chargé',
+      zero: 'WLED n\'a aucun préréglage',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED est injoignable. Les préréglages enregistrés sont conservés.';
+
+  @override
+  String get wledMappingHeader => 'Préréglage par état';
+
+  @override
+  String get wledSegmentHint =>
+      'En créant un préréglage dans WLED, sélectionnez son segment et activez « Checked segments only ».';
+
+  @override
+  String get wledNoPreset => 'Aucun préréglage';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Préréglage enregistré $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Tester le préréglage $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Préréglage activé';
+
+  @override
+  String get wledPresetTestFailed => 'WLED n\'a pas changé de préréglage';
+
+  @override
+  String get wledFinishedTimeout => 'Retour à « Inactive » après (secondes)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Secondes après la fin d\'une impression avant le préréglage « Inactive ». 0 le désactive.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'Un nombre entier de 0 à 86400';
+
+  @override
+  String get wledSave => 'Enregistrer';
+
+  @override
+  String get wledSaved => 'Réglages WLED enregistrés';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Refusé : $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'Aucune imprimante à configurer';
+
+  @override
+  String get wledStateIdle => 'Inactive';
+
+  @override
+  String get wledStatePrepare => 'Préparation';
+
+  @override
+  String get wledStatePrinting => 'En impression';
+
+  @override
+  String get wledStatePaused => 'En pause';
+
+  @override
+  String get wledStateFinished => 'Terminée';
+
+  @override
+  String get wledStateError => 'Erreur';
+
+  @override
+  String get wledStateQueueWaiting => 'Plateau à libérer';
+
+  @override
+  String get wledStateFilamentProblem => 'Problème de filament';
+
+  @override
+  String get wledStateHmsError => 'Erreur HMS';
+
+  @override
+  String get wledStateOffline => 'Hors ligne';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Déjà ici';
+
+  @override
+  String get fmMoveBlockedSelf => 'Le dossier déplacé';
+
+  @override
+  String get fmMoveBlockedInside => 'Dans le dossier déplacé';
+
+  @override
+  String get fmMoveBlockedExternal => 'Dossier externe';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Ni à vous ni partagé';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Dossier en lecture seule';
+
+  @override
+  String get fmNotMoved => 'Fichier non déplacé';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Fichier non déplacé : $reason';
+  }
+
+  @override
+  String get aiDetectionSafe => 'Sûr';
+
+  @override
+  String get aiDetectionWarning => 'Avertissement';
+
+  @override
+  String get aiDetectionFailure => 'Échec';
+
+  @override
+  String get aiDetectionNotChecking => 'Ne vérifie pas';
+
+  @override
+  String get aiDetectionStarting => 'Démarrage';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'Détection d\'échec par IA : $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'Détection d\'échec par IA : $status (score $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'Détection d\'échec par IA : $status (qualité d\'impression $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'La détection d\'échec par IA ne vérifie pas cette impression : $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'La détection d\'échec par IA ne vérifie pas cette impression';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'Détection d\'échec par IA : en attente du premier résultat';
+
+  @override
+  String get aiDetectionLimitReached => 'limite d\'utilisation atteinte';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Filament bas en dessous de $percent %';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Défini sur le serveur pour tous. Le seuil propre à une bobine prévaut.';
+
+  @override
+  String get notifLowStockEdit => 'Modifier le seuil de filament bas';
+
+  @override
+  String get notifLowStockInputLabel => 'Pourcentage du poids de l\'étiquette';
+
+  @override
+  String get notifLowStockInvalid => 'Saisissez un nombre de 0,1 à 99,9.';
+
+  @override
+  String get pandaBreath => 'Panda Breath';
+
+  @override
+  String get pandaBreathSent => 'Envoyé au Panda Breath';
+
+  @override
+  String get pandaBreathOffline => 'Chauffage hors ligne';
+
+  @override
+  String get pandaBreathTurnOn => 'Allumer';
+
+  @override
+  String get pandaBreathTurnOff => 'Éteindre';
+
+  @override
+  String get pandaBreathMode => 'Mode';
+
+  @override
+  String get pandaBreathModeOn => 'Toujours allumé';
+
+  @override
+  String get pandaBreathModeDrying => 'Séchage';
+
+  @override
+  String pandaBreathDryingLeft(int minutes) {
+    return 'Séchage, encore $minutes min';
+  }
+
+  @override
+  String pandaBreathTarget(int max) {
+    return 'Température cible 0–$max °C';
+  }
+
+  @override
+  String get queueSettingsDispatchLabel =>
+      'Imprimante pour les travaux de modèle quelconque';
+
+  @override
+  String get queueSettingsDispatchDesc =>
+      'Quelle imprimante reçoit un travail mis en file pour tout un modèle. Les imprimantes occupées ou hors ligne sont passées.';
+
+  @override
+  String get queueSettingsDispatchFewestHours =>
+      'Le moins d\'heures d\'impression';
+
+  @override
+  String get queueSettingsDispatchMostHours =>
+      'Le plus d\'heures d\'impression';
+
+  @override
+  String get queueSettingsDispatchLeastRecentlyUsed =>
+      'Inactive depuis le plus longtemps';
+
+  @override
+  String get queueSettingsDispatchPriority => 'Priorité de l\'imprimante';
+
+  @override
+  String get editPrinterDispatchPriority =>
+      'Priorité pour les travaux de modèle quelconque';
+
+  @override
+  String get editPrinterDispatchPriorityHelp =>
+      'Le plus petit nombre passe en premier, vide en dernier. S\'applique quand les travaux de modèle quelconque suivent la priorité des imprimantes.';
+
+  @override
+  String get editPrinterDispatchPriorityInvalid =>
+      'Saisissez un nombre entier de 0 à 100000';
+
+  @override
+  String nozzleSheetTitle(int position) {
+    return 'Position $position';
+  }
+
+  @override
+  String get nozzleSectionTitle => 'Buse';
+
+  @override
+  String get nozzleLabelDiameter => 'Diamètre';
+
+  @override
+  String get nozzleLabelType => 'Type';
+
+  @override
+  String get nozzleLabelFlow => 'Débit';
+
+  @override
+  String get nozzleLabelStatus => 'État';
+
+  @override
+  String get nozzleLabelWear => 'Usure';
+
+  @override
+  String get nozzleLabelPrintTime => 'Temps d\'impression';
+
+  @override
+  String get nozzleLabelMaxTemp => 'Temp. max.';
+
+  @override
+  String get nozzleLabelSerial => 'N° de série';
+
+  @override
+  String get nozzleLabelFilament => 'Filament';
+
+  @override
+  String get nozzleMaterialStainless => 'Acier inoxydable';
+
+  @override
+  String get nozzleMaterialHardened => 'Acier trempé';
+
+  @override
+  String get nozzleMaterialTungsten => 'Carbure de tungstène';
+
+  @override
+  String get nozzleStatusDocked => 'Dans le rack';
+
+  @override
+  String get nozzleStatusMounted => 'Sur la tête d\'outil';
+
+  @override
+  String nozzleWearValue(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String nozzleMaxTempValue(int degrees) {
+    return '$degrees °C';
+  }
+
+  @override
+  String nozzleDiameterValue(String diameter) {
+    return '$diameter mm';
+  }
+
+  @override
+  String get errEdgeAccessRequired =>
+      'Le serveur est protégé par Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access n\'a pas accepté l\'identifiant enregistré';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Configurer';
+
+  @override
+  String get edgeAccessServiceToken => 'Jeton de service';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Fonctionne en arrière-plan, donc les alertes et la montre continuent de marcher.';
+
+  @override
+  String get edgeAccessClientId => 'Identifiant client';
+
+  @override
+  String get edgeAccessClientSecret => 'Secret client';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Pour $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Jeton de service pour $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Enregistrer';
+
+  @override
+  String get edgeAccessRemove => 'Retirer';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Retirer Cloudflare Access ?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'L\'app ne pourra plus joindre ce serveur tant que vous ne l\'aurez pas reconfiguré.';
+
+  @override
+  String get edgeAccessRecommended => 'Recommandé';
+
+  @override
+  String get edgeAccessBrowser => 'Connexion par le navigateur';
+
+  @override
+  String get edgeAccessBrowserHint =>
+      'Expire. Vous vous reconnectez à la main.';
+
+  @override
+  String get edgeAccessSignIn => 'Se connecter';
+
+  @override
+  String get edgeAccessWarnTitle => 'La connexion par navigateur expire';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Quand la session Cloudflare se termine, les alertes, la notification en cours, les widgets et la montre cessent de fonctionner jusqu\'à une nouvelle connexion. Un jeton de service n\'exige aucune connexion. Certains fournisseurs, dont Google, refusent la connexion dans un navigateur intégré ; utilisez alors un jeton de service.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Continuer quand même';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Utiliser un jeton de service';
+
+  @override
+  String get edgeAccessSignInFailed => 'La page ne s\'est pas chargée.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Connexion par navigateur pour $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Session Cloudflare expirée';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Les alertes sont coupées. Reconnectez-vous pour les réactiver.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Quand Cloudflare n\'accepte plus la connexion ou le jeton de service de l\'app et que les alertes s\'arrêtent';
+
+  @override
+  String get edgeSessionBanner => 'Session Cloudflare expirée';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare a refusé le jeton de service';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Les alertes sont coupées. Remplacez le jeton de service pour les réactiver.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare a refusé le jeton de service';
 }

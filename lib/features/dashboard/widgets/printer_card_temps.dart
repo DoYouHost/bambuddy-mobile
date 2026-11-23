@@ -1,13 +1,12 @@
 part of 'printer_card.dart';
 
-/// Temperature gauge tile (design "gauge card"): a circular gauge in the
-/// top-right, sensor label, and the current value in large mono type. The ring
-/// center shows the setpoint ("-" when unset). Chamber prefixes the value with
-/// its air-duct glyph (flame = heating/orange, snowflake = cooling/blue).
+/// Temperature tile: the sensor's pictogram (tinted by its heat state), the
+/// setpoint beside it, the current value in large mono type and a bar. The
+/// chamber's drawing carries its air-duct mode (waves, snowflake, nothing).
 ///
 /// Editable sensors (nozzle/bed always; chamber only when the model has an
 /// active heater) are tappable and open [_TempControlSheet]. Setpoint and
-/// airduct glyph overlay the optimistic override from [controlsProvider] so a
+/// airduct mode overlay the optimistic override from [controlsProvider] so a
 /// just-sent change shows instantly. Read-only when control is forbidden.
 ///
 /// The whole tile is the target and opens [_TempControlSheet]: its "Ustaw" tab
@@ -23,10 +22,19 @@ class _GaugeTile extends ConsumerWidget {
     required this.dualNozzle,
     required this.activeExtruder,
     required this.printing,
+    this.nozzle,
+    this.compact = false,
   });
 
   final TempReading reading;
   final int printerId;
+
+  /// The tile of a row of three: tighter padding, see [tempGridColumns].
+  final bool compact;
+
+  /// What this tile's nozzle reports about itself, shown at the end of its
+  /// sheet. Null for the other sensors and for a printer that reports none.
+  final NozzleRackSlot? nozzle;
   final String? model;
 
   /// Hardware nozzle index (0=right/default, 1=left) for nozzle tiles; null for
@@ -71,17 +79,23 @@ class _GaugeTile extends ConsumerWidget {
     final target = reading.kind == TempKind.unknown
         ? reading.target
         : (pending.tempTarget(reading.raw)?.toDouble() ?? reading.target);
-    final hasTarget = target != null && target > 0;
-    // One thermal-state color drives the whole tile — ring, setpoint and the
-    // chamber's air-duct glyph all use [accent] (orange = heating/holding,
-    // blue = cooling/idle). The ring center shows the setpoint ("-" when unset).
+    // The heat state (orange = heating or holding, blue = cooling or idle)
+    // colours the pictogram and nothing else on the tile. A sensor without a
+    // pictogram (an unknown key) keeps the colour on its text.
     final accent = reading.gaugeColor(t, target: target);
     final airduct = reading.kind == TempKind.chamber
         ? (pending.airductHeating ?? reading.airductIsHeating)
         : reading.airductIsHeating;
-    final airductIcon = airduct == null
-        ? null
-        : (airduct ? Icons.local_fire_department : Icons.ac_unit);
+    // The pictogram is the tile's only name, so it speaks it, with the duct
+    // mode the chamber's drawing shows. The first of two heads is "Nozzle 1",
+    // as on the controller, where its text label says the same.
+    final name = tempDisplayName(reading, dualNozzle: dualNozzle, l10n: l10n);
+    final spoken = [
+      name,
+      if (airduct != null)
+        '${l10n.ctrlAirduct}: ${airduct ? l10n.ctrlAirductHeating : l10n.ctrlAirductCooling}',
+    ].join(', ');
+    final pictured = reading.kind != TempKind.unknown;
 
     final editable = _isEditable && !forbidden;
     // Shown until the server says otherwise (see the latch): a tab that
@@ -90,76 +104,23 @@ class _GaugeTile extends ConsumerWidget {
         _heaterHistoryKinds.contains(reading.raw) &&
         ref.watch(heaterHistorySupportedProvider).orFalse;
 
-    final tile = Container(
-      padding: const EdgeInsets.all(DashSpace.md),
-      decoration: t.subCardBox(DashRadius.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Label left, setpoint right on the same line: the digits keep a row
-          // of their own below, and the tile loses a line of height.
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  reading.label(l10n).toUpperCase(),
-                  style: t.micro.copyWith(
-                    color: t.textSecondary,
-                    letterSpacing: DashTracking.label,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: DashSpace.xs),
-              // The setpoint: an arrow and the number, "-" when none is set.
-              Icon(
-                Icons.arrow_forward,
-                size: DashIcon.xs,
-                color: hasTarget ? accent : t.textTertiary,
-              ),
-              const SizedBox(width: DashSpace.xs),
-              Text(
-                hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
-                style: t.micro.copyWith(
-                  color: hasTarget
-                      ? reading.gaugeInk(t, target: target)
-                      : t.textTertiary,
-                  fontFamily: DashTokens.fontMono,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: DashSpace.sm),
-          // The digits own their row: nothing sits beside them, so they keep
-          // their full size at every text size (the grid goes to one column when
-          // they or the label line would not fit, see [tempGridColumns]).
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (airductIcon != null) ...[
-                Icon(airductIcon, size: DashIcon.md, color: accent),
-                const SizedBox(width: DashSpace.xs),
-              ],
-              Text(
-                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                style: t.monoDisplay.copyWith(height: 1.0),
-              ),
-            ],
-          ),
-          const SizedBox(height: DashSpace.sm),
-          ExcludeSemantics(
-            child: DashProgressBar(
-              value: actual == null
-                  ? 0
-                  : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
-              height: DashBar.thin,
-              color: accent,
-            ),
-          ),
-        ],
-      ),
+    final tile = _TempTileFace(
+      label: reading.label(l10n),
+      target: target,
+      accent: accent,
+      targetInk: reading.gaugeInk(t, target: target),
+      actual: actual,
+      fraction: actual == null ? 0 : actual / reading.gaugeMax(chamberMax),
+      pictogram: pictured
+          ? TempGlyph(
+              kind: reading.kind,
+              color: reading.gaugeInk(t, target: target),
+              airductIsHeating: airduct,
+              semanticLabel: spoken,
+            )
+          : null,
+      pictogramTag: tempGlyphTag(reading, dualNozzle: dualNozzle, l10n: l10n),
+      compact: compact,
     );
 
     if (!editable && !hasHistory) return tile;
@@ -205,6 +166,158 @@ class _GaugeTile extends ConsumerWidget {
         printing: printing,
         editable: editable,
         hasHistory: hasHistory,
+        nozzle: nozzle,
+      ),
+    );
+  }
+}
+
+/// What a temperature tile shows: the sensor's name and the setpoint on one
+/// line, the reading in large digits under them, and a bar. The name is the
+/// [pictogram] where the sensor has one, otherwise the [label] as text.
+/// [fraction] is clamped here.
+///
+/// With a [pictogram] the heat colour is on the pictogram alone; the setpoint,
+/// the digits and the bar stay neutral. Without one (an unknown sensor)
+/// [accent] and [targetInk] colour the setpoint and the bar.
+class _TempTileFace extends StatelessWidget {
+  const _TempTileFace({
+    required this.label,
+    required this.target,
+    required this.accent,
+    required this.targetInk,
+    required this.actual,
+    required this.fraction,
+    this.pictogram,
+    this.pictogramTag,
+    this.compact = false,
+    this.glyph,
+    this.glyphColor,
+    this.glyphLabel,
+  });
+
+  final String label;
+  final double? target;
+  final Color accent;
+  final Color targetInk;
+  final double? actual;
+  final double fraction;
+
+  /// The sensor's drawing, already tinted by the caller.
+  final Widget? pictogram;
+
+  /// The mark beside the pictogram: L or R on two heads, a rack position.
+  final String? pictogramTag;
+
+  /// Tighter padding for the tile of a row of three.
+  final bool compact;
+
+  /// A glyph before the digits (the Panda Breath's offline cloud).
+  final IconData? glyph;
+
+  /// [accent] when null.
+  final Color? glyphColor;
+
+  /// The glyph's accessible name, for one that says something the digits do
+  /// not (an offline heater shows a dash).
+  final String? glyphLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final target = this.target;
+    final hasTarget = target != null && target > 0;
+    final actual = this.actual;
+    final pictogram = this.pictogram;
+    final neutral = pictogram != null;
+    return Container(
+      padding: EdgeInsets.all(compact ? DashSpace.sm : DashSpace.md),
+      decoration: t.subCardBox(DashRadius.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Name left, setpoint right on the same line: the digits keep a row
+          // of their own below, and the tile loses a line of height.
+          Row(
+            children: [
+              Expanded(
+                child: pictogram == null
+                    ? Text(
+                        label.toUpperCase(),
+                        style: t.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            pictogram,
+                            if (pictogramTag case final tag?) ...[
+                              const SizedBox(width: DashSpace.xs),
+                              // The pictogram already speaks the full name.
+                              ExcludeSemantics(
+                                child: Text(tag, style: t.monoLabel),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+              ),
+              const SizedBox(width: DashSpace.xs),
+              // The setpoint: an arrow and the number, "-" when none is set.
+              Icon(
+                Icons.arrow_forward,
+                size: DashIcon.xs,
+                color: hasTarget
+                    ? (neutral ? t.textSecondary : accent)
+                    : t.textTertiary,
+              ),
+              const SizedBox(width: DashSpace.xs),
+              Text(
+                hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
+                style: t.micro.copyWith(
+                  color: hasTarget
+                      ? (neutral ? t.textSecondary : targetInk)
+                      : t.textTertiary,
+                  fontFamily: DashTokens.fontMono,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          // The digits own their row: nothing sits beside them, so they keep
+          // their full size at every text size (the grid goes to one column when
+          // they or the name line would not fit, see [tempGridColumns]).
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (glyph != null) ...[
+                Icon(
+                  glyph,
+                  size: DashIcon.md,
+                  color: glyphColor ?? accent,
+                  semanticLabel: glyphLabel,
+                ),
+                const SizedBox(width: DashSpace.xs),
+              ],
+              Text(
+                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
+                style: t.monoDisplay.copyWith(height: 1.0),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          ExcludeSemantics(
+            child: DashProgressBar(
+              value: fraction.clamp(0.0, 1.0),
+              height: DashBar.thin,
+              color: neutral ? t.textSecondary : accent,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -268,7 +381,7 @@ class _StateChip extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         overflow: TextOverflow.ellipsis,
-        style: t.micro.copyWith(color: fg, letterSpacing: DashTracking.label),
+        style: t.pillText(fg),
       ),
     );
   }
@@ -294,7 +407,11 @@ class _TempControlSheet extends ConsumerStatefulWidget {
     required this.printing,
     required this.editable,
     required this.hasHistory,
+    this.nozzle,
   });
+
+  /// The nozzle's own figures, for a nozzle sheet.
+  final NozzleRackSlot? nozzle;
 
   final int printerId;
   final TempReading reading;
@@ -352,12 +469,6 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
     _tabs.dispose();
     super.dispose();
   }
-
-  void _bump(int delta) => setState(
-    () => _target = (_target + delta)
-        .clamp(0, _reading.maxTarget(ref.read(chamberMaxTargetProvider)))
-        .toInt(),
-  );
 
   Future<void> _apply(int target) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -497,8 +608,6 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final max = _reading.maxTarget(_chamberMax);
-    final step = _reading.targetStep;
-    final accent = _reading.gaugeColor(t, target: _target.toDouble());
     final showAirduct =
         _reading.kind == TempKind.chamber && supportsAirduct(widget.model);
     // Nozzle switch (dual-head only): the active extruder comes from LIVE
@@ -561,7 +670,24 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
             ],
             Row(
               children: [
-                Text(_reading.label(l10n), style: t.titleLg),
+                // The heat state tints the pictogram only, as on the tile; the
+                // name beside it is text, so the drawing is left unspoken.
+                TempGlyph(
+                  kind: _reading.kind,
+                  color: _reading.gaugeInk(t, target: _target.toDouble()),
+                  airductIsHeating: _reading.kind == TempKind.chamber
+                      ? _airductHeating
+                      : null,
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  tempDisplayName(
+                    _reading,
+                    dualNozzle: widget.dualNozzle,
+                    l10n: l10n,
+                  ),
+                  style: t.titleLg,
+                ),
                 const Spacer(),
                 Text(
                   _reading.actual == null
@@ -594,79 +720,29 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
               const SizedBox(height: DashSpace.lg),
               // Dim + block the target editor when a chamber target can't
               // take effect (airduct not in Heating).
-              Opacity(
-                opacity: tempEnabled ? 1 : 0.35,
-                child: IgnorePointer(
-                  ignoring: !tempEnabled,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Center(
-                        child: Text(
-                          _target == 0 ? l10n.ctrlOff : '$_target°',
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: DashFontSize.numeral,
-                            fontWeight: DashWeight.bold,
-                            color: _reading.gaugeInk(
-                              t,
-                              target: _target.toDouble(),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: DashSpace.sm),
-                      Row(
-                        children: [
-                          _StepButton(
-                            icon: Icons.remove,
-                            id: 'temperature.step_down',
-                            label: '−$step°',
-                            onTap: () => _bump(-step),
-                          ),
-                          Expanded(
-                            // No `divisions`: tick marks would be far denser
-                            // on the wide nozzle range (0–300) than the bed
-                            // (0–120) and look inconsistent. The slider stays
-                            // smooth and the value snaps to `step` here.
-                            child: Slider(
-                              value: _target.clamp(0, max).toDouble(),
-                              max: max.toDouble(),
-                              activeColor: accent,
-                              onChanged: (v) => setState(
-                                () => _target = ((v / step).round() * step)
-                                    .clamp(0, max),
-                              ),
-                            ).tagged('temperature.slider'),
-                          ),
-                          _StepButton(
-                            icon: Icons.add,
-                            id: 'temperature.step_up',
-                            label: '+$step°',
-                            onTap: () => _bump(step),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: DashSpace.md),
-                      // Quick-pick presets — tapping one moves the slider;
-                      // the change is committed with the Set button below.
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: DashSpace.sm,
-                        runSpacing: DashSpace.sm,
-                        children: [
-                          for (final p in _reading.presets(_chamberMax))
-                            _PresetChip(
-                              label: '$p°',
-                              id: 'temperature.preset',
-                              selected: _target == p,
-                              onTap: () => setState(() => _target = p),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+              _HeldWhen(
+                held: !tempEnabled,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _TargetNumeral(
+                      _target == 0 ? l10n.ctrlOff : '$_target°',
+                      color: t.textPrimary,
+                    ),
+                    const SizedBox(height: DashSpace.sm),
+                    _StepSlider(
+                      value: _target,
+                      max: max,
+                      activeColor: t.accent,
+                      onChanged: (v) => setState(() => _target = v),
+                      presets: _reading.presets(_chamberMax),
+                      presetLabel: (p) => '$p°',
+                      idFor: (part) => 'temperature.$part',
+                      lessLabel: '−1°',
+                      moreLabel: '+1°',
+                    ),
+                  ],
                 ),
               ),
               if (showAirduct) ...[
@@ -701,6 +777,8 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                 ],
               ),
             ],
+            if (_reading.kind == TempKind.nozzle && widget.nozzle != null)
+              _NozzleSection(widget.nozzle!),
           ],
         ),
       ),
@@ -716,16 +794,20 @@ class _PresetChip extends StatelessWidget {
     required this.selected,
     required this.id,
     required this.onTap,
+    this.mono = true,
   });
 
   final String label;
+
+  /// Mono for a number; a word (a mode name) takes the body face.
+  final bool mono;
 
   /// Diagnostic identifier — see [_SheetButton.id]. The chips of the
   /// temperature, fan, drying and movement sheets are the same widget.
   final String id;
 
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -758,7 +840,10 @@ class _PresetChip extends StatelessWidget {
               // height is only for the touch target.
               child: Center(
                 widthFactor: 1,
-                child: Text(label, style: t.monoValue.copyWith(color: fg)),
+                child: Text(
+                  label,
+                  style: (mono ? t.monoValue : t.bodyBold).copyWith(color: fg),
+                ),
               ),
             ),
           ),

@@ -1751,16 +1751,9 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
-      child: Text(
-        label.toUpperCase(),
-        style: t.micro.copyWith(
-          color: t.accentGreenInk,
-          letterSpacing: DashTracking.caps,
-        ),
-      ),
+      child: SectionLabel(label),
     );
   }
 }

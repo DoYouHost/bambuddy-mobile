@@ -33,7 +33,7 @@ void main() {
     overrides: [
       noServerProfileOverride,
       queueProvider.overrideWith(() => queue ?? _BulkQueue()),
-      allPrintersProvider.overrideWith((ref) async => printers),
+      printerListProvider.overrideWith((ref) async => printers),
       triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
       gcodeSnippetModelsProvider.overrideWithValue(AsyncData(snippets)),
       queueOutcomeProvider.overrideWithValue(AsyncData(outcome)),

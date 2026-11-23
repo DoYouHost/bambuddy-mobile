@@ -37,6 +37,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
     adapter = mockServer(dio);
+    adapter.onGet(
+      '$_baseUrl/api/v1/updates/version',
+      (s) => s.reply(200, {'version': '1.2.5', 'repo': 'maziggy/bambuddy'}),
+    );
     container = ProviderContainer(
       retry: neverRetry,
       overrides: [

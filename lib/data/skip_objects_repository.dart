@@ -34,27 +34,18 @@ class SkipObjectsRepository {
   /// Null when the server has no mask to give: a 3MF without `pick_N.png`, or a
   /// server old enough not to know the view. Both are a fallback for the caller,
   /// not an error to show.
-  Future<Uint8List?> fetchPickMask(int printerId, MediaAuth auth) async {
-    try {
-      return await guard(() async {
-        final res = await _dio.get<List<int>>(
-          Endpoints.printerCover(printerId),
-          queryParameters: {'view': 'pick', ...auth.query},
-          options: Options(
-            responseType: ResponseType.bytes,
-            headers: auth.headers,
-          ),
-        );
-        final bytes = res.data;
-        return bytes == null || bytes.isEmpty
-            ? null
-            : Uint8List.fromList(bytes);
-      });
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+  Future<Uint8List?> fetchPickMask(
+    int printerId,
+    MediaAuth auth,
+  ) => guardAbsent(() async {
+    final res = await _dio.get<List<int>>(
+      Endpoints.printerCover(printerId),
+      queryParameters: {'view': 'pick', ...auth.query},
+      options: Options(responseType: ResponseType.bytes, headers: auth.headers),
+    );
+    final bytes = res.data;
+    return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
+  }, null);
 
   /// Body is a bare JSON array of `identify_id` values (`[683]`). Content-type
   /// is set explicitly because Dio's implicit-type inference only covers

@@ -15,9 +15,17 @@ import 'queue_filaments.dart';
 /// lists them: the tray the stored mapping names, its spool and the colour; a
 /// tray the printer reports empty in the warning colour (`QueuePage.tsx`).
 class QueueFilamentChips extends ConsumerWidget {
-  const QueueFilamentChips({super.key, required this.item});
+  const QueueFilamentChips({
+    super.key,
+    required this.item,
+    this.leading = const [],
+  });
 
   final QueueItem item;
+
+  /// Chips that open the row, in the same wrapping run as the filaments: the
+  /// colour-substitution pill, which is about those very colours.
+  final List<Widget> leading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +53,7 @@ class QueueFilamentChips extends ConsumerWidget {
       buildLoadedFilaments(status),
       status,
     );
-    if (filaments.isEmpty) return const SizedBox.shrink();
+    if (filaments.isEmpty && leading.isEmpty) return const SizedBox.shrink();
 
     String label(QueueFilament f) {
       final colour =
@@ -70,7 +78,11 @@ class QueueFilamentChips extends ConsumerWidget {
       child: Wrap(
         spacing: DashSpace.xs,
         runSpacing: DashSpace.xs,
+        // A leading chip may be a 48 dp tap target around a smaller pill;
+        // top-aligned, its pill sat lower than the filament chips.
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          ...leading,
           for (final f in filaments)
             _Chip(
               colour: parseSpoolColor(f.color),

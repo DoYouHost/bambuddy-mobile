@@ -165,6 +165,10 @@ abstract final class Permissions {
   /// whatever `/auth/me` says.
   static const printersUpdate = 'printers:update';
 
+  /// Saving, renaming and deleting a label template, among the rest of the
+  /// inventory writes. `backend/app/core/permissions.py::Permission`
+  static const inventoryUpdate = 'inventory:update';
+
   /// Driving a printer: pause, stop, smart plugs. The bulk queue edit greys its
   /// "power off when done" row without it, as the web does — the route itself
   /// does not ask (`print_queue.py::bulk_update_queue_items`), so this is a

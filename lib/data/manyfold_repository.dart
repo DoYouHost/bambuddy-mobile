@@ -22,7 +22,7 @@ class ManyfoldRepository {
       return _dio.getObject(Endpoints.manyfoldStatus, ManyfoldStatus.fromJson);
     },
     null,
-    statuses: {404, 403},
+    statuses: absentOrRefused,
   );
 
   Future<ManyfoldModelPage> models({String query = '', int page = 1}) =>
@@ -54,11 +54,11 @@ class ManyfoldRepository {
     required String fileId,
     int? folderId,
   }) => _call(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.manyfoldImport,
+      ManyfoldImportResult.fromJson,
       data: {'model_id': modelId, 'file_id': fileId, 'folder_id': folderId},
     );
-    return ManyfoldImportResult.fromJson(res.data ?? const {});
   });
 
   Future<ManyfoldConfig> config() => _call(() async {
@@ -71,11 +71,11 @@ class ManyfoldRepository {
     required String clientId,
     String clientSecret = '',
   }) => _call(() async {
-    final res = await _dio.put<Map<String, dynamic>>(
+    return _dio.putObject(
       Endpoints.manyfoldConfig,
+      ManyfoldConfig.fromJson,
       data: _connection(url, clientId, clientSecret),
     );
-    return ManyfoldConfig.fromJson(res.data ?? const {});
   });
 
   /// Files imported earlier stay in the library.

@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/edge_access_probe.dart';
 import 'package:bambuddy_mobile/core/auth/auth_service.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -55,6 +56,47 @@ void main() {
     },
   );
 
+  group('the session signal', () {
+    tearDown(() => EdgeSessionSignal.listener = null);
+
+    Future<SharedPreferences> prepared() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await SettingsRepository(prefs).saveProfile(
+        const ServerProfile(
+          baseUrl: fakeServerBaseUrl,
+          authMode: AuthMode.none,
+        ),
+      );
+      return prefs;
+    }
+
+    test('an isolate with no listener of its own leaves the mark', () async {
+      final prefs = await prepared();
+      await buildBackgroundApiClient(prefs);
+
+      EdgeSessionSignal.ended('printers.example.com');
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        (await SettingsRepository.opened()).loadEdgeSessionEnded(),
+        'printers.example.com',
+      );
+    });
+
+    test('one that has its own is not taken over', () async {
+      final prefs = await prepared();
+      final heard = <String>[];
+      EdgeSessionSignal.listener = (host, token) => heard.add(host);
+
+      await buildBackgroundApiClient(prefs);
+      EdgeSessionSignal.ended('printers.example.com');
+
+      expect(heard, ['printers.example.com']);
+    });
+  });
+
   test('an AuthService without its store is refused', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -66,5 +108,61 @@ void main() {
       ),
       throwsA(isA<AssertionError>()),
     );
+  });
+
+  group('tagged payloads', () {
+    const url = 'http://printers.test:8000';
+    final tag = serverTag(url);
+
+    test('a payload is its kind, its fields and the server, in that order', () {
+      expect(
+        taggedPayload('thing', [4, 'ab', ''], serverUrl: url),
+        'thing:4:ab::$tag',
+      );
+    });
+
+    test('and reads back into the same fields and tag', () {
+      final parsed = parseTaggedPayload(
+        taggedPayload('thing', [4, 'ab', ''], serverUrl: url),
+        'thing',
+        fieldCount: 3,
+      );
+      expect(parsed?.fields, ['4', 'ab', '']);
+      expect(parsed?.server, tag);
+    });
+
+    test('nothing else reads: another kind, a count that differs, no tag', () {
+      final payload = taggedPayload('thing', [4], serverUrl: url);
+      expect(parseTaggedPayload(payload, 'other', fieldCount: 1), isNull);
+      expect(parseTaggedPayload(payload, 'thing', fieldCount: 2), isNull);
+      expect(parseTaggedPayload(payload, 'thing', fieldCount: 0), isNull);
+      expect(parseTaggedPayload('thing:4:', 'thing', fieldCount: 1), isNull);
+      expect(parseTaggedPayload('thing:4', 'thing', fieldCount: 1), isNull);
+      expect(parseTaggedPayload('', 'thing', fieldCount: 1), isNull);
+      expect(parseTaggedPayload(null, 'thing', fieldCount: 1), isNull);
+      // A kind is the whole word before the first colon.
+      expect(
+        parseTaggedPayload('things:4:$tag', 'thing', fieldCount: 1),
+        isNull,
+      );
+    });
+
+    test('the three kinds are written as they always were', () {
+      expect(
+        hmsPayload(
+          printerId: 3,
+          fullCode: '0500400E',
+          serverUrl: url,
+          jobId: '77',
+        ),
+        'hms:3:0500400E:77:$tag',
+      );
+      expect(
+        hmsPayload(printerId: 3, fullCode: '0500400E', serverUrl: url),
+        'hms:3:0500400E::$tag',
+      );
+      expect(maintenancePayload([1, 2, 9], serverUrl: url), 'maint:1,2,9:$tag');
+      expect(maintenancePayload(const [], serverUrl: url), 'maint::$tag');
+    });
   });
 }

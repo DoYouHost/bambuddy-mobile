@@ -20,8 +20,23 @@ enum AppErrorCode {
   /// A proxy with mutual TLS refused the app: no client certificate, or one it
   /// does not accept (#65). The remedy is the certificate, not the address.
   clientCertRefused,
+
+  /// A request ended on a Cloudflare Access sign-in page (#72): the server sits
+  /// behind Cloudflare Access and the app has no credential it accepts. The
+  /// remedy is the credential, not the address.
+  edgeAccessRequired,
+
+  /// As [edgeAccessRequired], with a credential saved: Cloudflare did not
+  /// accept it. A service token revoked or outside its policy, or a browser
+  /// session that has ended.
+  edgeAccessRejected,
   connectionError,
   malformedResponse,
+
+  /// The address answers, but not as bambuddy — usually the web page the SPA
+  /// catch-all serves for an address pasted with a path after
+  /// the port (`host:8000/printers`). Not [connectionError]: the host answered.
+  notBambuddy,
   invalidCredentials,
 
   /// A second factor is needed and the caller cannot ask for one — silent
@@ -102,6 +117,25 @@ sealed class AppApiException implements Exception {
       '${detail == null ? '' : ', detail=$detail'})';
 }
 
+/// A request that was sent on to Cloudflare Access (#72): [AppErrorCode.edgeAccessRequired]
+/// or [AppErrorCode.edgeAccessRejected].
+///
+/// [host] is the one Cloudflare is in front of: the host that redirected the
+/// request to its sign-in page, which is not always the one the address named
+/// (an alias, or an address that moved to its canonical host first). It is what
+/// a credential has to be bound to, and why it is a field of its own and not in
+/// [detail], which goes to the log.
+class EdgeAccessException extends AppApiException {
+  const EdgeAccessException(
+    super.code, {
+    required this.host,
+    super.method,
+    super.path,
+  });
+
+  final String host;
+}
+
 /// 4xx/5xx other than 401/403, or a response of unexpected shape.
 class ApiException extends AppApiException {
   const ApiException(
@@ -150,6 +184,12 @@ Future<T> guardAbsent<T>(
     throw mapDioException(e);
   }
 }
+
+/// The [guardAbsent] statuses of a feed that has nothing to show for a server
+/// without its route (404) and for a session the server refuses (403) alike.
+/// Only for a handler that looks up no row by id, where a 404 can only be the
+/// route.
+const absentOrRefused = {404, 403};
 
 /// [guard] for a route that enforces a rule the app does not re-implement, so
 /// the 400 or 422 keeps the sentence explaining it — see

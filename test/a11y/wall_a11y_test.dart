@@ -113,7 +113,7 @@ void main() {
     'faults on a tile and in the panel',
     overrides: _faultRoster,
     arrange: (tester) => a11yTap(tester, byLogId('wall.panel_expand')),
-    shows: find.text(pl.wallErrorsTitle),
+    shows: find.text(pl.wallErrorsTitle.toUpperCase()),
   );
   _wall(
     'fault on a status tile, rail with a fault count',

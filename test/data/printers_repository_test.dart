@@ -1,4 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/wled_config.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -123,5 +125,175 @@ void main() {
     );
 
     await expectLater(repo.fetchPrinters(), throwsA(isA<NetworkException>()));
+  });
+
+  group('WLED', () {
+    setUp(() => repo = PrintersRepository(dio, ServerVersionService(dio)));
+
+    void replyVersion(String version) => adapter.onGet(
+      '/api/v1/updates/version',
+      (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
+    );
+
+    void replyPrinters(List<Map<String, dynamic>> rows) =>
+        adapter.onGet('/api/v1/printers/', (s) => s.reply(200, rows));
+
+    const config = WledConfig(
+      enabled: true,
+      baseUrl: 'http://wled.local',
+      presets: {WledState.printing: 3},
+    );
+
+    test('the version decides before a printer row has answered', () async {
+      replyVersion('1.3.0');
+      expect(await repo.wledCapability.supported, isFalse);
+    });
+
+    test('a 1.3.1b1 daily is offered it before a row has answered', () async {
+      replyVersion('1.3.1b1');
+      expect(await repo.wledCapability.supported, isTrue);
+    });
+
+    test('a row without wled_config closes it on a server whose version '
+        'would offer it', () async {
+      replyVersion('1.3.1b1');
+      replyPrinters([
+        {'id': 1, 'name': 'X1C'},
+      ]);
+
+      await repo.fetchPrinters();
+
+      expect(await repo.wledCapability.supported, isFalse);
+    });
+
+    test('a row with wled_config null opens it on a server whose version '
+        'would not', () async {
+      replyVersion('1.3.0');
+      replyPrinters([
+        {'id': 1, 'name': 'X1C', 'wled_config': null},
+      ]);
+
+      await repo.fetchPrinters();
+
+      expect(await repo.wledCapability.supported, isTrue);
+    });
+
+    test('an empty fleet settles nothing', () async {
+      replyPrinters(const []);
+
+      await repo.fetchPrinters();
+
+      expect(repo.wledCapability.observedAnswer, isNull);
+    });
+
+    test('save sends the whole mapping and nothing else', () async {
+      adapter.onPatch(
+        '/api/v1/printers/4',
+        (s) => s.reply(200, {
+          'id': 4,
+          'name': 'X1C',
+          'wled_config': config.toJson(),
+        }),
+        data: {'wled_config': config.toJson()},
+      );
+
+      final saved = await repo.saveWledConfig(4, config);
+
+      expect(saved.wledConfig?.presets, {WledState.printing: 3});
+      expect(repo.wledCapability.observedAnswer, isTrue);
+    });
+
+    test('a 200 without wled_config is a save that did not happen', () async {
+      adapter.onPatch(
+        '/api/v1/printers/4',
+        (s) => s.reply(200, {'id': 4, 'name': 'X1C'}),
+        data: {'wled_config': config.toJson()},
+      );
+
+      await expectLater(
+        repo.saveWledConfig(4, config),
+        throwsA(isA<ApiException>()),
+      );
+      expect(repo.wledCapability.observedAnswer, isFalse);
+    });
+
+    test('a refused URL surfaces as a 422', () async {
+      adapter.onPatch(
+        '/api/v1/printers/4',
+        (s) => s.reply(422, {
+          'detail': [
+            {'msg': 'Value error, WLED URL must not include credentials'},
+          ],
+        }),
+        data: {'wled_config': config.toJson()},
+      );
+
+      await expectLater(
+        repo.saveWledConfig(4, config),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'status', 422)
+              .having(
+                (e) => e.detail,
+                'detail',
+                'WLED URL must not include credentials',
+              ),
+        ),
+      );
+    });
+
+    test('presets are read as the server lists them; a row without an id '
+        'is skipped and one without a name is named by its id', () async {
+      adapter.onPost(
+        '/api/v1/printers/4/wled/presets',
+        (s) => s.reply(200, [
+          {'id': 1, 'name': 'Idle blue'},
+          {'name': 'no id'},
+          {'id': 9},
+        ]),
+        data: {'base_url': 'http://wled.local'},
+      );
+
+      expect(await repo.fetchWledPresets(4, 'http://wled.local'), [
+        (id: 1, name: 'Idle blue'),
+        (id: 9, name: '9'),
+      ]);
+    });
+
+    test('a WLED that does not answer is a 502', () async {
+      adapter.onPost(
+        '/api/v1/printers/4/wled/test-connection',
+        (s) => s.reply(502, {'detail': 'Could not connect to WLED'}),
+        data: {'base_url': 'http://wled.local'},
+      );
+
+      await expectLater(
+        repo.testWledConnection(4, 'http://wled.local'),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 502)),
+      );
+    });
+
+    test('test-connection reads name and version, both optional', () async {
+      adapter.onPost(
+        '/api/v1/printers/4/wled/test-connection',
+        (s) => s.reply(200, {'name': 'Shelf strip', 'version': null}),
+        data: {'base_url': 'http://wled.local'},
+      );
+
+      expect(await repo.testWledConnection(4, 'http://wled.local'), (
+        name: 'Shelf strip',
+        version: null,
+      ));
+    });
+
+    test('test-preset sends the URL and the preset', () async {
+      adapter.onPost(
+        '/api/v1/printers/4/wled/test-preset',
+        (s) => s.reply(200, {'success': true}),
+        data: {'base_url': 'http://wled.local', 'preset_id': 3},
+      );
+
+      await repo.testWledPreset(4, 'http://wled.local', 3);
+    });
   });
 }

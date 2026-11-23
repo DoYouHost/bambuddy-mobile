@@ -1,0 +1,9 @@
+[
+  {
+    "method": "PUT",
+    "path": "/api/v1/settings/",
+    "body": {
+      "low_stock_threshold": 15.5
+    }
+  }
+]

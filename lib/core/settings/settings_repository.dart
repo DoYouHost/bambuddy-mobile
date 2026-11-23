@@ -28,6 +28,9 @@ class SettingsRepository {
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
+
+  /// `FinishAlertMemory`'s entry; named here because a server change clears it.
+  static const finishAlertKey = 'finish_alert_last';
   static const _demoPrintingKey = 'demo_printing_count';
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
@@ -55,6 +58,10 @@ class SettingsRepository {
   static const _tourSeenKey = 'tour_seen';
   static const _customCaKey = 'custom_ca';
   static const _hasClientCertKey = 'has_client_cert';
+  static const _hasEdgeAccessKey = 'has_edge_access';
+  static const _edgeSessionEndedKey = 'edge_session_ended';
+  static const _edgeSessionNotifiedKey = 'edge_session_notified';
+  static const _edgeSessionEndedAtKey = 'edge_session_ended_at';
 
   final SharedPreferences _prefs;
 
@@ -109,10 +116,26 @@ class SettingsRepository {
     }
   }
 
-  Future<void> saveProfile(ServerProfile profile) =>
-      _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
+  /// Saving the server already saved (a sign-in after the session lapsed)
+  /// keeps what is remembered about it; any other server starts clean.
+  Future<void> saveProfile(ServerProfile profile) async {
+    if (loadProfile()?.baseUrl != profile.baseUrl) await _forgetServerState();
+    await _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
+  }
 
-  Future<void> clearProfile() => _prefs.remove(_profileKey);
+  Future<void> clearProfile() async {
+    await _forgetServerState();
+    await _prefs.remove(_profileKey);
+  }
+
+  /// Drops the notification state that names rows by id: an item or printer id
+  /// means something only on the server that issued it, and the next server
+  /// reuses the numbers. Not the user's own choices keyed the same way (the
+  /// wall's hidden printers), which a sign-out must not cost them.
+  Future<void> _forgetServerState() async {
+    await _prefs.remove(_maintNotifiedKey);
+    await _prefs.remove(finishAlertKey);
+  }
 
   /// Not a secret: a CA certificate is public by design. Kept across "change
   /// server" — the setup screen shows it and offers to remove it.
@@ -130,6 +153,54 @@ class SettingsRepository {
   Future<void> saveHasClientCert(bool has) => has
       ? _prefs.setBool(_hasClientCertKey, true)
       : _prefs.remove(_hasClientCertKey);
+
+  /// Whether `EdgeAccessStore` holds a Cloudflare Access credential; the
+  /// credential itself is a secret and is not here, as with the certificate.
+  bool loadHasEdgeAccess() => _prefs.getBool(_hasEdgeAccessKey) ?? false;
+
+  Future<void> saveHasEdgeAccess(bool has) => has
+      ? _prefs.setBool(_hasEdgeAccessKey, true)
+      : _prefs.remove(_hasEdgeAccessKey);
+
+  /// The host whose Cloudflare Access browser session Cloudflare stopped
+  /// accepting, or null while none has (#72). Written from whichever isolate
+  /// noticed, so it lives here and is read through [reloaded]. Cleared by the
+  /// next change of the credential: signing in again, or removing it.
+  String? loadEdgeSessionEnded() => _prefs.getString(_edgeSessionEndedKey);
+
+  /// Clearing it clears [loadEdgeSessionNotified] and [loadEdgeSessionEndedAt]
+  /// with it. [at] is when it was found out, for whoever asks whether it is over.
+  Future<void> saveEdgeSessionEnded(String? host, {DateTime? at}) async {
+    if (host == null) {
+      await _prefs.remove(_edgeSessionNotifiedKey);
+      await _prefs.remove(_edgeSessionEndedAtKey);
+      await _prefs.remove(_edgeSessionEndedKey);
+      return;
+    }
+    if (at != null) {
+      await _prefs.setInt(_edgeSessionEndedAtKey, at.millisecondsSinceEpoch);
+    }
+    await _prefs.setString(_edgeSessionEndedKey, host);
+  }
+
+  /// When the ending was recorded, null for one with no time (or none).
+  DateTime? loadEdgeSessionEndedAt() {
+    final ms = _prefs.getInt(_edgeSessionEndedAtKey);
+    return ms == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
+  }
+
+  /// The host the user was told about by a notification (or whose notification
+  /// they had switched off). Separate from [loadEdgeSessionEnded] because an
+  /// isolate that cannot post still records the ending, and the one that can
+  /// must not take that record for "told".
+  String? loadEdgeSessionNotified() =>
+      _prefs.getString(_edgeSessionNotifiedKey);
+
+  Future<void> saveEdgeSessionNotified(String? host) => host == null
+      ? _prefs.remove(_edgeSessionNotifiedKey)
+      : _prefs.setString(_edgeSessionNotifiedKey, host);
 
   /// Whether the guided tour still has to run on its own. Absent on an install
   /// that has not met it either way; see [markTourDue] and
@@ -402,8 +473,18 @@ class SettingsRepository {
     return {for (final s in raw) int.tryParse(s) ?? -1}..remove(-1);
   }
 
-  Future<void> saveNotifiedMaintenanceDueIds(Set<int> ids) => _prefs
-      .setStringList(_maintNotifiedKey, [for (final id in ids) id.toString()]);
+  /// Refused once [serverUrl] is not the saved server: the caller began on a
+  /// server the app has since left, and its ids would silence the same numbers
+  /// on the new one. Callers reload first; the profile is the other isolate's.
+  Future<void> saveNotifiedMaintenanceDueIds(
+    Set<int> ids, {
+    required String serverUrl,
+  }) async {
+    if (loadProfile()?.baseUrl != serverUrl) return;
+    await _prefs.setStringList(_maintNotifiedKey, [
+      for (final id in ids) id.toString(),
+    ]);
+  }
 
   /// Whether maintenance state changed outside the UI (action "Mark Done" from notification,
   /// handled in background isolate) and needs screen refresh. Signal between callback isolate
