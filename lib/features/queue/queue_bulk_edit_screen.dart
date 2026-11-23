@@ -405,12 +405,7 @@ class _CalibrationChoice extends StatelessWidget {
       value: value,
       onChanged: onChanged,
       // The single edit's order, so the same setting reads the same on both.
-      segments: [
-        if (triState)
-          (value: CalibrationOption.auto, label: l10n.commonAuto, icon: null),
-        (value: CalibrationOption.on, label: l10n.commonOn, icon: null),
-        (value: CalibrationOption.off, label: l10n.commonOff, icon: null),
-      ],
+      segments: calibrationSegments(l10n, triState: triState),
     );
   }
 }

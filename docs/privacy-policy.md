@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 26 October 2026_
+_Last updated: 8 November 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -33,6 +33,10 @@ whole path is described under [Sending a report](#sending-a-report).
   your bambuddy server). Credentials are stored in the Android **Keystore-backed
   encrypted storage** on your device and are never sent anywhere except to your own
   server, over the connection you configure.
+- **Certificates you import** for your server. A CA certificate is public and is kept in
+  local app storage. A client certificate, with its private key and password, is kept in
+  the same Keystore-backed encrypted storage as your credentials and is shown only to a
+  server that asks for one when the app connects.
 - **App settings and notification preferences**, stored in local app storage.
 - **A random installation identifier** — a UUID the app makes up for itself the first
   time you open the report form. It is not a device identifier and is not derived from

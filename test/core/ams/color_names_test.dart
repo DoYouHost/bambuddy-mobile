@@ -78,6 +78,7 @@ void main() {
     test('writes a hex as #RRGGBB in capitals, with or without the hash', () {
       expect(colorHexLabel('#2e9f55'), '#2E9F55');
       expect(colorHexLabel('2e9f55'), '#2E9F55');
+      expect(colorHexLabel(' #2e9f55 '), '#2E9F55');
     });
 
     test('drops the alpha pair of an eight-digit hex', () {

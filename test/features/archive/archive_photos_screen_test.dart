@@ -16,13 +16,13 @@ Archive _archive(List<String> photos) => Archive(
   photos: photos,
 );
 
-Widget _screen(List<String> photos) => ProviderScope(
+Widget _screen(List<String> photos, {List<String>? only}) => ProviderScope(
   retry: neverRetry,
   overrides: [
     archiveDetailProvider(7).overrideWith((ref) async => _archive(photos)),
     noServerProfileOverride,
   ],
-  child: plApp(const ArchivePhotosScreen(archiveId: 7, title: 'Benchy')),
+  child: plApp(ArchivePhotosScreen(archiveId: 7, only: only, title: 'Benchy')),
 );
 
 void main() {
@@ -51,6 +51,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PageView), findsNothing);
+    expect(find.text(pl.archivePhotosEmpty), findsOneWidget);
+  });
+
+  testWidgets('one print\'s photos: only those the archive still lists', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen(
+        const ['finish_1.jpg', 'finish_2.jpg', 'upload.jpg'],
+        only: const ['finish_2.jpg', 'removed.jpg'],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PageView), findsOneWidget);
+    expect(find.textContaining(' / '), findsNothing);
+  });
+
+  testWidgets('a print whose photos are all gone gets the message', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen(const ['finish_1.jpg'], only: const ['removed.jpg']),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text(pl.archivePhotosEmpty), findsOneWidget);
   });
 }

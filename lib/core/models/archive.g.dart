@@ -30,6 +30,8 @@ abstract class _$ArchiveCWProxy {
     double? filamentUsedGrams,
     double? totalFilamentActualGrams,
     int runCount,
+    int successfulRunCount,
+    int failedRunCount,
     String? filamentType,
     String? filamentColor,
     double? cost,
@@ -97,6 +99,8 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? filamentUsedGrams = const $CopyWithPlaceholder(),
     Object? totalFilamentActualGrams = const $CopyWithPlaceholder(),
     Object? runCount = const $CopyWithPlaceholder(),
+    Object? successfulRunCount = const $CopyWithPlaceholder(),
+    Object? failedRunCount = const $CopyWithPlaceholder(),
     Object? filamentType = const $CopyWithPlaceholder(),
     Object? filamentColor = const $CopyWithPlaceholder(),
     Object? cost = const $CopyWithPlaceholder(),
@@ -193,6 +197,18 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.runCount
           // ignore: cast_nullable_to_non_nullable
           : runCount as int,
+      successfulRunCount:
+          successfulRunCount == const $CopyWithPlaceholder() ||
+              successfulRunCount == null
+          ? _value.successfulRunCount
+          // ignore: cast_nullable_to_non_nullable
+          : successfulRunCount as int,
+      failedRunCount:
+          failedRunCount == const $CopyWithPlaceholder() ||
+              failedRunCount == null
+          ? _value.failedRunCount
+          // ignore: cast_nullable_to_non_nullable
+          : failedRunCount as int,
       filamentType: filamentType == const $CopyWithPlaceholder()
           ? _value.filamentType
           // ignore: cast_nullable_to_non_nullable
@@ -365,6 +381,8 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   totalFilamentActualGrams: (json['total_filament_actual_grams'] as num?)
       ?.toDouble(),
   runCount: (json['run_count'] as num?)?.toInt() ?? 0,
+  successfulRunCount: (json['successful_run_count'] as num?)?.toInt() ?? 0,
+  failedRunCount: (json['failed_run_count'] as num?)?.toInt() ?? 0,
   filamentType: json['filament_type'] as String?,
   filamentColor: json['filament_color'] as String?,
   cost: (json['cost'] as num?)?.toDouble(),

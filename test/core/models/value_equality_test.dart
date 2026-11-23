@@ -108,6 +108,8 @@ void main() {
     int? cali = 3,
     String? tag = 'AB',
     String? uuid = 'CD',
+    int? state = 11,
+    bool? exists = true,
   }) => AmsTray(
     id: id,
     trayColor: color,
@@ -118,6 +120,8 @@ void main() {
     caliIdx: cali,
     tagUid: tag,
     trayUuid: uuid,
+    state: state,
+    exists: exists,
   );
 
   AmsUnit unit({
@@ -130,6 +134,10 @@ void main() {
     int? dryStatus = 1,
     String? module = 'n3f',
     bool stalled = false,
+    List<int> dryerSlots = const [2, 3],
+    int? dryerHumidity = 12,
+    double? dryerTemp = 55,
+    int? amsType = 6,
   }) => AmsUnit(
     id: id,
     humidity: humidity,
@@ -140,6 +148,10 @@ void main() {
     dryStatus: dryStatus,
     moduleType: module,
     dryCountdownStalled: stalled,
+    dryerSlots: dryerSlots,
+    dryerHumidity: dryerHumidity,
+    dryerTemp: dryerTemp,
+    amsType: amsType,
   );
 
   HmsError hms({
@@ -238,6 +250,8 @@ void main() {
       'trayInfoIdx': () => tray(idx: 'GFB00'),
       'caliIdx': () => tray(cali: 4),
       'tagUid': () => tray(tag: 'EF'),
+      'state': () => tray(state: 9),
+      'exists': () => tray(exists: false),
       'trayUuid': () => tray(uuid: 'GH'),
     }),
     _Case('AmsUnit', unit, {
@@ -248,6 +262,10 @@ void main() {
       'trays (one tray changed)': () => unit(trays: [tray(remain: 1)]),
       'isAmsHt': () => unit(ht: true),
       'dryTime': () => unit(dryTime: 11),
+      'dryerSlots': () => unit(dryerSlots: const [2, 4]),
+      'dryerHumidity': () => unit(dryerHumidity: 13),
+      'dryerTemp': () => unit(dryerTemp: 56),
+      'amsType': () => unit(amsType: 7),
       'dryStatus': () => unit(dryStatus: 2),
       'moduleType': () => unit(module: 'n3s'),
       'dryCountdownStalled': () => unit(stalled: true),
@@ -270,6 +288,7 @@ void main() {
         nozzleDiameter: '0.4',
         filamentColor: 'FF',
         filamentType: 'PLA',
+        addrId: 6,
       ),
       {
         'id': () => const NozzleRackSlot(
@@ -278,6 +297,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'nozzleType': () => const NozzleRackSlot(
           id: 16,
@@ -285,6 +305,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'nozzleDiameter': () => const NozzleRackSlot(
           id: 16,
@@ -292,6 +313,7 @@ void main() {
           nozzleDiameter: '0.6',
           filamentColor: 'FF',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'filamentColor': () => const NozzleRackSlot(
           id: 16,
@@ -299,6 +321,7 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: '00',
           filamentType: 'PLA',
+          addrId: 6,
         ),
         'filamentType': () => const NozzleRackSlot(
           id: 16,
@@ -306,6 +329,15 @@ void main() {
           nozzleDiameter: '0.4',
           filamentColor: 'FF',
           filamentType: 'PETG',
+          addrId: 6,
+        ),
+        'addrId': () => const NozzleRackSlot(
+          id: 16,
+          nozzleType: 'HS00',
+          nozzleDiameter: '0.4',
+          filamentColor: 'FF',
+          filamentType: 'PLA',
+          addrId: 7,
         ),
       },
     ),

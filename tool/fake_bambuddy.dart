@@ -536,6 +536,8 @@ Future<void> _serve(HttpServer server) async {
           'id': _printerId,
           'name': 'X1C (atrapa)',
           'model': 'X1C',
+          // So the alarm's location exclusion has a location to exclude.
+          'location': 'Warsztat',
           'status': _statusData(),
         },
       ]);

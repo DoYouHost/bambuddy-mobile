@@ -85,6 +85,23 @@ PrinterStatus _printing({
 );
 
 void main() {
+  test("an H3C's nozzle tile is named by its rack position", () {
+    final status = PrinterStatus.fromJson({
+      'id': 1,
+      'temperatures': {'nozzle': 215.0, 'bed': 60.0},
+      'ams': [
+        {'id': 32, 'tray': const <Object>[]},
+      ],
+      'nozzle_rack': [
+        {'id': 0, 'addr_id': 2},
+      ],
+    });
+    expect(
+      controllerReadings(status).first.label(pl),
+      pl.tempNozzleNumbered('3'),
+    );
+  });
+
   late RecordingCommands commands;
   late _Plugs plugs;
 

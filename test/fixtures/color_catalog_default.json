@@ -1,0 +1,6382 @@
+[
+ {
+  "id": 631,
+  "manufacturer": "3DXTECH",
+  "color_name": "Natural",
+  "hex_color": "#DED7C6",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 632,
+  "manufacturer": "3DXTECH",
+  "color_name": "Black",
+  "hex_color": "#444342",
+  "material": "Carbon Fiber PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 633,
+  "manufacturer": "3DXTECH",
+  "color_name": "Venom",
+  "hex_color": "#CACC19",
+  "material": "ECOMAX PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 634,
+  "manufacturer": "3DXTECH",
+  "color_name": "Simubone",
+  "hex_color": "#EAE0CB",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 635,
+  "manufacturer": "3DXTECH",
+  "color_name": "Blue Frost",
+  "hex_color": "#B1C1C5",
+  "material": "rPETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 124,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Azure",
+  "hex_color": "#489FDF",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 132,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 126,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#0A2CA5",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 122,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Desert Tan",
+  "hex_color": "#E8DBB7",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 125,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Navy Blue",
+  "hex_color": "#0C2340",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 123,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Olive",
+  "hex_color": "#789D4A",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 128,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Orange",
+  "hex_color": "#FF6A13",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 130,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Purple",
+  "hex_color": "#AF1685",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 129,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red",
+  "hex_color": "#D32941",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 131,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Silver",
+  "hex_color": "#87909A",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 127,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Tangerine Yellow",
+  "hex_color": "#FFC72C",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 121,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 138,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 137,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#2140B4",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 134,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gray",
+  "hex_color": "#8A949E",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 136,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Green",
+  "hex_color": "#00A6A0",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 135,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red",
+  "hex_color": "#E02928",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 133,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFAF2",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 178,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#1A1A1A",
+  "material": "PAHT-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 144,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 143,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#002E96",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 146,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cream",
+  "hex_color": "#F9DFB9",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 152,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Gray",
+  "hex_color": "#515151",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 148,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Forest Green",
+  "hex_color": "#39541A",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 151,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gray",
+  "hex_color": "#ADB1B2",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 141,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Green",
+  "hex_color": "#00AE42",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 149,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Lake Blue",
+  "hex_color": "#1F79E5",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 147,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Lime Green",
+  "hex_color": "#6EE53C",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 140,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Orange",
+  "hex_color": "#F75403",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 150,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Peanut Brown",
+  "hex_color": "#875718",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 142,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red",
+  "hex_color": "#EB3A3A",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 145,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 139,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Yellow",
+  "hex_color": "#FFD00B",
+  "material": "PETG HF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 156,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Brown",
+  "hex_color": "#C9A381",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 153,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Gray",
+  "hex_color": "#8E8E8E",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 154,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Light Blue",
+  "hex_color": "#61B0FF",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 155,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Olive",
+  "hex_color": "#748C45",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 158,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Orange",
+  "hex_color": "#FF911A",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 160,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Pink",
+  "hex_color": "#F9C1BD",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 159,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Purple",
+  "hex_color": "#D6ABFF",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 157,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Translucent Teal",
+  "hex_color": "#77EDD7",
+  "material": "PETG Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 165,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "PETG-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 161,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Brick Red",
+  "hex_color": "#9F332A",
+  "material": "PETG-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 163,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Indigo Blue",
+  "hex_color": "#324585",
+  "material": "PETG-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 164,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Malachite Green",
+  "hex_color": "#16B08E",
+  "material": "PETG-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 166,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Titan Gray",
+  "hex_color": "#565656",
+  "material": "PETG-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 162,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Violet Purple",
+  "hex_color": "#583061",
+  "material": "PETG-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 19,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Bambu Green",
+  "hex_color": "#00AE42",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 12,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Beige",
+  "hex_color": "#F7E6DE",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 2,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 23,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#0A2989",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 24,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue Grey",
+  "hex_color": "#5B6579",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 18,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Bright Green",
+  "hex_color": "#BECF00",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 30,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Bronze",
+  "hex_color": "#847D48",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 28,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Brown",
+  "hex_color": "#9D432C",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 25,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cobalt Blue",
+  "hex_color": "#0056B8",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 29,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cocoa Brown",
+  "hex_color": "#6F5034",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 22,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cyan",
+  "hex_color": "#0086D6",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 6,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Gray",
+  "hex_color": "#545454",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 15,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gold",
+  "hex_color": "#E4BD68",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 5,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gray",
+  "hex_color": "#8E9089",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 10,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Hot Pink",
+  "hex_color": "#F5547C",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 27,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Indigo Purple",
+  "hex_color": "#482960",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 1,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Jade White",
+  "hex_color": "#FFFFFF",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 4,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Light Gray",
+  "hex_color": "#D1D3D5",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 9,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Magenta",
+  "hex_color": "#EC008C",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 8,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Maroon Red",
+  "hex_color": "#9D2235",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 20,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Mistletoe Green",
+  "hex_color": "#3F8E43",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 16,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Orange",
+  "hex_color": "#FF6A13",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 11,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Pink",
+  "hex_color": "#F55A74",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 17,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Pumpkin Orange",
+  "hex_color": "#FF9016",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 26,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Purple",
+  "hex_color": "#5E43B7",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 7,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red",
+  "hex_color": "#C12E1F",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 3,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Silver",
+  "hex_color": "#A6A9AA",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 14,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Sunflower Yellow",
+  "hex_color": "#FEC600",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 21,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Turquoise",
+  "hex_color": "#00B1B7",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 13,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Yellow",
+  "hex_color": "#F4EE2A",
+  "material": "PLA Basic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 90,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Brown",
+  "hex_color": "#684A43",
+  "material": "PLA Galaxy",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 91,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Green",
+  "hex_color": "#3B665E",
+  "material": "PLA Galaxy",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 92,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Nebulae",
+  "hex_color": "#424379",
+  "material": "PLA Galaxy",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 93,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Purple",
+  "hex_color": "#594177",
+  "material": "PLA Galaxy",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 88,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Glow Blue",
+  "hex_color": "#7AC0E9",
+  "material": "PLA Glow",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 85,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Glow Green",
+  "hex_color": "#A1FFAC",
+  "material": "PLA Glow",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 89,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Glow Orange",
+  "hex_color": "#FF9D5B",
+  "material": "PLA Glow",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 87,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Glow Pink",
+  "hex_color": "#F17B8F",
+  "material": "PLA Glow",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 86,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Glow Yellow",
+  "hex_color": "#F8FF80",
+  "material": "PLA Glow",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 100,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red Granite",
+  "hex_color": "#AD4E38",
+  "material": "PLA Marble",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 99,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White Marble",
+  "hex_color": "#F7F3F0",
+  "material": "PLA Marble",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 48,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Apple Green",
+  "hex_color": "#C2E189",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 53,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Ash Gray",
+  "hex_color": "#9B9EA0",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 32,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Bone White",
+  "hex_color": "#CBC6B8",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 35,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Caramel",
+  "hex_color": "#AE835B",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 55,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Charcoal",
+  "hex_color": "#000000",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 52,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Blue",
+  "hex_color": "#042F56",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 37,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Brown",
+  "hex_color": "#7D6556",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 38,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Chocolate",
+  "hex_color": "#4D3324",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 46,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Green",
+  "hex_color": "#68724D",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 45,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Dark Red",
+  "hex_color": "#BB3D43",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 33,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Desert Tan",
+  "hex_color": "#E8DBB7",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 47,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Grass Green",
+  "hex_color": "#61C680",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 49,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Ice Blue",
+  "hex_color": "#A3D8E1",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 31,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Ivory White",
+  "hex_color": "#FFFFFF",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 34,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Latte Brown",
+  "hex_color": "#D3B7A7",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 42,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Lemon Yellow",
+  "hex_color": "#F7D959",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 39,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Lilac Purple",
+  "hex_color": "#AE96D4",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 41,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Mandarin Orange",
+  "hex_color": "#F99963",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 51,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Marine Blue",
+  "hex_color": "#0078BF",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 54,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Nardo Gray",
+  "hex_color": "#757575",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 43,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Plum",
+  "hex_color": "#950051",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 40,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Sakura Pink",
+  "hex_color": "#E8AFCF",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 44,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Scarlet Red",
+  "hex_color": "#DE4343",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 50,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Sky Blue",
+  "hex_color": "#56B7E6",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 36,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Terracotta",
+  "hex_color": "#B15533",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 97,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cobalt Blue Metallic",
+  "hex_color": "#39699E",
+  "material": "PLA Metal",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 95,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Copper Brown Metallic",
+  "hex_color": "#AA6443",
+  "material": "PLA Metal",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 94,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Iridium Gold Metallic",
+  "hex_color": "#B39B84",
+  "material": "PLA Metal",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 98,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Iron Gray Metallic",
+  "hex_color": "#43403D",
+  "material": "PLA Metal",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 96,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Oxide Green Metallic",
+  "hex_color": "#1D7C6A",
+  "material": "PLA Metal",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 64,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Baby Blue",
+  "hex_color": "#A8C6EE",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 59,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#008BDA",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 62,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Candy Green",
+  "hex_color": "#018814",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 61,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Candy Red",
+  "hex_color": "#D02727",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 67,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Champagne",
+  "hex_color": "#F3CFB2",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 56,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gold",
+  "hex_color": "#F4A925",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 66,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Mint",
+  "hex_color": "#96DCB9",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 65,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Pink",
+  "hex_color": "#F7ADA6",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 60,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Purple",
+  "hex_color": "#8671CB",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 63,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Rose Gold",
+  "hex_color": "#BA9594",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 57,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Silver",
+  "hex_color": "#C8C8C8",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 58,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Titan Gray",
+  "hex_color": "#5F6367",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 68,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "PLA Silk+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 73,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Alpine Green Sparkle",
+  "hex_color": "#3F5443",
+  "material": "PLA Sparkle",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 69,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Classic Gold Sparkle",
+  "hex_color": "#CEA629",
+  "material": "PLA Sparkle",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 71,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Crimson Red Sparkle",
+  "hex_color": "#792B36",
+  "material": "PLA Sparkle",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 74,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Onyx Black Sparkle",
+  "hex_color": "#2D2B28",
+  "material": "PLA Sparkle",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 72,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Royal Purple Sparkle",
+  "hex_color": "#483D8B",
+  "material": "PLA Sparkle",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 70,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Slate Gray Sparkle",
+  "hex_color": "#8E9089",
+  "material": "PLA Sparkle",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 179,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Natural",
+  "hex_color": "#F5F5DC",
+  "material": "PLA Support",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 109,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 112,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cyan",
+  "hex_color": "#009BD8",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 108,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gray",
+  "hex_color": "#AFB1AE",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 113,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Orange",
+  "hex_color": "#DC3A27",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 110,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Silver",
+  "hex_color": "#959698",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 107,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 111,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Yellow",
+  "hex_color": "#F4D53F",
+  "material": "PLA Tough",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 77,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#0047BB",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 80,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cherry Pink",
+  "hex_color": "#F5B6CD",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 82,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Ice Blue",
+  "hex_color": "#B8CDE9",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 84,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Lavender",
+  "hex_color": "#B8ACD6",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 76,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Light Jade",
+  "hex_color": "#96D8AF",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 78,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Mellow Yellow",
+  "hex_color": "#F5DBAB",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 81,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Orange",
+  "hex_color": "#F74E02",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 79,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Purple",
+  "hex_color": "#8344B0",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 83,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red",
+  "hex_color": "#B50011",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 75,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Teal",
+  "hex_color": "#009FA1",
+  "material": "PLA Translucent",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 101,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black Walnut",
+  "hex_color": "#4F3F24",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 104,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Classic Birch",
+  "hex_color": "#918669",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 103,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Clay Brown",
+  "hex_color": "#995F11",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 106,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Ochre Yellow",
+  "hex_color": "#C98935",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 102,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Rosewood",
+  "hex_color": "#4C241C",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 105,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White Oak",
+  "hex_color": "#D6CCA3",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 120,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 114,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Burgundy Red",
+  "hex_color": "#951E23",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 115,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Iris Purple",
+  "hex_color": "#69398E",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 117,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Jeans Blue",
+  "hex_color": "#6E88BC",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 119,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Lava Gray",
+  "hex_color": "#4D5054",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 116,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Matcha Green",
+  "hex_color": "#5C9748",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 118,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Royal Blue",
+  "hex_color": "#2842AD",
+  "material": "PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 180,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Natural",
+  "hex_color": "#F5F5DC",
+  "material": "PVA Support",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 173,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "TPU 90A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 177,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Cocoa Brown",
+  "hex_color": "#5C4738",
+  "material": "TPU 90A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 176,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Crystal Blue",
+  "hex_color": "#7EB4E1",
+  "material": "TPU 90A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 175,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Grape Jelly",
+  "hex_color": "#D6ABFF",
+  "material": "TPU 90A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 174,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "TPU 90A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 172,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Black",
+  "hex_color": "#101820",
+  "material": "TPU 95A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 169,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Blue",
+  "hex_color": "#0072CE",
+  "material": "TPU 95A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 171,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Gray",
+  "hex_color": "#898D8D",
+  "material": "TPU 95A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 170,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Red",
+  "hex_color": "#C8102E",
+  "material": "TPU 95A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 167,
+  "manufacturer": "Bambu Lab",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "TPU 95A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 168,
+  "manufacturer": "Bambu Lab",
+  "color_name": "Yellow",
+  "hex_color": "#F3E600",
+  "material": "TPU 95A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 482,
+  "manufacturer": "ColorFabb",
+  "color_name": "Stonefill Light Gray",
+  "hex_color": "#A9B2B7",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 483,
+  "manufacturer": "ColorFabb",
+  "color_name": "WoodFill",
+  "hex_color": "#B89775",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 484,
+  "manufacturer": "ColorFabb",
+  "color_name": "CopperFill",
+  "hex_color": "#9D7465",
+  "material": "PLA/PHA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 485,
+  "manufacturer": "ColorFabb",
+  "color_name": "CorkFill",
+  "hex_color": "#7F6150",
+  "material": "PLA/PHA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 486,
+  "manufacturer": "ColorFabb",
+  "color_name": "Natural",
+  "hex_color": "#CFCFC2",
+  "material": "PLA/PHA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 488,
+  "manufacturer": "ColorFabb",
+  "color_name": "Black",
+  "hex_color": "#3B3635",
+  "material": "XT",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 487,
+  "manufacturer": "ColorFabb",
+  "color_name": "Light Gray",
+  "hex_color": "#BFC5BE",
+  "material": "XT",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 403,
+  "manufacturer": "Creality",
+  "color_name": "Black",
+  "hex_color": "#282C2C",
+  "material": "Hyper PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 404,
+  "manufacturer": "Creality",
+  "color_name": "Blue",
+  "hex_color": "#0881BE",
+  "material": "Hyper PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 405,
+  "manufacturer": "Creality",
+  "color_name": "Grey",
+  "hex_color": "#7A7C7C",
+  "material": "Hyper PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 406,
+  "manufacturer": "Creality",
+  "color_name": "Purple",
+  "hex_color": "#B0347E",
+  "material": "Hyper PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 407,
+  "manufacturer": "Creality",
+  "color_name": "Red",
+  "hex_color": "#C32E2F",
+  "material": "Hyper PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 408,
+  "manufacturer": "Creality",
+  "color_name": "White",
+  "hex_color": "#DEE4E1",
+  "material": "Hyper PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 409,
+  "manufacturer": "Creality",
+  "color_name": "Black",
+  "hex_color": "#322F2D",
+  "material": "Hyper PLA-CF",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 412,
+  "manufacturer": "Creality",
+  "color_name": "White",
+  "hex_color": "#E3E5E1",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 410,
+  "manufacturer": "Creality",
+  "color_name": "Gray",
+  "hex_color": "#8F9395",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 411,
+  "manufacturer": "Creality",
+  "color_name": "White",
+  "hex_color": "#E1DFD0",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 413,
+  "manufacturer": "Creality",
+  "color_name": "Blue-Green",
+  "hex_color": "#479B7D",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 414,
+  "manufacturer": "Elegoo",
+  "color_name": "Black",
+  "hex_color": "#282929",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 415,
+  "manufacturer": "Elegoo",
+  "color_name": "Clear",
+  "hex_color": "#BEBBBF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 416,
+  "manufacturer": "Elegoo",
+  "color_name": "Galaxy Black",
+  "hex_color": "#32464E",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 417,
+  "manufacturer": "Elegoo",
+  "color_name": "Galaxy Purple",
+  "hex_color": "#3A2F6F",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 418,
+  "manufacturer": "Elegoo",
+  "color_name": "Grey",
+  "hex_color": "#B5B7B7",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 419,
+  "manufacturer": "Elegoo",
+  "color_name": "Peacock Blue",
+  "hex_color": "#21606B",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 420,
+  "manufacturer": "Elegoo",
+  "color_name": "Sky Blue",
+  "hex_color": "#46C8D4",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 421,
+  "manufacturer": "Elegoo",
+  "color_name": "Black",
+  "hex_color": "#343132",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 422,
+  "manufacturer": "Elegoo",
+  "color_name": "Orange",
+  "hex_color": "#CC6A2F",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 423,
+  "manufacturer": "Elegoo",
+  "color_name": "Purple",
+  "hex_color": "#6E45A7",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 424,
+  "manufacturer": "Elegoo",
+  "color_name": "Coral Pink",
+  "hex_color": "#DB6E6D",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 425,
+  "manufacturer": "Elegoo",
+  "color_name": "Gold",
+  "hex_color": "#E2AC00",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 426,
+  "manufacturer": "Elegoo",
+  "color_name": "Silver",
+  "hex_color": "#93969B",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 480,
+  "manufacturer": "Eryone",
+  "color_name": "Black",
+  "hex_color": "#414446",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 467,
+  "manufacturer": "Eryone",
+  "color_name": "Galaxy Purple",
+  "hex_color": "#60617B",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 468,
+  "manufacturer": "Eryone",
+  "color_name": "Galaxy Red",
+  "hex_color": "#8E3332",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 469,
+  "manufacturer": "Eryone",
+  "color_name": "Glow in the Dark",
+  "hex_color": "#C2C1AF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 470,
+  "manufacturer": "Eryone",
+  "color_name": "Ivory White",
+  "hex_color": "#DCDCD3",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 471,
+  "manufacturer": "Eryone",
+  "color_name": "Silk Blue",
+  "hex_color": "#64A9D3",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 472,
+  "manufacturer": "Eryone",
+  "color_name": "Silk Copper",
+  "hex_color": "#B36A50",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 473,
+  "manufacturer": "Eryone",
+  "color_name": "Silk Gold",
+  "hex_color": "#D5983D",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 474,
+  "manufacturer": "Eryone",
+  "color_name": "Silk Gold Copper",
+  "hex_color": "#D69366",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 475,
+  "manufacturer": "Eryone",
+  "color_name": "Silk Gold Silver",
+  "hex_color": "#ABA787",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 476,
+  "manufacturer": "Eryone",
+  "color_name": "Ultra Silk Black",
+  "hex_color": "#5B6264",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 477,
+  "manufacturer": "Eryone",
+  "color_name": "Ultra Silk Copper",
+  "hex_color": "#B46A4D",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 478,
+  "manufacturer": "Eryone",
+  "color_name": "Ultra Silk Silver",
+  "hex_color": "#999BA5",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 481,
+  "manufacturer": "Eryone",
+  "color_name": "Light Wood",
+  "hex_color": "#A5886E",
+  "material": "PLA Wood",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 479,
+  "manufacturer": "Eryone",
+  "color_name": "Army Green",
+  "hex_color": "#5D644D",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 545,
+  "manufacturer": "Fiberlogy",
+  "color_name": "Olive Green",
+  "hex_color": "#61634B",
+  "material": "ASA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 546,
+  "manufacturer": "Fiberlogy",
+  "color_name": "White",
+  "hex_color": "#F2F2EE",
+  "material": "Easy PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 543,
+  "manufacturer": "Fiberlogy",
+  "color_name": "Aurora",
+  "hex_color": "#3C4452",
+  "material": "Easy PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 547,
+  "manufacturer": "Fiberlogy",
+  "color_name": "Green",
+  "hex_color": "#A2D780",
+  "material": "FiberSilk Metallic",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 544,
+  "manufacturer": "Fiberlogy",
+  "color_name": "Army Green",
+  "hex_color": "#535F4F",
+  "material": "Impact PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 542,
+  "manufacturer": "Fiberlogy",
+  "color_name": "Mineral White",
+  "hex_color": "#E2D9CD",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 512,
+  "manufacturer": "Fillamentum",
+  "color_name": "Anthracite Grey",
+  "hex_color": "#4B4F50",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 513,
+  "manufacturer": "Fillamentum",
+  "color_name": "Green Grass",
+  "hex_color": "#678653",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 514,
+  "manufacturer": "Fillamentum",
+  "color_name": "Grey Blue",
+  "hex_color": "#495965",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 515,
+  "manufacturer": "Fillamentum",
+  "color_name": "Metallic Grey",
+  "hex_color": "#878A8C",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 516,
+  "manufacturer": "Fillamentum",
+  "color_name": "Sky Blue",
+  "hex_color": "#0783B6",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 517,
+  "manufacturer": "Fillamentum",
+  "color_name": "Snow White",
+  "hex_color": "#F3F3EF",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 518,
+  "manufacturer": "Fillamentum",
+  "color_name": "Traffic Black",
+  "hex_color": "#3B3B3F",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 519,
+  "manufacturer": "Fillamentum",
+  "color_name": "Traffic White",
+  "hex_color": "#E9E7DA",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 520,
+  "manufacturer": "Fillamentum",
+  "color_name": "White Aluminium",
+  "hex_color": "#9CA1A2",
+  "material": "ASA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 521,
+  "manufacturer": "Fillamentum",
+  "color_name": "Black Soul",
+  "hex_color": "#292B27",
+  "material": "CPE HG100",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 522,
+  "manufacturer": "Fillamentum",
+  "color_name": "Ghost White",
+  "hex_color": "#E5E8E7",
+  "material": "CPE HG100",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 523,
+  "manufacturer": "Fillamentum",
+  "color_name": "Natural",
+  "hex_color": "#DCE4DF",
+  "material": "CPE HG100",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 524,
+  "manufacturer": "Fillamentum",
+  "color_name": "Blue Transparent",
+  "hex_color": "#047990",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 525,
+  "manufacturer": "Fillamentum",
+  "color_name": "Carrot Orange",
+  "hex_color": "#EA6E21",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 526,
+  "manufacturer": "Fillamentum",
+  "color_name": "Metallic Grey",
+  "hex_color": "#8F8E8F",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 527,
+  "manufacturer": "Fillamentum",
+  "color_name": "Pistachio Green",
+  "hex_color": "#A7BE36",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 528,
+  "manufacturer": "Fillamentum",
+  "color_name": "Signal Red",
+  "hex_color": "#9A2222",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 529,
+  "manufacturer": "Fillamentum",
+  "color_name": "Traffic Black",
+  "hex_color": "#26262A",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 530,
+  "manufacturer": "Fillamentum",
+  "color_name": "Vertigo Grey",
+  "hex_color": "#515150",
+  "material": "Flexfill TPU 98A",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 504,
+  "manufacturer": "Fillamentum",
+  "color_name": "Crystal Clear",
+  "hex_color": "#EBECF2",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 505,
+  "manufacturer": "Fillamentum",
+  "color_name": "Crystal Clear Amethyst Purple",
+  "hex_color": "#9F99BC",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 506,
+  "manufacturer": "Fillamentum",
+  "color_name": "Crystal Clear Iceland Blue",
+  "hex_color": "#82BBCD",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 507,
+  "manufacturer": "Fillamentum",
+  "color_name": "Crystal Clear Tangerine Orange",
+  "hex_color": "#ECD082",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 508,
+  "manufacturer": "Fillamentum",
+  "color_name": "Lilac",
+  "hex_color": "#A99FCF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 509,
+  "manufacturer": "Fillamentum",
+  "color_name": "Timberfill Cinnamon",
+  "hex_color": "#AC7C67",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 510,
+  "manufacturer": "Fillamentum",
+  "color_name": "Timberfill Rosewood",
+  "hex_color": "#6A564E",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 511,
+  "manufacturer": "Fillamentum",
+  "color_name": "Vertigo Jade",
+  "hex_color": "#217F60",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 489,
+  "manufacturer": "Fillamentum",
+  "color_name": "Baby Blue",
+  "hex_color": "#B9D7DC",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 490,
+  "manufacturer": "Fillamentum",
+  "color_name": "Chocolate Brown",
+  "hex_color": "#5B4A45",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 491,
+  "manufacturer": "Fillamentum",
+  "color_name": "Cobalt Blue",
+  "hex_color": "#333D5C",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 492,
+  "manufacturer": "Fillamentum",
+  "color_name": "Crystal Clear Smaragd Green",
+  "hex_color": "#028D77",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 493,
+  "manufacturer": "Fillamentum",
+  "color_name": "Everybody's Magenta",
+  "hex_color": "#E1347D",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 494,
+  "manufacturer": "Fillamentum",
+  "color_name": "Gold Happens",
+  "hex_color": "#BC994D",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 495,
+  "manufacturer": "Fillamentum",
+  "color_name": "Mukha",
+  "hex_color": "#A88866",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 496,
+  "manufacturer": "Fillamentum",
+  "color_name": "Pearl Night Blue",
+  "hex_color": "#045589",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 497,
+  "manufacturer": "Fillamentum",
+  "color_name": "Pearl Ruby Red",
+  "hex_color": "#791F2A",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 498,
+  "manufacturer": "Fillamentum",
+  "color_name": "Rapunzel Silver",
+  "hex_color": "#AFAFB0",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 499,
+  "manufacturer": "Fillamentum",
+  "color_name": "Vertigo Cherry",
+  "hex_color": "#752F38",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 500,
+  "manufacturer": "Fillamentum",
+  "color_name": "Vertigo Galaxy",
+  "hex_color": "#333928",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 501,
+  "manufacturer": "Fillamentum",
+  "color_name": "Vertigo Grey",
+  "hex_color": "#5A5963",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 502,
+  "manufacturer": "Fillamentum",
+  "color_name": "Vertigo Starlight",
+  "hex_color": "#343A4F",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 503,
+  "manufacturer": "Fillamentum",
+  "color_name": "Wizard's Voodoo",
+  "hex_color": "#3F465E",
+  "material": "PLA Extrafill",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 539,
+  "manufacturer": "FormFutura",
+  "color_name": "Pure Orange",
+  "hex_color": "#FA9145",
+  "material": "EasyFil PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 531,
+  "manufacturer": "FormFutura",
+  "color_name": "Basalt Grey",
+  "hex_color": "#5B5F61",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 532,
+  "manufacturer": "FormFutura",
+  "color_name": "Dark Blue",
+  "hex_color": "#084B86",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 533,
+  "manufacturer": "FormFutura",
+  "color_name": "Galaxy Champagne Gold",
+  "hex_color": "#AE9D83",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 534,
+  "manufacturer": "FormFutura",
+  "color_name": "Gold High Gloss",
+  "hex_color": "#C89B4B",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 535,
+  "manufacturer": "FormFutura",
+  "color_name": "High Gloss White",
+  "hex_color": "#D0D7D8",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 536,
+  "manufacturer": "FormFutura",
+  "color_name": "Magenta High Gloss",
+  "hex_color": "#B94474",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 537,
+  "manufacturer": "FormFutura",
+  "color_name": "Stonefil Terracotta",
+  "hex_color": "#BD634C",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 538,
+  "manufacturer": "FormFutura",
+  "color_name": "Yellow Green",
+  "hex_color": "#7AA837",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 540,
+  "manufacturer": "FormFutura",
+  "color_name": "ReForm Black",
+  "hex_color": "#3A3B3B",
+  "material": "ReForm rPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 541,
+  "manufacturer": "FormFutura",
+  "color_name": "ReForm White",
+  "hex_color": "#F3F3EC",
+  "material": "ReForm rPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 291,
+  "manufacturer": "Hatchbox",
+  "color_name": "Black",
+  "hex_color": "#000000",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 294,
+  "manufacturer": "Hatchbox",
+  "color_name": "Blue",
+  "hex_color": "#0000FF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 292,
+  "manufacturer": "Hatchbox",
+  "color_name": "Gray",
+  "hex_color": "#808080",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 295,
+  "manufacturer": "Hatchbox",
+  "color_name": "Green",
+  "hex_color": "#00FF00",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 297,
+  "manufacturer": "Hatchbox",
+  "color_name": "Orange",
+  "hex_color": "#FFA500",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 299,
+  "manufacturer": "Hatchbox",
+  "color_name": "Pink",
+  "hex_color": "#FFC0CB",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 298,
+  "manufacturer": "Hatchbox",
+  "color_name": "Purple",
+  "hex_color": "#800080",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 293,
+  "manufacturer": "Hatchbox",
+  "color_name": "Red",
+  "hex_color": "#FF0000",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 300,
+  "manufacturer": "Hatchbox",
+  "color_name": "True Blue",
+  "hex_color": "#0073CF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 301,
+  "manufacturer": "Hatchbox",
+  "color_name": "True Green",
+  "hex_color": "#008000",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 290,
+  "manufacturer": "Hatchbox",
+  "color_name": "White",
+  "hex_color": "#FFFFFF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 296,
+  "manufacturer": "Hatchbox",
+  "color_name": "Yellow",
+  "hex_color": "#FFFF00",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 462,
+  "manufacturer": "Inland",
+  "color_name": "Grey",
+  "hex_color": "#8A97A2",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 463,
+  "manufacturer": "Inland",
+  "color_name": "Light Blue",
+  "hex_color": "#6CBECF",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 464,
+  "manufacturer": "Inland",
+  "color_name": "Orange",
+  "hex_color": "#E8712F",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 457,
+  "manufacturer": "Inland",
+  "color_name": "Blue",
+  "hex_color": "#084480",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 458,
+  "manufacturer": "Inland",
+  "color_name": "Green",
+  "hex_color": "#2B783E",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 459,
+  "manufacturer": "Inland",
+  "color_name": "Magenta",
+  "hex_color": "#E14170",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 460,
+  "manufacturer": "Inland",
+  "color_name": "Transparent",
+  "hex_color": "#D1D6D1",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 461,
+  "manufacturer": "Inland",
+  "color_name": "True Red",
+  "hex_color": "#97392B",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 430,
+  "manufacturer": "Inland",
+  "color_name": "Black",
+  "hex_color": "#27272C",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 431,
+  "manufacturer": "Inland",
+  "color_name": "Blue",
+  "hex_color": "#044482",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 432,
+  "manufacturer": "Inland",
+  "color_name": "Coral",
+  "hex_color": "#C16062",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 433,
+  "manufacturer": "Inland",
+  "color_name": "Egyptian Blue",
+  "hex_color": "#075AAC",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 434,
+  "manufacturer": "Inland",
+  "color_name": "Gold",
+  "hex_color": "#D7B536",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 435,
+  "manufacturer": "Inland",
+  "color_name": "Green",
+  "hex_color": "#407166",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 436,
+  "manufacturer": "Inland",
+  "color_name": "Grey",
+  "hex_color": "#6F7983",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 437,
+  "manufacturer": "Inland",
+  "color_name": "Light Blue",
+  "hex_color": "#3CA4B8",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 438,
+  "manufacturer": "Inland",
+  "color_name": "Military Green",
+  "hex_color": "#5B6D37",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 439,
+  "manufacturer": "Inland",
+  "color_name": "Pink",
+  "hex_color": "#FC97AF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 440,
+  "manufacturer": "Inland",
+  "color_name": "Red",
+  "hex_color": "#C43220",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 441,
+  "manufacturer": "Inland",
+  "color_name": "Silver",
+  "hex_color": "#8A8F92",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 442,
+  "manufacturer": "Inland",
+  "color_name": "True Red",
+  "hex_color": "#B13137",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 443,
+  "manufacturer": "Inland",
+  "color_name": "White",
+  "hex_color": "#E0E3E3",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 444,
+  "manufacturer": "Inland",
+  "color_name": "Wood",
+  "hex_color": "#DEB98F",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 445,
+  "manufacturer": "Inland",
+  "color_name": "Black",
+  "hex_color": "#2B272B",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 446,
+  "manufacturer": "Inland",
+  "color_name": "Blue",
+  "hex_color": "#054990",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 447,
+  "manufacturer": "Inland",
+  "color_name": "Bone White",
+  "hex_color": "#ABA18F",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 448,
+  "manufacturer": "Inland",
+  "color_name": "Dark Blue",
+  "hex_color": "#2C3353",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 449,
+  "manufacturer": "Inland",
+  "color_name": "Light Blue",
+  "hex_color": "#079FBF",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 450,
+  "manufacturer": "Inland",
+  "color_name": "Magenta",
+  "hex_color": "#DE2B60",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 451,
+  "manufacturer": "Inland",
+  "color_name": "Orange",
+  "hex_color": "#FB8B5A",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 452,
+  "manufacturer": "Inland",
+  "color_name": "Pink",
+  "hex_color": "#F291A4",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 453,
+  "manufacturer": "Inland",
+  "color_name": "Purple",
+  "hex_color": "#744FA0",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 454,
+  "manufacturer": "Inland",
+  "color_name": "Silver",
+  "hex_color": "#868A8B",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 455,
+  "manufacturer": "Inland",
+  "color_name": "White",
+  "hex_color": "#E3E5E5",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 456,
+  "manufacturer": "Inland",
+  "color_name": "Yellow",
+  "hex_color": "#F8D008",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 465,
+  "manufacturer": "Inland",
+  "color_name": "Light Gray",
+  "hex_color": "#8D9497",
+  "material": "Tough PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 466,
+  "manufacturer": "Inland",
+  "color_name": "Yellow",
+  "hex_color": "#FFBB3F",
+  "material": "Tough PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 427,
+  "manufacturer": "Jayo",
+  "color_name": "Black",
+  "hex_color": "#2F2E2D",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 428,
+  "manufacturer": "Jayo",
+  "color_name": "Cherry Red",
+  "hex_color": "#C43536",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 429,
+  "manufacturer": "Jayo",
+  "color_name": "White",
+  "hex_color": "#D9E0E7",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 548,
+  "manufacturer": "MatterHackers",
+  "color_name": "Blue",
+  "hex_color": "#044786",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 549,
+  "manufacturer": "MatterHackers",
+  "color_name": "Magenta",
+  "hex_color": "#CD4263",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 550,
+  "manufacturer": "MatterHackers",
+  "color_name": "Red",
+  "hex_color": "#C4351B",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 551,
+  "manufacturer": "MatterHackers",
+  "color_name": "Shiny Gold",
+  "hex_color": "#DFAC1E",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 552,
+  "manufacturer": "MatterHackers",
+  "color_name": "Silky Copper",
+  "hex_color": "#C76F35",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 553,
+  "manufacturer": "MatterHackers",
+  "color_name": "Silky Silver",
+  "hex_color": "#BDBDB8",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 554,
+  "manufacturer": "MatterHackers",
+  "color_name": "Silky Teal",
+  "hex_color": "#078EBC",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 555,
+  "manufacturer": "MatterHackers",
+  "color_name": "Silky Yellow",
+  "hex_color": "#EDB554",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 556,
+  "manufacturer": "MatterHackers",
+  "color_name": "Yellow",
+  "hex_color": "#EBC100",
+  "material": "Build PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 566,
+  "manufacturer": "MatterHackers",
+  "color_name": "White",
+  "hex_color": "#DCDED9",
+  "material": "NylonG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 565,
+  "manufacturer": "MatterHackers",
+  "color_name": "Black",
+  "hex_color": "#3D3C38",
+  "material": "NylonX",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 563,
+  "manufacturer": "MatterHackers",
+  "color_name": "Clear",
+  "hex_color": "#D5DDDA",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 564,
+  "manufacturer": "MatterHackers",
+  "color_name": "White",
+  "hex_color": "#E9EBEF",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 557,
+  "manufacturer": "MatterHackers",
+  "color_name": "Gold",
+  "hex_color": "#E7AC37",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 558,
+  "manufacturer": "MatterHackers",
+  "color_name": "Lime Green",
+  "hex_color": "#75BA52",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 559,
+  "manufacturer": "MatterHackers",
+  "color_name": "Pearl White",
+  "hex_color": "#D4DCDD",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 560,
+  "manufacturer": "MatterHackers",
+  "color_name": "Red",
+  "hex_color": "#E54931",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 561,
+  "manufacturer": "MatterHackers",
+  "color_name": "Electric Pink",
+  "hex_color": "#F35886",
+  "material": "Pro PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 562,
+  "manufacturer": "MatterHackers",
+  "color_name": "Jet Gray",
+  "hex_color": "#474B4C",
+  "material": "Pro PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 349,
+  "manufacturer": "Overture",
+  "color_name": "Diamond Gray",
+  "hex_color": "#5D5F5F",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 350,
+  "manufacturer": "Overture",
+  "color_name": "Diamond Purple",
+  "hex_color": "#6B649D",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 354,
+  "manufacturer": "Overture",
+  "color_name": "Glow Blue",
+  "hex_color": "#4EA2AA",
+  "material": "Glow PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 355,
+  "manufacturer": "Overture",
+  "color_name": "Glow Orange",
+  "hex_color": "#C2895E",
+  "material": "Glow PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 356,
+  "manufacturer": "Overture",
+  "color_name": "Glow Red",
+  "hex_color": "#C27B7D",
+  "material": "Glow PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 357,
+  "manufacturer": "Overture",
+  "color_name": "Glow Yellow",
+  "hex_color": "#E3F079",
+  "material": "Glow PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 338,
+  "manufacturer": "Overture",
+  "color_name": "Black",
+  "hex_color": "#2F2821",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 339,
+  "manufacturer": "Overture",
+  "color_name": "Blue",
+  "hex_color": "#225291",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 340,
+  "manufacturer": "Overture",
+  "color_name": "Clear",
+  "hex_color": "#BEC3C5",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 341,
+  "manufacturer": "Overture",
+  "color_name": "Pink",
+  "hex_color": "#E0A1BA",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 342,
+  "manufacturer": "Overture",
+  "color_name": "Purple",
+  "hex_color": "#67518F",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 344,
+  "manufacturer": "Overture",
+  "color_name": "Red",
+  "hex_color": "#AB291B",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 343,
+  "manufacturer": "Overture",
+  "color_name": "Rock White",
+  "hex_color": "#C2C8C9",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 345,
+  "manufacturer": "Overture",
+  "color_name": "Space Grey",
+  "hex_color": "#80817E",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 346,
+  "manufacturer": "Overture",
+  "color_name": "Translucent Blue",
+  "hex_color": "#38487B",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 347,
+  "manufacturer": "Overture",
+  "color_name": "White",
+  "hex_color": "#E7E9E7",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 348,
+  "manufacturer": "Overture",
+  "color_name": "Yellow",
+  "hex_color": "#E6B93C",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 302,
+  "manufacturer": "Overture",
+  "color_name": "Black",
+  "hex_color": "#2B292E",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 303,
+  "manufacturer": "Overture",
+  "color_name": "Blue",
+  "hex_color": "#034070",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 304,
+  "manufacturer": "Overture",
+  "color_name": "Cement Gray",
+  "hex_color": "#48494A",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 305,
+  "manufacturer": "Overture",
+  "color_name": "Dark Blue",
+  "hex_color": "#124775",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 306,
+  "manufacturer": "Overture",
+  "color_name": "Fresh Red",
+  "hex_color": "#C01F1D",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 307,
+  "manufacturer": "Overture",
+  "color_name": "Gray Blue",
+  "hex_color": "#6D8790",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 308,
+  "manufacturer": "Overture",
+  "color_name": "Green",
+  "hex_color": "#318C49",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 309,
+  "manufacturer": "Overture",
+  "color_name": "Highlight Yellow",
+  "hex_color": "#FBF93C",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 310,
+  "manufacturer": "Overture",
+  "color_name": "Light Blue",
+  "hex_color": "#7CC4D5",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 311,
+  "manufacturer": "Overture",
+  "color_name": "Light Gray",
+  "hex_color": "#8F9694",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 312,
+  "manufacturer": "Overture",
+  "color_name": "Neon Green Air",
+  "hex_color": "#C5ED33",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 313,
+  "manufacturer": "Overture",
+  "color_name": "Olive Green",
+  "hex_color": "#8F843D",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 314,
+  "manufacturer": "Overture",
+  "color_name": "Pink",
+  "hex_color": "#DC99B4",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 315,
+  "manufacturer": "Overture",
+  "color_name": "Red",
+  "hex_color": "#C9341A",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 316,
+  "manufacturer": "Overture",
+  "color_name": "Royal Gold",
+  "hex_color": "#C58F31",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 317,
+  "manufacturer": "Overture",
+  "color_name": "Space Grey",
+  "hex_color": "#797779",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 318,
+  "manufacturer": "Overture",
+  "color_name": "White",
+  "hex_color": "#E7EBE3",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 319,
+  "manufacturer": "Overture",
+  "color_name": "Black",
+  "hex_color": "#3F3E41",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 320,
+  "manufacturer": "Overture",
+  "color_name": "Blue",
+  "hex_color": "#277EAB",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 321,
+  "manufacturer": "Overture",
+  "color_name": "Brick Red",
+  "hex_color": "#AE4848",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 322,
+  "manufacturer": "Overture",
+  "color_name": "Green",
+  "hex_color": "#5EAE73",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 324,
+  "manufacturer": "Overture",
+  "color_name": "Light Brown",
+  "hex_color": "#BF9C80",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 325,
+  "manufacturer": "Overture",
+  "color_name": "Light Green",
+  "hex_color": "#A1C1A5",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 323,
+  "manufacturer": "Overture",
+  "color_name": "Light Grey",
+  "hex_color": "#919598",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 326,
+  "manufacturer": "Overture",
+  "color_name": "Olive Green",
+  "hex_color": "#B59837",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 327,
+  "manufacturer": "Overture",
+  "color_name": "Orange",
+  "hex_color": "#F59752",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 328,
+  "manufacturer": "Overture",
+  "color_name": "Pink",
+  "hex_color": "#EBBDCE",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 329,
+  "manufacturer": "Overture",
+  "color_name": "Purple",
+  "hex_color": "#978DC5",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 330,
+  "manufacturer": "Overture",
+  "color_name": "White",
+  "hex_color": "#E1E4DD",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 331,
+  "manufacturer": "Overture",
+  "color_name": "Yellow",
+  "hex_color": "#FFD359",
+  "material": "PLA Matte",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 332,
+  "manufacturer": "Overture",
+  "color_name": "Digital Blue",
+  "hex_color": "#008FBE",
+  "material": "PLA Pro",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 333,
+  "manufacturer": "Overture",
+  "color_name": "Light Blue",
+  "hex_color": "#68C8DB",
+  "material": "PLA Pro",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 334,
+  "manufacturer": "Overture",
+  "color_name": "Orange",
+  "hex_color": "#F27C1B",
+  "material": "PLA Pro",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 335,
+  "manufacturer": "Overture",
+  "color_name": "Purple",
+  "hex_color": "#7B5DB0",
+  "material": "PLA Pro",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 336,
+  "manufacturer": "Overture",
+  "color_name": "Red",
+  "hex_color": "#E62F18",
+  "material": "PLA Pro",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 337,
+  "manufacturer": "Overture",
+  "color_name": "Yellow",
+  "hex_color": "#DFB233",
+  "material": "PLA Pro",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 353,
+  "manufacturer": "Overture",
+  "color_name": "Copper",
+  "hex_color": "#B27052",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 351,
+  "manufacturer": "Overture",
+  "color_name": "Gold",
+  "hex_color": "#CA9B52",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 352,
+  "manufacturer": "Overture",
+  "color_name": "Neon Green",
+  "hex_color": "#C2D74D",
+  "material": "Silk PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 186,
+  "manufacturer": "Polymaker",
+  "color_name": "Army Red",
+  "hex_color": "#8B0000",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 191,
+  "manufacturer": "Polymaker",
+  "color_name": "Banana",
+  "hex_color": "#FFE135",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 182,
+  "manufacturer": "Polymaker",
+  "color_name": "Charcoal Black",
+  "hex_color": "#2B2B2B",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 181,
+  "manufacturer": "Polymaker",
+  "color_name": "Cotton White",
+  "hex_color": "#F5F5F5",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 195,
+  "manufacturer": "Polymaker",
+  "color_name": "Forest Green",
+  "hex_color": "#228B22",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 184,
+  "manufacturer": "Polymaker",
+  "color_name": "Fossil Grey",
+  "hex_color": "#6B6B6B",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 199,
+  "manufacturer": "Polymaker",
+  "color_name": "Ice",
+  "hex_color": "#D6ECEF",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 187,
+  "manufacturer": "Polymaker",
+  "color_name": "Lava Red",
+  "hex_color": "#CF1020",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 197,
+  "manufacturer": "Polymaker",
+  "color_name": "Lavender Purple",
+  "hex_color": "#B57EDC",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 183,
+  "manufacturer": "Polymaker",
+  "color_name": "Marble White",
+  "hex_color": "#E8E8E8",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 196,
+  "manufacturer": "Polymaker",
+  "color_name": "Mint",
+  "hex_color": "#98FF98",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 194,
+  "manufacturer": "Polymaker",
+  "color_name": "Muted Green",
+  "hex_color": "#4F7942",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 190,
+  "manufacturer": "Polymaker",
+  "color_name": "Peach",
+  "hex_color": "#FFCBA4",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 189,
+  "manufacturer": "Polymaker",
+  "color_name": "Rose",
+  "hex_color": "#FF007F",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 188,
+  "manufacturer": "Polymaker",
+  "color_name": "Sakura Pink",
+  "hex_color": "#FFB7C5",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 198,
+  "manufacturer": "Polymaker",
+  "color_name": "Sapphire Blue",
+  "hex_color": "#0F52BA",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 192,
+  "manufacturer": "Polymaker",
+  "color_name": "Savannah Yellow",
+  "hex_color": "#F4C430",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 185,
+  "manufacturer": "Polymaker",
+  "color_name": "Shadow Black",
+  "hex_color": "#1A1A1A",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 193,
+  "manufacturer": "Polymaker",
+  "color_name": "Sunrise Orange",
+  "hex_color": "#FF6600",
+  "material": "PolyTerra PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 630,
+  "manufacturer": "Protopasta",
+  "color_name": "Black",
+  "hex_color": "#424140",
+  "material": "Carbon Fiber PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 567,
+  "manufacturer": "Protopasta",
+  "color_name": "Atikam Teal",
+  "hex_color": "#135859",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 568,
+  "manufacturer": "Protopasta",
+  "color_name": "Blood of My Enemies",
+  "hex_color": "#7A1A23",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 569,
+  "manufacturer": "Protopasta",
+  "color_name": "Blue Opaque",
+  "hex_color": "#044A86",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 570,
+  "manufacturer": "Protopasta",
+  "color_name": "Blue Wonder Glitter Flake",
+  "hex_color": "#20556F",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 571,
+  "manufacturer": "Protopasta",
+  "color_name": "Bobbi's Purple Iris",
+  "hex_color": "#542B5C",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 572,
+  "manufacturer": "Protopasta",
+  "color_name": "Brass Composite",
+  "hex_color": "#8C7A4F",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 573,
+  "manufacturer": "Protopasta",
+  "color_name": "Bronze Composite",
+  "hex_color": "#635146",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 574,
+  "manufacturer": "Protopasta",
+  "color_name": "Candy Apple Metallic Red",
+  "hex_color": "#A32423",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 575,
+  "manufacturer": "Protopasta",
+  "color_name": "Cloverleaf Metallic Green",
+  "hex_color": "#245A3F",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 576,
+  "manufacturer": "Protopasta",
+  "color_name": "Copper Composite",
+  "hex_color": "#976252",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 577,
+  "manufacturer": "Protopasta",
+  "color_name": "Cupid's Crush Metallic Pink",
+  "hex_color": "#EA8699",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 578,
+  "manufacturer": "Protopasta",
+  "color_name": "Double Espresso Metallic Brown",
+  "hex_color": "#6B473B",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 579,
+  "manufacturer": "Protopasta",
+  "color_name": "Dragon Fruit Smoothie",
+  "hex_color": "#B3295F",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 580,
+  "manufacturer": "Protopasta",
+  "color_name": "Dragon Scale Purple",
+  "hex_color": "#8A80AC",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 581,
+  "manufacturer": "Protopasta",
+  "color_name": "Dusty Smoke",
+  "hex_color": "#8F9491",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 582,
+  "manufacturer": "Protopasta",
+  "color_name": "Electric Lemonade Metallic Yellow",
+  "hex_color": "#E4CA6B",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 583,
+  "manufacturer": "Protopasta",
+  "color_name": "Empire Strikes Metallic Black",
+  "hex_color": "#393B3B",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 584,
+  "manufacturer": "Protopasta",
+  "color_name": "Fluorescent Yellow",
+  "hex_color": "#D4DC3A",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 585,
+  "manufacturer": "Protopasta",
+  "color_name": "Galactic Empire Metallic Purple",
+  "hex_color": "#3B3F5D",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 586,
+  "manufacturer": "Protopasta",
+  "color_name": "Glitter's Mane",
+  "hex_color": "#128C93",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 587,
+  "manufacturer": "Protopasta",
+  "color_name": "Gold Dust Glitter Flake",
+  "hex_color": "#BFAE6D",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 589,
+  "manufacturer": "Protopasta",
+  "color_name": "Good Old Gray",
+  "hex_color": "#6D737B",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 588,
+  "manufacturer": "Protopasta",
+  "color_name": "Good as Gold",
+  "hex_color": "#9A774B",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 590,
+  "manufacturer": "Protopasta",
+  "color_name": "Green Glowing Natural",
+  "hex_color": "#D4D3AD",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 591,
+  "manufacturer": "Protopasta",
+  "color_name": "Heartthrob Red Metallic",
+  "hex_color": "#7E3030",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 592,
+  "manufacturer": "Protopasta",
+  "color_name": "Joel's Highfive Blue",
+  "hex_color": "#056B9A",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 593,
+  "manufacturer": "Protopasta",
+  "color_name": "Lootsef Green",
+  "hex_color": "#8FB841",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 594,
+  "manufacturer": "Protopasta",
+  "color_name": "Luke's Proton Purple",
+  "hex_color": "#7D3F59",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 595,
+  "manufacturer": "Protopasta",
+  "color_name": "Mahogany",
+  "hex_color": "#7F5D4F",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 596,
+  "manufacturer": "Protopasta",
+  "color_name": "Matte Fiber Black",
+  "hex_color": "#3F3F3E",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 597,
+  "manufacturer": "Protopasta",
+  "color_name": "Matte Fiber Daffodil",
+  "hex_color": "#B79868",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 598,
+  "manufacturer": "Protopasta",
+  "color_name": "Matte Fiber Gray",
+  "hex_color": "#767A7D",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 599,
+  "manufacturer": "Protopasta",
+  "color_name": "Matte Fiber Walnut",
+  "hex_color": "#6F5D4E",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 600,
+  "manufacturer": "Protopasta",
+  "color_name": "Matte Fiber White",
+  "hex_color": "#F4EADB",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 601,
+  "manufacturer": "Protopasta",
+  "color_name": "Mermaid's Tale Metallic Teal",
+  "hex_color": "#026768",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 602,
+  "manufacturer": "Protopasta",
+  "color_name": "Moonstruck White Satin",
+  "hex_color": "#DCE4DD",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 603,
+  "manufacturer": "Protopasta",
+  "color_name": "Obsidian",
+  "hex_color": "#474743",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 604,
+  "manufacturer": "Protopasta",
+  "color_name": "Opaque Black",
+  "hex_color": "#312F30",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 605,
+  "manufacturer": "Protopasta",
+  "color_name": "Opaque Natural",
+  "hex_color": "#CBD0D0",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 606,
+  "manufacturer": "Protopasta",
+  "color_name": "Opaque White",
+  "hex_color": "#DFE4E2",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 607,
+  "manufacturer": "Protopasta",
+  "color_name": "Orange Papaya Smoothie",
+  "hex_color": "#C57231",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 608,
+  "manufacturer": "Protopasta",
+  "color_name": "Out of Darts Orange",
+  "hex_color": "#E58429",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 609,
+  "manufacturer": "Protopasta",
+  "color_name": "Pineapple Banana Smoothie",
+  "hex_color": "#D0A645",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 610,
+  "manufacturer": "Protopasta",
+  "color_name": "Pretty in Pink Pearl",
+  "hex_color": "#CE95AE",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 611,
+  "manufacturer": "Protopasta",
+  "color_name": "Red Hot Cinnamon",
+  "hex_color": "#7C4448",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 612,
+  "manufacturer": "Protopasta",
+  "color_name": "Red Opaque",
+  "hex_color": "#972425",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 613,
+  "manufacturer": "Protopasta",
+  "color_name": "Second to None Silver",
+  "hex_color": "#B4B6B6",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 614,
+  "manufacturer": "Protopasta",
+  "color_name": "Sparkling Spruce",
+  "hex_color": "#47614C",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 615,
+  "manufacturer": "Protopasta",
+  "color_name": "Stardust Glitter Flake",
+  "hex_color": "#AAB1AE",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 616,
+  "manufacturer": "Protopasta",
+  "color_name": "Summertime Green",
+  "hex_color": "#89A78A",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 617,
+  "manufacturer": "Protopasta",
+  "color_name": "Tangerine Orange Metallic Gold",
+  "hex_color": "#C05834",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 618,
+  "manufacturer": "Protopasta",
+  "color_name": "Translucent Iridescent Ice",
+  "hex_color": "#C4CBC8",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 619,
+  "manufacturer": "Protopasta",
+  "color_name": "Translucent Silver Smoke",
+  "hex_color": "#A5ACA9",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 620,
+  "manufacturer": "Protopasta",
+  "color_name": "Unicorn Tears White Glitter",
+  "hex_color": "#D7DEDE",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 621,
+  "manufacturer": "Protopasta",
+  "color_name": "What Karat? Smooth Gold",
+  "hex_color": "#CD974B",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 622,
+  "manufacturer": "Protopasta",
+  "color_name": "White",
+  "hex_color": "#F6F5F0",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 623,
+  "manufacturer": "Protopasta",
+  "color_name": "White Marble",
+  "hex_color": "#C6CECF",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 624,
+  "manufacturer": "Protopasta",
+  "color_name": "Winter Blue Glitter Flake",
+  "hex_color": "#056F9D",
+  "material": "HTPLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 625,
+  "manufacturer": "Protopasta",
+  "color_name": "Black",
+  "hex_color": "#323132",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 626,
+  "manufacturer": "Protopasta",
+  "color_name": "Conductive",
+  "hex_color": "#373838",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 627,
+  "manufacturer": "Protopasta",
+  "color_name": "Iron Composite",
+  "hex_color": "#555451",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 628,
+  "manufacturer": "Protopasta",
+  "color_name": "Natural",
+  "hex_color": "#E1DFD6",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 629,
+  "manufacturer": "Protopasta",
+  "color_name": "Steel Composite",
+  "hex_color": "#676561",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 208,
+  "manufacturer": "Prusament",
+  "color_name": "Azure Blue",
+  "hex_color": "#007FFF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 201,
+  "manufacturer": "Prusament",
+  "color_name": "Galaxy Black",
+  "hex_color": "#1F1F1F",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 203,
+  "manufacturer": "Prusament",
+  "color_name": "Gentleman's Grey",
+  "hex_color": "#5A5A5A",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 200,
+  "manufacturer": "Prusament",
+  "color_name": "Jet Black",
+  "hex_color": "#1A1A1A",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 207,
+  "manufacturer": "Prusament",
+  "color_name": "Jungle Green",
+  "hex_color": "#29AB87",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 204,
+  "manufacturer": "Prusament",
+  "color_name": "Lipstick Red",
+  "hex_color": "#C21E1E",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 210,
+  "manufacturer": "Prusament",
+  "color_name": "Mystic Purple",
+  "hex_color": "#7B68EE",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 205,
+  "manufacturer": "Prusament",
+  "color_name": "Orange",
+  "hex_color": "#FF6600",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 206,
+  "manufacturer": "Prusament",
+  "color_name": "Pineapple Yellow",
+  "hex_color": "#FFD700",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 202,
+  "manufacturer": "Prusament",
+  "color_name": "Pristine White",
+  "hex_color": "#FFFFFF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 209,
+  "manufacturer": "Prusament",
+  "color_name": "Royal Blue",
+  "hex_color": "#4169E1",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 636,
+  "manufacturer": "Sakata3D",
+  "color_name": "Red",
+  "hex_color": "#B63A32",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 637,
+  "manufacturer": "Sakata3D",
+  "color_name": "Silk Sunset",
+  "hex_color": "#F49545",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 638,
+  "manufacturer": "Sakata3D",
+  "color_name": "Surf Green",
+  "hex_color": "#00C1A8",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 402,
+  "manufacturer": "Sunlu",
+  "color_name": "Black",
+  "hex_color": "#404142",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 396,
+  "manufacturer": "Sunlu",
+  "color_name": "Black",
+  "hex_color": "#3F4141",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 397,
+  "manufacturer": "Sunlu",
+  "color_name": "Blue",
+  "hex_color": "#0068AB",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 398,
+  "manufacturer": "Sunlu",
+  "color_name": "Green",
+  "hex_color": "#67DB25",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 399,
+  "manufacturer": "Sunlu",
+  "color_name": "Olive Green",
+  "hex_color": "#707D63",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 400,
+  "manufacturer": "Sunlu",
+  "color_name": "Transparent",
+  "hex_color": "#BAB9B4",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 401,
+  "manufacturer": "Sunlu",
+  "color_name": "White",
+  "hex_color": "#DBDDD9",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 358,
+  "manufacturer": "Sunlu",
+  "color_name": "Black",
+  "hex_color": "#3C3C3C",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 359,
+  "manufacturer": "Sunlu",
+  "color_name": "Blue",
+  "hex_color": "#006AB8",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 360,
+  "manufacturer": "Sunlu",
+  "color_name": "Cherry Red",
+  "hex_color": "#EA4A5D",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 361,
+  "manufacturer": "Sunlu",
+  "color_name": "Glow in the Dark",
+  "hex_color": "#CBCAB8",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 362,
+  "manufacturer": "Sunlu",
+  "color_name": "Green Mint",
+  "hex_color": "#4CCB9A",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 363,
+  "manufacturer": "Sunlu",
+  "color_name": "Grey",
+  "hex_color": "#6B6E6E",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 364,
+  "manufacturer": "Sunlu",
+  "color_name": "Orange",
+  "hex_color": "#E77932",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 365,
+  "manufacturer": "Sunlu",
+  "color_name": "Red",
+  "hex_color": "#AC3637",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 366,
+  "manufacturer": "Sunlu",
+  "color_name": "Sky Blue",
+  "hex_color": "#0CB7CC",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 367,
+  "manufacturer": "Sunlu",
+  "color_name": "Sunny Orange",
+  "hex_color": "#FF7235",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 368,
+  "manufacturer": "Sunlu",
+  "color_name": "Transparent",
+  "hex_color": "#C8C7BF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 369,
+  "manufacturer": "Sunlu",
+  "color_name": "Transparent Orange",
+  "hex_color": "#DB7F42",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 370,
+  "manufacturer": "Sunlu",
+  "color_name": "White",
+  "hex_color": "#DEDFD9",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 371,
+  "manufacturer": "Sunlu",
+  "color_name": "Wood",
+  "hex_color": "#D5BA95",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 376,
+  "manufacturer": "Sunlu",
+  "color_name": "Blue",
+  "hex_color": "#00B2CC",
+  "material": "PLA Meta",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 377,
+  "manufacturer": "Sunlu",
+  "color_name": "Mint Green",
+  "hex_color": "#03A490",
+  "material": "PLA Meta",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 378,
+  "manufacturer": "Sunlu",
+  "color_name": "Sakura Pink",
+  "hex_color": "#F5B5C2",
+  "material": "PLA Meta",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 379,
+  "manufacturer": "Sunlu",
+  "color_name": "Taro Purple",
+  "hex_color": "#A69ED0",
+  "material": "PLA Meta",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 372,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk Black",
+  "hex_color": "#737272",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 373,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk Green",
+  "hex_color": "#34C0A5",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 374,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk Red",
+  "hex_color": "#CD5C62",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 375,
+  "manufacturer": "Sunlu",
+  "color_name": "Silky Silver",
+  "hex_color": "#C6CBD0",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 380,
+  "manufacturer": "Sunlu",
+  "color_name": "Beige",
+  "hex_color": "#DDBCAC",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 381,
+  "manufacturer": "Sunlu",
+  "color_name": "Black",
+  "hex_color": "#3A3B3B",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 382,
+  "manufacturer": "Sunlu",
+  "color_name": "Blue",
+  "hex_color": "#0063A0",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 383,
+  "manufacturer": "Sunlu",
+  "color_name": "Green",
+  "hex_color": "#4EE349",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 384,
+  "manufacturer": "Sunlu",
+  "color_name": "Light Gold",
+  "hex_color": "#D3943D",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 385,
+  "manufacturer": "Sunlu",
+  "color_name": "Mint Green",
+  "hex_color": "#00B39A",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 386,
+  "manufacturer": "Sunlu",
+  "color_name": "Orange",
+  "hex_color": "#ED7432",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 387,
+  "manufacturer": "Sunlu",
+  "color_name": "Pure Yellow",
+  "hex_color": "#FFBD2C",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 388,
+  "manufacturer": "Sunlu",
+  "color_name": "Purple",
+  "hex_color": "#8887C5",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 389,
+  "manufacturer": "Sunlu",
+  "color_name": "Red",
+  "hex_color": "#B34044",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 390,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk Blue",
+  "hex_color": "#33ACD4",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 391,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk Brass",
+  "hex_color": "#F1A050",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 392,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk Pink",
+  "hex_color": "#FFCAD9",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 393,
+  "manufacturer": "Sunlu",
+  "color_name": "Silk White",
+  "hex_color": "#EEEFE7",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 394,
+  "manufacturer": "Sunlu",
+  "color_name": "Skin",
+  "hex_color": "#F7BEA1",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 395,
+  "manufacturer": "Sunlu",
+  "color_name": "White",
+  "hex_color": "#E6E6E2",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 276,
+  "manufacturer": "eSUN",
+  "color_name": "Black",
+  "hex_color": "#3F3A3F",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 277,
+  "manufacturer": "eSUN",
+  "color_name": "Brown",
+  "hex_color": "#624741",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 278,
+  "manufacturer": "eSUN",
+  "color_name": "Natural",
+  "hex_color": "#D9E3DD",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 279,
+  "manufacturer": "eSUN",
+  "color_name": "Pine Green",
+  "hex_color": "#3C694E",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 280,
+  "manufacturer": "eSUN",
+  "color_name": "Pink",
+  "hex_color": "#E86477",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 281,
+  "manufacturer": "eSUN",
+  "color_name": "Red",
+  "hex_color": "#A74237",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 282,
+  "manufacturer": "eSUN",
+  "color_name": "Silver",
+  "hex_color": "#838080",
+  "material": "ABS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 283,
+  "manufacturer": "eSUN",
+  "color_name": "Gray",
+  "hex_color": "#616777",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 284,
+  "manufacturer": "eSUN",
+  "color_name": "Green",
+  "hex_color": "#018068",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 285,
+  "manufacturer": "eSUN",
+  "color_name": "Natural",
+  "hex_color": "#E4DEC9",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 286,
+  "manufacturer": "eSUN",
+  "color_name": "Orange",
+  "hex_color": "#EE7845",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 287,
+  "manufacturer": "eSUN",
+  "color_name": "Silver",
+  "hex_color": "#7F807E",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 288,
+  "manufacturer": "eSUN",
+  "color_name": "White",
+  "hex_color": "#E1E1DF",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 289,
+  "manufacturer": "eSUN",
+  "color_name": "Yellow",
+  "hex_color": "#D3BC0F",
+  "material": "ABS+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 264,
+  "manufacturer": "eSUN",
+  "color_name": "Black",
+  "hex_color": "#353434",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 265,
+  "manufacturer": "eSUN",
+  "color_name": "Magenta",
+  "hex_color": "#E03E76",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 266,
+  "manufacturer": "eSUN",
+  "color_name": "Solid Blue",
+  "hex_color": "#1A6FB4",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 267,
+  "manufacturer": "eSUN",
+  "color_name": "Solid Green",
+  "hex_color": "#008A58",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 268,
+  "manufacturer": "eSUN",
+  "color_name": "Solid Purple",
+  "hex_color": "#7A4795",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 269,
+  "manufacturer": "eSUN",
+  "color_name": "Solid White",
+  "hex_color": "#F4F1F1",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 270,
+  "manufacturer": "eSUN",
+  "color_name": "Solid Yellow",
+  "hex_color": "#F0CA41",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 271,
+  "manufacturer": "eSUN",
+  "color_name": "Translucent Green",
+  "hex_color": "#378041",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 272,
+  "manufacturer": "eSUN",
+  "color_name": "Translucent Orange",
+  "hex_color": "#DD7135",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 273,
+  "manufacturer": "eSUN",
+  "color_name": "White",
+  "hex_color": "#E7EDED",
+  "material": "PETG",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 274,
+  "manufacturer": "eSUN",
+  "color_name": "Black",
+  "hex_color": "#424445",
+  "material": "PETG-HS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 275,
+  "manufacturer": "eSUN",
+  "color_name": "Solid Blue",
+  "hex_color": "#1A6FB4",
+  "material": "PETG-HS",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 238,
+  "manufacturer": "eSUN",
+  "color_name": "Glow in the Dark",
+  "hex_color": "#C5C2AB",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 239,
+  "manufacturer": "eSUN",
+  "color_name": "Marble White",
+  "hex_color": "#B5BCC0",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 240,
+  "manufacturer": "eSUN",
+  "color_name": "Natural Wood",
+  "hex_color": "#EBCFA6",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 241,
+  "manufacturer": "eSUN",
+  "color_name": "Pine Green",
+  "hex_color": "#375C49",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 242,
+  "manufacturer": "eSUN",
+  "color_name": "UV Change Purple",
+  "hex_color": "#CABBA9",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 244,
+  "manufacturer": "eSUN",
+  "color_name": "eStars Galaxy Black",
+  "hex_color": "#403936",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 243,
+  "manufacturer": "eSUN",
+  "color_name": "eTwinkling Blue",
+  "hex_color": "#115CAF",
+  "material": "PLA",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 262,
+  "manufacturer": "eSUN",
+  "color_name": "Bronze",
+  "hex_color": "#917F57",
+  "material": "PLA Metal",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 245,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Blue",
+  "hex_color": "#2275AA",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 246,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Bronze",
+  "hex_color": "#829172",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 247,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Copper",
+  "hex_color": "#AE6B2F",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 248,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Cyan",
+  "hex_color": "#34A7CF",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 249,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Dark Yellow",
+  "hex_color": "#D4A62E",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 250,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Gold",
+  "hex_color": "#C48E2F",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 251,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Green",
+  "hex_color": "#7FCB43",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 252,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Jacinth",
+  "hex_color": "#DA8061",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 253,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Lime",
+  "hex_color": "#C1D762",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 254,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Magic Green Blue",
+  "hex_color": "#508669",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 255,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Purple",
+  "hex_color": "#905295",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 256,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Red",
+  "hex_color": "#C94830",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 257,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Rose Gold",
+  "hex_color": "#C7886B",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 258,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Silver",
+  "hex_color": "#B5C1C5",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 259,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Violet",
+  "hex_color": "#B93CA1",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 260,
+  "manufacturer": "eSUN",
+  "color_name": "Silk White",
+  "hex_color": "#E3E0DB",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 261,
+  "manufacturer": "eSUN",
+  "color_name": "Silk Yellow",
+  "hex_color": "#DED74B",
+  "material": "PLA Silk",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 211,
+  "manufacturer": "eSUN",
+  "color_name": "Beige",
+  "hex_color": "#ECCAB0",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 212,
+  "manufacturer": "eSUN",
+  "color_name": "Black",
+  "hex_color": "#373838",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 213,
+  "manufacturer": "eSUN",
+  "color_name": "Blue",
+  "hex_color": "#054795",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 214,
+  "manufacturer": "eSUN",
+  "color_name": "Bone White",
+  "hex_color": "#C2BAA7",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 215,
+  "manufacturer": "eSUN",
+  "color_name": "Brown",
+  "hex_color": "#6F513C",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 216,
+  "manufacturer": "eSUN",
+  "color_name": "Cool White",
+  "hex_color": "#E1E4E5",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 217,
+  "manufacturer": "eSUN",
+  "color_name": "Dark Blue",
+  "hex_color": "#2F314D",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 218,
+  "manufacturer": "eSUN",
+  "color_name": "Fire Engine Red",
+  "hex_color": "#91202B",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 219,
+  "manufacturer": "eSUN",
+  "color_name": "Gold",
+  "hex_color": "#C99B26",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 220,
+  "manufacturer": "eSUN",
+  "color_name": "Gray",
+  "hex_color": "#697480",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 221,
+  "manufacturer": "eSUN",
+  "color_name": "Green",
+  "hex_color": "#015E58",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 222,
+  "manufacturer": "eSUN",
+  "color_name": "Grey",
+  "hex_color": "#5F6574",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 223,
+  "manufacturer": "eSUN",
+  "color_name": "Light Blue",
+  "hex_color": "#48BFD5",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 224,
+  "manufacturer": "eSUN",
+  "color_name": "Light Brown",
+  "hex_color": "#A27556",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 225,
+  "manufacturer": "eSUN",
+  "color_name": "Luminous Blue",
+  "hex_color": "#C8CAC8",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 226,
+  "manufacturer": "eSUN",
+  "color_name": "Magenta",
+  "hex_color": "#DA3B6C",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 227,
+  "manufacturer": "eSUN",
+  "color_name": "Olive Green",
+  "hex_color": "#555B45",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 228,
+  "manufacturer": "eSUN",
+  "color_name": "Orange",
+  "hex_color": "#EF7749",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 229,
+  "manufacturer": "eSUN",
+  "color_name": "Peak Green",
+  "hex_color": "#A1DA7C",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 230,
+  "manufacturer": "eSUN",
+  "color_name": "Pink",
+  "hex_color": "#E78397",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 231,
+  "manufacturer": "eSUN",
+  "color_name": "Purple",
+  "hex_color": "#8350A4",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 232,
+  "manufacturer": "eSUN",
+  "color_name": "Red",
+  "hex_color": "#C4402A",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 233,
+  "manufacturer": "eSUN",
+  "color_name": "Silver",
+  "hex_color": "#8B8889",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 234,
+  "manufacturer": "eSUN",
+  "color_name": "Skin",
+  "hex_color": "#E3C7AF",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 235,
+  "manufacturer": "eSUN",
+  "color_name": "White",
+  "hex_color": "#E1E9E9",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 236,
+  "manufacturer": "eSUN",
+  "color_name": "Yellow",
+  "hex_color": "#FBCE2B",
+  "material": "PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 263,
+  "manufacturer": "eSUN",
+  "color_name": "Grey",
+  "hex_color": "#626C77",
+  "material": "PLA-ST",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ },
+ {
+  "id": 237,
+  "manufacturer": "eSUN",
+  "color_name": "Blue",
+  "hex_color": "#065AA1",
+  "material": "Pro PLA+",
+  "is_default": true,
+  "extra_colors": null,
+  "effect_type": null
+ }
+]

@@ -14,6 +14,7 @@ import '../dashboard/card_collapse_providers.dart';
 import '../tour/tour_beacon.dart';
 import '../wall/wall_providers.dart';
 import '../label_printer/label_printer_screen.dart';
+import 'certificates_card.dart';
 import 'demo_printers_provider.dart';
 import 'watch_settings.dart';
 
@@ -154,6 +155,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         ),
       ],
       const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.certificatesTitle),
+      const CertificatesCard(),
+      const SizedBox(height: DashSpace.xl),
       SettingsSectionHeader(l10n.notifSettingsTitle),
       SettingsEntryTile(
         icon: Icons.tune_rounded,
@@ -161,6 +165,15 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         subtitle: l10n.appSettingsNotificationsSubtitle,
         onTap: () => context.push('/settings/notifications'),
         id: 'app_settings.notifications',
+      ),
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.alarmHeader),
+      SettingsEntryTile(
+        icon: Icons.alarm_rounded,
+        title: l10n.alarmTitle,
+        subtitle: l10n.alarmSettingsSubtitle,
+        onTap: () => context.push('/settings/alarm'),
+        id: 'app_settings.alarm',
       ),
       // The tour's own copy of this screen would start a tour in a tour.
       if (ref.watch(tourBeaconProvider) == null) ...[

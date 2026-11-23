@@ -161,6 +161,7 @@
   "ctrlSet": "Ajustar",
   "ctrlActivate": "Activar",
   "ctrlNozzleActive": "Activa",
+  "amsDryer": "Secador",
   "ctrlDry": "Secar",
   "ctrlDrying": "Secando",
   "ctrlDryNotRunning": "Detenido",
@@ -746,8 +747,15 @@
   "cameraConnecting": "Conectando con la cámara…",
   "cameraError": "No se pudo cargar la transmisión de la cámara",
   "cameraDemoUnavailable": "Esta impresora de demostración está desconectada, así que no hay imagen de cámara.",
+  "nozzleRack": "Soporte de boquillas",
+  "nozzleRackMounted": "en el cabezal",
+  "nozzleRackPosition": "Posición {position}: {diameter} mm",
+  "nozzleRackPositionEmpty": "Posición {position}: vacía",
+  "externalInputs": "Entradas externas",
+  "externalInputsEmpty": "Las {count} entradas externas están vacías",
   "externalSpool": "Bobina externa",
   "traySlotEmpty": "Vacía",
+  "traySlotUnconfigured": "Sin configurar",
   "amsSlotFilament": "Filamento",
   "amsLoad": "Cargar",
   "amsUnload": "Descargar",
@@ -767,6 +775,9 @@
   "amsFeedAlreadyLoaded": "ya cargado",
   "amsSwitchNotReady": "El Filament Track Switch aún no está configurado. Asigna cada AMS a una entrada de la impresora e inténtalo de nuevo.",
   "amsUnloadSlotNotLoaded": "Ninguna boquilla se alimenta desde esta ranura",
+  "amsUnloadAms3h": "Descargando la ranura {slot}. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.",
+  "amsLoadAms3hEmpty": "La ranura {slot} no tiene filamento. Empújalo en la entrada hasta que el AMS 3H lo recoja y vuelve a cargar.",
+  "dryAms3hSlots": "El AMS 3H seca solo las ranuras {a} y {b}",
   "amsActionsWhilePrinting": "No disponible mientras la impresora está imprimiendo",
   "amsSlotConfigure": "Configurar ranura",
   "amsSlotConfigTitle": "Configuración de ranura",
@@ -832,7 +843,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Colores del catálogo",
-  "amsSlotConfigColourCustom": "Color personalizado",
   "amsSlotReset": "Restablecer ranura",
   "amsSlotResetConfirmTitle": "¿Restablecer esta ranura?",
   "amsSlotResetConfirmMessage": "La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.",
@@ -1010,6 +1020,25 @@
   "twoFactorBack": "Usar otra cuenta",
   "twoFactorSessionNote": "La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave API no caduca y omite este paso.",
   "tryDemo": "Probar la demo",
+  "customCaTrusted": "CA de confianza: {name}",
+  "customCaRemove": "Quitar certificado de CA",
+  "certificateImport": "Importar certificado",
+  "certificateInvalid": "Este archivo no contiene ningún certificado",
+  "clientCertInvalid": "Este archivo no contiene un certificado con su clave",
+  "customCaPickFailed": "No se pudo abrir el archivo",
+  "clientCertInUse": "Certificado de cliente: {name}",
+  "clientCertRemove": "Quitar certificado de cliente",
+  "clientCertWrongPassword": "Contraseña del certificado incorrecta",
+  "clientCertPasswordTitle": "Contraseña del certificado",
+  "certificatesTitle": "Certificados",
+  "customCaRemoveTitle": "¿Quitar el certificado de CA?",
+  "customCaRemoveMessage": "La app dejará de confiar en los servidores que firmó.",
+  "clientCertRemoveTitle": "¿Quitar el certificado de cliente?",
+  "clientCertRemoveMessage": "Un servidor que lo pida rechazará la app.",
+  "certificatesRemoveAll": "Quitar todos los certificados",
+  "certificatesRemoveAllTitle": "¿Quitar todos los certificados?",
+  "certificatesRemoveAllMessage": "La app dejará de conectar con los servidores que los necesiten.",
+  "certificateRemoveConfirm": "Quitar",
   "scanApiKeyTitle": "Escanear clave API",
   "scanApiKeyHint": "Apunta la cámara al código QR de la clave API",
   "cameraPermissionTitle": "Se necesita acceso a la cámara",
@@ -1039,7 +1068,8 @@
       }
     }
   },
-  "errBadCertificate": "Certificado TLS no válido (los autofirmados no son compatibles en la v1)",
+  "errBadCertificate": "El certificado del servidor no es de confianza",
+  "errClientCertRefused": "El servidor exige un certificado de cliente válido",
   "errConnection": "Error de conexión",
   "errMalformedResponse": "Respuesta del servidor mal formada",
   "errInvalidCredentials": "Usuario o contraseña no válidos",
@@ -1227,6 +1257,36 @@
   "notifExtrasHeader": "Detalles",
   "notifFinishPhotoTitle": "Foto de la impresión finalizada",
   "notifFinishPhotoDesc": "Añade la foto que toma el servidor al terminar la impresión a la notificación de finalización o fallo, en cuanto esté disponible",
+  "alarmHeader": "Alarma",
+  "alarmTitle": "Despertarme con una alarma",
+  "alarmDesc": "Suena en la pantalla de bloqueo hasta que la detengas",
+  "alarmEvtFinished": "Impresión finalizada",
+  "alarmEvtFinishedDesc": "Una impresión terminó correctamente",
+  "alarmEvtBlocked": "Impresión detenida por un fallo",
+  "alarmEvtBlockedDesc": "Un fallo pausó o detuvo la impresión, o la impresión falló",
+  "alarmEvtDrying": "Secado finalizado",
+  "alarmEvtDryingDesc": "Un ciclo de secado del AMS llegó a su fin",
+  "alarmWindowTitle": "Solo en las horas elegidas",
+  "alarmWindowDesc": "Fuera de este horario la alarma no suena",
+  "alarmWindowFrom": "Desde",
+  "alarmWindowTo": "Hasta",
+  "alarmRingFor": "Suena durante {minutes} min",
+  "alarmRingForDesc": "Después se detiene sola",
+  "alarmMinutes": "{minutes} min",
+  "alarmStop": "Detener",
+  "alarmTest": "Probar alarma",
+  "alarmTestBody": "Así suena la alarma",
+  "alarmTestFailed": "La alarma no pudo sonar. Comprueba que las notificaciones estén activadas.",
+  "alarmFullScreenNeeded": "Sin permiso, la alarma no cubrirá la pantalla de bloqueo",
+  "alarmFullScreenAllow": "Permitir",
+  "alarmHoursHeader": "Horario",
+  "alarmLengthHeader": "Duración",
+  "alarmSettingsSubtitle": "Qué la activa, en qué horario y durante cuánto tiempo",
+  "alarmExcludedLocationsHeader": "Ubicaciones excluidas",
+  "alarmExcludedPrintersHeader": "Impresoras excluidas",
+  "alarmExcludeLocationDesc": "Ninguna impresora de aquí activa la alarma",
+  "alarmExcludePrinterDesc": "Esta impresora nunca activa la alarma",
+  "alarmExcludedWithLocation": "Excluida con la ubicación {location}",
   "notifThresholdsHeader": "Umbrales",
   "notifEvtStarted": "Impresión iniciada",
   "notifEvtStartedDesc": "Cuando comienza una impresión",
@@ -1529,7 +1589,7 @@
   "inventoryExtraColorsHint": "2–8 valores hex, separados por comas",
   "inventoryFieldEffect": "Efecto",
   "inventoryEffectNone": "Ninguno",
-  "inventoryColorCommon": "Colores habituales",
+  "inventoryColorCatalog": "Catálogo de colores",
   "inventoryColorSearchHint": "Buscar colores…",
   "inventoryColorPickTitle": "Elegir un color",
   "inventoryColorSelect": "Seleccionar",
@@ -1574,6 +1634,7 @@
   "inventorySlotAms": "Ranura AMS",
   "inventoryAssignUnit": "Unidad AMS",
   "inventoryAssignSlot": "Ranura",
+  "inventoryAssignInput": "Entrada",
   "inventoryAssignExtruder": "Extrusor",
   "inventoryAssignExternalHint": "Asigna al soporte de bobina externo",
   "inventoryAssignConfirm": "Asignar",
@@ -4490,5 +4551,203 @@
   "tipsTrimTitle": "Recortar un timelapse",
   "tipsTrimBody": "Arrastra los tiradores de la tira de fotogramas; toca o arrastra en cualquier otro punto para mover el cabezal.",
   "tipsWallTitle": "Modo pared",
-  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared."
+  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared.",
+  "archiveRunsTitle": "Impresiones",
+  "archiveRunsEmpty": "Este archivo aún no se ha impreso.",
+  "archiveRunsBeforeLog": "Impreso antes de que Bambuddy registrara cada impresión: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Esta placa aún no se ha impreso.",
+  "archiveRunsAllPlates": "Todas las placas",
+  "archiveRunPlate": "Placa {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Impresora eliminada",
+  "archiveRunWithEstimate": "{value} (estimado {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} de {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Inicio / fin",
+  "archiveRunEnergy": "Energía",
+  "archiveRunFailureReason": "Motivo del fallo",
+  "archiveRunStartedBy": "Iniciada por",
+  "archiveRunNote": "Nota sobre esta impresión",
+  "archiveRunVideo": "Vídeo timelapse",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Buenas: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fallidas: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Indicar resultado",
+  "archiveRunChangeOutcome": "Cambiar resultado",
+  "archiveRunAddNote": "Añadir nota",
+  "archiveRunEditNote": "Editar nota",
+  "archiveRunNoteSaved": "Nota guardada",
+  "archivePlatesTitle": "Placas",
+  "archivePlateEstimate": "Estimado {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Última impresión frente al estimado: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimir esta placa",
+  "archiveShowPlatePrints": "Ver sus impresiones",
+  "archiveRunReprint": "Reimprimir esta impresión",
+  "archiveMergeBanner": "{count, plural, =1{1 grupo de archivos duplicados} other{{count} grupos de archivos duplicados}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Fusionar",
+  "archiveMergeDismiss": "Descartar",
+  "archiveMergeMenu": "Fusionar duplicados",
+  "archiveMergeTitle": "Fusionar archivos duplicados",
+  "archiveMergeEffectKeep": "El archivo más antiguo de cada grupo se mantiene y recibe todas las impresiones de los demás, con sus fotos, vídeos y ficheros.",
+  "archiveMergeEffectLinks": "Los demás desaparecen del archivo; sus enlaces antiguos abren el archivo en el que se fusionaron.",
+  "archiveMergeEffectMoney": "Los cargos del monedero y las reservas de presupuesto se quedan donde se registraron.",
+  "archiveMergeNone": "No hay duplicados que fusionar.",
+  "archiveMergeMember": "{name} · creado {date} · {count, plural, =1{1 impresión} other{{count} impresiones}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Se mantiene",
+  "archiveMergeWaiting": "Omitidos por ahora",
+  "archiveMergeLeftOut": "Omitidos al fusionar",
+  "archiveMergeSkipBusy": "En uso: imprimiendo, en cola o recién impreso. Inténtalo más tarde.",
+  "archiveMergeSkipConflicting": "Los archivos tienen ficheros fuente o de diseño distintos, o vídeos. Conserva uno a mano primero.",
+  "archiveMergeSkipFailed": "La fusión falló.",
+  "archiveMergeSkipNotAGroup": "Ya no es un grupo de duplicados.",
+  "archiveMergeAction": "{count, plural, =1{Fusionar 1 grupo} other{Fusionar {count} grupos}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Esto no se puede deshacer en la aplicación.",
+  "archiveMergeDone": "{count, plural, =1{1 grupo fusionado.} other{{count} grupos fusionados.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Fusionados: {count}. Omitidos: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Vista de calendario",
+  "archiveListView": "Vista de lista",
+  "archiveCalendarToday": "Hoy",
+  "archiveCalendarPrevious": "Mes anterior",
+  "archiveCalendarNext": "Mes siguiente",
+  "archiveCalendarPrints": "Impresiones este mes",
+  "archiveCalendarSuccessful": "Correctas",
+  "archiveCalendarFailed": "Fallidas",
+  "archiveCalendarNoPrints": "No hay impresiones este día",
+  "archiveCalendarSelectDay": "Selecciona un día para ver sus impresiones",
+  "archiveCalendarDay": "{date}: {count, plural, =0{sin impresiones} =1{1 impresión} other{{count} impresiones}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

@@ -215,6 +215,10 @@ abstract final class Permissions {
   static const archivesUpdateOwn = 'archives:update_own';
   static const archivesUpdateAll = 'archives:update_all';
 
+  /// Deleting anyone's archive. With [archivesUpdateAll] it is what merging
+  /// duplicate archives takes (`archives.py::merge_archives`).
+  static const archivesDeleteAll = 'archives:delete_all';
+
   /// Queueing an archive again — reprint and add to queue alike — on top of
   /// [queueCreate]: reprint-all for any print, reprint-own for the caller's own
   /// and never an ownerless one. An API key's `can_queue` lets it hold either,

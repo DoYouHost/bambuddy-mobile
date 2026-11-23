@@ -1,0 +1,9 @@
+[
+  {
+    "method": "PUT",
+    "path": "/api/v1/library/folders/2",
+    "body": {
+      "parent_id": 3
+    }
+  }
+]

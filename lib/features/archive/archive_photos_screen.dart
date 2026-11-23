@@ -19,9 +19,18 @@ import 'archive_providers.dart';
 /// archive list: the finish photo is attached in a background task seconds to
 /// minutes after the print ends, so a list loaded earlier can be missing it.
 class ArchivePhotosScreen extends ConsumerWidget {
-  const ArchivePhotosScreen({super.key, required this.archiveId, this.title});
+  const ArchivePhotosScreen({
+    super.key,
+    required this.archiveId,
+    this.only,
+    this.title,
+  });
 
   final int archiveId;
+
+  /// One print's photos: only these of the archive's, in this order. A name the
+  /// archive no longer lists is gone on the server too, so it is left out.
+  final List<String>? only;
 
   /// Title on the bar (the print name); falls back to l10n.
   final String? title;
@@ -41,17 +50,20 @@ class ArchivePhotosScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(archiveDetailProvider(archiveId)),
           skipLoadingOnReload: false,
           skipLoadingOnRefresh: false,
-          data: (a) => a.hasPhotos
-              ? PhotoPager(
-                  paths: [
-                    for (final name in a.photos)
-                      Endpoints.archivePhoto(a.id, name),
-                  ],
-                )
-              : EmptyStateView(
-                  message: l10n.archivePhotosEmpty,
-                  icon: Icons.photo_camera_outlined,
-                ),
+          data: (a) {
+            final names = only?.where(a.photos.contains).toList() ?? a.photos;
+            return names.isNotEmpty
+                ? PhotoPager(
+                    paths: [
+                      for (final name in names)
+                        Endpoints.archivePhoto(a.id, name),
+                    ],
+                  )
+                : EmptyStateView(
+                    message: l10n.archivePhotosEmpty,
+                    icon: Icons.photo_camera_outlined,
+                  );
+          },
         ),
       ),
     );

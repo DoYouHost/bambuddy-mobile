@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/archive_merge.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/no_3mf_warning.dart';
+import '../../core/models/print_log_entry.dart';
 import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
@@ -218,6 +220,101 @@ final archiveProvider =
 /// a shot attached after the list was loaded still shows up.
 final archiveDetailProvider = FutureProvider.autoDispose.family<Archive, int>(
   (ref, archiveId) => ref.watch(archiveRepositoryProvider).byId(archiveId),
+);
+
+/// The archive as one print of it printed (`?run_id=`): what the outcome sheet
+/// shows and judges for that print.
+final archiveRunDetailProvider = FutureProvider.autoDispose
+    .family<Archive, (int, int)>((ref, key) {
+      final (archiveId, runId) = key;
+      return ref.watch(archiveRepositoryProvider).byId(archiveId, runId: runId);
+    });
+
+/// Whether this session may update a row owned by [createdById]:
+/// `archives:update_all`, or `archives:update_own` on its own. A print's note
+/// is judged by the print's owner (`print_log.py::update_print_log_entry`), a
+/// verdict by the archive's (`archives.py::update_archive`). Unknown identity
+/// (auth off) blocks nothing.
+final archiveUpdateAllowedProvider = Provider.family<bool, int?>((
+  ref,
+  createdById,
+) {
+  final me = ref.watch(currentUserProvider).value;
+  if (me == null) return true;
+  if (me.can(Permissions.archivesUpdateAll)) return true;
+  return createdById != null &&
+      createdById == me.id &&
+      me.can(Permissions.archivesUpdateOwn);
+});
+
+/// Which plate the archive sheet's print history is narrowed to, per archive:
+/// set by its chips and by a plate card's "Show its prints". Null is every
+/// plate.
+final archiveRunsPlateProvider = StateProvider.autoDispose.family<int?, int>(
+  (ref, archiveId) => null,
+);
+
+/// Whether this server merges duplicate archives (see
+/// `ArchiveRepository.mergeCapability`).
+final archiveMergeSupportedProvider = capabilityGate(
+  (ref) => ref.watch(archiveRepositoryProvider).mergeCapability,
+);
+
+/// Whether this session may merge: the routes take `archives:update_all` and
+/// `archives:delete_all` together (`require_permission_if_auth_enabled` checks
+/// every permission it is given).
+final archiveMergeAllowedProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(permissionProvider(Permissions.archivesUpdateAll)) &&
+      ref.watch(permissionProvider(Permissions.archivesDeleteAll)),
+);
+
+/// How many groups of duplicate archives there are, 0 for a session that may
+/// not merge them or a server whose version predates the routes (neither is
+/// asked: an older server would log a 422 on every visit).
+final archiveMergeCountProvider = FutureProvider.autoDispose<int>((ref) {
+  if (!ref.watch(archiveMergeAllowedProvider) ||
+      !ref.watch(archiveMergeSupportedProvider).orFalse) {
+    return 0;
+  }
+  return ref.watch(archiveRepositoryProvider).mergeCount();
+});
+
+/// The duplicate groups the merge sheet offers, read again each time it opens:
+/// groups change as prints start and end.
+final archiveMergePreviewProvider =
+    FutureProvider.autoDispose<List<ArchiveMergeGroup>>(
+      (ref) => ref.watch(archiveRepositoryProvider).mergePreview(),
+    );
+
+/// The group count the merge banner was dismissed at, null if never.
+final archiveMergeDismissedAtProvider =
+    NotifierProvider<ArchiveMergeDismissedAtNotifier, int?>(
+      ArchiveMergeDismissedAtNotifier.new,
+    );
+
+class ArchiveMergeDismissedAtNotifier extends Notifier<int?> {
+  @override
+  int? build() => ref.watch(settingsRepositoryProvider).loadMergeDismissedAt();
+
+  Future<void> dismiss(int groups) async {
+    await ref.read(settingsRepositoryProvider).saveMergeDismissedAt(groups);
+    if (!ref.mounted) return;
+    state = groups;
+  }
+}
+
+/// Every print of one archive, newest first (`GET /archives/{id}/runs`).
+final archiveRunsProvider = FutureProvider.autoDispose
+    .family<List<PrintLogEntry>, int>(
+      (ref, archiveId) => ref.watch(archiveRepositoryProvider).runs(archiveId),
+    );
+
+/// Whether a print of an archive takes its own note and verdict. Both writes
+/// are silent drops on a server before the archive redesign; see
+/// `ArchiveRepository.runsCapability`.
+final archiveRunsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(archiveRepositoryProvider).runsCapability,
 );
 
 /// Full archive list, loaded once and filtered client-side (M5, filters M7).

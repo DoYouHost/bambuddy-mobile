@@ -35,6 +35,7 @@ const _modelIds = {
   'O1C': 'H2C',
   'O1C2': 'H2C',
   'O1S': 'H2S',
+  'N10': 'H3C',
 };
 
 /// The server's `PRINTER_MODEL_MAP`: display names as a 3MF writes them. The
@@ -58,6 +59,7 @@ const _displayNames = {
   'Bambu Lab H2S': 'H2S',
   'Bambu Lab X2D': 'X2D',
   'Bambu Lab A2L': 'A2L',
+  'Bambu Lab H3C': 'H3C',
 };
 
 /// The server's `GCODE_COMPAT_FAMILIES`: the one group proven interchangeable

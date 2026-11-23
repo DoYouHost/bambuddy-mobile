@@ -16,6 +16,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/device_files.dart';
+import 'project_common.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'projects_providers.dart';
@@ -411,14 +412,8 @@ class ProjectAttachmentsSection extends ConsumerWidget {
   Future<void> _upload(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickFileFromDevice();
-    final chosen = picked.file;
-    if (chosen == null) {
-      if (picked.outcome == DeviceFileOutcome.failed) {
-        messenger.snack(l10n.filePickerFailed);
-      }
-      return;
-    }
+    final chosen = await pickProjectFile(messenger, l10n);
+    if (chosen == null) return;
     messenger.snack(l10n.projectUploading);
     try {
       await ref

@@ -203,6 +203,15 @@ void main() {
       final plateList = await library.plates(file.id);
       expect(plateList.plates, isNotEmpty);
       expect(plateList.plates.first.index, 1);
+      // What a queue row's filament chips are built from: each slot by its
+      // number, with the grams the plate uses.
+      final filaments = plateList.plates.first.filaments;
+      expect(filaments, isNotEmpty);
+      for (final f in filaments) {
+        expect(f.slotId, greaterThanOrEqualTo(1));
+        expect(f.usedGrams, greaterThan(0));
+        expect(f.usedInPlate, isTrue);
+      }
     });
 
     test(

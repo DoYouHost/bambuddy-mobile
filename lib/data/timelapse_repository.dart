@@ -82,14 +82,19 @@ class TimelapseRepository {
   /// Takes the media [auth] because this is the one route of the four that
   /// reads `?token=` instead of the Bearer header. The `X-API-Key` variant of
   /// that credential is already on this client from the interceptor.
+  ///
+  /// [runId] downloads that print's own video instead of the archive's.
   Future<String?> downloadTo(
     int archiveId, {
+    int? runId,
     required MediaAuth auth,
     required String savePath,
     void Function(int received, int total)? onProgress,
   }) => streamDownload(
     _dio,
-    Endpoints.archiveTimelapse(archiveId),
+    runId == null
+        ? Endpoints.archiveTimelapse(archiveId)
+        : Endpoints.archiveRunTimelapse(archiveId, runId),
     savePath,
     queryParameters: auth.query,
     // A hundred-megabyte recording over a slow LAN outlasts the default, and

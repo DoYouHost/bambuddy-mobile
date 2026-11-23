@@ -1,0 +1,11 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/archives/merge",
+    "body": {
+      "survivor_ids": [
+        3
+      ]
+    }
+  }
+]

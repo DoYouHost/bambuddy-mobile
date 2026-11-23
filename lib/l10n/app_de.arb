@@ -161,6 +161,7 @@
   "ctrlSet": "Einstellen",
   "ctrlActivate": "Aktivieren",
   "ctrlNozzleActive": "Aktiv",
+  "amsDryer": "Trockner",
   "ctrlDry": "Trocknen",
   "ctrlDrying": "Trocknung läuft",
   "ctrlDryNotRunning": "Läuft nicht",
@@ -746,8 +747,15 @@
   "cameraConnecting": "Verbindung zur Kamera wird hergestellt…",
   "cameraError": "Kamerastream konnte nicht geladen werden",
   "cameraDemoUnavailable": "Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.",
+  "nozzleRack": "Düsenhalter",
+  "nozzleRackMounted": "am Werkzeugkopf",
+  "nozzleRackPosition": "Position {position}: {diameter} mm",
+  "nozzleRackPositionEmpty": "Position {position}: leer",
+  "externalInputs": "Externe Eingänge",
+  "externalInputsEmpty": "Alle {count} externen Eingänge sind leer",
   "externalSpool": "Externe Spule",
   "traySlotEmpty": "Leer",
+  "traySlotUnconfigured": "Nicht konfiguriert",
   "amsSlotFilament": "Filament",
   "amsLoad": "Laden",
   "amsUnload": "Entladen",
@@ -767,6 +775,9 @@
   "amsFeedAlreadyLoaded": "bereits geladen",
   "amsSwitchNotReady": "Der Filament Track Switch ist noch nicht eingerichtet. Weise jedes AMS einem Einlass am Drucker zu und versuche es erneut.",
   "amsUnloadSlotNotLoaded": "Aus diesem Slot wird keine Düse versorgt",
+  "amsUnloadAms3h": "Slot {slot} wird entladen. Sobald der Drucker dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück.",
+  "amsLoadAms3hEmpty": "In Slot {slot} ist kein Filament. Schieb es in den Einlass, bis der AMS 3H es einzieht, und lade dann erneut.",
+  "dryAms3hSlots": "Der AMS 3H trocknet nur die Slots {a} und {b}",
   "amsActionsWhilePrinting": "Nicht verfügbar, während der Drucker druckt",
   "amsSlotConfigure": "Slot konfigurieren",
   "amsSlotConfigTitle": "Slot-Konfiguration",
@@ -832,7 +843,6 @@
     }
   },
   "amsSlotConfigColourCatalogue": "Katalogfarben",
-  "amsSlotConfigColourCustom": "Benutzerdefinierte Farbe",
   "amsSlotReset": "Slot zurücksetzen",
   "amsSlotResetConfirmTitle": "Diesen Slot zurücksetzen?",
   "amsSlotResetConfirmMessage": "Der Drucker vergisst das hier konfigurierte Filament und Bambuddy vergisst, welches Profil es war.",
@@ -1010,6 +1020,25 @@
   "twoFactorBack": "Anderes Konto verwenden",
   "twoFactorSessionNote": "Die App kann eine 2FA-Sitzung nicht selbstständig erneuern, daher fragt sie erneut, wenn diese abläuft. Ein API-Schlüssel läuft nicht ab und überspringt diesen Schritt.",
   "tryDemo": "Demo ausprobieren",
+  "customCaTrusted": "Vertrauenswürdige CA: {name}",
+  "customCaRemove": "CA-Zertifikat entfernen",
+  "certificateImport": "Zertifikat importieren",
+  "certificateInvalid": "Diese Datei enthält kein Zertifikat",
+  "clientCertInvalid": "Diese Datei enthält kein Zertifikat mit Schlüssel",
+  "customCaPickFailed": "Die Datei konnte nicht geöffnet werden",
+  "clientCertInUse": "Client-Zertifikat: {name}",
+  "clientCertRemove": "Client-Zertifikat entfernen",
+  "clientCertWrongPassword": "Falsches Zertifikatspasswort",
+  "clientCertPasswordTitle": "Zertifikatspasswort",
+  "certificatesTitle": "Zertifikate",
+  "customCaRemoveTitle": "CA-Zertifikat entfernen?",
+  "customCaRemoveMessage": "Die App vertraut dann keinen Servern mehr, die es signiert hat.",
+  "clientCertRemoveTitle": "Client-Zertifikat entfernen?",
+  "clientCertRemoveMessage": "Ein Server, der es verlangt, lehnt die App dann ab.",
+  "certificatesRemoveAll": "Alle Zertifikate entfernen",
+  "certificatesRemoveAllTitle": "Alle Zertifikate entfernen?",
+  "certificatesRemoveAllMessage": "Die App erreicht dann keine Server mehr, die sie brauchen.",
+  "certificateRemoveConfirm": "Entfernen",
   "scanApiKeyTitle": "API-Schlüssel scannen",
   "scanApiKeyHint": "Kamera auf den QR-Code des API-Schlüssels richten",
   "cameraPermissionTitle": "Kamerazugriff erforderlich",
@@ -1039,7 +1068,8 @@
       }
     }
   },
-  "errBadCertificate": "Ungültiges TLS-Zertifikat (selbstsignierte Zertifikate werden in v1 nicht unterstützt)",
+  "errBadCertificate": "Das Zertifikat des Servers ist nicht vertrauenswürdig",
+  "errClientCertRefused": "Der Server verlangt ein gültiges Client-Zertifikat",
   "errConnection": "Verbindungsfehler",
   "errMalformedResponse": "Ungültige Serverantwort",
   "errInvalidCredentials": "Ungültiger Benutzername oder ungültiges Passwort",
@@ -1227,6 +1257,36 @@
   "notifExtrasHeader": "Details",
   "notifFinishPhotoTitle": "Foto des fertigen Drucks",
   "notifFinishPhotoDesc": "Fügt der Benachrichtigung über Abschluss oder Fehlschlag das Foto hinzu, das der Server nach dem Druck aufnimmt, sobald es verfügbar ist",
+  "alarmHeader": "Wecker",
+  "alarmTitle": "Mit einem Wecker wecken",
+  "alarmDesc": "Klingelt auf dem Sperrbildschirm, bis du ihn stoppst",
+  "alarmEvtFinished": "Druck abgeschlossen",
+  "alarmEvtFinishedDesc": "Ein Druck wurde erfolgreich beendet",
+  "alarmEvtBlocked": "Druck durch Fehler gestoppt",
+  "alarmEvtBlockedDesc": "Ein Fehler hat den Druck pausiert oder gestoppt, oder der Druck ist fehlgeschlagen",
+  "alarmEvtDrying": "Trocknung abgeschlossen",
+  "alarmEvtDryingDesc": "Ein AMS-Trocknungszyklus ist zu Ende gelaufen",
+  "alarmWindowTitle": "Nur zu bestimmten Zeiten",
+  "alarmWindowDesc": "Außerhalb dieser Zeiten bleibt der Wecker still",
+  "alarmWindowFrom": "Von",
+  "alarmWindowTo": "Bis",
+  "alarmRingFor": "Klingelt {minutes} min",
+  "alarmRingForDesc": "Danach verstummt er von selbst",
+  "alarmMinutes": "{minutes} min",
+  "alarmStop": "Stopp",
+  "alarmTest": "Wecker testen",
+  "alarmTestBody": "So klingt der Wecker",
+  "alarmTestFailed": "Der Wecker konnte nicht klingeln. Prüfe, ob Benachrichtigungen aktiviert sind.",
+  "alarmFullScreenNeeded": "Ohne Berechtigung überdeckt der Wecker den Sperrbildschirm nicht",
+  "alarmFullScreenAllow": "Erlauben",
+  "alarmHoursHeader": "Uhrzeiten",
+  "alarmLengthHeader": "Wie lange",
+  "alarmSettingsSubtitle": "Was ihn auslöst, zu welchen Uhrzeiten und wie lange",
+  "alarmExcludedLocationsHeader": "Ausgeschlossene Standorte",
+  "alarmExcludedPrintersHeader": "Ausgeschlossene Drucker",
+  "alarmExcludeLocationDesc": "Kein Drucker hier löst den Wecker aus",
+  "alarmExcludePrinterDesc": "Dieser Drucker löst den Wecker nie aus",
+  "alarmExcludedWithLocation": "Mit dem Standort {location} ausgeschlossen",
   "notifThresholdsHeader": "Schwellenwerte",
   "notifEvtStarted": "Druck gestartet",
   "notifEvtStartedDesc": "Wenn ein Druck beginnt",
@@ -1529,7 +1589,7 @@
   "inventoryExtraColorsHint": "2–8 Hex-Werte, kommagetrennt",
   "inventoryFieldEffect": "Effekt",
   "inventoryEffectNone": "Keiner",
-  "inventoryColorCommon": "Standardfarben",
+  "inventoryColorCatalog": "Farbkatalog",
   "inventoryColorSearchHint": "Farben suchen…",
   "inventoryColorPickTitle": "Farbe auswählen",
   "inventoryColorSelect": "Auswählen",
@@ -1574,6 +1634,7 @@
   "inventorySlotAms": "AMS-Slot",
   "inventoryAssignUnit": "AMS-Einheit",
   "inventoryAssignSlot": "Slot",
+  "inventoryAssignInput": "Eingang",
   "inventoryAssignExtruder": "Extruder",
   "inventoryAssignExternalHint": "Weist dem externen Spulenhalter zu",
   "inventoryAssignConfirm": "Zuweisen",
@@ -4490,5 +4551,203 @@
   "tipsTrimTitle": "Zeitraffer kürzen",
   "tipsTrimBody": "Ziehe die Griffe auf dem Filmstreifen; tippe oder ziehe an einer anderen Stelle, um den Abspielkopf zu bewegen.",
   "tipsWallTitle": "Wandmodus",
-  "tipsWallBody": "Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus."
+  "tipsWallBody": "Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.",
+  "archiveRunsTitle": "Drucke",
+  "archiveRunsEmpty": "Diese Datei wurde noch nicht gedruckt.",
+  "archiveRunsBeforeLog": "Gedruckt, bevor Bambuddy jeden Druck einzeln protokolliert hat: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Diese Druckplatte wurde noch nicht gedruckt.",
+  "archiveRunsAllPlates": "Alle Druckplatten",
+  "archiveRunPlate": "Druckplatte {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drucker entfernt",
+  "archiveRunWithEstimate": "{value} (geschätzt {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} von {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Begonnen / beendet",
+  "archiveRunEnergy": "Energie",
+  "archiveRunFailureReason": "Fehlergrund",
+  "archiveRunStartedBy": "Gestartet von",
+  "archiveRunNote": "Notiz zu diesem Druck",
+  "archiveRunVideo": "Zeitraffer-Video",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Gut: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fehlgeschlagen: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Ergebnis festlegen",
+  "archiveRunChangeOutcome": "Ergebnis ändern",
+  "archiveRunAddNote": "Notiz hinzufügen",
+  "archiveRunEditNote": "Notiz bearbeiten",
+  "archiveRunNoteSaved": "Notiz gespeichert",
+  "archivePlatesTitle": "Druckplatten",
+  "archivePlateEstimate": "Schätzung {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Letzter Druck zur Schätzung: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Diese Druckplatte drucken",
+  "archiveShowPlatePrints": "Ihre Drucke zeigen",
+  "archiveRunReprint": "Diesen Druck wiederholen",
+  "archiveMergeBanner": "{count, plural, =1{1 Gruppe doppelter Archive} other{{count} Gruppen doppelter Archive}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Zusammenführen",
+  "archiveMergeDismiss": "Ausblenden",
+  "archiveMergeMenu": "Duplikate zusammenführen",
+  "archiveMergeTitle": "Doppelte Archive zusammenführen",
+  "archiveMergeEffectKeep": "Das älteste Archiv jeder Gruppe bleibt und übernimmt alle Drucke der anderen mit ihren Fotos, Videos und Dateien.",
+  "archiveMergeEffectLinks": "Die anderen verschwinden aus den Archiven; ihre alten Links öffnen das Archiv, in das sie eingegangen sind.",
+  "archiveMergeEffectMoney": "Wallet-Buchungen und Budget-Reservierungen bleiben, wo sie gebucht wurden.",
+  "archiveMergeNone": "Keine Duplikate zum Zusammenführen.",
+  "archiveMergeMember": "{name} · erstellt {date} · {count, plural, =1{1 Druck} other{{count} Drucke}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Bleibt",
+  "archiveMergeWaiting": "Vorerst ausgelassen",
+  "archiveMergeLeftOut": "Beim Zusammenführen ausgelassen",
+  "archiveMergeSkipBusy": "In Verwendung: druckt, in der Warteschlange oder gerade gedruckt. Später erneut versuchen.",
+  "archiveMergeSkipConflicting": "Die Archive enthalten unterschiedliche Quell- oder Konstruktionsdateien oder Videos. Zuerst von Hand eines behalten.",
+  "archiveMergeSkipFailed": "Das Zusammenführen ist fehlgeschlagen.",
+  "archiveMergeSkipNotAGroup": "Keine Gruppe von Duplikaten mehr.",
+  "archiveMergeAction": "{count, plural, =1{1 Gruppe zusammenführen} other{{count} Gruppen zusammenführen}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Das lässt sich in der App nicht rückgängig machen.",
+  "archiveMergeDone": "{count, plural, =1{1 Gruppe zusammengeführt.} other{{count} Gruppen zusammengeführt.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Zusammengeführt: {count}. Ausgelassen: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Kalenderansicht",
+  "archiveListView": "Listenansicht",
+  "archiveCalendarToday": "Heute",
+  "archiveCalendarPrevious": "Vorheriger Monat",
+  "archiveCalendarNext": "Nächster Monat",
+  "archiveCalendarPrints": "Drucke in diesem Monat",
+  "archiveCalendarSuccessful": "Erfolgreich",
+  "archiveCalendarFailed": "Fehlgeschlagen",
+  "archiveCalendarNoPrints": "Keine Drucke an diesem Tag",
+  "archiveCalendarSelectDay": "Wählen Sie einen Tag, um seine Drucke zu sehen",
+  "archiveCalendarDay": "{date}: {count, plural, =0{keine Drucke} =1{1 Druck} other{{count} Drucke}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

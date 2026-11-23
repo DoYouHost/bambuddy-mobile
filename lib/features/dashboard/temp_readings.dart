@@ -17,11 +17,17 @@ class TempReading {
     required this.target,
     this.index,
     this.airductIsHeating,
+    this.rackPosition,
   });
 
   final TempKind kind;
   final String raw; // raw key—shown for unknown sensor
   final int? index; // nozzle number (e.g., 2) or null
+
+  /// A rack printer's (H3C) nozzle on the toolhead, by its 1-based rack
+  /// position, which names it as the web does (`printers.temperatures.mounted`).
+  /// Only a label: it never addresses a nozzle, unlike [index].
+  final int? rackPosition;
   final double? actual;
   final double? target;
 
@@ -39,8 +45,10 @@ class TempReading {
       RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
 
   String label(AppLocalizations l10n) => switch (kind) {
-    TempKind.nozzle =>
-      index == null ? l10n.tempNozzle : l10n.tempNozzleNumbered('$index'),
+    TempKind.nozzle => switch (index ?? rackPosition) {
+      null => l10n.tempNozzle,
+      final n => l10n.tempNozzleNumbered('$n'),
+    },
     TempKind.bed => l10n.tempBed,
     TempKind.chamber => l10n.tempChamber,
     TempKind.unknown => raw,
@@ -123,8 +131,9 @@ class TempReading {
 /// (nozzle, bed, chamber) before unknown ones.
 List<TempReading> buildTempReadings(
   Map<String, double>? temps,
-  bool? airductIsHeating,
-) {
+  bool? airductIsHeating, {
+  int? rackPosition,
+}) {
   if (temps == null || temps.isEmpty) return const [];
 
   final actuals = <String, double>{};
@@ -154,7 +163,13 @@ List<TempReading> buildTempReadings(
 
   return [
     for (final base in bases)
-      _readingFor(base, actuals[base], targets[base], airductIsHeating),
+      _readingFor(
+        base,
+        actuals[base],
+        targets[base],
+        airductIsHeating,
+        base == 'nozzle' ? rackPosition : null,
+      ),
   ];
 }
 
@@ -163,6 +178,7 @@ TempReading _readingFor(
   double? actual,
   double? target,
   bool? airductIsHeating,
+  int? rackPosition,
 ) {
   final numbered = RegExp(r'^([a-z]+)_(\d+)$').firstMatch(base);
   final stem = numbered?.group(1) ?? base;
@@ -183,5 +199,6 @@ TempReading _readingFor(
     target: target,
     // Air duct applies to chamber only.
     airductIsHeating: kind == TempKind.chamber ? airductIsHeating : null,
+    rackPosition: rackPosition,
   );
 }

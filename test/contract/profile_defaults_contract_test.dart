@@ -329,7 +329,7 @@ void main() {
         };
 
         final answers = await replayWrites(dio, [
-          (method: sent.method, path: sent.path, body: body),
+          (method: sent.method, path: sent.path, body: body, query: sent.query),
         ]);
 
         expect(

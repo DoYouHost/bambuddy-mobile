@@ -3,6 +3,8 @@
 /// what the mapping dialog writes next to every slot and filament.
 library;
 
+import '../format/filament_colour.dart';
+
 /// `COLOR_FAMILY_ORDER`. The names are the screen's to translate.
 enum ColorFamily {
   red,
@@ -169,9 +171,8 @@ class ColorCatalog {
 /// `#RRGGBB` for a hex of 6 or more digits, with or without the `#`; empty
 /// when it is no colour.
 String colorHexLabel(String? hex) {
-  final raw = (hex ?? '').replaceFirst('#', '').trim();
-  final clean = raw.substring(0, raw.length < 6 ? raw.length : 6).toUpperCase();
-  return RegExp(r'^[0-9A-F]{6}$').hasMatch(clean) ? '#$clean' : '';
+  final digits = sixHexDigits(hex);
+  return digits == null ? '' : '#$digits';
 }
 
 /// `disambiguateColorNames`: two colour labels a reader can tell apart. When
