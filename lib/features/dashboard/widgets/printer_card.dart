@@ -67,6 +67,7 @@ import '../controls_providers.dart';
 import '../print_lifecycle.dart';
 import '../smart_plug_actions.dart';
 import 'pill_switch.dart';
+import '../temp_glyph.dart';
 import '../temp_readings.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';

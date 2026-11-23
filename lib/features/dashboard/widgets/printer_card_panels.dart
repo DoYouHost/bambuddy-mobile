@@ -353,54 +353,65 @@ class _CoverThumbnail extends StatelessWidget {
   }
 }
 
-/// Two columns, or one when a tile of the two-column grid could not hold its
-/// digits at this text size: the digits keep their full size, so it is the grid
-/// that gives way. The widest reading is measured, not the one on screen, so the
-/// layout does not jump between one column and two when a nozzle passes 100 °C:
-/// `000°` for a nozzle or the bed, and for the chamber `00°` after its air-duct
-/// glyph (the server's ceiling is 65 °C). The label line is measured the same
-/// way: the widest of [labels] beside the arrow and `000°` in [setpoint].
+/// How many tiles go side by side: three in a row where [row] allows it, else
+/// two, else one. A layout is taken only when every tile of it can hold the
+/// digits, which keep their full size, and its first line: the sensor's name
+/// ([leads], the widest) beside the setpoint. The widest reading is measured,
+/// not the one on screen, so the layout does not jump between columns when a
+/// nozzle passes 100 °C: `000°` for any sensor (the chamber's ceiling is 65 °C,
+/// which `000°` also covers). The setpoint is measured in [setpoint], the arrow
+/// and its gaps included; without one only the digits decide.
+///
+/// A row of three is the card's best use of a wide phone and the first thing to
+/// give way: its tile has tighter padding ([tileChromeCompact]) and no room to
+/// spare, so a larger text size drops it to two columns, and two to one.
 int tempGridColumns({
   required double width,
   required TextStyle digits,
-  List<String> labels = const [],
-  TextStyle? label,
+  List<double> leads = const [],
   TextStyle? setpoint,
   required TextScaler scaler,
   required TextDirection textDirection,
-  required bool airductGlyph,
+  bool row = false,
 }) {
   const spacing = DashSpace.sm;
-  double measure(String text, [TextStyle? style]) => (TextPainter(
-    text: TextSpan(text: text, style: style ?? digits),
-    textDirection: textDirection,
-    textScaler: scaler,
-  )..layout()).width;
-  final glyph = scaler.scale(DashIcon.md) + DashSpace.xs;
-  final widest = airductGlyph
-      ? [
-          measure('000°'),
-          glyph + measure('00°'),
-        ].reduce((a, b) => a > b ? a : b)
-      : measure('000°');
-  final inner = (width - spacing) / 2 - tileChrome;
-  if (widest > inner) return 1;
-  if (label == null || setpoint == null) return 2;
-  final setpointWidth =
-      DashSpace.xs +
-      scaler.scale(DashIcon.xs) +
-      DashSpace.xs +
-      measure('000°', setpoint);
-  final widestLabel = labels.fold<double>(
-    0,
-    (w, text) => w > measure(text, label) ? w : measure(text, label),
-  );
-  return widestLabel + setpointWidth > inner ? 1 : 2;
+  double measure(String text, TextStyle style) =>
+      _measuredWidth(text, style, scaler, textDirection);
+  final widest = measure('000°', digits);
+  final setpointWidth = setpoint == null
+      ? 0.0
+      // The arrow is an Icon, which does not follow the text scale.
+      : DashSpace.xs + DashIcon.xs + DashSpace.xs + measure('000°', setpoint);
+  final lead = leads.fold<double>(0, max);
+  bool fits(int columns) {
+    final inner =
+        (width - spacing * (columns - 1)) / columns -
+        (columns == 3 ? tileChromeCompact : tileChrome);
+    if (widest > inner) return false;
+    return setpoint == null || lead + setpointWidth <= inner;
+  }
+
+  if (row && fits(3)) return 3;
+  return fits(2) ? 2 : 1;
 }
+
+double _measuredWidth(
+  String text,
+  TextStyle style,
+  TextScaler scaler,
+  TextDirection textDirection,
+) => (TextPainter(
+  text: TextSpan(text: text, style: style),
+  textDirection: textDirection,
+  textScaler: scaler,
+)..layout()).width;
 
 /// Padding and border a temperature tile spends sideways: 12 dp of padding and
 /// 1 dp of border on each side.
 const tileChrome = 2 * (DashSpace.md + 1);
+
+/// The same for the tile of a row of three, which pads 8 dp.
+const tileChromeCompact = 2 * (DashSpace.sm + 1);
 
 /// The nozzle a hotend tile belongs to, from the printer's `nozzle_rack`: ids 0
 /// and 1 are the hotends (right, left), and a placeholder with nothing in it is
@@ -413,8 +424,8 @@ NozzleRackSlot? _hotendFigures(List<NozzleRackSlot>? nozzles, int? index) {
   return null;
 }
 
-/// Grid of temperature tiles, two columns where the digits fit (see
-/// [tempGridColumns]). Tiles are tappable to set targets
+/// Grid of temperature tiles: a row of three, two columns or one, whichever
+/// the digits and each tile's first line fit (see [tempGridColumns]). Tiles are tappable to set targets
 /// (see [_GaugeTile]); [printerId]/[model] are threaded down for the command
 /// and capability gating.
 class _TempGrid extends StatelessWidget {
@@ -463,23 +474,78 @@ class _TempGrid extends StatelessWidget {
     final tokens = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final digits = tokens.monoDisplay.copyWith(height: 1.0);
-    final airduct = readings.any((r) => r.kind == TempKind.chamber);
+    final scaler = MediaQuery.textScalerOf(context);
+    final textDirection = Directionality.of(context);
+    // A row of three is for the common card only: one nozzle, the bed and the
+    // chamber. Two heads, a sensor of another kind or the Panda Breath make it a
+    // grid of four or more, which has no row.
+    final row =
+        !dual &&
+        panda == null &&
+        readings.length == 3 &&
+        readings[0].kind == TempKind.nozzle &&
+        readings[1].kind == TempKind.bed &&
+        readings[2].kind == TempKind.chamber;
+    // What each tile spends on its first line before the setpoint: the
+    // pictogram with its mark, or the label as text.
+    double leadOf(TempReading r) {
+      if (r.kind == TempKind.unknown) {
+        return _measuredWidth(
+          r.label(l10n).toUpperCase(),
+          tokens.caption,
+          scaler,
+          textDirection,
+        );
+      }
+      final tag = tempGlyphTag(r, dualNozzle: dual, l10n: l10n);
+      return TempGlyph.extent(scaler) +
+          (tag == null
+              ? 0
+              : DashSpace.xs +
+                    _measuredWidth(
+                      tag,
+                      tokens.monoLabel,
+                      scaler,
+                      textDirection,
+                    ));
+    }
+
+    _GaugeTile gauge(TempReading r, {bool compact = false}) => _GaugeTile(
+      reading: r,
+      printerId: printerId,
+      model: model,
+      nozzleIndex: hardwareIndex(r),
+      dualNozzle: dual,
+      activeExtruder: activeExtruder,
+      printing: printing,
+      nozzle: _hotendFigures(nozzles, hardwareIndex(r)),
+      compact: compact,
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = DashSpace.sm;
         final columns = tempGridColumns(
           width: constraints.maxWidth,
           digits: digits,
-          labels: [
-            for (final r in readings) r.label(l10n).toUpperCase(),
-            if (panda != null) l10n.pandaBreath.toUpperCase(),
+          leads: [
+            for (final r in readings) leadOf(r),
+            if (panda != null) TempGlyph.extent(scaler),
           ],
-          label: tokens.caption,
           setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
-          scaler: MediaQuery.textScalerOf(context),
-          textDirection: Directionality.of(context),
-          airductGlyph: airduct,
+          scaler: scaler,
+          textDirection: textDirection,
+          row: row,
         );
+        if (columns == 3) {
+          return Row(
+            children: [
+              for (var i = 0; i < readings.length; i++) ...[
+                if (i > 0) const SizedBox(width: spacing),
+                Expanded(child: gauge(readings[i], compact: true)),
+              ],
+            ],
+          );
+        }
         final tileWidth =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
@@ -487,19 +553,7 @@ class _TempGrid extends StatelessWidget {
           runSpacing: spacing,
           children: [
             for (final r in readings)
-              SizedBox(
-                width: tileWidth,
-                child: _GaugeTile(
-                  reading: r,
-                  printerId: printerId,
-                  model: model,
-                  nozzleIndex: hardwareIndex(r),
-                  dualNozzle: dual,
-                  activeExtruder: activeExtruder,
-                  printing: printing,
-                  nozzle: _hotendFigures(nozzles, hardwareIndex(r)),
-                ),
-              ),
+              SizedBox(width: tileWidth, child: gauge(r)),
             if (panda case final panda?)
               SizedBox(
                 width: tileWidth,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' show Tristate;
 
+import 'package:bambuddy_mobile/features/dashboard/temp_glyph.dart';
 import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
@@ -127,6 +128,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // The heater's tile has no text name: its drawing is the name.
+  final pandaGlyph = find.byWidgetPredicate(
+    (w) => w is TempGlyph && w.asset == TempGlyph.pandaAsset,
+  );
+
   Future<void> openSheet(WidgetTester tester) async {
     await tester.tap(byLogId('printer.panda_breath'));
     await tester.pumpAndSettle();
@@ -136,7 +142,7 @@ void main() {
     testWidgets('is one more tile of the temperature grid', (tester) async {
       await pumpCard(tester, _status());
 
-      expect(find.text(pl.pandaBreath.toUpperCase()), findsOneWidget);
+      expect(pandaGlyph, findsOneWidget);
       expect(find.text('41°'), findsOneWidget);
       expect(find.text('45°'), findsOneWidget);
       // The offline card's row is not shown beside it: one place per card.
@@ -146,7 +152,7 @@ void main() {
     testWidgets('an older server, or no heater bound: no tile', (tester) async {
       await pumpCard(tester, _status(panda: null));
 
-      expect(find.text(pl.pandaBreath.toUpperCase()), findsNothing);
+      expect(pandaGlyph, findsNothing);
       expect(byLogId('printer.panda_breath'), findsNothing);
     });
 
@@ -164,7 +170,7 @@ void main() {
         ),
       );
 
-      expect(find.text(pl.pandaBreath.toUpperCase()), findsOneWidget);
+      expect(pandaGlyph, findsOneWidget);
       // The last reading of an unreachable heater is not today's.
       expect(find.text('41°'), findsNothing);
       expect(
@@ -338,6 +344,17 @@ void main() {
   });
 
   group('the sheet', () {
+    testWidgets('names the heater with the tile\'s drawing in its header', (
+      tester,
+    ) async {
+      await pumpCard(tester, _status());
+      await openSheet(tester);
+
+      // The tile's and the sheet header's.
+      expect(pandaGlyph, findsNWidgets(2));
+      expect(find.text(pl.pandaBreath), findsOneWidget);
+    });
+
     testWidgets('follows the heater\'s target until the user edits it', (
       tester,
     ) async {
