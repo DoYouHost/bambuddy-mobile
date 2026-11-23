@@ -47,6 +47,7 @@ import '../models/printer_status.dart';
 import '../models/queue_settings.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import 'edge_session_alert.dart';
 import '../watch/wear_relay_claim.dart';
 import '../watch/wear_relay_handler.dart';
 import '../widget/home_widget_publisher.dart';
@@ -272,6 +273,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
       LoggingNotifications(fgs),
       FinishAlertMemory(prefs),
     );
+    // The session can end while nobody has the app open: this is the isolate
+    // that finds out, and the only one that can say so.
+    EdgeSessionAlert(
+      settings: SettingsRepository.opened,
+      notifications: notify,
+      l10n: () => l10n,
+    ).listen();
     // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
@@ -981,4 +989,7 @@ class FgsNotificationService implements NotificationService {
 
   @override
   Future<bool> isAlertActive(int id) => _alerts.isAlertActive(id);
+
+  @override
+  Future<void> cancelAlert(int id) => _alerts.cancelAlert(id);
 }

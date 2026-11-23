@@ -58,6 +58,10 @@ class SettingsRepository {
   static const _tourSeenKey = 'tour_seen';
   static const _customCaKey = 'custom_ca';
   static const _hasClientCertKey = 'has_client_cert';
+  static const _hasEdgeAccessKey = 'has_edge_access';
+  static const _edgeSessionEndedKey = 'edge_session_ended';
+  static const _edgeSessionNotifiedKey = 'edge_session_notified';
+  static const _edgeSessionEndedAtKey = 'edge_session_ended_at';
 
   final SharedPreferences _prefs;
 
@@ -149,6 +153,54 @@ class SettingsRepository {
   Future<void> saveHasClientCert(bool has) => has
       ? _prefs.setBool(_hasClientCertKey, true)
       : _prefs.remove(_hasClientCertKey);
+
+  /// Whether `EdgeAccessStore` holds a Cloudflare Access credential; the
+  /// credential itself is a secret and is not here, as with the certificate.
+  bool loadHasEdgeAccess() => _prefs.getBool(_hasEdgeAccessKey) ?? false;
+
+  Future<void> saveHasEdgeAccess(bool has) => has
+      ? _prefs.setBool(_hasEdgeAccessKey, true)
+      : _prefs.remove(_hasEdgeAccessKey);
+
+  /// The host whose Cloudflare Access browser session Cloudflare stopped
+  /// accepting, or null while none has (#72). Written from whichever isolate
+  /// noticed, so it lives here and is read through [reloaded]. Cleared by the
+  /// next change of the credential: signing in again, or removing it.
+  String? loadEdgeSessionEnded() => _prefs.getString(_edgeSessionEndedKey);
+
+  /// Clearing it clears [loadEdgeSessionNotified] and [loadEdgeSessionEndedAt]
+  /// with it. [at] is when it was found out, for whoever asks whether it is over.
+  Future<void> saveEdgeSessionEnded(String? host, {DateTime? at}) async {
+    if (host == null) {
+      await _prefs.remove(_edgeSessionNotifiedKey);
+      await _prefs.remove(_edgeSessionEndedAtKey);
+      await _prefs.remove(_edgeSessionEndedKey);
+      return;
+    }
+    if (at != null) {
+      await _prefs.setInt(_edgeSessionEndedAtKey, at.millisecondsSinceEpoch);
+    }
+    await _prefs.setString(_edgeSessionEndedKey, host);
+  }
+
+  /// When the ending was recorded, null for one with no time (or none).
+  DateTime? loadEdgeSessionEndedAt() {
+    final ms = _prefs.getInt(_edgeSessionEndedAtKey);
+    return ms == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
+  }
+
+  /// The host the user was told about by a notification (or whose notification
+  /// they had switched off). Separate from [loadEdgeSessionEnded] because an
+  /// isolate that cannot post still records the ending, and the one that can
+  /// must not take that record for "told".
+  String? loadEdgeSessionNotified() =>
+      _prefs.getString(_edgeSessionNotifiedKey);
+
+  Future<void> saveEdgeSessionNotified(String? host) => host == null
+      ? _prefs.remove(_edgeSessionNotifiedKey)
+      : _prefs.setString(_edgeSessionNotifiedKey, host);
 
   /// Whether the guided tour still has to run on its own. Absent on an install
   /// that has not met it either way; see [markTourDue] and

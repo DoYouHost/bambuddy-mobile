@@ -170,6 +170,9 @@ class _SilentNotifications implements NotificationService {
   }) async {}
 
   @override
+  Future<void> cancelAlert(int id) async {}
+
+  @override
   Future<bool> isAlertActive(int id) async => false;
 }
 

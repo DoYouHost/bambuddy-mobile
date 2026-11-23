@@ -10864,4 +10864,115 @@ class AppLocalizationsFr extends AppLocalizations {
   String nozzleDiameterValue(String diameter) {
     return '$diameter mm';
   }
+
+  @override
+  String get errEdgeAccessRequired =>
+      'Le serveur est protégé par Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access n\'a pas accepté l\'identifiant enregistré';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Configurer';
+
+  @override
+  String get edgeAccessServiceToken => 'Jeton de service';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Fonctionne en arrière-plan, donc les alertes et la montre continuent de marcher.';
+
+  @override
+  String get edgeAccessClientId => 'Identifiant client';
+
+  @override
+  String get edgeAccessClientSecret => 'Secret client';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Pour $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Jeton de service pour $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Enregistrer';
+
+  @override
+  String get edgeAccessRemove => 'Retirer';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Retirer Cloudflare Access ?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'L\'app ne pourra plus joindre ce serveur tant que vous ne l\'aurez pas reconfiguré.';
+
+  @override
+  String get edgeAccessRecommended => 'Recommandé';
+
+  @override
+  String get edgeAccessBrowser => 'Connexion par le navigateur';
+
+  @override
+  String get edgeAccessBrowserHint =>
+      'Expire. Vous vous reconnectez à la main.';
+
+  @override
+  String get edgeAccessSignIn => 'Se connecter';
+
+  @override
+  String get edgeAccessWarnTitle => 'La connexion par navigateur expire';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Quand la session Cloudflare se termine, les alertes, la notification en cours, les widgets et la montre cessent de fonctionner jusqu\'à une nouvelle connexion. Un jeton de service n\'exige aucune connexion. Certains fournisseurs, dont Google, refusent la connexion dans un navigateur intégré ; utilisez alors un jeton de service.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Continuer quand même';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Utiliser un jeton de service';
+
+  @override
+  String get edgeAccessSignInFailed => 'La page ne s\'est pas chargée.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Connexion par navigateur pour $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Session Cloudflare expirée';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Les alertes sont coupées. Reconnectez-vous pour les réactiver.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Quand Cloudflare n\'accepte plus la connexion ou le jeton de service de l\'app et que les alertes s\'arrêtent';
+
+  @override
+  String get edgeSessionBanner => 'Session Cloudflare expirée';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare a refusé le jeton de service';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Les alertes sont coupées. Remplacez le jeton de service pour les réactiver.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare a refusé le jeton de service';
 }

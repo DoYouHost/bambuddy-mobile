@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/api/media_auth.dart';
+import '../../l10n/error_messages.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -65,6 +67,10 @@ enum _Failure {
 
   /// The server hands the bytes over on demand, yet the player never started.
   stalled,
+
+  /// Cloudflare Access refused the request (#72), and the player was not
+  /// started: it would have followed the redirect with the credential.
+  access,
 }
 
 class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
@@ -84,6 +90,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   bool _ready = false;
 
   _Failure? _failure;
+
+  /// What Cloudflare Access said, for [_Failure.access].
+  EdgeAccessException? _accessError;
   int? _status;
 
   Timer? _watchdog;
@@ -134,8 +143,32 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     if (!mounted || _replaced(attempt)) return;
     if (source == null) return _fail(_Failure.open);
 
+    try {
+      await checkEdgeAccess(ref.read(bareDioProvider), source);
+    } on AppApiException catch (refused) {
+      if (!mounted || _replaced(attempt)) return;
+      if (refused is! EdgeAccessException) {
+        // A redirect the player would have followed with every credential.
+        return _fail(_Failure.http, status: refused.statusCode);
+      }
+      _accessError = refused;
+      return _fail(_Failure.access);
+    }
+    if (!mounted || _replaced(attempt)) return;
+
     final url = source.url;
-    final controller = timelapsePlayer(source);
+    final VideoPlayerController controller;
+    try {
+      controller = await timelapsePlayer(source);
+    } catch (_) {
+      if (!mounted || _replaced(attempt)) return;
+      return _fail(_Failure.open);
+    }
+    if (!mounted || _replaced(attempt)) {
+      // A load that was replaced while the bridge started: nobody will play it.
+      await controller.dispose();
+      return;
+    }
     setState(() => _controller = controller);
     _watchdog = Timer(_bootTimeout, () => _stalled(attempt, url));
 
@@ -362,6 +395,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     _Failure.open => l10n.timelapseError,
     _Failure.http => l10n.timelapseHttpError(_status ?? 0),
     _Failure.stalled => l10n.timelapseStalled,
+    _Failure.access => _accessError?.localized(l10n) ?? l10n.timelapseError,
   };
 
   @override

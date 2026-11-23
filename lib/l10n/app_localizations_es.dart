@@ -10779,4 +10779,115 @@ class AppLocalizationsEs extends AppLocalizations {
   String nozzleDiameterValue(String diameter) {
     return '$diameter mm';
   }
+
+  @override
+  String get errEdgeAccessRequired =>
+      'El servidor está detrás de Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access no aceptó la credencial guardada';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Configurar';
+
+  @override
+  String get edgeAccessServiceToken => 'Token de servicio';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Funciona en segundo plano, así que las alertas y el reloj siguen funcionando.';
+
+  @override
+  String get edgeAccessClientId => 'ID de cliente';
+
+  @override
+  String get edgeAccessClientSecret => 'Secreto de cliente';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Para $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Token de servicio para $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Guardar';
+
+  @override
+  String get edgeAccessRemove => 'Quitar';
+
+  @override
+  String get edgeAccessRemoveTitle => '¿Quitar Cloudflare Access?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'La app no podrá llegar a este servidor hasta que lo configures de nuevo.';
+
+  @override
+  String get edgeAccessRecommended => 'Recomendado';
+
+  @override
+  String get edgeAccessBrowser => 'Inicio de sesión en el navegador';
+
+  @override
+  String get edgeAccessBrowserHint =>
+      'Caduca. Vuelves a iniciar sesión a mano.';
+
+  @override
+  String get edgeAccessSignIn => 'Iniciar sesión';
+
+  @override
+  String get edgeAccessWarnTitle => 'El inicio de sesión del navegador caduca';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Cuando termina la sesión de Cloudflare, las alertas, la notificación en curso, los widgets y el reloj dejan de funcionar hasta que vuelvas a iniciar sesión. Un token de servicio no necesita inicio de sesión. Algunos proveedores, Google entre ellos, rechazan el inicio de sesión en un navegador integrado; usa entonces un token de servicio.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Continuar igualmente';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Usar token de servicio';
+
+  @override
+  String get edgeAccessSignInFailed => 'La página no se cargó.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Inicio de sesión del navegador para $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'La sesión de Cloudflare caducó';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Las alertas están desactivadas. Inicia sesión de nuevo para reactivarlas.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Cuando Cloudflare deja de aceptar el inicio de sesión o el token de servicio de la app y las alertas se detienen';
+
+  @override
+  String get edgeSessionBanner => 'La sesión de Cloudflare caducó';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare rechazó el token de servicio';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Las alertas están desactivadas. Cambia el token de servicio para reactivarlas.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare rechazó el token de servicio';
 }

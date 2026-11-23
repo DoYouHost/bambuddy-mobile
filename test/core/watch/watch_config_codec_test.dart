@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/client_cert.dart';
 import 'package:bambuddy_mobile/core/api/custom_ca.dart';
+import 'package:bambuddy_mobile/core/api/edge_access.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -320,6 +321,129 @@ void main() {
         credentials: InMemoryCredentialsStore(),
       ).push(profile, clientCert: cert);
       expect(watch.contexts.single['certData'], cert.data);
+    });
+  });
+
+  group('the Cloudflare Access credential', () {
+    const profile = ServerProfile(
+      baseUrl: 'https://printers.example.com',
+      authMode: AuthMode.none,
+    );
+    final token = ServiceToken(
+      host: 'printers.example.com',
+      clientId: 'abc.access',
+      clientSecret: 's3cret',
+    );
+    // Expires in 2100; the payload is all that is read.
+    final cookie = [
+      base64Url.encode(utf8.encode('{"alg":"RS256"}')),
+      base64Url.encode(utf8.encode('{"exp":4102444800}')),
+      'sig',
+    ].map((p) => p.replaceAll('=', '')).join('.');
+    final session = BrowserSession.fromCookie(
+      host: 'printers.example.com',
+      cookie: cookie,
+    )!;
+
+    test('a service token round-trips', () {
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(profile: profile, edge: token),
+      );
+      expect(config!.edge, isA<ServiceToken>());
+      final back = config.edge! as ServiceToken;
+      expect(back.host, 'printers.example.com');
+      expect(back.clientId, 'abc.access');
+      expect(back.clientSecret, 's3cret');
+    });
+
+    test('a browser session round-trips with the expiry of its cookie', () {
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(profile: profile, edge: session),
+      );
+      final back = config!.edge! as BrowserSession;
+      expect(back.cookie, cookie);
+      expect(back.expiresAt, session.expiresAt);
+    });
+
+    test('the expiry is the cookie\'s, not what the wire says', () {
+      final map = WatchConfigCodec.encode(profile: profile, edge: session);
+      final json = jsonDecode(map['edge']! as String) as Map<String, dynamic>;
+      json['expiresAt'] = 1; // a lie
+      map['edge'] = jsonEncode(json);
+      final back = WatchConfigCodec.decode(map)!.edge! as BrowserSession;
+      expect(back.expiresAt, session.expiresAt);
+    });
+
+    test('a phone without one sends no key, and the watch reads none', () {
+      final map = WatchConfigCodec.encode(profile: profile);
+      expect(map.keys, isNot(contains('edge')));
+      expect(WatchConfigCodec.decode(map)?.edge, isNull);
+    });
+
+    test('anything unreadable is no credential, not a broken config', () {
+      for (final raw in <Object?>[
+        'not json',
+        '[]',
+        '{"kind":"service_token","host":"h"}',
+        '{"kind":"newer_kind","host":"h"}',
+        '{"kind":"browser_session","host":"h","cookie":"opaque"}',
+        42,
+      ]) {
+        final config = WatchConfigCodec.decode({
+          'baseUrl': 'https://host',
+          'authMode': 'none',
+          'edge': raw,
+        });
+        expect(config, isNotNull, reason: '$raw');
+        expect(config!.edge, isNull, reason: '$raw');
+      }
+    });
+
+    test('one for another server is not sent, and not read', () {
+      const other = ServerProfile(
+        baseUrl: 'https://garage.example.com',
+        authMode: AuthMode.none,
+      );
+      expect(
+        WatchConfigCodec.encode(profile: other, edge: token).keys,
+        isNot(contains('edge')),
+        reason: 'a stale one from the server the phone has left',
+      );
+      // And what arrives naming a host the profile is not on is dropped.
+      final map = WatchConfigCodec.encode(profile: profile, edge: token);
+      map['baseUrl'] = 'https://garage.example.com';
+      expect(WatchConfigCodec.decode(map)!.edge, isNull);
+    });
+
+    test('one is for https only, as it is on the phone', () {
+      const lan = ServerProfile(
+        baseUrl: 'http://printers.example.com',
+        authMode: AuthMode.none,
+      );
+      expect(
+        WatchConfigCodec.encode(profile: lan, edge: token).keys,
+        isNot(contains('edge')),
+      );
+      final map = WatchConfigCodec.encode(profile: profile, edge: token);
+      map['baseUrl'] = 'http://printers.example.com';
+      expect(WatchConfigCodec.decode(map)!.edge, isNull);
+    });
+
+    test('a host with a port or odd case is not the same host', () {
+      final map = WatchConfigCodec.encode(profile: profile, edge: token);
+      final json = jsonDecode(map['edge']! as String) as Map<String, dynamic>;
+      json['host'] = 'printers.example.com:8443';
+      map['edge'] = jsonEncode(json);
+      expect(WatchConfigCodec.decode(map)!.edge, isNull);
+    });
+
+    test('the phone pushes the credential it presents', () async {
+      final watch = FakeWatchConnectivity();
+      await WatchConfigSync(
+        watch: watch,
+        credentials: InMemoryCredentialsStore(),
+      ).push(profile, edge: token);
+      expect(watch.contexts.single['edge'], contains('abc.access'));
     });
   });
 }
