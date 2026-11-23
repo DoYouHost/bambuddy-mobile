@@ -10756,4 +10756,54 @@ class AppLocalizationsDe extends AppLocalizations {
   String nozzleDiameterValue(String diameter) {
     return '$diameter mm';
   }
+
+  @override
+  String get errEdgeAccessRequired =>
+      'Der Server liegt hinter Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access hat die gespeicherten Zugangsdaten nicht akzeptiert';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Einrichten';
+
+  @override
+  String get edgeAccessServiceToken => 'Service-Token';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Funktioniert im Hintergrund, sodass Hinweise und die Uhr weiter laufen.';
+
+  @override
+  String get edgeAccessClientId => 'Client-ID';
+
+  @override
+  String get edgeAccessClientSecret => 'Client-Secret';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Für $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Service-Token für $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Speichern';
+
+  @override
+  String get edgeAccessRemove => 'Entfernen';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Cloudflare Access entfernen?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'Die App erreicht diesen Server erst wieder, wenn du es neu einrichtest.';
 }

@@ -17692,6 +17692,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{diameter} mm'**
   String nozzleDiameterValue(String diameter);
+
+  /// No description provided for @errEdgeAccessRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is behind Cloudflare Access'**
+  String get errEdgeAccessRequired;
+
+  /// No description provided for @errEdgeAccessRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Access did not accept the saved credential'**
+  String get errEdgeAccessRejected;
+
+  /// No description provided for @edgeAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Access'**
+  String get edgeAccessTitle;
+
+  /// No description provided for @edgeAccessSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up'**
+  String get edgeAccessSetUp;
+
+  /// No description provided for @edgeAccessServiceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Service token'**
+  String get edgeAccessServiceToken;
+
+  /// No description provided for @edgeAccessServiceTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Works in the background, so alerts and the watch keep working.'**
+  String get edgeAccessServiceTokenHint;
+
+  /// No description provided for @edgeAccessClientId.
+  ///
+  /// In en, this message translates to:
+  /// **'Client ID'**
+  String get edgeAccessClientId;
+
+  /// No description provided for @edgeAccessClientSecret.
+  ///
+  /// In en, this message translates to:
+  /// **'Client secret'**
+  String get edgeAccessClientSecret;
+
+  /// No description provided for @edgeAccessFor.
+  ///
+  /// In en, this message translates to:
+  /// **'For {host}'**
+  String edgeAccessFor(String host);
+
+  /// No description provided for @edgeAccessConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Service token for {host}'**
+  String edgeAccessConfigured(String host);
+
+  /// No description provided for @edgeAccessSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get edgeAccessSave;
+
+  /// No description provided for @edgeAccessRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get edgeAccessRemove;
+
+  /// No description provided for @edgeAccessRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Cloudflare Access?'**
+  String get edgeAccessRemoveTitle;
+
+  /// No description provided for @edgeAccessRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app cannot reach this server until you set it up again.'**
+  String get edgeAccessRemoveMessage;
 }
 
 class _AppLocalizationsDelegate

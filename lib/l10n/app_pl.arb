@@ -4307,5 +4307,19 @@
   "nozzleStatusMounted": "Na głowicy",
   "nozzleWearValue": "{percent}%",
   "nozzleMaxTempValue": "{degrees} °C",
-  "nozzleDiameterValue": "{diameter} mm"
+  "nozzleDiameterValue": "{diameter} mm",
+  "errEdgeAccessRequired": "Serwer jest za Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access nie przyjął zapisanych danych dostępu",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Skonfiguruj",
+  "edgeAccessServiceToken": "Token usługi",
+  "edgeAccessServiceTokenHint": "Działa w tle, więc powiadomienia i zegarek nadal działają.",
+  "edgeAccessClientId": "Identyfikator klienta",
+  "edgeAccessClientSecret": "Sekret klienta",
+  "edgeAccessFor": "Dla {host}",
+  "edgeAccessConfigured": "Token usługi dla {host}",
+  "edgeAccessSave": "Zapisz",
+  "edgeAccessRemove": "Usuń",
+  "edgeAccessRemoveTitle": "Usunąć Cloudflare Access?",
+  "edgeAccessRemoveMessage": "Aplikacja nie połączy się z tym serwerem, dopóki nie skonfigurujesz go ponownie."
 }

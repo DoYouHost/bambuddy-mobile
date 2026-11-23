@@ -7,6 +7,7 @@ import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
 import '../api/client_cert.dart';
+import '../api/edge_access.dart';
 import '../api/tls_overrides.dart';
 import '../api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -152,7 +153,11 @@ Future<ApiClient?> buildBackgroundApiClient(
   final settings = SettingsRepository(prefs);
   // Every isolate without Riverpod builds its client here before its first
   // request, which is when Dio creates its `HttpClient`.
-  useTls(settings.loadCustomCa(), await loadClientCert(settings));
+  useTls(
+    settings.loadCustomCa(),
+    await loadClientCert(settings),
+    await loadEdgeAccess(settings),
+  );
   final profile = settings.loadProfile();
   if (profile == null) return null;
   final creds = credentials ?? SecureCredentialsStore();

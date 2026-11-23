@@ -80,6 +80,8 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     try {
       final source = await timelapseSource(ref, widget.archiveId);
       if (source == null || !mounted) return;
+      await checkEdgeAccess(ref.read(bareDioProvider), source);
+      if (!mounted) return;
       controller = timelapsePlayer(source);
       await controller.initialize().timeout(_previewTimeout);
     } catch (_) {

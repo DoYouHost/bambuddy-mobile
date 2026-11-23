@@ -7918,5 +7918,33 @@
         "example": "0.4"
       }
     }
-  }
+  },
+  "errEdgeAccessRequired": "The server is behind Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access did not accept the saved credential",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Set up",
+  "edgeAccessServiceToken": "Service token",
+  "edgeAccessServiceTokenHint": "Works in the background, so alerts and the watch keep working.",
+  "edgeAccessClientId": "Client ID",
+  "edgeAccessClientSecret": "Client secret",
+  "edgeAccessFor": "For {host}",
+  "@edgeAccessFor": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "edgeAccessConfigured": "Service token for {host}",
+  "@edgeAccessConfigured": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "edgeAccessSave": "Save",
+  "edgeAccessRemove": "Remove",
+  "edgeAccessRemoveTitle": "Remove Cloudflare Access?",
+  "edgeAccessRemoveMessage": "The app cannot reach this server until you set it up again."
 }

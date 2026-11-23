@@ -4996,5 +4996,19 @@
   "nozzleStatusMounted": "Sur la tête d'outil",
   "nozzleWearValue": "{percent} %",
   "nozzleMaxTempValue": "{degrees} °C",
-  "nozzleDiameterValue": "{diameter} mm"
+  "nozzleDiameterValue": "{diameter} mm",
+  "errEdgeAccessRequired": "Le serveur est protégé par Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access n'a pas accepté l'identifiant enregistré",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Configurer",
+  "edgeAccessServiceToken": "Jeton de service",
+  "edgeAccessServiceTokenHint": "Fonctionne en arrière-plan, donc les alertes et la montre continuent de marcher.",
+  "edgeAccessClientId": "Identifiant client",
+  "edgeAccessClientSecret": "Secret client",
+  "edgeAccessFor": "Pour {host}",
+  "edgeAccessConfigured": "Jeton de service pour {host}",
+  "edgeAccessSave": "Enregistrer",
+  "edgeAccessRemove": "Retirer",
+  "edgeAccessRemoveTitle": "Retirer Cloudflare Access ?",
+  "edgeAccessRemoveMessage": "L'app ne pourra plus joindre ce serveur tant que vous ne l'aurez pas reconfiguré."
 }

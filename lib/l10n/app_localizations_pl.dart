@@ -10838,4 +10838,53 @@ class AppLocalizationsPl extends AppLocalizations {
   String nozzleDiameterValue(String diameter) {
     return '$diameter mm';
   }
+
+  @override
+  String get errEdgeAccessRequired => 'Serwer jest za Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access nie przyjął zapisanych danych dostępu';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Skonfiguruj';
+
+  @override
+  String get edgeAccessServiceToken => 'Token usługi';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Działa w tle, więc powiadomienia i zegarek nadal działają.';
+
+  @override
+  String get edgeAccessClientId => 'Identyfikator klienta';
+
+  @override
+  String get edgeAccessClientSecret => 'Sekret klienta';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Dla $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Token usługi dla $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Zapisz';
+
+  @override
+  String get edgeAccessRemove => 'Usuń';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Usunąć Cloudflare Access?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'Aplikacja nie połączy się z tym serwerem, dopóki nie skonfigurujesz go ponownie.';
 }

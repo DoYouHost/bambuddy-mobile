@@ -8,6 +8,7 @@ import '../demo/demo_backend.dart';
 import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
 import 'api_exceptions.dart';
+import 'edge_access_probe.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
 /// for [ApiClient]. Single place for timeouts.
@@ -30,7 +31,10 @@ Dio createBareDio() {
     ..interceptors.add(HttpProbe(config: bambuddyHttpProbe))
     // After the probe, so the log keeps the whole exchange, and on the bare Dio
     // so the login and the auth probe answer for reachability too.
-    ..interceptors.add(ReachabilityProbe(ServerReachability.instance));
+    ..interceptors.add(ReachabilityProbe(ServerReachability.instance))
+    // After the probes, so an answer that is a Cloudflare sign-in page is still
+    // logged and still counts as the server being reachable.
+    ..interceptors.add(EdgeAccessProbe());
 }
 
 /// Authenticated HTTP client for a single [ServerProfile].

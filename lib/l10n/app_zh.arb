@@ -2978,5 +2978,19 @@
         "example": "0.4"
       }
     }
-  }
+  },
+  "errEdgeAccessRequired": "服务器位于 Cloudflare Access 之后",
+  "errEdgeAccessRejected": "Cloudflare Access 未接受已保存的凭据",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "设置",
+  "edgeAccessServiceToken": "服务令牌",
+  "edgeAccessServiceTokenHint": "可在后台运行，因此提醒和手表照常工作。",
+  "edgeAccessClientId": "客户端 ID",
+  "edgeAccessClientSecret": "客户端密钥",
+  "edgeAccessFor": "用于 {host}",
+  "edgeAccessConfigured": "{host} 的服务令牌",
+  "edgeAccessSave": "保存",
+  "edgeAccessRemove": "移除",
+  "edgeAccessRemoveTitle": "移除 Cloudflare Access？",
+  "edgeAccessRemoveMessage": "重新设置之前，应用无法连接此服务器。"
 }

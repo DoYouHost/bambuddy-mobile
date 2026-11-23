@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/auth/two_factor.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
@@ -13,6 +14,7 @@ import '../../l10n/app_localizations.dart';
 import '../common/qr_scanner_screen.dart';
 import 'api_key_qr.dart';
 import 'certificate_rows.dart';
+import 'edge_access_sheet.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
 
@@ -67,7 +69,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       _password.text = DemoConfig.password;
       _useLogin = true;
     });
-    ref.read(setupControllerProvider.notifier).probe(_url.text);
+    _probe(_url.text);
   }
 
   /// Open the QR scanner and apply a scanned bambuddy config code. The code
@@ -93,8 +95,39 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     // A combined code carries the URL: probe it so the auth section appears with
     // the key already filled. A key-only code leaves the current URL untouched.
     if (cfg.baseUrl != null) {
-      await ref.read(setupControllerProvider.notifier).probe(cfg.baseUrl!);
+      await _probe(cfg.baseUrl!);
     }
+  }
+
+  /// The server sits behind Cloudflare Access (#72): the error the probe ended
+  /// on is the offer to set it up, not only a line of red text.
+  static bool _isEdgeAccess(Object error) => error is EdgeAccessException;
+
+  /// The address the last probe asked about. Kept apart from the field, which
+  /// the user may have edited since: the offer to set up Cloudflare Access is
+  /// about the address that was probed.
+  String? _probed;
+
+  Future<void> _probe(String raw) {
+    _probed = raw;
+    return ref.read(setupControllerProvider.notifier).probe(raw);
+  }
+
+  /// The sheet binds the credential to the host Cloudflare is in front of, which
+  /// the probe found by following the address: not always the one typed (an
+  /// alias redirects to its canonical host first). Saved, it asks the server
+  /// again with it, at the address that was probed.
+  Future<void> _setUpEdgeAccess() async {
+    final error = ref.read(setupControllerProvider).error;
+    final probed = _probed;
+    if (error is! EdgeAccessException || probed == null) return;
+    final saved = await showEdgeAccessSheet(
+      context,
+      host: error.host,
+      area: 'setup',
+    );
+    if (!saved || !mounted) return;
+    await _probe(probed);
   }
 
   @override
@@ -154,15 +187,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         ),
                       ).tagged('setup.scan_api_key'),
                     ),
-                    onSubmitted: (v) => controller.probe(v),
+                    onSubmitted: _probe,
                   ),
                 ),
                 const SizedBox(height: DashSpace.md),
                 FilledButton(
                   style: dashPrimaryButtonStyle(t),
-                  onPressed: state.busy
-                      ? null
-                      : () => controller.probe(_url.text),
+                  onPressed: state.busy ? null : () => _probe(_url.text),
                   child: Text(l10n.testConnection),
                 ).tagged('setup.test_connection'),
                 const SizedBox(height: DashSpace.xs),
@@ -194,13 +225,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     padding: EdgeInsets.all(DashSpace.lg),
                     child: DashLoading(),
                   ),
-                if (state.error != null)
+                if (state.error case final error?)
                   Padding(
                     padding: const EdgeInsets.only(top: DashSpace.lg),
-                    child: Text(
-                      setupErrorText(l10n, state.error!),
-                      style: t.body.copyWith(color: t.dangerInk),
-                    ),
+                    child: _isEdgeAccess(error)
+                        ? _EdgeAccessBanner(
+                            text: setupErrorText(l10n, error),
+                            onSetUp: _setUpEdgeAccess,
+                          )
+                        : Text(
+                            setupErrorText(l10n, error),
+                            style: t.body.copyWith(color: t.dangerInk),
+                          ),
                   ),
                 if (state.twoFactor case final challenge?)
                   ..._twoFactorSection(t, l10n, controller, challenge, state)
@@ -453,4 +489,30 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ).tagged('setup.connect_login'),
     ],
   ];
+}
+
+/// One line and a one-word button, the shape of every banner in the app.
+class _EdgeAccessBanner extends StatelessWidget {
+  const _EdgeAccessBanner({required this.text, required this.onSetUp});
+
+  final String text;
+  final VoidCallback onSetUp;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(text, style: t.body.copyWith(color: t.dangerInk)),
+        ),
+        const SizedBox(width: DashSpace.sm),
+        TextButton(
+          onPressed: onSetUp,
+          child: Text(l10n.edgeAccessSetUp),
+        ).tagged('setup.edge_access_set_up'),
+      ],
+    );
+  }
 }

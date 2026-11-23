@@ -8,6 +8,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.text.format.DateFormat
 import android.view.WindowManager
+import android.webkit.CookieManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -18,7 +19,7 @@ import java.util.TimeZone
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
- * Native side of four platform channels, plus the print alarm's ([PrintAlarm]).
+ * Native side of five platform channels, plus the print alarm's ([PrintAlarm]).
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, opens the app's settings page — that exemption is what
@@ -39,6 +40,10 @@ private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
  * and so needs nothing re-asserted on resume. It also dims this window's backlight while
  * the controller's screen saver is up — the window's own `screenBrightness`, not the
  * system setting, so it needs no permission either and ends with the window.
+ *
+ * `edge_cookie` reads the sign-in WebView's cookies for Cloudflare Access (#72). Its
+ * `CF_Authorization` is HttpOnly, which no script in the page can see and the
+ * `CookieManager` can (`lib/core/api/edge_cookie.dart`).
  */
 class MainActivity : FlutterActivity() {
 
@@ -60,7 +65,7 @@ class MainActivity : FlutterActivity() {
      * The next activity registers its own in [configureFlutterEngine].
      */
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
-        for (channel in listOf(BATTERY_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL)) {
+        for (channel in listOf(BATTERY_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL, EDGE_COOKIE_CHANNEL)) {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler(null)
         }
         PrintAlarm.release(flutterEngine.dartExecutor.binaryMessenger)
@@ -98,6 +103,27 @@ class MainActivity : FlutterActivity() {
                 // The IANA id Dart cannot name: `DateTime.timeZoneName` is "CET".
                 "timeZone" to { _, result ->
                     result.success(TimeZone.getDefault().id)
+                }
+            )
+        )
+        flutterEngine.serve(
+            EDGE_COOKIE_CHANNEL,
+            mapOf<String, MethodHandler>(
+                // What the sign-in WebView would send to `url`, HttpOnly cookies included:
+                // Cloudflare Access's `CF_Authorization` is one, and no script can read it.
+                // Null when it holds none.
+                "cookies" to { call, result ->
+                    val url = call.argument<String>("url")
+                    result.success(if (url == null) null else CookieManager.getInstance().getCookie(url))
+                },
+                // Flushed before it answers: the store writes to disk in batches, and a
+                // process killed now would bring the cookie back on the next start.
+                "clear" to { _, result ->
+                    val cookies = CookieManager.getInstance()
+                    cookies.removeAllCookies {
+                        cookies.flush()
+                        result.success(null)
+                    }
                 }
             )
         )
@@ -178,5 +204,6 @@ class MainActivity : FlutterActivity() {
         const val WEAR_SHAPE_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_shape"
         const val CLOCK_CHANNEL = "page.codeberg.morganmlgman.bambuddy/clock"
         const val WINDOW_CHANNEL = "page.codeberg.morganmlgman.bambuddy/window"
+        const val EDGE_COOKIE_CHANNEL = "page.codeberg.morganmlgman.bambuddy/edge_cookie"
     }
 }

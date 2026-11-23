@@ -473,7 +473,7 @@ void main() {
           .read(tlsIdentityProvider.notifier)
           .setBoth(_rootCa(), _cert());
 
-      expect(heard, [(ca: _rootCa(), cert: _cert())]);
+      expect(heard, [(ca: _rootCa(), cert: _cert(), edge: null)]);
       expect(SettingsRepository(prefs).loadCustomCa(), _rootCa());
       expect(await loadClientCert(SettingsRepository(prefs)), _cert());
     });
@@ -492,7 +492,11 @@ void main() {
           throwsA(isA<PlatformException>()),
         );
 
-        expect(container.read(tlsIdentityProvider), (ca: null, cert: null));
+        expect(container.read(tlsIdentityProvider), (
+          ca: null,
+          cert: null,
+          edge: null,
+        ));
         expect(SettingsRepository(prefs).loadCustomCa(), isNull);
       },
     );
@@ -516,7 +520,11 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    expect(container.read(tlsIdentityProvider), (ca: _rootCa(), cert: _cert()));
+    expect(container.read(tlsIdentityProvider), (
+      ca: _rootCa(),
+      cert: _cert(),
+      edge: null,
+    ));
   });
 }
 

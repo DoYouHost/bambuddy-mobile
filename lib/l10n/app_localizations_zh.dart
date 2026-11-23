@@ -10208,4 +10208,50 @@ class AppLocalizationsZh extends AppLocalizations {
   String nozzleDiameterValue(String diameter) {
     return '$diameter mm';
   }
+
+  @override
+  String get errEdgeAccessRequired => '服务器位于 Cloudflare Access 之后';
+
+  @override
+  String get errEdgeAccessRejected => 'Cloudflare Access 未接受已保存的凭据';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => '设置';
+
+  @override
+  String get edgeAccessServiceToken => '服务令牌';
+
+  @override
+  String get edgeAccessServiceTokenHint => '可在后台运行，因此提醒和手表照常工作。';
+
+  @override
+  String get edgeAccessClientId => '客户端 ID';
+
+  @override
+  String get edgeAccessClientSecret => '客户端密钥';
+
+  @override
+  String edgeAccessFor(String host) {
+    return '用于 $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return '$host 的服务令牌';
+  }
+
+  @override
+  String get edgeAccessSave => '保存';
+
+  @override
+  String get edgeAccessRemove => '移除';
+
+  @override
+  String get edgeAccessRemoveTitle => '移除 Cloudflare Access？';
+
+  @override
+  String get edgeAccessRemoveMessage => '重新设置之前，应用无法连接此服务器。';
 }

@@ -58,6 +58,7 @@ class SettingsRepository {
   static const _tourSeenKey = 'tour_seen';
   static const _customCaKey = 'custom_ca';
   static const _hasClientCertKey = 'has_client_cert';
+  static const _hasEdgeAccessKey = 'has_edge_access';
 
   final SharedPreferences _prefs;
 
@@ -149,6 +150,14 @@ class SettingsRepository {
   Future<void> saveHasClientCert(bool has) => has
       ? _prefs.setBool(_hasClientCertKey, true)
       : _prefs.remove(_hasClientCertKey);
+
+  /// Whether `EdgeAccessStore` holds a Cloudflare Access credential; the
+  /// credential itself is a secret and is not here, as with the certificate.
+  bool loadHasEdgeAccess() => _prefs.getBool(_hasEdgeAccessKey) ?? false;
+
+  Future<void> saveHasEdgeAccess(bool has) => has
+      ? _prefs.setBool(_hasEdgeAccessKey, true)
+      : _prefs.remove(_hasEdgeAccessKey);
 
   /// Whether the guided tour still has to run on its own. Absent on an install
   /// that has not met it either way; see [markTourDue] and

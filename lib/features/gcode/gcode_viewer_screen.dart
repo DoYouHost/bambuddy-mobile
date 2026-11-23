@@ -7,6 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api/endpoints.dart';
+import '../../core/api/tls_overrides.dart';
+import '../../core/auth/auth_headers.dart';
+import '../../core/auth/credentials_store.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/theme/dash_theme.dart';
@@ -274,19 +277,8 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       ? const Color(0xFF0B0F0C)
       : const Color(0xFFF6F8F4);
 
-  Future<Map<String, String>> _authHeaders(ServerProfile profile) async {
-    final creds = ref.read(credentialsStoreProvider);
-    switch (profile.authMode) {
-      case AuthMode.jwt:
-        final jwt = await creds.readJwt();
-        return jwt == null ? {} : {'Authorization': 'Bearer $jwt'};
-      case AuthMode.apiKey:
-        final key = await creds.readApiKey();
-        return key == null ? {} : {'X-API-Key': key};
-      case AuthMode.none:
-        return {};
-    }
-  }
+  Future<Map<String, String>> _authHeaders(ServerProfile profile) =>
+      viewerRequestHeaders(profile, ref.read(credentialsStoreProvider));
 
   void _onReport(JavaScriptMessage message) {
     final report = parseGcodeViewerReport(message.message);
@@ -429,3 +421,19 @@ String gcodeSourceUrl({
   // asking for it would 404 a preview that would otherwise have worked.
   return plate == null || plate < 1 ? path : '$path?plate=$plate';
 }
+
+/// The headers of the viewer's one request: the session's credential, and
+/// Cloudflare Access's (#72) when the server sits behind it. The WebView is not
+/// `dart:io`, so they are handed over here.
+///
+/// A `Cookie` is left out: `fetch` forbids it and drops it silently, and a
+/// browser session's cookie is the WebView's own to keep.
+@visibleForTesting
+Future<Map<String, String>> viewerRequestHeaders(
+  ServerProfile profile,
+  CredentialsStore credentials,
+) async => {
+  ...await authHeaders(profile.authMode, credentials),
+  for (final header in edgeHeadersFor(Uri.parse(profile.baseUrl)).entries)
+    if (header.key.toLowerCase() != 'cookie') header.key: header.value,
+};

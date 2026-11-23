@@ -4996,5 +4996,19 @@
   "nozzleStatusMounted": "En el cabezal",
   "nozzleWearValue": "{percent} %",
   "nozzleMaxTempValue": "{degrees} °C",
-  "nozzleDiameterValue": "{diameter} mm"
+  "nozzleDiameterValue": "{diameter} mm",
+  "errEdgeAccessRequired": "El servidor está detrás de Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access no aceptó la credencial guardada",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Configurar",
+  "edgeAccessServiceToken": "Token de servicio",
+  "edgeAccessServiceTokenHint": "Funciona en segundo plano, así que las alertas y el reloj siguen funcionando.",
+  "edgeAccessClientId": "ID de cliente",
+  "edgeAccessClientSecret": "Secreto de cliente",
+  "edgeAccessFor": "Para {host}",
+  "edgeAccessConfigured": "Token de servicio para {host}",
+  "edgeAccessSave": "Guardar",
+  "edgeAccessRemove": "Quitar",
+  "edgeAccessRemoveTitle": "¿Quitar Cloudflare Access?",
+  "edgeAccessRemoveMessage": "La app no podrá llegar a este servidor hasta que lo configures de nuevo."
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:app_util/app_util.dart';
 import 'dart:convert';
-import 'dart:io' show WebSocketException;
+import 'dart:io' show HttpClient, WebSocketException;
 
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -61,8 +61,32 @@ class _IoWsConnection implements WsConnection {
   String? get closeReason => _channel.closeReason;
 }
 
-WsConnection _defaultConnect(Uri url, Map<String, String> headers) =>
-    _IoWsConnection(IOWebSocketChannel.connect(url, headers: headers));
+/// A client of its own for every connection. `WebSocket.connect` otherwise uses
+/// one static `HttpClient` the SDK makes at the first socket of the isolate,
+/// so the CA, certificate or Cloudflare Access credential in force then would
+/// outlive any change made while the app runs. The upgrade detaches the socket,
+/// so closing the client once the handshake is over leaves the socket alone.
+WsConnection _defaultConnect(Uri url, Map<String, String> headers) {
+  final client = HttpClient();
+  try {
+    final channel = IOWebSocketChannel.connect(
+      url,
+      headers: headers,
+      customClient: client,
+    );
+    unawaited(
+      channel.ready.then<void>(
+        (_) => client.close(),
+        onError: (Object _) => client.close(),
+      ),
+    );
+    return _IoWsConnection(channel);
+  } on Object {
+    // A scheme the SDK refuses throws before any handshake exists.
+    client.close(force: true);
+    rethrow;
+  }
+}
 
 /// One kind of frame and the broadcast stream its listeners hear it on.
 class _Feed<T extends WsMessage> {
