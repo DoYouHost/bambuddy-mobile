@@ -61,6 +61,35 @@ command that goes through closes the sheet with "Sent", and the new state comes
 with the next frame. The server's `panda_breath_enabled` switch has no screen in
 the app: with it off, the server sends `null` and nothing shows.
 
+### The temperature tiles (#74)
+
+A tile names its sensor with a **pictogram** (`TempGlyph`, `assets/icons/temp_*.svg`) in place
+of a word, and the heat state (orange: heating or holding, blue: cooling or off, from
+`TempReading.gaugeInk`) tints **that pictogram only**. The digits, the setpoint and the bar are
+neutral. The same rule holds in the temperature sheet's header and on the controller's Heat
+and readings cards, where the pictogram stands beside the text name instead of replacing it.
+
+- **The air-duct mode is a drawing, not a colour.** The chamber icon has three: waves (duct
+  heating), a snowflake (cooling) and an empty box (a printer with no duct mode). That is the
+  flame and snowflake that used to sit before the digits; with it gone the digits are the
+  tile's widest part. Shape carries the mode and colour the heat state, so neither rests on
+  colour alone, and the pictogram speaks both (`ctrlAirduct: ctrlAirductHeating`).
+- **Two heads are the left and right letters, as the web writes them** (`NozzleBadge`,
+  `PrintersPage.tsx`; here `extruderLeftShort` and `extruderRightShort`, so L and P in Polish):
+  the plain `nozzle` key is the left head, `nozzle_2` the right. A rack printer (H3C) shows the
+  mounted nozzle's rack position beside the pictogram; a single hotend shows nothing. The
+  spoken name is the word, not the letter ("Nozzle 1" and "Nozzle 2", as on the controller),
+  so a screen reader gets the same name a sighted reader gets from the letter.
+- **A row of three** is taken only for exactly one nozzle, the bed and the chamber, with no
+  Panda Breath and no second head. `tempGridColumns` tries three (8 dp padding, `compact`),
+  then two, then one, and takes the first where the digits and each tile's first line fit,
+  measured with the text scale, so a larger text size steps down by itself. Four tiles never
+  make a row, so a card with a Panda Breath keeps two columns.
+- **The Panda Breath has a pictogram too** (`TempGlyph.panda`, an air-flow drawing), tinted by
+  its heat state, grey while the server cannot reach it. Its sheet has it in the header.
+- **A sensor the app does not know keeps its text name and the old colouring**: an unknown key
+  has no drawing to put in its place.
+
 ### A filament slot row (#64)
 
 The material alone cannot tell slots apart: most users load one material, and three

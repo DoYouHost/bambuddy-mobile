@@ -61,6 +61,12 @@ class _PandaBreathTile extends ConsumerWidget {
       glyph: panda.usable ? null : Icons.cloud_off,
       glyphColor: t.textTertiary,
       glyphLabel: l10n.pandaBreathOffline,
+      // The heat state tints the pictogram only, as on the other tiles; an
+      // unreachable heater has no state to show.
+      pictogram: TempGlyph.panda(
+        color: panda.usable ? reading.gaugeInk(t) : t.textTertiary,
+        semanticLabel: l10n.pandaBreath,
+      ),
     );
     if (!_pandaControllable(ref, panda)) return face;
     return Material(
@@ -309,6 +315,12 @@ class _PandaBreathSheetState extends ConsumerState<_PandaBreathSheet> {
           children: [
             Row(
               children: [
+                TempGlyph.panda(
+                  color: reading != null && panda!.usable
+                      ? reading.gaugeInk(t)
+                      : t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.sm),
                 Expanded(child: Text(l10n.pandaBreath, style: t.titleLg)),
                 Text(
                   reading?.actual == null

@@ -109,10 +109,11 @@ is the map and the decisions.
   own 48 dp target, and it carries a second line and a state where no switch is
   offered. A widget for two would take a subtitle, a tap mode and a no-switch
   flag.
-- **The tile caption and the pill text stay tight.** A temperature tile's caption
-  shares a line with the setpoint, and `tempGridColumns` measures it; at the
-  heading's `caps` tracking "PANDA BREATH" would turn the two-column grid into one
-  on a 360 dp phone. They are `caption` and `pillText(tone)` in the theme, and
+- **The tile caption and the pill text stay tight.** A temperature tile's text caption
+  (an unknown sensor's; the Panda Breath's was one until it got a pictogram) shares a
+  line with the setpoint, and `tempGridColumns` measures it; at the
+  heading's `caps` tracking "PANDA BREATH" would have turned the two-column grid into
+  one on a 360 dp phone. They are `caption` and `pillText(tone)` in the theme, and
   `BambuddyAccent.caption` is what the grid measures with, so the measuring and the
   drawing cannot drift apart.
 - **Three tracked texts are not headings:** the Bambuddy wordmark, the "ID" badge

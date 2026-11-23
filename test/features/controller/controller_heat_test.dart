@@ -551,12 +551,16 @@ void main() {
             size: size,
           );
 
-          // Nothing in a card is scaled to fit: a FittedBox is what made each
-          // card's text a size of its own.
+          // No text in a card is scaled to fit: a FittedBox around text is what
+          // made each card's text a size of its own. (The pictogram's SVG has a
+          // FittedBox of its own, with no text in it.)
           expect(
             find.descendant(
               of: find.byType(ControllerHeat),
-              matching: find.byType(FittedBox),
+              matching: find.ancestor(
+                of: find.byType(Text),
+                matching: find.byType(FittedBox),
+              ),
             ),
             findsNothing,
           );
