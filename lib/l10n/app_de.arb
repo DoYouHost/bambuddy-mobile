@@ -5033,5 +5033,8 @@
   "amsUnloadAllTitle": "Alle Slots entladen?",
   "amsUnloadAllMessage": "Der Drucker entlädt nacheinander jeden geladenen Slot des AMS 3H. Sobald er dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück. Bleib also am Drucker.",
   "amsUnloadAllStarted": "Alle geladenen Slots werden entladen. Sobald der Drucker dazu auffordert, zieh das Filament von Hand aus dem AMS 3H zurück.",
-  "amsUnloadAllNoneLoaded": "Kein Slot hat sein Filament im Hotend"
+  "amsUnloadAllNoneLoaded": "Kein Slot hat sein Filament im Hotend",
+  "queueDuplicateAdded": "{count, plural, =1{1 Kopie ans Ende der Warteschlange gestellt} other{{count} Kopien ans Ende der Warteschlange gestellt}}",
+  "queueDuplicateSkipped": "{count, plural, =1{1 Kopie hinzugefügt} other{{count} Kopien hinzugefügt}}; {skipped, plural, =1{1 Eintrag lässt sich nicht kopieren} other{{skipped} Einträge lassen sich nicht kopieren}}",
+  "queueDuplicateNone": "Keiner davon lässt sich kopieren"
 }

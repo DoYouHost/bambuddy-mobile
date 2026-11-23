@@ -10327,4 +10327,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get amsUnloadAllNoneLoaded => '没有槽位的耗材在热端中';
+
+  @override
+  String queueDuplicateAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已将 $count 份副本添加到队列末尾',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueDuplicateSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已添加 $count 份副本',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped 项无法复制',
+    );
+    return '$_temp0；$_temp1';
+  }
+
+  @override
+  String get queueDuplicateNone => '这些都无法复制';
 }

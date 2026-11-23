@@ -5033,5 +5033,8 @@
   "amsUnloadAllTitle": "¿Descargar todas las ranuras?",
   "amsUnloadAllMessage": "La impresora descarga una a una todas las ranuras cargadas del AMS 3H. Cuando lo pida, retira a mano el filamento del AMS 3H, así que quédate junto a la impresora.",
   "amsUnloadAllStarted": "Descargando todas las ranuras cargadas. Cuando la impresora lo pida, retira a mano el filamento del AMS 3H.",
-  "amsUnloadAllNoneLoaded": "Ninguna ranura tiene su filamento en un hotend"
+  "amsUnloadAllNoneLoaded": "Ninguna ranura tiene su filamento en un hotend",
+  "queueDuplicateAdded": "{count, plural, =1{Se añadió 1 copia al final de la cola} other{Se añadieron {count} copias al final de la cola}}",
+  "queueDuplicateSkipped": "{count, plural, =1{Se añadió 1 copia} other{Se añadieron {count} copias}}; {skipped, plural, =1{1 elemento no se puede duplicar} other{{skipped} elementos no se pueden duplicar}}",
+  "queueDuplicateNone": "Ninguno se puede duplicar"
 }

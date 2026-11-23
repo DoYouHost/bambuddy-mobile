@@ -776,3 +776,19 @@ and 409 (no slot has its filament in the hotend). The button's visibility rule (
 on a tray of the unit) and its lock while the printer is out of reach keep both from being
 common, but a frame that went stale between the render and the tap still gets a 409, which
 the button words (`amsUnloadAllNoneLoaded`).
+
+### queueDuplicate — 1.3.3 (server #3440, commit 42cd1fc)
+
+`POST /queue/duplicate` with `{item_ids}` (1 to 500): another copy of each queued or
+printing job at the end of the queue, cloned on the server so it keeps what the queue
+response cannot carry (project, rack pick, a virtual printer job's slicer mapping). The
+answer is `{created_ids, skipped_count}`: a job the caller may not see or queue, one that
+is not `pending` or `printing`, and a printer-card upload whose file goes when the
+original dispatches, are skipped and counted, never refused, so a 200 is not "all done".
+The commit landed on the 1.3.3b1 dailies on 2026-11-22, so the row is 1.3.3 and the release
+that carries it is not out yet. Measured on the images (`queue_duplicate_contract_test.dart`):
+1.3.2 answers 404 or 405 to the path, the 1.3.3b1 daily serves it. A refusal and not a
+silent drop, but the app sends nothing until the row says yes, so nothing is observed and
+the row decides. Being early costs one 404 shown after a tap, on a 1.3.3b1
+daily older than the commit; being late hides the action, as every app version before this
+one did. The request is cut into pieces of 500 ids, the route's own limit.

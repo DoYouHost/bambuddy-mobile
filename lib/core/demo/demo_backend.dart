@@ -3282,6 +3282,9 @@ class DemoBackend {
     if (s.length == 4 && s[1] == 'model' && s[3] == 'resume' && m == 'POST') {
       return _resumeModelAfterFailure(Uri.decodeComponent(s[2]));
     }
+    if (s.length == 2 && s[1] == 'duplicate' && m == 'POST') {
+      return _duplicateQueued(body);
+    }
     if (s.length >= 2 && s[1] == 'reorder') {
       final items = body['items'];
       if (items is List) {
@@ -3356,6 +3359,45 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  /// `POST /queue/duplicate`: a copy of each queued or printing job at the end
+  /// of the queue, and a count of the ones it may not copy (not queued or
+  /// printing, or a printer-card upload whose file goes with the original).
+  DemoResult _duplicateQueued(Map<String, dynamic> body) {
+    final asked = body['item_ids'];
+    if (asked is! List || asked.isEmpty || asked.length > 500) {
+      return demoRefuse(422, 'item_ids takes 1 to 500 ids');
+    }
+    final created = <int>[];
+    for (final id in asked.toSet()) {
+      final source = rowById([?_printingRow, ..._queue], id);
+      final copiable =
+          source != null &&
+          (source['status'] == 'pending' || source['status'] == 'printing') &&
+          source['archive_deleted'] != true &&
+          !(source['cleanup_library_after_dispatch'] == true &&
+              source['archive_id'] == null);
+      if (!copiable) continue;
+      final copy = {
+        ...source,
+        'id': _nextQueueId++,
+        'status': 'pending',
+        'position': _queue.length + 1,
+        'started_at': null,
+        'completed_at': null,
+        'batch_id': null,
+        'batch_name': null,
+        'manual_start': false,
+        'created_at': isoUtc(DateTime.now()),
+      };
+      _queue.add(copy);
+      created.add(copy['id'] as int);
+    }
+    return demoOk({
+      'created_ids': created,
+      'skipped_count': asked.toSet().length - created.length,
+    });
+  }
 
   /// The job printer 1 is running, as the queue lists it while it runs: the
   /// card on the Printers tab and the top of the queue are the same print. Built

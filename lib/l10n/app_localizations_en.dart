@@ -10772,4 +10772,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amsUnloadAllNoneLoaded => 'No slot has its filament in a hotend';
+
+  @override
+  String queueDuplicateAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count copies to the end of the queue',
+      one: 'Added 1 copy to the end of the queue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueDuplicateSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count copies',
+      one: 'Added 1 copy',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped jobs can\'t be duplicated',
+      one: '1 job can\'t be duplicated',
+    );
+    return '$_temp0; $_temp1';
+  }
+
+  @override
+  String get queueDuplicateNone => 'None of these can be duplicated';
 }

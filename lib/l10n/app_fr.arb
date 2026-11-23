@@ -5033,5 +5033,8 @@
   "amsUnloadAllTitle": "Décharger tous les emplacements ?",
   "amsUnloadAllMessage": "L'imprimante décharge tous les emplacements chargés de l'AMS 3H, l'un après l'autre. Quand elle le demande, retirez le filament de l'AMS 3H à la main : restez près de l'imprimante.",
   "amsUnloadAllStarted": "Déchargement de tous les emplacements chargés. Quand l'imprimante le demande, retirez le filament de l'AMS 3H à la main.",
-  "amsUnloadAllNoneLoaded": "Aucun emplacement n'a son filament dans un hotend"
+  "amsUnloadAllNoneLoaded": "Aucun emplacement n'a son filament dans un hotend",
+  "queueDuplicateAdded": "{count, plural, =1{1 copie ajoutée à la fin de la file d'attente} other{{count} copies ajoutées à la fin de la file d'attente}}",
+  "queueDuplicateSkipped": "{count, plural, =1{1 copie ajoutée} other{{count} copies ajoutées}} ; {skipped, plural, =1{1 élément ne peut pas être dupliqué} other{{skipped} éléments ne peuvent pas être dupliqués}}",
+  "queueDuplicateNone": "Aucun ne peut être dupliqué"
 }

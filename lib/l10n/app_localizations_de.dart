@@ -10885,4 +10885,35 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get amsUnloadAllNoneLoaded => 'Kein Slot hat sein Filament im Hotend';
+
+  @override
+  String queueDuplicateAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Kopien ans Ende der Warteschlange gestellt',
+      one: '1 Kopie ans Ende der Warteschlange gestellt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueDuplicateSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Kopien hinzugefügt',
+      one: '1 Kopie hinzugefügt',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped Einträge lassen sich nicht kopieren',
+      one: '1 Eintrag lässt sich nicht kopieren',
+    );
+    return '$_temp0; $_temp1';
+  }
+
+  @override
+  String get queueDuplicateNone => 'Keiner davon lässt sich kopieren';
 }

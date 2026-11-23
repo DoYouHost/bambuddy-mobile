@@ -136,6 +136,10 @@ enum ServerFeature {
   /// `POST /printers/{id}/ams/unload-all`: every loaded AMS 3H slot of an H3C
   /// at once, as its touchscreen's Unload All. An older server answers 404.
   ams3hUnloadAll,
+
+  /// `POST /queue/duplicate`: another copy of queued or printing jobs at the end
+  /// of the queue. An older server answers 404 or 405.
+  queueDuplicate,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -254,6 +258,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.labelTemplates: (1, 3, 0, 0),
     ServerFeature.wled: (1, 3, 1, 0),
     ServerFeature.ams3hUnloadAll: (1, 3, 3, 0),
+    ServerFeature.queueDuplicate: (1, 3, 3, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

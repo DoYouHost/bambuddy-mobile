@@ -17914,6 +17914,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No slot has its filament in a hotend'**
   String get amsUnloadAllNoneLoaded;
+
+  /// Toast after duplicating queue jobs: the copies made
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 copy to the end of the queue} other{Added {count} copies to the end of the queue}}'**
+  String queueDuplicateAdded(int count);
+
+  /// Toast after duplicating queue jobs when the server left some out
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 copy} other{Added {count} copies}}; {skipped, plural, =1{1 job can\'t be duplicated} other{{skipped} jobs can\'t be duplicated}}'**
+  String queueDuplicateSkipped(int count, int skipped);
+
+  /// No description provided for @queueDuplicateNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None of these can be duplicated'**
+  String get queueDuplicateNone;
 }
 
 class _AppLocalizationsDelegate

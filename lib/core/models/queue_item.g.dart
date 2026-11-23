@@ -49,6 +49,8 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   requirePreviousSuccess: json['require_previous_success'] as bool? ?? false,
   autoOffAfter: json['auto_off_after'] as bool? ?? false,
   manualStart: json['manual_start'] as bool? ?? false,
+  cleanupLibraryAfterDispatch:
+      json['cleanup_library_after_dispatch'] as bool? ?? false,
   plateId: (json['plate_id'] as num?)?.toInt(),
   bedLevelling: json['bed_levelling'] == null
       ? CalibrationOption.auto

@@ -3015,5 +3015,8 @@
   "amsUnloadAllTitle": "卸载所有槽位？",
   "amsUnloadAllMessage": "打印机会依次卸载 AMS 3H 中所有已装载的槽位。打印机提示时，请手动将耗材从 AMS 3H 中拉出，因此请留在打印机旁。",
   "amsUnloadAllStarted": "正在卸载所有已装载的槽位。打印机提示时，请手动将耗材从 AMS 3H 中拉出。",
-  "amsUnloadAllNoneLoaded": "没有槽位的耗材在热端中"
+  "amsUnloadAllNoneLoaded": "没有槽位的耗材在热端中",
+  "queueDuplicateAdded": "{count, plural, other{已将 {count} 份副本添加到队列末尾}}",
+  "queueDuplicateSkipped": "{count, plural, other{已添加 {count} 份副本}}；{skipped, plural, other{{skipped} 项无法复制}}",
+  "queueDuplicateNone": "这些都无法复制"
 }

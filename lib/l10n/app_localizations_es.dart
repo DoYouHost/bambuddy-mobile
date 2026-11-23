@@ -10908,4 +10908,35 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get amsUnloadAllNoneLoaded =>
       'Ninguna ranura tiene su filamento en un hotend';
+
+  @override
+  String queueDuplicateAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se añadieron $count copias al final de la cola',
+      one: 'Se añadió 1 copia al final de la cola',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueDuplicateSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se añadieron $count copias',
+      one: 'Se añadió 1 copia',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped elementos no se pueden duplicar',
+      one: '1 elemento no se puede duplicar',
+    );
+    return '$_temp0; $_temp1';
+  }
+
+  @override
+  String get queueDuplicateNone => 'Ninguno se puede duplicar';
 }

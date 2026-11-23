@@ -229,6 +229,45 @@ class QueueNotifier extends AsyncNotifier<List<QueueItem>> {
     return (outcome: outcome, result: result);
   }
 
+  /// Another copy of each of [items] at the end of the queue
+  /// (`POST /queue/duplicate`). Only what the route can copy is sent, as the
+  /// web does; [notCopied] adds those left out here to the ones the server
+  /// skipped, because a 200 is not "all done". The list is reloaded on success.
+  /// [logId] is the control that asked, in the `logTag` vocabulary: a row's
+  /// action and the selection's bar are two different controls.
+  Future<({ActionOutcome outcome, int added, int notCopied})> duplicate(
+    List<QueueItem> items, {
+    required String logId,
+  }) async {
+    final copiable = [
+      for (final item in items)
+        if (item.canDuplicate) item.id,
+    ];
+    var notCopied = items.length - copiable.length;
+    var added = 0;
+    if (copiable.isEmpty) {
+      return (outcome: ActionOutcome.ok, added: 0, notCopied: notCopied);
+    }
+    final outcome = await runAction(
+      () async {
+        final result = await ref
+            .read(queueRepositoryProvider)
+            .duplicate(copiable);
+        added = result.created.length;
+        notCopied += result.skipped;
+      },
+      logId: logId,
+      onSuccess: refresh,
+    );
+    // A list longer than one request goes in pieces, and an early piece may have
+    // been copied before a later one failed: show what is there.
+    if (!outcome.isOk &&
+        copiable.length > QueueRepository.duplicateBatchLimit) {
+      await refresh();
+    }
+    return (outcome: outcome, added: added, notCopied: notCopied);
+  }
+
   /// Clear the previous-print gate on [printerId] and restore the jobs it
   /// skipped (`POST /queue/printer/{id}/resume`). [restored] is how many came
   /// back, for the sentence the caller shows; both lists are reloaded on success.

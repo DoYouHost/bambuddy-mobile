@@ -299,6 +299,47 @@ void main() {
       },
     );
 
+    test('duplicating queue jobs copies the queued and the printing, and '
+        'counts the rest', () async {
+      // Own backend: the copies must not leak into the shared one.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final queue = QueueRepository(own);
+      final pending = await queue.fetch(status: 'pending');
+      final printing = await queue.fetch(status: 'printing');
+      final done = await queue.fetchHistory();
+      expect(pending, isNotEmpty);
+      expect(printing, isNotEmpty);
+      expect(done, isNotEmpty);
+
+      final result = await queue.duplicate([
+        pending.first.id,
+        printing.first.id,
+        done.first.id,
+        999999,
+      ]);
+
+      expect(result.created, hasLength(2));
+      expect(result.skipped, 2);
+      final after = await queue.fetch(status: 'pending');
+      expect(after.length, pending.length + 2);
+      expect(
+        after.map((i) => i.id),
+        containsAll(result.created),
+        reason: 'the copies are queued, not running',
+      );
+      expect(
+        after
+            .where((i) => result.created.contains(i.id))
+            .every((i) => i.position > pending.first.position),
+        isTrue,
+        reason: 'at the end of the queue',
+      );
+    });
+
     test('queue has pending items', () async {
       final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));

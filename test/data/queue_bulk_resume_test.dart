@@ -21,6 +21,165 @@ void main() {
     repo = QueueRepository(dio);
   });
 
+  group('duplicate', () {
+    void answer(List<int> created, int skipped) => adapter.onPost(
+      '/api/v1/queue/duplicate',
+      (server) =>
+          server.reply(200, {'created_ids': created, 'skipped_count': skipped}),
+      data: Matchers.any,
+    );
+
+    test('posts the ids and reads the copies and the skipped count', () async {
+      adapter.onPost(
+        '/api/v1/queue/duplicate',
+        (server) => server.reply(200, {
+          'created_ids': [31, 32],
+          'skipped_count': 1,
+        }),
+        data: {
+          'item_ids': [4, 9, 12],
+        },
+      );
+      final sent = captureRequests(dio);
+
+      final result = await repo.duplicate([4, 9, 12]);
+
+      expect(sent.calls, ['POST /api/v1/queue/duplicate']);
+      expect(result.created, [31, 32]);
+      expect(result.skipped, 1);
+    });
+
+    test('nothing to copy sends nothing', () async {
+      final sent = captureRequests(dio);
+
+      final result = await repo.duplicate(const []);
+
+      expect(result.created, isEmpty);
+      expect(result.skipped, 0);
+      expect(sent.calls, isEmpty);
+    });
+
+    test('500 ids go in one request, 501 in two', () async {
+      answer(const [], 0);
+      final sent = captureRequests(dio);
+
+      await repo.duplicate([for (var i = 1; i <= 500; i++) i]);
+      expect(sent.calls, hasLength(1));
+
+      await repo.duplicate([for (var i = 1; i <= 501; i++) i]);
+      expect(sent.calls, hasLength(3), reason: '1 above, and 2 for 501 ids');
+    });
+
+    test('the answers of the pieces are added up', () async {
+      adapter
+        ..onPost(
+          '/api/v1/queue/duplicate',
+          (server) => server.reply(200, {
+            'created_ids': [1, 2],
+            'skipped_count': 2,
+          }),
+          data: {
+            'item_ids': [for (var i = 1; i <= 500; i++) i],
+          },
+        )
+        ..onPost(
+          '/api/v1/queue/duplicate',
+          (server) => server.reply(200, {
+            'created_ids': [3],
+            'skipped_count': 2,
+          }),
+          data: {
+            'item_ids': [501],
+          },
+        );
+
+      final result = await repo.duplicate([for (var i = 1; i <= 501; i++) i]);
+
+      expect(result.created, [1, 2, 3]);
+      expect(result.skipped, 4);
+    });
+
+    test(
+      'a 200 that is not the answer is an error, not "nothing copied"',
+      () async {
+        adapter.onPost(
+          '/api/v1/queue/duplicate',
+          (server) => server.reply(200, ['not', 'a', 'map']),
+          data: Matchers.any,
+        );
+
+        await expectLater(
+          repo.duplicate([1]),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.badResponse,
+            ),
+          ),
+        );
+      },
+    );
+
+    test('an object without the two keys is an error too', () async {
+      adapter.onPost(
+        '/api/v1/queue/duplicate',
+        (server) => server.reply(200, {'status': 'maintenance'}),
+        data: Matchers.any,
+      );
+
+      await expectLater(
+        repo.duplicate([1]),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.badResponse,
+          ),
+        ),
+      );
+    });
+
+    test('an id on both sides of a piece is sent once', () async {
+      answer(const [], 0);
+      final sent = captureRequests(dio);
+
+      // 500 distinct ids and the first again: one request, not two.
+      await repo.duplicate([for (var i = 1; i <= 500; i++) i, 1]);
+
+      expect(sent.calls, hasLength(1));
+    });
+
+    test('a 400 keeps what billing said', () async {
+      adapter.onPost(
+        '/api/v1/queue/duplicate',
+        (server) => server.reply(400, {'detail': 'Cost center is inactive'}),
+        data: Matchers.any,
+      );
+
+      await expectLater(
+        repo.duplicate([1]),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'Cost center is inactive',
+          ),
+        ),
+      );
+    });
+
+    test('a refusal throws, whichever piece it hits', () async {
+      adapter.onPost(
+        '/api/v1/queue/duplicate',
+        (server) => server.reply(403, {'detail': 'no'}),
+        data: Matchers.any,
+      );
+
+      await expectLater(repo.duplicate([1]), throwsA(isA<AppApiException>()));
+    });
+  });
+
   group('bulkUpdate', () {
     test('sends the ids and only the keys that were changed', () async {
       adapter.onPatch(

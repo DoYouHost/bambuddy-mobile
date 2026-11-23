@@ -7976,5 +7976,27 @@
   "amsUnloadAllTitle": "Unload all slots?",
   "amsUnloadAllMessage": "The printer unloads every loaded AMS 3H slot, one after another. When it asks, pull the filament back out of the AMS 3H by hand, so stay at the printer.",
   "amsUnloadAllStarted": "Unloading all loaded slots. When the printer asks, pull the filament out of the AMS 3H by hand.",
-  "amsUnloadAllNoneLoaded": "No slot has its filament in a hotend"
+  "amsUnloadAllNoneLoaded": "No slot has its filament in a hotend",
+  "queueDuplicateAdded": "{count, plural, =1{Added 1 copy to the end of the queue} other{Added {count} copies to the end of the queue}}",
+  "@queueDuplicateAdded": {
+    "description": "Toast after duplicating queue jobs: the copies made",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueDuplicateSkipped": "{count, plural, =1{Added 1 copy} other{Added {count} copies}}; {skipped, plural, =1{1 job can't be duplicated} other{{skipped} jobs can't be duplicated}}",
+  "@queueDuplicateSkipped": {
+    "description": "Toast after duplicating queue jobs when the server left some out",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "queueDuplicateNone": "None of these can be duplicated"
 }

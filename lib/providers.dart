@@ -1009,6 +1009,12 @@ final triStateCalibrationProvider = capabilityGate(
   (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
+/// Whether the server has `POST /queue/duplicate`. See
+/// `QueueRepository.duplicateCapability`.
+final queueDuplicateProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).duplicateCapability,
+);
+
 /// Whether a queued job can ask for its outcome (#1898) — the print form's
 /// "Ask for outcome" switch. See `QueueRepository.outcomeCapability`.
 final queueOutcomeProvider = capabilityGate(

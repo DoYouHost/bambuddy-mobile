@@ -475,6 +475,12 @@ abstract final class Endpoints {
   /// Present since server v0.1.2.
   static const queueBulk = '$apiPrefix/queue/bulk';
 
+  /// `POST` — `{item_ids}` (1 to 500): another copy of each queued or printing
+  /// job at the end of the queue. Answers `{created_ids, skipped_count}`: the
+  /// jobs it may not copy are counted, not refused. Needs `queue:create` (a key
+  /// with `can_queue`). Since server 1.3.3.
+  static const queueDuplicate = '$apiPrefix/queue/duplicate';
+
   /// `POST` — acknowledge the failed prints behind a printer's
   /// `require_previous_success` gate and put the jobs it skipped back to
   /// `pending` (`print_queue.py::resume_queue_after_failure`, #1818). A printer
