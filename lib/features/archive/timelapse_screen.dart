@@ -157,7 +157,18 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     if (!mounted || _replaced(attempt)) return;
 
     final url = source.url;
-    final controller = timelapsePlayer(source);
+    final VideoPlayerController controller;
+    try {
+      controller = await timelapsePlayer(source);
+    } catch (_) {
+      if (!mounted || _replaced(attempt)) return;
+      return _fail(_Failure.open);
+    }
+    if (!mounted || _replaced(attempt)) {
+      // A load that was replaced while the bridge started: nobody will play it.
+      await controller.dispose();
+      return;
+    }
     setState(() => _controller = controller);
     _watchdog = Timer(_bootTimeout, () => _stalled(attempt, url));
 

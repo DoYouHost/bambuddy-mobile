@@ -15,6 +15,8 @@ import 'core/api/camera_token.dart';
 import 'core/api/client_cert.dart';
 import 'core/api/custom_ca.dart';
 import 'core/api/edge_access.dart';
+import 'core/api/edge_cookie.dart';
+import 'core/notifications/edge_session_alert.dart';
 import 'core/api/tls_overrides.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
@@ -308,6 +310,37 @@ final edgeAccessProvider = Provider<EdgeAccess?>(
   (ref) => ref.watch(tlsIdentityProvider).edge,
 );
 
+/// The host whose browser session ended, while that is not yet answered (#72);
+/// null otherwise. Held in preferences because the isolate that finds out is
+/// often not this one, and read again where the app comes back to the front.
+final edgeSessionEndedProvider =
+    NotifierProvider<EdgeSessionEndedNotifier, String?>(
+      EdgeSessionEndedNotifier.new,
+    );
+
+class EdgeSessionEndedNotifier extends Notifier<String?> {
+  @override
+  String? build() {
+    final ended = edgeSessionEndings.listen((host) => state = host);
+    final recovered = edgeSessionRecoveries.listen((host) {
+      if (state == host) state = null;
+    });
+    ref.onDispose(() {
+      ended.cancel();
+      recovered.cancel();
+    });
+    return ref.read(settingsRepositoryProvider).loadEdgeSessionEnded();
+  }
+
+  /// What another isolate wrote since.
+  Future<void> refresh() async {
+    final settings = await ref.read(settingsRepositoryProvider).reloaded();
+    if (ref.mounted) state = settings.loadEdgeSessionEnded();
+  }
+
+  void clear() => state = null;
+}
+
 class TlsIdentityNotifier extends Notifier<TlsIdentity> {
   @override
   TlsIdentity build() => (
@@ -324,11 +357,18 @@ class TlsIdentityNotifier extends Notifier<TlsIdentity> {
   Future<void> setCert(ClientCert? cert) =>
       _change((now) => (ca: now.ca, cert: cert, edge: now.edge));
 
-  Future<void> setEdge(EdgeAccess? edge) =>
-      _change((now) => (ca: now.ca, cert: now.cert, edge: edge));
+  /// Also forgets that a session ended: any change of the credential is the
+  /// answer to that, and an unchanged one (the same session saved again) is
+  /// skipped by [_change], so the mark is cleared here and not there.
+  Future<void> setEdge(EdgeAccess? edge) async {
+    await _change((now) => (ca: now.ca, cert: now.cert, edge: edge));
+    if (!ref.mounted) return;
+    await ref.read(settingsRepositoryProvider).saveEdgeSessionEnded(null);
+    if (ref.mounted) ref.read(edgeSessionEndedProvider.notifier).clear();
+  }
 
-  /// The certificates together, for "Remove all" and a watch adopting its
-  /// config; the Cloudflare credential stays, as it is not a certificate.
+  /// The certificates together, for "Remove all"; the Cloudflare credential
+  /// stays, as it is not a certificate.
   Future<void> setBoth(CustomCa? ca, ClientCert? cert) =>
       _change((now) => (ca: ca, cert: cert, edge: now.edge));
 
@@ -440,6 +480,12 @@ final clientCertStoreProvider = Provider<ClientCertStore>(
 
 final edgeAccessStoreProvider = Provider<EdgeAccessStore>(
   (_) => EdgeAccessStore(),
+);
+
+/// The sign-in WebView's cookie store; replaced in tests, which have no
+/// `CookieManager` to ask.
+final edgeCookieJarProvider = Provider<EdgeCookieJar>(
+  (_) => const WebViewEdgeCookieJar(),
 );
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());

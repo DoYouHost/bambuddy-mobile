@@ -657,6 +657,12 @@ class RecordingNotifications implements NotificationService {
     if (failure != null) throw failure;
   }
 
+  /// Every id taken back with [cancelAlert], in order.
+  final cancelled = <int>[];
+
+  @override
+  Future<void> cancelAlert(int id) async => cancelled.add(id);
+
   @override
   Future<bool> isAlertActive(int id) async => alertActive;
 }

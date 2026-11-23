@@ -10914,4 +10914,65 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get edgeAccessRemoveMessage =>
       'L\'app ne pourra plus joindre ce serveur tant que vous ne l\'aurez pas reconfiguré.';
+
+  @override
+  String get edgeAccessRecommended => 'Recommandé';
+
+  @override
+  String get edgeAccessBrowser => 'Connexion par le navigateur';
+
+  @override
+  String get edgeAccessBrowserHint =>
+      'Expire. Vous vous reconnectez à la main.';
+
+  @override
+  String get edgeAccessSignIn => 'Se connecter';
+
+  @override
+  String get edgeAccessWarnTitle => 'La connexion par navigateur expire';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Quand la session Cloudflare se termine, les alertes, la notification en cours, les widgets et la montre cessent de fonctionner jusqu\'à une nouvelle connexion. Un jeton de service n\'exige aucune connexion. Certains fournisseurs, dont Google, refusent la connexion dans un navigateur intégré ; utilisez alors un jeton de service.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Continuer quand même';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Utiliser un jeton de service';
+
+  @override
+  String get edgeAccessSignInFailed => 'La page ne s\'est pas chargée.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Connexion par navigateur pour $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Session Cloudflare expirée';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Les alertes sont coupées. Reconnectez-vous pour les réactiver.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Quand Cloudflare n\'accepte plus la connexion ou le jeton de service de l\'app et que les alertes s\'arrêtent';
+
+  @override
+  String get edgeSessionBanner => 'Session Cloudflare expirée';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare a refusé le jeton de service';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Les alertes sont coupées. Remplacez le jeton de service pour les réactiver.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare a refusé le jeton de service';
 }

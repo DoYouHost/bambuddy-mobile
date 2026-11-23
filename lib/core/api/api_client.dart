@@ -114,6 +114,9 @@ class AuthInterceptor extends Interceptor {
         authMode == AuthMode.jwt &&
         refreshAuth != null &&
         !alreadyRetried) {
+      // A throw here is the re-login meeting Cloudflare, not a wrong password
+      // (`AuthService.silentReLogin` lets that one out); Dio passes it on as the
+      // request's error, which is what the saved login below must not hide.
       final newToken = await refreshAuth!();
       if (newToken != null) {
         final opts = err.requestOptions

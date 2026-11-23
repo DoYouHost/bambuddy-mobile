@@ -10254,4 +10254,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get edgeAccessRemoveMessage => '重新设置之前，应用无法连接此服务器。';
+
+  @override
+  String get edgeAccessRecommended => '推荐';
+
+  @override
+  String get edgeAccessBrowser => '浏览器登录';
+
+  @override
+  String get edgeAccessBrowserHint => '会过期，需要手动重新登录。';
+
+  @override
+  String get edgeAccessSignIn => '登录';
+
+  @override
+  String get edgeAccessWarnTitle => '浏览器登录会过期';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Cloudflare 会话结束后，提醒、常驻通知、小组件和手表将停止工作，直到重新登录。服务令牌无需登录。部分提供商（包括 Google）拒绝在内嵌浏览器中登录；此时请改用服务令牌。';
+
+  @override
+  String get edgeAccessWarnConfirm => '仍然继续';
+
+  @override
+  String get edgeAccessWarnUseToken => '使用服务令牌';
+
+  @override
+  String get edgeAccessSignInFailed => '页面未能加载。';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return '$host 的浏览器登录';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Cloudflare 会话已过期';
+
+  @override
+  String get notifEdgeSessionBody => '提醒已关闭。请重新登录以恢复。';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc => 'Cloudflare 不再接受应用的登录或服务令牌、提醒停止时';
+
+  @override
+  String get edgeSessionBanner => 'Cloudflare 会话已过期';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare 拒绝了服务令牌';
+
+  @override
+  String get notifEdgeTokenBody => '提醒已关闭。请更换服务令牌以恢复。';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare 拒绝了服务令牌';
 }

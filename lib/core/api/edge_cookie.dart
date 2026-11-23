@@ -74,18 +74,23 @@ class EdgeSignIn {
 
   /// The session the WebView holds for [host], or null while it holds none, or
   /// only cookies that are not a usable token, or have already ended. Of several
-  /// the first good one counts: the cookie store lists an older cookie first, and
-  /// an old one left by a previous sign-in must not hide the new.
+  /// the one that ends last counts: the cookie store lists an older cookie first,
+  /// so neither end of its order says which is current, and one left by an earlier
+  /// sign-in (a parent domain's, say) must not hide the one just issued.
   Future<BrowserSession?> check() async {
     final values = await jar.cookies(
       Uri(scheme: 'https', host: host),
       BrowserSession.cookieName,
     );
     final at = now();
+    BrowserSession? best;
     for (final value in values) {
       final session = BrowserSession.fromCookie(host: host, cookie: value);
-      if (session != null && !session.isExpired(at)) return session;
+      if (session == null || session.isExpired(at)) continue;
+      if (best == null || session.expiresAt.isAfter(best.expiresAt)) {
+        best = session;
+      }
     }
-    return null;
+    return best;
   }
 }

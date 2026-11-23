@@ -17776,6 +17776,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The app cannot reach this server until you set it up again.'**
   String get edgeAccessRemoveMessage;
+
+  /// No description provided for @edgeAccessRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get edgeAccessRecommended;
+
+  /// No description provided for @edgeAccessBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser sign-in'**
+  String get edgeAccessBrowser;
+
+  /// No description provided for @edgeAccessBrowserHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires. You sign in again by hand.'**
+  String get edgeAccessBrowserHint;
+
+  /// No description provided for @edgeAccessSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get edgeAccessSignIn;
+
+  /// No description provided for @edgeAccessWarnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser sign-in expires'**
+  String get edgeAccessWarnTitle;
+
+  /// No description provided for @edgeAccessWarnMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'When the Cloudflare session ends, alerts, the ongoing notification, widgets and the watch stop working until you sign in again. A service token needs no sign-in. Some providers, Google among them, refuse sign-in in an embedded browser; use a service token then.'**
+  String get edgeAccessWarnMessage;
+
+  /// No description provided for @edgeAccessWarnConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue anyway'**
+  String get edgeAccessWarnConfirm;
+
+  /// No description provided for @edgeAccessWarnUseToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Use service token'**
+  String get edgeAccessWarnUseToken;
+
+  /// No description provided for @edgeAccessSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The page did not load.'**
+  String get edgeAccessSignInFailed;
+
+  /// No description provided for @edgeAccessConfiguredBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser sign-in for {host}'**
+  String edgeAccessConfiguredBrowser(String host);
+
+  /// No description provided for @notifEdgeSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare session expired'**
+  String get notifEdgeSessionTitle;
+
+  /// No description provided for @notifEdgeSessionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts are off. Sign in again to turn them back on.'**
+  String get notifEdgeSessionBody;
+
+  /// No description provided for @notifEvtEdgeSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Access'**
+  String get notifEvtEdgeSession;
+
+  /// No description provided for @notifEvtEdgeSessionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When Cloudflare stops accepting the app\'s sign-in or service token and alerts stop'**
+  String get notifEvtEdgeSessionDesc;
+
+  /// No description provided for @edgeSessionBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare session expired'**
+  String get edgeSessionBanner;
+
+  /// No description provided for @notifEdgeTokenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare refused the service token'**
+  String get notifEdgeTokenTitle;
+
+  /// No description provided for @notifEdgeTokenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts are off. Replace the service token to turn them back on.'**
+  String get notifEdgeTokenBody;
+
+  /// No description provided for @edgeTokenBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare refused the service token'**
+  String get edgeTokenBanner;
 }
 
 class _AppLocalizationsDelegate

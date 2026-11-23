@@ -113,6 +113,7 @@ void main() {
         NotifEvent.outcomeRequest,
         NotifEvent.billingAlert,
         NotifEvent.pauseUpcoming,
+        NotifEvent.edgeSessionEnded,
       });
     });
 

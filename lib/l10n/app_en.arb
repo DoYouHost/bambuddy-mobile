@@ -7946,5 +7946,30 @@
   "edgeAccessSave": "Save",
   "edgeAccessRemove": "Remove",
   "edgeAccessRemoveTitle": "Remove Cloudflare Access?",
-  "edgeAccessRemoveMessage": "The app cannot reach this server until you set it up again."
+  "edgeAccessRemoveMessage": "The app cannot reach this server until you set it up again.",
+  "edgeAccessRecommended": "Recommended",
+  "edgeAccessBrowser": "Browser sign-in",
+  "edgeAccessBrowserHint": "Expires. You sign in again by hand.",
+  "edgeAccessSignIn": "Sign in",
+  "edgeAccessWarnTitle": "Browser sign-in expires",
+  "edgeAccessWarnMessage": "When the Cloudflare session ends, alerts, the ongoing notification, widgets and the watch stop working until you sign in again. A service token needs no sign-in. Some providers, Google among them, refuse sign-in in an embedded browser; use a service token then.",
+  "edgeAccessWarnConfirm": "Continue anyway",
+  "edgeAccessWarnUseToken": "Use service token",
+  "edgeAccessSignInFailed": "The page did not load.",
+  "edgeAccessConfiguredBrowser": "Browser sign-in for {host}",
+  "@edgeAccessConfiguredBrowser": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEdgeSessionTitle": "Cloudflare session expired",
+  "notifEdgeSessionBody": "Alerts are off. Sign in again to turn them back on.",
+  "notifEvtEdgeSession": "Cloudflare Access",
+  "notifEvtEdgeSessionDesc": "When Cloudflare stops accepting the app's sign-in or service token and alerts stop",
+  "edgeSessionBanner": "Cloudflare session expired",
+  "notifEdgeTokenTitle": "Cloudflare refused the service token",
+  "notifEdgeTokenBody": "Alerts are off. Replace the service token to turn them back on.",
+  "edgeTokenBanner": "Cloudflare refused the service token"
 }

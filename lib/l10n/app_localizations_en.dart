@@ -10695,4 +10695,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get edgeAccessRemoveMessage =>
       'The app cannot reach this server until you set it up again.';
+
+  @override
+  String get edgeAccessRecommended => 'Recommended';
+
+  @override
+  String get edgeAccessBrowser => 'Browser sign-in';
+
+  @override
+  String get edgeAccessBrowserHint => 'Expires. You sign in again by hand.';
+
+  @override
+  String get edgeAccessSignIn => 'Sign in';
+
+  @override
+  String get edgeAccessWarnTitle => 'Browser sign-in expires';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'When the Cloudflare session ends, alerts, the ongoing notification, widgets and the watch stop working until you sign in again. A service token needs no sign-in. Some providers, Google among them, refuse sign-in in an embedded browser; use a service token then.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Continue anyway';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Use service token';
+
+  @override
+  String get edgeAccessSignInFailed => 'The page did not load.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Browser sign-in for $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Cloudflare session expired';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Alerts are off. Sign in again to turn them back on.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'When Cloudflare stops accepting the app\'s sign-in or service token and alerts stop';
+
+  @override
+  String get edgeSessionBanner => 'Cloudflare session expired';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare refused the service token';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Alerts are off. Replace the service token to turn them back on.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare refused the service token';
 }

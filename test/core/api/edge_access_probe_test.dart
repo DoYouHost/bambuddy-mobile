@@ -22,6 +22,12 @@ final _token = ServiceToken(
   clientSecret: 's3cret',
 );
 
+String _jwt(int exp) {
+  String part(Object o) =>
+      base64Url.encode(utf8.encode(jsonEncode(o))).replaceAll('=', '');
+  return '${part({'alg': 'RS256'})}.${part({'exp': exp})}.sig';
+}
+
 const _login = 'https://team.cloudflareaccess.com/cdn-cgi/access/login/x';
 
 /// Answers every request with [status], having been sent on through [hops] (the
@@ -35,7 +41,12 @@ class _Answer implements HttpClientAdapter {
     this.hops = const [_login],
     this.location,
     this.alsoLocation,
+    this.onFetch,
   });
+
+  /// Run as the request is being answered: the moment something can change
+  /// between a request leaving and its answer coming back.
+  final void Function()? onFetch;
 
   final int status;
   final List<String> hops;
@@ -54,6 +65,7 @@ class _Answer implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     calls++;
+    onFetch?.call();
     return ResponseBody.fromString(
         '<html>Sign in</html>',
         status,
@@ -71,6 +83,37 @@ class _Answer implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// bambuddy's 401 on everything but the login, which Cloudflare answers with its
+/// sign-in page: the session ended between the request and the re-login.
+class _SessionEndsOnLogin implements HttpClientAdapter {
+  final _signIn = _Answer();
+  var logins = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    if (options.path.endsWith('/auth/login')) {
+      logins++;
+      return _signIn.fetch(options, requestStream, cancelFuture);
+    }
+    return Future.value(
+      ResponseBody.fromString(
+        jsonEncode({'detail': 'expired'}),
+        401,
+        headers: {
+          Headers.contentTypeHeader: ['application/json'],
+        },
+      ),
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 /// Answers as bambuddy would, for the case that must not change.
 class _Bambuddy implements HttpClientAdapter {
   @override
@@ -81,6 +124,29 @@ class _Bambuddy implements HttpClientAdapter {
   ) async => ResponseBody.fromString(
     jsonEncode({'auth_enabled': true, 'requires_setup': false}),
     200,
+    headers: {
+      Headers.contentTypeHeader: ['application/json'],
+    },
+  );
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// bambuddy's own answer with a status of its choosing.
+class _Status implements HttpClientAdapter {
+  _Status(this.status);
+
+  final int status;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async => ResponseBody.fromString(
+    jsonEncode({'detail': 'x'}),
+    status,
     headers: {
       Headers.contentTypeHeader: ['application/json'],
     },
@@ -112,7 +178,190 @@ Dio _dio(HttpClientAdapter adapter) =>
     createBareDio()..httpClientAdapter = adapter;
 
 void main() {
-  tearDown(() => useTls(null, null));
+  tearDown(() {
+    useTls(null, null);
+    EdgeSessionSignal.listener = null;
+    EdgeSessionSignal.acceptedListener = null;
+  });
+
+  group('the session signal', () {
+    final session = BrowserSession.fromCookie(
+      host: 'printers.example.com',
+      cookie: _jwt(DateTime.utc(2100).millisecondsSinceEpoch ~/ 1000),
+    )!;
+
+    Future<List<String>> ended(Dio dio) async {
+      final heard = <String>[];
+      EdgeSessionSignal.listener = (host, token) =>
+          heard.add(token ? 'token:$host' : host);
+      try {
+        await dio.get<Object?>('https://printers.example.com/api/v1/x');
+      } on DioException {
+        // The error is the other tests' business.
+      }
+      return heard;
+    }
+
+    test('is told when a browser session is refused', () async {
+      useTls(null, null, session);
+      expect(await ended(_dio(_Answer())), ['printers.example.com']);
+    });
+
+    test('is told by a refusal that arrived as a 403 as well', () async {
+      useTls(null, null, session);
+      expect(await ended(_dio(_Answer(status: 403))), ['printers.example.com']);
+    });
+
+    test('is not told when no credential was presented', () async {
+      expect(await ended(_dio(_Answer())), isEmpty);
+    });
+
+    test('is told when a service token is refused, as one', () async {
+      useTls(null, null, _token);
+      expect(await ended(_dio(_Answer())), ['token:printers.example.com']);
+    });
+
+    test('is not told when the credential was replaced in flight', () async {
+      // The request left with the old session and its refusal came back after
+      // a new one was signed in: that is the old one's, not the new one's.
+      useTls(null, null, session);
+      final dio = _dio(
+        _Answer(
+          onFetch: () => useTls(
+            null,
+            null,
+            BrowserSession.fromCookie(
+              host: 'printers.example.com',
+              cookie: _jwt(DateTime.utc(2101).millisecondsSinceEpoch ~/ 1000),
+            ),
+          ),
+        ),
+      );
+      expect(await ended(dio), isEmpty);
+    });
+
+    test('still names the refusal by what was sent', () async {
+      useTls(null, null, session);
+      final dio = _dio(_Answer(onFetch: () => useTls(null, null)));
+      try {
+        await dio.get<Object?>('https://printers.example.com/api/v1/x');
+        fail('let through');
+      } on DioException catch (e) {
+        expect(
+          (e.error! as AppApiException).code,
+          AppErrorCode.edgeAccessRejected,
+          reason: 'a session was presented, though it is gone by now',
+        );
+      }
+    });
+
+    group('accepted', () {
+      Future<List<String>> accepted(
+        Dio dio, {
+        String url = 'https://printers.example.com/api/v1/x',
+      }) async {
+        final heard = <String>[];
+        EdgeSessionSignal.acceptedListener = heard.add;
+        try {
+          await dio.get<Object?>(url);
+        } on DioException {
+          // The error is the other tests' business.
+        }
+        return heard;
+      }
+
+      test('is told when the credential got a real answer', () async {
+        useTls(null, null, _token);
+        expect(await accepted(_dio(_Bambuddy())), ['printers.example.com']);
+      });
+
+      test('also for an error status of the server\'s own', () async {
+        useTls(null, null, session);
+        for (final status in [401, 404, 500]) {
+          expect(await accepted(_dio(_Status(status))), [
+            'printers.example.com',
+          ], reason: '$status');
+        }
+      });
+
+      test(
+        'is not told for a redirect: it says where to go, nothing more',
+        () async {
+          useTls(null, null, _token);
+          final server = _Answer(
+            status: 302,
+            hops: const [],
+            location: 'https://sso.example.net/login',
+          );
+          expect(await accepted(_dio(server)), isEmpty);
+        },
+      );
+
+      test('is not told for the sign-in page', () async {
+        useTls(null, null, _token);
+        expect(await accepted(_dio(_Answer())), isEmpty);
+      });
+
+      test('is not told when nothing was presented', () async {
+        expect(await accepted(_dio(_Bambuddy())), isEmpty);
+      });
+
+      test('is not told for another host', () async {
+        useTls(null, null, _token);
+        expect(
+          await accepted(
+            _dio(_Bambuddy()),
+            url: 'https://other.example.com/api/v1/x',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('is not told over plain http, where it is not sent', () async {
+        useTls(null, null, _token);
+        expect(
+          await accepted(
+            _dio(_Bambuddy()),
+            url: 'http://printers.example.com/api/v1/x',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('is not told for a credential replaced in flight', () async {
+        useTls(null, null, _token);
+        // The replacement is made as the answer comes back.
+        final plain = _dio(_Bambuddy());
+        plain.interceptors.insert(
+          0,
+          InterceptorsWrapper(
+            onResponse: (r, h) {
+              useTls(null, null, session);
+              h.next(r);
+            },
+          ),
+        );
+        expect(await accepted(plain), isEmpty);
+      });
+    });
+
+    test('is not told for a host the session is not for', () async {
+      useTls(null, null, session);
+      final heard = <String>[];
+      EdgeSessionSignal.listener = (host, token) => heard.add(host);
+      try {
+        await _dio(_Answer()).get<Object?>('https://other.example.com/x');
+      } on DioException {
+        // As above.
+      }
+      expect(heard, isEmpty);
+    });
+
+    test('is not told for an answer from bambuddy', () async {
+      useTls(null, null, session);
+      expect(await ended(_dio(_Bambuddy())), isEmpty);
+    });
+  });
 
   group('isCloudflareSignIn', () {
     test('is the team domain and nothing that only contains it', () {
@@ -181,6 +430,49 @@ void main() {
       );
       await failure(dio);
       expect(relogins, 0);
+    });
+
+    group('during the re-login a 401 starts', () {
+      Future<(AppApiException, InMemoryCredentialsStore, int)> run() async {
+        final adapter = _SessionEndsOnLogin();
+        final store = InMemoryCredentialsStore()..jwt = 'old';
+        await store.writeRememberedLogin('user', 'pw');
+        final auth = AuthService(bareDio: _dio(adapter), credentials: store);
+        final dio = Dio()..httpClientAdapter = adapter;
+        dio.interceptors.add(
+          AuthInterceptor(
+            authMode: AuthMode.jwt,
+            credentials: store,
+            retryDio: dio,
+            refreshAuth: () =>
+                auth.silentReLogin('https://printers.example.com'),
+          ),
+        );
+        try {
+          await dio.get<Object?>('https://printers.example.com/api/v1/x');
+        } on DioException catch (e) {
+          return (mapDioException(e), store, adapter.logins);
+        }
+        fail('the 401 was let through');
+      }
+
+      test('Cloudflare is named, not "unreachable"', () async {
+        final (error, _, logins) = await run();
+        expect(logins, 1);
+        expect(error.code, AppErrorCode.edgeAccessRequired);
+        expect(error, isA<EdgeAccessException>());
+      });
+
+      test('the saved login stays: the password was never refused', () async {
+        final (_, store, _) = await run();
+        expect(await store.readRememberedLogin(), isNotNull);
+      });
+
+      test('a refused credential is told apart from a missing one', () async {
+        useTls(null, null, _token);
+        final (error, _, _) = await run();
+        expect(error.code, AppErrorCode.edgeAccessRejected);
+      });
     });
 
     test('is "needs" for a host the credential is not for', () async {

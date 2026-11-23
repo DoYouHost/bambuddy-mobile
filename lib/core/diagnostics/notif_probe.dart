@@ -85,6 +85,15 @@ class NotifProbe {
     },
   );
 
+  /// An alert the app took back off the screen because it was no longer true.
+  /// Written before the call, like [posted]: "my alert vanished" is otherwise
+  /// indistinguishable from a swipe.
+  static void withdrawn({required int nid}) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'withdrawn',
+    fields: {'nid': nid},
+  );
+
   /// The platform refused an alert we had already decided to post.
   static void postError({
     required NotifEvent event,
@@ -407,6 +416,12 @@ class LoggingNotifications implements NotificationService {
           );
           Error.throwWithStackTrace(error, stack);
         });
+  }
+
+  @override
+  Future<void> cancelAlert(int id) {
+    NotifProbe.withdrawn(nid: id);
+    return _inner.cancelAlert(id);
   }
 
   @override

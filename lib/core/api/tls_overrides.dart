@@ -38,6 +38,14 @@ EdgeAccess? presentedEdgeAccess() => switch (HttpOverrides.current) {
   _ => null,
 };
 
+/// Whether this isolate holds a CA or a client certificate, which only `dart:io`
+/// uses. The stacks that are not (ExoPlayer, a WebView) cannot reach a server that
+/// needs either, and are bridged through `LoopbackProxy` instead.
+bool presentsTlsIdentity() => switch (HttpOverrides.current) {
+  _TlsOverrides(:final _hasIdentity) => _hasIdentity,
+  _ => false,
+};
+
 /// The headers Cloudflare Access wants on a request to [url], for the stacks
 /// that do not go through `dart:io` and so never meet [EdgeHttpClient]: the
 /// video player (ExoPlayer) and the G-code viewer's WebView. Empty when nothing
@@ -45,12 +53,13 @@ EdgeAccess? presentedEdgeAccess() => switch (HttpOverrides.current) {
 ///
 /// shortcut: ExoPlayer follows a redirect with every header it was given, which
 /// `EdgeRequest` prevents for `dart:io`. For the timelapse player that is
-/// closed another way: `checkEdgeAccess` asks with the Dart client first, and
-/// the player is not started for a request Cloudflare Access would redirect. In
-/// the WebView a `fetch` carries custom headers across an origin only after a
-/// CORS preflight, which Cloudflare's team domain does not grant. A redirect
-/// from bambuddy itself would still be followed by the player; it sends none on
-/// these routes (its source and a live server).
+/// closed another way: `checkEdgeAccess` asks with a Dart `HEAD` first, and the
+/// player is not started for a request Cloudflare Access would redirect. In the
+/// WebView a `fetch` carries custom headers across an origin only after a CORS
+/// preflight, which Cloudflare's team domain does not grant. A redirect from
+/// bambuddy itself would still be followed by the player; it sends none on these
+/// routes (its source and a live server). Behind a private CA or a client
+/// certificate neither stack is used for the server at all: see `LoopbackProxy`.
 Map<String, String> edgeHeadersFor(Uri url) {
   final access = presentedEdgeAccess();
   return access != null && access.appliesTo(url) ? access.headers : const {};
@@ -62,7 +71,8 @@ HttpOverrides? _before;
 
 class _TlsOverrides extends HttpOverrides {
   _TlsOverrides(CustomCa? ca, ClientCert? cert, this._edge)
-    : _context = SecurityContext(withTrustedRoots: true) {
+    : _hasIdentity = ca != null || cert != null,
+      _context = SecurityContext(withTrustedRoots: true) {
     if (ca != null) _context.setTrustedCertificatesBytes(utf8.encode(ca.pem));
     try {
       cert?.applyTo(_context);
@@ -74,6 +84,7 @@ class _TlsOverrides extends HttpOverrides {
 
   final SecurityContext _context;
   final EdgeAccess? _edge;
+  final bool _hasIdentity;
 
   @override
   HttpClient createHttpClient(SecurityContext? context) {

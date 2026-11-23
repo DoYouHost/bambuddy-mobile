@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/api/endpoints.dart';
+import '../../core/api/loopback_proxy.dart';
 import '../../core/api/media_auth.dart';
 import '../../core/api/tls_overrides.dart';
 import '../../providers.dart';
@@ -52,8 +53,20 @@ Future<TimelapseSource?> timelapseSource(
 /// player built from `source.url` alone loads nothing at all for those users.
 /// One constructor, so the next screen cannot take only the half it can see —
 /// the editor's preview did exactly that and failed silently.
-VideoPlayerController timelapsePlayer(TimelapseSource source) {
+///
+/// ExoPlayer is not `dart:io`: a private CA or a client certificate (#62, #65)
+/// means nothing to it, so for a server that needs one the video comes through
+/// the app's loopback bridge instead, fetched by `dart:io` with the whole
+/// identity, and the player is pointed at that.
+Future<VideoPlayerController> timelapsePlayer(TimelapseSource source) async {
   final url = Uri.parse(source.url);
+  if (needsLoopbackBridge(url, presentsTlsIdentity: presentsTlsIdentity())) {
+    final lease = await LoopbackProxy.lease();
+    return _BridgedPlayer(
+      lease.expose(url, headers: source.auth.headers),
+      lease,
+    );
+  }
   return VideoPlayerController.networkUrl(
     url,
     // ExoPlayer is not `dart:io`: Cloudflare Access's headers (#72) go on here.
@@ -61,8 +74,24 @@ VideoPlayerController timelapsePlayer(TimelapseSource source) {
   );
 }
 
-/// Asks for the first byte of the video with the Dart HTTP client, when
-/// Cloudflare Access's credential is to ride with the player (#72).
+/// A player that gives the bridge back with itself.
+class _BridgedPlayer extends VideoPlayerController {
+  _BridgedPlayer(super.url, this._lease) : super.networkUrl();
+
+  final LoopbackLease _lease;
+
+  @override
+  Future<void> dispose() async {
+    try {
+      await super.dispose();
+    } finally {
+      await _lease.release();
+    }
+  }
+}
+
+/// Asks about the video with the Dart HTTP client, when Cloudflare Access's
+/// credential is to ride with the player (#72).
 ///
 /// ExoPlayer follows a redirect with every header it holds, bambuddy's own
 /// credential among them. Cloudflare answers a request it refuses with a
@@ -77,32 +106,28 @@ VideoPlayerController timelapsePlayer(TimelapseSource source) {
 /// Any other answer, an error status included, is the player's to report, so is
 /// not thrown here.
 ///
-/// The answer is not read: a server that ignores the range sends the whole file,
-/// and only the status is wanted. Dio starts draining a streamed body at once,
-/// whatever its listener does, so the request is cancelled when the status is
-/// in: that closes the connection.
+/// A `HEAD`, because only the status is wanted and it has no body: a `GET` with a
+/// byte range is answered with the whole file by a server that ignores the range,
+/// and stopping that download was a race (cancelling the read leaves the
+/// connection open until the next write finds it closed). Cloudflare answers a
+/// `HEAD` as it does the `GET`: Access decides before the server is asked.
 Future<void> checkEdgeAccess(Dio dio, TimelapseSource source) async {
   if (edgeHeadersFor(Uri.parse(source.url)).isEmpty) return;
-  final cancel = CancelToken();
-  final Response<ResponseBody> answer;
+  final Response<void> answer;
   try {
-    answer = await dio.get<ResponseBody>(
+    answer = await dio.request<void>(
       source.url,
-      cancelToken: cancel,
       options: Options(
-        responseType: ResponseType.stream,
-        headers: {...source.auth.headers, 'Range': 'bytes=0-0'},
+        method: 'HEAD',
+        headers: source.auth.headers,
         validateStatus: (_) => true,
         receiveTimeout: const Duration(seconds: 10),
       ),
     );
   } on DioException catch (e) {
-    cancel.cancel();
     if (e.error case final EdgeAccessException refused) throw refused;
     return;
   }
-  // The status is in; the body is not wanted, and not waited for.
-  cancel.cancel();
   final status = answer.statusCode ?? 0;
   if (status >= 300 && status < 400) {
     throw ApiException(AppErrorCode.badResponse, statusCode: status);

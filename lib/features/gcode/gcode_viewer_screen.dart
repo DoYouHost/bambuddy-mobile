@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api/endpoints.dart';
+import '../../core/api/loopback_proxy.dart';
 import '../../core/api/tls_overrides.dart';
 import '../../core/auth/auth_headers.dart';
 import '../../core/auth/credentials_store.dart';
@@ -83,6 +84,10 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   WebViewController? _controller;
   bool _ready = false;
 
+  /// The loopback bridge the page fetches the G-code through, for a server that
+  /// needs a CA or a client certificate the WebView does not have (#62, #65).
+  LoopbackLease? _lease;
+
   /// Whether the page has started drawing its own progress. Until then the app
   /// shows a spinner; after it, the page owns that job alone.
   bool _alive = false;
@@ -109,7 +114,14 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   @override
   void dispose() {
     _watchdog?.cancel();
+    unawaited(_releaseLease());
     super.dispose();
+  }
+
+  Future<void> _releaseLease() async {
+    final lease = _lease;
+    _lease = null;
+    await lease?.release();
   }
 
   String get _gcodeUrl => gcodeSourceUrl(
@@ -152,14 +164,38 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     // below may run for a load the user has already walked away from.
     if (!mounted || _replaced(attempt)) return;
 
+    // The WebView's own network stack knows nothing of an imported CA or client
+    // certificate, so for such a server the page fetches from the app instead,
+    // which fetches through `dart:io` (`LoopbackProxy`). Past the gate: a lease
+    // is a side effect, and is given back for a load that was replaced.
+    LoopbackLease? lease;
+    if (needsLoopbackBridge(
+      Uri.parse(profile.baseUrl),
+      presentsTlsIdentity: presentsTlsIdentity(),
+    )) {
+      lease = await LoopbackProxy.lease();
+      if (!mounted || _replaced(attempt)) {
+        await lease.release();
+        return;
+      }
+      // Owned from here, so that a throw below still gives it back with the screen.
+      _lease = lease;
+    }
+    final source = viewerSource(
+      profile: profile,
+      path: _gcodeUrl,
+      headers: headers,
+      lease: lease,
+    );
+
     final l10n = AppLocalizations.of(context);
     final document = buildViewerDocument(
       shell: shell,
       bundle: bundle,
       fonts: fonts,
       config: GcodeViewerConfig(
-        gcodeUrl: _gcodeUrl,
-        headers: headers,
+        gcodeUrl: source.gcodeUrl,
+        headers: source.headers,
         dark: Theme.of(context).brightness == Brightness.dark,
         // Already logical pixels, which is what a CSS pixel is in the WebView.
         insetRight: MediaQuery.systemGestureInsetsOf(context).right,
@@ -216,7 +252,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           },
         ),
       )
-      ..loadHtmlString(document, baseUrl: profile.baseUrl);
+      ..loadHtmlString(document, baseUrl: source.baseUrl);
 
     _armWatchdog(_bootTimeout);
 
@@ -383,6 +419,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
   void _retry() {
     _watchdog?.cancel();
+    unawaited(_releaseLease());
     _attempt++;
     setState(() {
       _failure = null;
@@ -437,3 +474,27 @@ Future<Map<String, String>> viewerRequestHeaders(
   for (final header in edgeHeadersFor(Uri.parse(profile.baseUrl)).entries)
     if (header.key.toLowerCase() != 'cookie') header.key: header.value,
 };
+
+/// Where the page loads from and what it fetches the G-code from.
+///
+/// Normally the server itself: the page is its origin, the path is relative, and
+/// the credentials ride as headers of the page's `fetch`. With a [lease] on the
+/// loopback bridge the page is the bridge's origin and the path is the one the
+/// bridge serves the G-code under, with the headers kept in the bridge, which
+/// sends them through `dart:io`.
+@visibleForTesting
+({String gcodeUrl, Map<String, String> headers, String baseUrl}) viewerSource({
+  required ServerProfile profile,
+  required String path,
+  required Map<String, String> headers,
+  LoopbackLease? lease,
+}) {
+  if (lease == null) {
+    return (gcodeUrl: path, headers: headers, baseUrl: profile.baseUrl);
+  }
+  final bridged = lease.expose(
+    Uri.parse('${profile.baseUrl}$path'),
+    headers: headers,
+  );
+  return (gcodeUrl: bridged.path, headers: const {}, baseUrl: lease.origin);
+}

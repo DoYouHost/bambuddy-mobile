@@ -37,6 +37,10 @@ whole path is described under [Sending a report](#sending-a-report).
   local app storage. A client certificate, with its private key and password, is kept in
   the same Keystore-backed encrypted storage as your credentials and is shown only to a
   server that asks for one when the app connects.
+- **A Cloudflare Access credential**, if your server sits behind Cloudflare Access: a
+  service token you enter, or the sign-in cookie that Cloudflare sets when you sign in
+  through the app. Either is kept in the same Keystore-backed encrypted storage and is
+  sent only to your own server's host.
 - **App settings and notification preferences**, stored in local app storage.
 - **A random installation identifier** — a UUID the app makes up for itself the first
   time you open the report form. It is not a device identifier and is not derived from

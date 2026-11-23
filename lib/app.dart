@@ -14,6 +14,7 @@ import 'core/notifications/hms_stop_request.dart';
 import 'core/notifications/launch_relay.dart';
 import 'core/models/current_user.dart';
 import 'core/theme/appearance_providers.dart';
+import 'core/watch/watch_push.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/archive/outcome_sheet.dart';
 import 'features/dashboard/background_handover.dart';
@@ -227,20 +228,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     });
   }
 
-  void _pushToWatch() {
-    final profile = ref.read(serverProfileProvider);
-    if (profile == null) return;
-    unawaited(
-      ref
-          .read(watchConfigSyncProvider)
-          .push(
-            profile,
-            theme: ref.read(watchThemeProvider),
-            ca: ref.read(customCaProvider),
-            clientCert: ref.read(clientCertProvider),
-          ),
-    );
-  }
+  void _pushToWatch() => pushConfigToWatch(ref.read);
 
   /// Kept on disk for the foreground service isolate, which formats the ETA in
   /// its notifications and has no way to read the 24-hour switch itself.

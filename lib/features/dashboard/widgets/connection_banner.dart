@@ -13,10 +13,14 @@ class ConnectionBanner extends StatelessWidget {
     super.key,
     required this.message,
     this.tone = BannerTone.error,
+    this.action,
   });
 
   final String message;
   final BannerTone tone;
+
+  /// The one thing to do about it, at the end of the line.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +51,10 @@ class ConnectionBanner extends StatelessWidget {
             Expanded(
               child: Text(message, style: TextStyle(color: fg)),
             ),
+            if (action != null) ...[
+              const SizedBox(width: DashSpace.sm),
+              action!,
+            ],
           ],
         ),
       ),

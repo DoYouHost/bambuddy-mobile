@@ -37,6 +37,7 @@ import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
+import 'widgets/edge_session_banner.dart';
 import 'widgets/connection_mode_chip.dart';
 import 'widgets/dashboard_filter_sheet.dart';
 import '../controller/controller_picker.dart';
@@ -94,6 +95,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       // dialog closing is a resume too, and [_onFirstFrame] asks for the
       // warning itself once they are done.
       onResume: () {
+        // The background isolate may have found the Cloudflare session ended.
+        unawaited(ref.read(edgeSessionEndedProvider.notifier).refresh());
         if (_firstRunPromptsDone) unawaited(_maybeWarnSignInRequired());
       },
     );
@@ -522,6 +525,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         body: Column(
           children: [
+            const EdgeSessionBanner(),
             if (state.stale)
               ConnectionBanner(message: l10n.serverUnreachableStale)
             // WS resuming connection, but polling still provides fresh data —

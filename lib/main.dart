@@ -17,6 +17,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/wear_relay_engine.dart';
 import 'core/app_context.dart';
+import 'core/notifications/edge_session_alert.dart';
 import 'providers.dart';
 import 'features/alarm/alarm_screen.dart';
 import 'features/bug_report/report_wiring.dart';
@@ -42,6 +43,12 @@ Future<void> main() async {
   ).loadDemoPrintingCount();
   final notifications = LocalNotificationService();
   await notifications.init();
+  // Told when Cloudflare stops accepting the browser session; the foreground
+  // service and the isolates behind a notification button set their own.
+  EdgeSessionAlert(
+    settings: SettingsRepository.opened,
+    notifications: notifications,
+  ).listen();
   // The alarm outlives the service's engine when the app comes back while it
   // rings; then this engine is the one its stop is reported to.
   AlarmRinger.recordReports();

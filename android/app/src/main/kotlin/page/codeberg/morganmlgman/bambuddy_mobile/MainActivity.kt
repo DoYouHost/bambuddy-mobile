@@ -8,7 +8,6 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.text.format.DateFormat
 import android.view.WindowManager
-import android.webkit.CookieManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -109,22 +108,11 @@ class MainActivity : FlutterActivity() {
         flutterEngine.serve(
             EDGE_COOKIE_CHANNEL,
             mapOf<String, MethodHandler>(
-                // What the sign-in WebView would send to `url`, HttpOnly cookies included:
-                // Cloudflare Access's `CF_Authorization` is one, and no script can read it.
-                // Null when it holds none.
                 "cookies" to { call, result ->
                     val url = call.argument<String>("url")
-                    result.success(if (url == null) null else CookieManager.getInstance().getCookie(url))
+                    result.success(if (url == null) null else EdgeCookies.header(url))
                 },
-                // Flushed before it answers: the store writes to disk in batches, and a
-                // process killed now would bring the cookie back on the next start.
-                "clear" to { _, result ->
-                    val cookies = CookieManager.getInstance()
-                    cookies.removeAllCookies {
-                        cookies.flush()
-                        result.success(null)
-                    }
-                }
+                "clear" to { _, result -> EdgeCookies.clear { result.success(null) } }
             )
         )
         flutterEngine.serve(

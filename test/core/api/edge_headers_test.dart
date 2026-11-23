@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:bambuddy_mobile/core/api/client_cert.dart';
+import 'package:bambuddy_mobile/core/api/custom_ca.dart';
 import 'package:bambuddy_mobile/core/api/edge_access.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/api/tls_overrides.dart';
@@ -64,25 +68,91 @@ void main() {
       auth: const MediaAuth(headers: {'X-API-Key': 'bb_key'}),
     );
 
-    test('keeps the session credential and adds Cloudflare\'s', () {
+    test('keeps the session credential and adds Cloudflare\'s', () async {
       useTls(null, null, _token);
-      expect(timelapsePlayer(source()).httpHeaders, {
+      expect((await timelapsePlayer(source())).httpHeaders, {
         'X-API-Key': 'bb_key',
         ..._tokenHeaders,
       });
     });
 
-    test('adds nothing when nothing is presented', () {
-      expect(timelapsePlayer(source()).httpHeaders, {'X-API-Key': 'bb_key'});
+    test('adds nothing when nothing is presented', () async {
+      expect((await timelapsePlayer(source())).httpHeaders, {
+        'X-API-Key': 'bb_key',
+      });
     });
 
-    test('adds nothing for a video on another host', () {
+    test('adds nothing for a video on another host', () async {
       useTls(null, null, _token);
       final other = (
         url: 'https://cdn.example.net/v.mp4',
         auth: const MediaAuth(),
       );
-      expect(timelapsePlayer(other).httpHeaders, isEmpty);
+      expect((await timelapsePlayer(other)).httpHeaders, isEmpty);
+    });
+  });
+
+  group('the timelapse player behind a private CA or a client certificate', () {
+    final ca = CustomCa.parse(
+      'ca.pem',
+      File('test/fixtures/tls/ca.pem').readAsBytesSync(),
+    );
+    TimelapseSource source([String host = 'printers.example.com']) => (
+      url: 'https://$host/api/v1/archives/1/timelapse?token=t',
+      auth: const MediaAuth(headers: {'X-API-Key': 'bb_key'}),
+    );
+
+    test('is pointed at the app\'s own loopback, with no headers', () async {
+      // ExoPlayer cannot trust the CA, so the app fetches for it (NativeTlsTest).
+      useTls(ca, null);
+      final player = await timelapsePlayer(source());
+      addTearDown(player.dispose);
+
+      final url = Uri.parse(player.dataSource);
+      expect(url.host, '127.0.0.1');
+      expect(url.isScheme('http'), isTrue);
+      expect(player.httpHeaders, isEmpty, reason: 'the bridge has them');
+    });
+
+    test('a client certificate alone is enough', () async {
+      useTls(
+        null,
+        ClientCert.parse(
+          'phone.p12',
+          File('test/fixtures/tls/client.p12').readAsBytesSync(),
+          'fixture',
+        ).cert,
+      );
+      final player = await timelapsePlayer(source());
+      addTearDown(player.dispose);
+      expect(Uri.parse(player.dataSource).host, '127.0.0.1');
+    });
+
+    test('gives the listener back with the player', () async {
+      useTls(ca, null);
+      final player = await timelapsePlayer(source());
+      final url = Uri.parse(player.dataSource);
+
+      await player.dispose();
+
+      await expectLater(
+        HttpClient().getUrl(url).then((r) => r.close()),
+        throwsA(isA<SocketException>()),
+      );
+    });
+
+    test('is not used for a server that needs none of it', () async {
+      final player = await timelapsePlayer(source());
+      expect(Uri.parse(player.dataSource).host, 'printers.example.com');
+    });
+
+    test('nor for plain http, which a native stack reaches as it is', () async {
+      useTls(ca, null);
+      final player = await timelapsePlayer((
+        url: 'http://printers.example.com/api/v1/archives/1/timelapse',
+        auth: const MediaAuth(),
+      ));
+      expect(Uri.parse(player.dataSource).host, 'printers.example.com');
     });
   });
 

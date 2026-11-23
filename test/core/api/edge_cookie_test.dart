@@ -236,6 +236,20 @@ void main() {
       expect(session!.cookie, good);
     });
 
+    test('takes the one that ends last, whatever the order', () async {
+      // An earlier sign-in's cookie that has not ended yet, and the one just
+      // issued: neither end of the store's order says which is current.
+      final earlier = _jwt({'exp': _expSeconds - 3600});
+      final latest = _jwt({'exp': _expSeconds});
+      for (final order in [
+        [earlier, latest],
+        [latest, earlier],
+      ]) {
+        final session = await signIn(_FakeJar(order)).check();
+        expect(session!.cookie, latest, reason: '$order');
+      }
+    });
+
     test('is nothing for a cookie that has already ended', () async {
       final ended = _jwt({'exp': _expSeconds - 24 * 3600});
       expect(await signIn(_FakeJar([ended])).check(), isNull);

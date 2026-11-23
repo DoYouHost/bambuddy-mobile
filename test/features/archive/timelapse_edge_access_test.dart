@@ -19,7 +19,8 @@ import '../../helpers.dart';
 
 // Cloudflare Access (#72) in front of the timelapse: the player (ExoPlayer)
 // follows a redirect with every header it holds, so the question is asked first
-// with the Dart client, which does not.
+// with the Dart client, which does not. Asked as a HEAD, which has no body to
+// stop.
 
 const _login = 'https://team.cloudflareaccess.com/cdn-cgi/access/login/x';
 const _video =
@@ -31,7 +32,7 @@ final _token = ServiceToken(
   clientSecret: 's3cret',
 );
 
-/// What the server (and Cloudflare) answer the one-byte question with.
+/// What the server (and Cloudflare) answer the HEAD question with.
 enum _Answer { video, signIn, idpChain, otherRedirect, error, down }
 
 class _Server implements HttpClientAdapter {
@@ -40,9 +41,6 @@ class _Server implements HttpClientAdapter {
   final _Answer answer;
   final requests = <RequestOptions>[];
 
-  /// Whether the request was cancelled once it had been answered.
-  var cancelled = false;
-
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -50,7 +48,6 @@ class _Server implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    cancelFuture?.then((_) => cancelled = true);
     switch (answer) {
       case _Answer.down:
         throw DioException.connectionError(
@@ -58,7 +55,7 @@ class _Server implements HttpClientAdapter {
           reason: 'no route',
         );
       case _Answer.video:
-        return ResponseBody.fromBytes(const [0], 206);
+        return ResponseBody.fromBytes(const [], 200);
       case _Answer.otherRedirect:
         // Some other proxy's sign-in, which EdgeRequest does not follow either.
         return ResponseBody.fromString(
@@ -117,15 +114,16 @@ void main() {
       expect(server.requests, isEmpty);
     });
 
-    test('asks for one byte, as the session does', () async {
+    test('asks with a HEAD, as the session does', () async {
       useTls(null, null, _token);
       final server = _Server(_Answer.video);
       await checkEdgeAccess(_dio(server), _source());
 
       expect(server.requests, hasLength(1));
-      final headers = server.requests.single.headers;
-      expect(headers['Range'], 'bytes=0-0');
-      expect(headers['X-API-Key'], 'bb_key');
+      final request = server.requests.single;
+      expect(request.method, 'HEAD');
+      expect(request.headers['X-API-Key'], 'bb_key');
+      expect(request.headers, isNot(contains('Range')));
     });
 
     test('is the refusal when Cloudflare redirects the request', () async {
@@ -150,20 +148,6 @@ void main() {
       );
     });
 
-    test('lets go of the connection whatever the answer', () async {
-      useTls(null, null, _token);
-      for (final answer in [_Answer.video, _Answer.signIn, _Answer.error]) {
-        final server = _Server(answer);
-        try {
-          await checkEdgeAccess(_dio(server), _source());
-        } on EdgeAccessException {
-          // The refusal is the answer; the connection is still let go of.
-        }
-        await Future<void>.delayed(Duration.zero);
-        expect(server.cancelled, isTrue, reason: '$answer');
-      }
-    });
-
     test('refuses a redirect to anywhere else too, with its status', () async {
       // The player would follow it with every credential it holds.
       useTls(null, null, _token);
@@ -182,9 +166,8 @@ void main() {
 
   group('on a real socket', () {
     test('does not pull down a video the server sent whole', () async {
-      // The server ignores the range and sends 12 MB, a chunk at a time, for as
-      // long as the client is there. Asked for its status, the client lets
-      // go of the connection, and the server stops far short of the end.
+      // The server ignores ranges and sends 12 MB, a chunk at a time, to any GET.
+      // The question is a HEAD, so the video is never asked for.
       final mocked = HttpOverrides.current;
       HttpOverrides.global = null;
       addTearDown(() => HttpOverrides.global = mocked);
@@ -201,18 +184,20 @@ void main() {
         context,
       );
       addTearDown(() => server.close(force: true));
-      const chunks = 200;
+      final methods = <String>[];
       var written = 0;
       server.listen((request) async {
+        methods.add(request.method);
+        if (request.method != 'GET') {
+          await request.response.close();
+          return;
+        }
         final chunk = Uint8List(64 * 1024);
         try {
-          for (var i = 0; i < chunks; i++) {
+          for (var i = 0; i < 200; i++) {
             request.response.add(chunk);
             await request.response.flush();
             written++;
-            // Slower than the loopback can take it, so the client is what
-            // ends it, not the kernel's buffers filling.
-            await Future<void>.delayed(const Duration(milliseconds: 3));
           }
           await request.response.close();
         } on Object {
@@ -235,10 +220,10 @@ void main() {
               'https://127.0.0.1:${server.port}/api/v1/archives/42/timelapse?token=t',
         ),
       );
-      // Long enough for the whole file to have been sent had the client stayed.
-      await Future<void>.delayed(const Duration(milliseconds: 1000));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
-      expect(written, lessThan(40), reason: 'of $chunks chunks');
+      expect(methods, ['HEAD']);
+      expect(written, 0);
     });
   });
 

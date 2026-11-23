@@ -84,6 +84,9 @@ class _NoopNotifications implements NotificationService {
     bool silent = false,
   }) async {}
   @override
+  Future<void> cancelAlert(int id) async {}
+
+  @override
   Future<bool> isAlertActive(int id) async => true;
 }
 

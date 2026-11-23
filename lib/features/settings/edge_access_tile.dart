@@ -26,7 +26,7 @@ class EdgeAccessTile extends ConsumerWidget {
         title: l10n.edgeAccessTitle,
         subtitle: switch (access) {
           ServiceToken() => l10n.edgeAccessConfigured(access.host),
-          BrowserSession() => access.host,
+          BrowserSession() => l10n.edgeAccessConfiguredBrowser(access.host),
         },
         onTap: () => showEdgeAccessSheet(
           context,

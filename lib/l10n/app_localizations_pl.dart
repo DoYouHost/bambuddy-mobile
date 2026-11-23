@@ -10887,4 +10887,64 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get edgeAccessRemoveMessage =>
       'Aplikacja nie połączy się z tym serwerem, dopóki nie skonfigurujesz go ponownie.';
+
+  @override
+  String get edgeAccessRecommended => 'Zalecane';
+
+  @override
+  String get edgeAccessBrowser => 'Logowanie w przeglądarce';
+
+  @override
+  String get edgeAccessBrowserHint => 'Wygasa. Logujesz się ponownie ręcznie.';
+
+  @override
+  String get edgeAccessSignIn => 'Zaloguj';
+
+  @override
+  String get edgeAccessWarnTitle => 'Logowanie w przeglądarce wygasa';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Gdy sesja Cloudflare się skończy, powiadomienia, stałe powiadomienie, widżety i zegarek przestaną działać do ponownego zalogowania. Token usługi nie wymaga logowania. Niektórzy dostawcy, w tym Google, odmawiają logowania w osadzonej przeglądarce; wtedy użyj tokenu usługi.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Kontynuuj mimo to';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Użyj tokenu usługi';
+
+  @override
+  String get edgeAccessSignInFailed => 'Strona się nie załadowała.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Logowanie w przeglądarce dla $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Sesja Cloudflare wygasła';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Powiadomienia są wyłączone. Zaloguj się ponownie, aby je włączyć.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Gdy Cloudflare przestanie przyjmować logowanie lub token usługi aplikacji i powiadomienia ustaną';
+
+  @override
+  String get edgeSessionBanner => 'Sesja Cloudflare wygasła';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare odrzucił token usługi';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Powiadomienia są wyłączone. Wymień token usługi, aby je włączyć.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare odrzucił token usługi';
 }

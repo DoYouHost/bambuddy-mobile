@@ -82,7 +82,12 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       if (source == null || !mounted) return;
       await checkEdgeAccess(ref.read(bareDioProvider), source);
       if (!mounted) return;
-      controller = timelapsePlayer(source);
+      controller = await timelapsePlayer(source);
+      if (!mounted) {
+        // Left while the bridge started: nobody will watch it.
+        await controller.dispose();
+        return;
+      }
       await controller.initialize().timeout(_previewTimeout);
     } catch (_) {
       // No preview, no editor failure: trim and speed are numbers the server
