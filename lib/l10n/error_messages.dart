@@ -12,6 +12,8 @@ extension AppApiExceptionL10n on AppApiException {
     AppErrorCode.badResponse => l10n.errBadResponse(statusCode ?? 0),
     AppErrorCode.badCertificate => l10n.errBadCertificate,
     AppErrorCode.clientCertRefused => l10n.errClientCertRefused,
+    AppErrorCode.edgeAccessRequired => l10n.errEdgeAccessRequired,
+    AppErrorCode.edgeAccessRejected => l10n.errEdgeAccessRejected,
     AppErrorCode.connectionError => l10n.errConnection,
     AppErrorCode.malformedResponse => l10n.errMalformedResponse,
     AppErrorCode.notBambuddy => l10n.errNotBambuddy,

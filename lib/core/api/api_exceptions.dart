@@ -20,6 +20,16 @@ enum AppErrorCode {
   /// A proxy with mutual TLS refused the app: no client certificate, or one it
   /// does not accept (#65). The remedy is the certificate, not the address.
   clientCertRefused,
+
+  /// A request ended on a Cloudflare Access sign-in page (#72): the server sits
+  /// behind Cloudflare Access and the app has no credential it accepts. The
+  /// remedy is the credential, not the address.
+  edgeAccessRequired,
+
+  /// As [edgeAccessRequired], with a credential saved: Cloudflare did not
+  /// accept it. A service token revoked or outside its policy, or a browser
+  /// session that has ended.
+  edgeAccessRejected,
   connectionError,
   malformedResponse,
 
@@ -105,6 +115,25 @@ sealed class AppApiException implements Exception {
   String toString() =>
       '$runtimeType($code${statusCode == null ? '' : ', status=$statusCode'}'
       '${detail == null ? '' : ', detail=$detail'})';
+}
+
+/// A request that was sent on to Cloudflare Access (#72): [AppErrorCode.edgeAccessRequired]
+/// or [AppErrorCode.edgeAccessRejected].
+///
+/// [host] is the one Cloudflare is in front of: the host that redirected the
+/// request to its sign-in page, which is not always the one the address named
+/// (an alias, or an address that moved to its canonical host first). It is what
+/// a credential has to be bound to, and why it is a field of its own and not in
+/// [detail], which goes to the log.
+class EdgeAccessException extends AppApiException {
+  const EdgeAccessException(
+    super.code, {
+    required this.host,
+    super.method,
+    super.path,
+  });
+
+  final String host;
 }
 
 /// 4xx/5xx other than 401/403, or a response of unexpected shape.

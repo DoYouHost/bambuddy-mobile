@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/edge_access_probe.dart';
 import 'package:bambuddy_mobile/core/auth/auth_service.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -54,6 +55,47 @@ void main() {
       expect(auth.reLogins, 1);
     },
   );
+
+  group('the session signal', () {
+    tearDown(() => EdgeSessionSignal.listener = null);
+
+    Future<SharedPreferences> prepared() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await SettingsRepository(prefs).saveProfile(
+        const ServerProfile(
+          baseUrl: fakeServerBaseUrl,
+          authMode: AuthMode.none,
+        ),
+      );
+      return prefs;
+    }
+
+    test('an isolate with no listener of its own leaves the mark', () async {
+      final prefs = await prepared();
+      await buildBackgroundApiClient(prefs);
+
+      EdgeSessionSignal.ended('printers.example.com');
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        (await SettingsRepository.opened()).loadEdgeSessionEnded(),
+        'printers.example.com',
+      );
+    });
+
+    test('one that has its own is not taken over', () async {
+      final prefs = await prepared();
+      final heard = <String>[];
+      EdgeSessionSignal.listener = (host, token) => heard.add(host);
+
+      await buildBackgroundApiClient(prefs);
+      EdgeSessionSignal.ended('printers.example.com');
+
+      expect(heard, ['printers.example.com']);
+    });
+  });
 
   test('an AuthService without its store is refused', () async {
     SharedPreferences.setMockInitialValues({});

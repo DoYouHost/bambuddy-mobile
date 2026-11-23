@@ -444,6 +444,12 @@ class AuthService {
           await onSignInRequired?.call(SignInReason.twoFactorRequired);
           return null;
       }
+    } on EdgeAccessException {
+      // Cloudflare answered, not bambuddy: it says nothing about the password,
+      // and a caller that is told "no token" without why reports the server as
+      // unreachable. Let out; every caller already treats a throw here as "no
+      // token, nothing learned about the credentials".
+      rethrow;
     } on AppApiException catch (e) {
       // A 401 is the server's final word, and keeping the credentials would
       // replay the rejected password on every 401 the app meets. The server

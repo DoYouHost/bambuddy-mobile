@@ -269,6 +269,9 @@ class RememberingNotifications implements NotificationService {
   Future<bool> isAlertActive(int id) => _inner.isAlertActive(id);
 
   @override
+  Future<void> cancelAlert(int id) => _inner.cancelAlert(id);
+
+  @override
   Future<void> showAlert({
     required NotifEvent event,
     required int printerId,

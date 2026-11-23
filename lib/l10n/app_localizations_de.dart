@@ -10756,4 +10756,116 @@ class AppLocalizationsDe extends AppLocalizations {
   String nozzleDiameterValue(String diameter) {
     return '$diameter mm';
   }
+
+  @override
+  String get errEdgeAccessRequired =>
+      'Der Server liegt hinter Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access hat die gespeicherten Zugangsdaten nicht akzeptiert';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Einrichten';
+
+  @override
+  String get edgeAccessServiceToken => 'Service-Token';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Funktioniert im Hintergrund, sodass Hinweise und die Uhr weiter laufen.';
+
+  @override
+  String get edgeAccessClientId => 'Client-ID';
+
+  @override
+  String get edgeAccessClientSecret => 'Client-Secret';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Für $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Service-Token für $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Speichern';
+
+  @override
+  String get edgeAccessRemove => 'Entfernen';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Cloudflare Access entfernen?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'Die App erreicht diesen Server erst wieder, wenn du es neu einrichtest.';
+
+  @override
+  String get edgeAccessRecommended => 'Empfohlen';
+
+  @override
+  String get edgeAccessBrowser => 'Anmeldung im Browser';
+
+  @override
+  String get edgeAccessBrowserHint =>
+      'Läuft ab. Du meldest dich von Hand neu an.';
+
+  @override
+  String get edgeAccessSignIn => 'Anmelden';
+
+  @override
+  String get edgeAccessWarnTitle => 'Die Browser-Anmeldung läuft ab';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Endet die Cloudflare-Sitzung, funktionieren Hinweise, die laufende Benachrichtigung, Widgets und die Uhr nicht mehr, bis du dich neu anmeldest. Ein Service-Token braucht keine Anmeldung. Manche Anbieter, darunter Google, lehnen die Anmeldung in einem eingebetteten Browser ab; nimm dann ein Service-Token.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Trotzdem fortfahren';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Service-Token verwenden';
+
+  @override
+  String get edgeAccessSignInFailed => 'Die Seite wurde nicht geladen.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Browser-Anmeldung für $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Cloudflare-Sitzung abgelaufen';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Hinweise sind aus. Melde dich neu an, um sie wieder zu aktivieren.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Wenn Cloudflare die Anmeldung oder das Service-Token der App nicht mehr annimmt und Hinweise ausbleiben';
+
+  @override
+  String get edgeSessionBanner => 'Cloudflare-Sitzung abgelaufen';
+
+  @override
+  String get notifEdgeTokenTitle =>
+      'Cloudflare hat das Service-Token abgelehnt';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Hinweise sind aus. Tausche das Service-Token aus, um sie wieder zu aktivieren.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare hat das Service-Token abgelehnt';
 }

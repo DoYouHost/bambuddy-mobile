@@ -151,6 +151,9 @@ nothing and the fakes in tests stay silent. `title` and `body` never enter a
 record, which is why `postError` logs the exception's *class*: the only strings in
 scope there are the two we may not keep.
 
+- **`withdrawn`** is an alert the app took back off the screen because it was no
+  longer true (`nid` only): a Cloudflare ending that recovered. Written before the
+  call, like `posted`, so a vanished alert is not mistaken for a swipe.
 - **`finishPhoto`** says what became of the finish photo attached to an archive.
   It is its own record, not a `NotifSkip`: the alert is already on screen, so this
   decides only whether a photo reached it, and every way that fails (no alert to

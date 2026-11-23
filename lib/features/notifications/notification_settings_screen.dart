@@ -214,6 +214,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
       l.notifEvtBilling,
       l.notifEvtBillingDesc,
     ),
+    _EventRow(
+      NotifEvent.edgeSessionEnded,
+      l.notifEvtEdgeSession,
+      l.notifEvtEdgeSessionDesc,
+    ),
   ];
 }
 

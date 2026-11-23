@@ -161,9 +161,12 @@ test-device avd=avd:
         adb -s "$serial" install -r -g "$apk" >/dev/null
         flutter test "$file" -d "$serial" --flavor mobile || failed=1
     done
-    # The print alarm's native half (PrintAlarm.kt), which no Dart test can see.
+    # The native halves no Dart test can see: the print alarm (PrintAlarm.kt) and the
+    # sign-in WebView's cookie store (EdgeCookies.kt) and what the native network stacks
+    # refuse (NativeTlsTest, why the loopback bridge exists).
+    pkg=page.codeberg.morganmlgman.bambuddy_mobile
     (cd android && ANDROID_SERIAL="$serial" ./gradlew -q :app:connectedMobileDebugAndroidTest \
-        -Pandroid.testInstrumentationRunnerArguments.class=page.codeberg.morganmlgman.bambuddy_mobile.PrintAlarmTest) \
+        -Pandroid.testInstrumentationRunnerArguments.class=$pkg.PrintAlarmTest,$pkg.EdgeCookiesTest,$pkg.NativeTlsTest) \
         || failed=1
     exit $failed
 
