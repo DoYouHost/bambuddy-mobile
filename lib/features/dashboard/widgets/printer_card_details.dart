@@ -987,6 +987,8 @@ class _AmsSection extends ConsumerWidget {
     // report them out of order.
     final order = [for (var i = 0; i < trays.length; i++) i]
       ..sort((a, b) => unit.slotAt(a).compareTo(unit.slotAt(b)));
+    final l10n = AppLocalizations.of(context);
+    final loadedCount = trays.where((tray) => !tray.isEmpty).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1038,6 +1040,14 @@ class _AmsSection extends ConsumerWidget {
                   ],
                 ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.xs),
+          child: Text(
+            '${l10n.queueColorSubstitutionSlots(trays.length)} · '
+            '${l10n.amsFeedAlreadyLoaded} $loadedCount',
+            style: t.microSoft.copyWith(color: t.textTertiary),
           ),
         ),
         // Under the header rather than beside the flame chip: a pending run has
@@ -1498,90 +1508,131 @@ class _FilamentRow extends ConsumerWidget {
         naming?.name ??
         pending?.material ??
         (question ? l10n.traySlotUnconfigured : l10n.traySlotEmpty);
-    final lines = naming != null
-        ? [naming.colour, ?naming.spool]
-        : [?_pendingLabel(pending)];
+    final swatchColor = empty
+        ? parseSpoolColor(pending?.rgba)
+        : parseTrayColor(tray.trayColor);
+    final colorName = naming?.colour ?? pending?.colorName ?? '';
+    final spoolLine = naming?.spool ?? _pendingLabel(pending);
 
-    final row = Container(
+    final card = Container(
       constraints: const BoxConstraints(
         minHeight: kMinInteractiveDimension + DashSpace.sm,
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: DashSpace.sm,
-        vertical: DashSpace.xs,
-      ),
+      padding: const EdgeInsets.all(DashSpace.sm),
       decoration: BoxDecoration(
-        color: active ? t.accentGreen.withValues(alpha: DashAlpha.faint) : null,
+        color: active
+            ? t.accentGreen.withValues(alpha: DashAlpha.faint)
+            : t.subCard,
         borderRadius: BorderRadius.circular(DashRadius.md),
-        border: Border.all(
-          color: active
-              ? t.accentGreen.withValues(alpha: DashAlpha.soft)
-              : Colors.transparent,
-          width: DashStroke.hairline,
-        ),
+        border: active
+            ? Border.all(
+                color: t.accentGreen.withValues(alpha: DashAlpha.soft),
+                width: DashStroke.hairline,
+              )
+            : null,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _SlotSwatch(
-            color: empty
-                ? parseSpoolColor(pending?.rgba)
-                : parseTrayColor(tray.trayColor),
-            badge: question ? '?' : badge,
-            percent: percent,
-            active: active,
-            dryerInk: dryerInk,
-          ),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: t.bodyStrong.copyWith(
-                    color: empty && pending == null && !question
-                        ? t.textTertiary
-                        : ink,
-                  ),
-                ),
-                for (final line in lines)
-                  Text(
-                    line,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.bodyPlain,
-                  ),
-              ],
-            ),
-          ),
-          if (percent != null || grams != null) ...[
-            const SizedBox(width: DashSpace.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (percent != null)
-                  Text(
-                    '$percent%',
-                    style: t.monoValue.copyWith(
-                      fontWeight: DashWeight.bold,
-                      color: ink,
+          Row(
+            children: [
+              _SlotSwatch(
+                color: swatchColor,
+                badge: question ? '?' : badge,
+                percent: percent,
+                active: active,
+                dryerInk: dryerInk,
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.bodyStrong.copyWith(
+                        color: empty && pending == null && !question
+                            ? t.textTertiary
+                            : ink,
+                      ),
                     ),
-                  ),
-                if (grams != null)
-                  Text(
-                    l10n.inventoryUsageWeight(grams.toStringAsFixed(0)),
-                    style: t.monoLabel,
-                  ),
+                    if (colorName.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilamentDot(color: swatchColor),
+                          const SizedBox(width: DashSpace.xs),
+                          Flexible(
+                            child: Text(
+                              colorName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.bodyPlain,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (spoolLine != null)
+                      Text(
+                        spoolLine,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.microSoft.copyWith(color: t.textTertiary),
+                      ),
+                  ],
+                ),
+              ),
+              if (percent != null || grams != null) ...[
+                const SizedBox(width: DashSpace.sm),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (percent != null)
+                      Text(
+                        '$percent%',
+                        style: t.monoValue.copyWith(
+                          fontWeight: DashWeight.bold,
+                          color: ink,
+                        ),
+                      ),
+                    if (grams != null)
+                      Text(
+                        l10n.inventoryUsageWeight(grams.toStringAsFixed(0)),
+                        style: t.monoLabel,
+                      ),
+                  ],
+                ),
               ],
+            ],
+          ),
+          if (percent != null) ...[
+            const SizedBox(height: DashSpace.sm),
+            ExcludeSemantics(
+              child: DashProgressBar(
+                value: percent.clamp(0, 100) / 100.0,
+                height: DashBar.thin,
+                color: active ? t.accentGreen : null,
+              ),
             ),
           ],
         ],
       ),
     );
+
+    final row = empty
+        ? CustomPaint(
+            painter: _RoundedDashedBorderPainter(
+              color: t.dottedRule,
+              radius: DashRadius.md,
+            ),
+            child: card,
+          )
+        : card;
 
     final slot = this.slot;
     final tappable = slot == null
@@ -1601,7 +1652,7 @@ class _FilamentRow extends ConsumerWidget {
     return last
         ? tappable
         : Padding(
-            padding: const EdgeInsets.only(bottom: DashSpace.xs),
+            padding: const EdgeInsets.only(bottom: DashSpace.sm),
             child: tappable,
           );
   }
@@ -1617,6 +1668,47 @@ String? _pendingLabel(Spool? spool) {
   ].where((p) => p != null && p.isNotEmpty).join(' ');
   final colour = spool.colorName;
   return colour == null || colour.isEmpty ? name : '$name ($colour)';
+}
+
+class _RoundedDashedBorderPainter extends CustomPainter {
+  const _RoundedDashedBorderPainter({
+    required this.color,
+    required this.radius,
+  });
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = DashStroke.hairline
+      ..strokeJoin = StrokeJoin.round;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = min(distance + 6, metric.length);
+        final start = metric.getTangentForOffset(distance);
+        final finish = metric.getTangentForOffset(end);
+        if (start != null && finish != null) {
+          canvas.drawLine(start.position, finish.position, paint);
+        }
+        distance = end + 5;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RoundedDashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// A slot's colour with its [badge] inside, inked black or white for contrast,
@@ -1660,7 +1752,7 @@ class _SlotSwatch extends StatelessWidget {
               child: CircularProgressIndicator(
                 value: percent.clamp(0, 100) / 100,
                 strokeWidth: DashBar.thin,
-                color: active ? t.accentGreen : t.textTertiary,
+                color: t.accentGreen,
                 backgroundColor: t.gaugeTrack,
               ),
             ),
