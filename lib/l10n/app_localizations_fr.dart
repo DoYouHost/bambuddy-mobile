@@ -8219,6 +8219,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les cartes s\'ouvrent en n\'affichant que le nom, l\'état et la progression de l\'impression. Chaque carte peut toujours être développée.';
 
   @override
+  String get compactAmsLayoutTitle => 'Disposition AMS compacte';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Afficher les quatre emplacements AMS et la bobine externe sur une seule ligne. Désactiver pour les cartes de filament détaillées.';
+
+  @override
   String get printerCardExpand => 'Développer la carte';
 
   @override

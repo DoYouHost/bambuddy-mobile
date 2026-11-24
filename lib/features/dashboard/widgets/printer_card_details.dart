@@ -622,6 +622,41 @@ class _DetailsPanel extends ConsumerWidget {
         externalSlotIndex(spools[i].id ?? externalTrayIdBase);
 
     final rackCard = rackCardPositions(status.nozzleRack, rackPrinter: rack);
+    final compact = ref.watch(compactAmsLayoutProvider);
+    final externalSection = spools.isEmpty
+        ? null
+        : _SpoolSection(
+            trays: spools,
+            active: active,
+            rack: rack,
+            compact: compact && !rack,
+            extruderOf: dual && !rack
+                ? (i) => status.extruderForExternal(spools[i].id)
+                : (_) => null,
+            fillOf: (i) => assigned.fillOf(
+              spools[i],
+              amsId: externalHolderUnit,
+              trayId: trayIdOf(i),
+              serial: serial,
+            ),
+            presetOf: (i) => presets[(externalHolderUnit, trayIdOf(i))],
+            spoolOf: (i) => assigned.spoolOf(
+              spools[i],
+              amsId: externalHolderUnit,
+              trayId: trayIdOf(i),
+              serial: serial,
+            ),
+            slotRef: (i) => _externalSlotRef(
+              l10n: AppLocalizations.of(context),
+              status: status,
+              dual: dual,
+              spool: spools[i],
+              assigned: assigned,
+            ),
+          );
+    // On a regular printer the external holder is the fifth tile beside AMS-A.
+    // A rack has several inputs with their own heading, so it keeps the list.
+    final combineExternal = compact && !rack && ams.isNotEmpty;
     final blocks = <Widget>[
       if (rackCard != null) _NozzleRackSection(positions: rackCard),
       for (var i = 0; i < ams.length; i++)
@@ -643,6 +678,10 @@ class _DetailsPanel extends ConsumerWidget {
           supportsDrying: status.supportsDrying ?? false,
           printing: status.isPrinting && !status.isPaused,
           connected: status.connected != false,
+          compact: compact && !rack,
+          compactExternal: combineExternal && i == ams.length - 1
+              ? externalSection
+              : null,
           slotRef: (trayIndex) => _amsSlotRef(
             status: status,
             dual: dual,
@@ -655,35 +694,7 @@ class _DetailsPanel extends ConsumerWidget {
         ),
       if (rack && spools.isEmpty && reported.isNotEmpty)
         _ExternalInputsEmpty(count: reported.length),
-      if (spools.isNotEmpty)
-        _SpoolSection(
-          trays: spools,
-          active: active,
-          rack: rack,
-          extruderOf: dual && !rack
-              ? (i) => status.extruderForExternal(spools[i].id)
-              : (_) => null,
-          fillOf: (i) => assigned.fillOf(
-            spools[i],
-            amsId: externalHolderUnit,
-            trayId: trayIdOf(i),
-            serial: serial,
-          ),
-          presetOf: (i) => presets[(externalHolderUnit, trayIdOf(i))],
-          spoolOf: (i) => assigned.spoolOf(
-            spools[i],
-            amsId: externalHolderUnit,
-            trayId: trayIdOf(i),
-            serial: serial,
-          ),
-          slotRef: (i) => _externalSlotRef(
-            l10n: AppLocalizations.of(context),
-            status: status,
-            dual: dual,
-            spool: spools[i],
-            assigned: assigned,
-          ),
-        ),
+      if (externalSection != null && !combineExternal) externalSection,
     ];
 
     return Padding(
@@ -906,6 +917,8 @@ class _AmsSection extends ConsumerWidget {
     required this.printing,
     required this.connected,
     required this.slotRef,
+    this.compact = false,
+    this.compactExternal,
   });
 
   final AmsUnit unit;
@@ -930,6 +943,10 @@ class _AmsSection extends ConsumerWidget {
   /// The card shows the last known filament for a few seconds after the printer
   /// drops off (the offline debounce); a command sent then is a 400.
   final bool connected;
+
+  /// Compact slot tiles, and optionally the external holder appended as tile 5.
+  final bool compact;
+  final _SpoolSection? compactExternal;
 
   /// What the slot sheet needs for slot [trayIndex] of this unit, built by
   /// [_amsSlotRef] so the card and the single-printer controller open the same
@@ -989,6 +1006,37 @@ class _AmsSection extends ConsumerWidget {
       ..sort((a, b) => unit.slotAt(a).compareTo(unit.slotAt(b)));
     final l10n = AppLocalizations.of(context);
     final loadedCount = trays.where((tray) => !tray.isEmpty).length;
+    final slots = <Widget>[
+      // The web addresses a slot by its tray id (`trayForSlot`), not its place
+      // in the report — its fill, label and every action alike.
+      for (final i in order)
+        _FilamentRow(
+          tray: trays[i],
+          active: identical(trays[i], active),
+          fill: assigned.fillOf(
+            trays[i],
+            amsId: unit.id ?? unitIndex,
+            trayId: unit.slotAt(i),
+            serial: serial,
+          ),
+          spool: assigned.spoolOf(
+            trays[i],
+            amsId: unit.id ?? unitIndex,
+            trayId: unit.slotAt(i),
+            serial: serial,
+          ),
+          preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
+          last: i == order.last,
+          badge: '${unit.slotAt(i) + 1}',
+          dryerInk: unit.dryerSlots.contains(unit.slotAt(i)) ? dryerInk : null,
+          slot: slotRef(i),
+          compact: compact,
+        ),
+    ];
+    final external = compactExternal;
+    if (compact && external != null) {
+      slots.addAll(external.filamentRows(context, compact: true));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1042,14 +1090,15 @@ class _AmsSection extends ConsumerWidget {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: DashSpace.xs),
-          child: Text(
-            '${l10n.queueColorSubstitutionSlots(trays.length)} · '
-            '${l10n.amsFeedAlreadyLoaded} $loadedCount',
-            style: t.microSoft.copyWith(color: t.textTertiary),
+        if (!compact)
+          Padding(
+            padding: const EdgeInsets.only(top: DashSpace.xs),
+            child: Text(
+              '${l10n.queueColorSubstitutionSlots(trays.length)} · '
+              '${l10n.amsFeedAlreadyLoaded} $loadedCount',
+              style: t.microSoft.copyWith(color: t.textTertiary),
+            ),
           ),
-        ),
         // Under the header rather than beside the flame chip: a pending run has
         // a sentence to say (when, and what it is waiting for) and the chip is
         // one word wide.
@@ -1060,7 +1109,7 @@ class _AmsSection extends ConsumerWidget {
             drying: unit.isDrying,
           ),
         const SizedBox(height: DashSpace.md),
-        if (trays.isEmpty)
+        if (slots.isEmpty)
           Text(
             '—',
             style: TextStyle(
@@ -1068,33 +1117,10 @@ class _AmsSection extends ConsumerWidget {
               color: t.textTertiary,
             ),
           )
+        else if (compact)
+          CompactFilamentSlots(children: slots)
         else
-          // The web addresses a slot by its tray id (`trayForSlot`), not its
-          // place in the report — its fill, label and every action alike.
-          for (final i in order)
-            _FilamentRow(
-              tray: trays[i],
-              active: identical(trays[i], active),
-              fill: assigned.fillOf(
-                trays[i],
-                amsId: unit.id ?? unitIndex,
-                trayId: unit.slotAt(i),
-                serial: serial,
-              ),
-              spool: assigned.spoolOf(
-                trays[i],
-                amsId: unit.id ?? unitIndex,
-                trayId: unit.slotAt(i),
-                serial: serial,
-              ),
-              preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
-              last: i == order.last,
-              badge: '${unit.slotAt(i) + 1}',
-              dryerInk: unit.dryerSlots.contains(unit.slotAt(i))
-                  ? dryerInk
-                  : null,
-              slot: slotRef(i),
-            ),
+          ...slots,
         // Under the rows, where a thumb is after reading what is loaded; the
         // web puts it in the header, which a phone's header has no room for at
         // large text.
@@ -1174,7 +1200,8 @@ class _AmsUnloadAllButton extends ConsumerWidget {
 }
 
 /// External spool section (design "EXTERNAL SPOOL"): title + one row per spool,
-/// each prefixed with its extruder side on dual machines.
+/// each prefixed with its extruder side on dual machines. In compact mode on a
+/// single-AMS printer, [filamentRows] instead supplies the fifth AMS tile.
 class _SpoolSection extends StatelessWidget {
   const _SpoolSection({
     required this.trays,
@@ -1185,6 +1212,7 @@ class _SpoolSection extends StatelessWidget {
     required this.presetOf,
     required this.slotRef,
     this.rack = false,
+    this.compact = false,
   });
 
   final List<AmsTray> trays;
@@ -1192,6 +1220,7 @@ class _SpoolSection extends StatelessWidget {
 
   /// The inputs of a rack printer, named by the hotend each feeds.
   final bool rack;
+  final bool compact;
   final int? Function(int index) extruderOf;
   final TrayFill Function(int index) fillOf;
   final Spool? Function(int index) spoolOf;
@@ -1201,31 +1230,39 @@ class _SpoolSection extends StatelessWidget {
   /// null where the slot takes no action.
   final _SlotRef? Function(int index) slotRef;
 
+  List<Widget> filamentRows(BuildContext context, {bool compact = false}) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      for (var i = 0; i < trays.length; i++)
+        _FilamentRow(
+          tray: trays[i],
+          active: identical(trays[i], active),
+          fill: fillOf(i),
+          spool: spoolOf(i),
+          preset: presetOf(i),
+          last: i == trays.length - 1,
+          badge: rack
+              ? '${externalHotend(trays[i].id ?? 255) + 1}'
+              : switch (extruderOf(i)) {
+                  1 => l10n.extruderLeftShort,
+                  0 => l10n.extruderRightShort,
+                  _ => null,
+                },
+          slot: slotRef(i),
+          compact: compact,
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final rows = filamentRows(context, compact: compact);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ExternalTitle(rack: rack),
         const SizedBox(height: DashSpace.md),
-        for (var i = 0; i < trays.length; i++)
-          _FilamentRow(
-            tray: trays[i],
-            active: identical(trays[i], active),
-            fill: fillOf(i),
-            spool: spoolOf(i),
-            preset: presetOf(i),
-            last: i == trays.length - 1,
-            badge: rack
-                ? '${externalHotend(trays[i].id ?? 255) + 1}'
-                : switch (extruderOf(i)) {
-                    1 => l10n.extruderLeftShort,
-                    0 => l10n.extruderRightShort,
-                    _ => null,
-                  },
-            slot: slotRef(i),
-          ),
+        if (compact) CompactFilamentSlots(children: rows) else ...rows,
       ],
     );
   }
@@ -1457,6 +1494,7 @@ class _FilamentRow extends ConsumerWidget {
     this.badge,
     this.dryerInk,
     this.slot,
+    this.compact = false,
   });
 
   final AmsTray tray;
@@ -1481,6 +1519,7 @@ class _FilamentRow extends ConsumerWidget {
   /// Set on a slot inside the AMS 3H's dryer, in the dryer chip's colour.
   final Color? dryerInk;
   final _SlotRef? slot;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1503,7 +1542,7 @@ class _FilamentRow extends ConsumerWidget {
         empty &&
         unconfigured &&
         pending == null &&
-        this.slot?.amsId != externalHolderUnit;
+        slot?.amsId != externalHolderUnit;
     final title =
         naming?.name ??
         pending?.material ??
@@ -1513,6 +1552,40 @@ class _FilamentRow extends ConsumerWidget {
         : parseTrayColor(tray.trayColor);
     final colorName = naming?.colour ?? pending?.colorName ?? '';
     final spoolLine = naming?.spool ?? _pendingLabel(pending);
+
+    Widget tappable(Widget child) {
+      final slot = this.slot;
+      return slot == null
+          ? child
+          : logTagMaterial(
+              'printer.ams_slot',
+              tray.trayType,
+              InkWell(
+                borderRadius: BorderRadius.circular(DashRadius.md),
+                onTap: () => dashSheet<void>(
+                  context,
+                  builder: (_) => _AssignSlotSheet(slot: slot),
+                ),
+                child: child,
+              ),
+            );
+    }
+
+    if (compact) {
+      final materialLabel = _compactMaterialLabel(tray) ?? title;
+      return tappable(
+        CompactFilamentCard(
+          title: empty ? title : materialLabel,
+          colorName: colorName,
+          color: swatchColor,
+          percent: percent,
+          grams: grams,
+          empty: empty,
+          active: active,
+          dryerInk: dryerInk,
+        ),
+      );
+    }
 
     final card = Container(
       constraints: const BoxConstraints(
@@ -1634,27 +1707,176 @@ class _FilamentRow extends ConsumerWidget {
           )
         : card;
 
-    final slot = this.slot;
-    final tappable = slot == null
-        ? row
-        : logTagMaterial(
-            'printer.ams_slot',
-            tray.trayType,
-            InkWell(
-              borderRadius: BorderRadius.circular(DashRadius.md),
-              onTap: () => dashSheet<void>(
-                context,
-                builder: (_) => _AssignSlotSheet(slot: slot),
-              ),
-              child: row,
-            ),
-          );
+    final tile = tappable(row);
     return last
-        ? tappable
+        ? tile
         : Padding(
             padding: const EdgeInsets.only(bottom: DashSpace.sm),
-            child: tappable,
+            child: tile,
           );
+  }
+}
+
+/// Five equal-width slot tiles. Intrinsic height keeps the external empty
+/// holder exactly as tall as the four loaded AMS tiles beside it.
+class CompactFilamentSlots extends StatelessWidget {
+  const CompactFilamentSlots({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs / 2),
+              child: children[i],
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+/// The compact AMS tile: material on its colour block, then colour, remaining
+/// percent and grams, with the same thin fill bar as the detailed card.
+class CompactFilamentCard extends StatelessWidget {
+  const CompactFilamentCard({
+    super.key,
+    required this.title,
+    required this.colorName,
+    required this.color,
+    required this.percent,
+    required this.grams,
+    required this.empty,
+    required this.active,
+    this.dryerInk,
+  });
+
+  final String title;
+  final String colorName;
+  final Color? color;
+  final int? percent;
+  final double? grams;
+  final bool empty;
+  final bool active;
+  final Color? dryerInk;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final shown = color == null
+        ? null
+        : Color.alphaBlend(color!, t.overlaySurface);
+    final radius = BorderRadius.circular(DashRadius.md);
+    final swatch = AspectRatio(
+      aspectRatio: 1.05,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(DashSpace.xs),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: empty ? t.subCard : shown,
+          borderRadius: radius,
+          border: Border.all(
+            color: active
+                ? t.accentGreen
+                : t.textTertiary.withValues(alpha: DashAlpha.outline),
+            width: active ? DashStroke.regular : DashStroke.hairline,
+          ),
+        ),
+        child: empty
+            ? Icon(Icons.remove_rounded, color: t.textTertiary)
+            : Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: t.bodyStrong.copyWith(
+                  color: shown == null ? t.textPrimary : _inkOn(shown),
+                ),
+              ),
+      ),
+    );
+
+    return MediaQuery.withClampedTextScaling(
+      // Five tiles share a phone's width. The detailed layout remains available
+      // in Settings for unrestricted text scaling.
+      maxScaleFactor: 1.25,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (empty)
+            CustomPaint(
+              painter: _RoundedDashedBorderPainter(
+                color: t.dottedRule,
+                radius: DashRadius.md,
+              ),
+              child: swatch,
+            )
+          else
+            Stack(
+              children: [
+                swatch,
+                if (dryerInk != null)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Icon(
+                      Icons.local_fire_department,
+                      size: DashIcon.xs,
+                      color: dryerInk,
+                      semanticLabel: l10n.amsDryer,
+                    ),
+                  ),
+              ],
+            ),
+          const SizedBox(height: DashSpace.xs),
+          Text(
+            empty ? title : colorName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: t.bodyStrong.copyWith(
+              color: empty ? t.textTertiary : t.textPrimary,
+            ),
+          ),
+          Text(
+            percent == null ? '' : '$percent%',
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: t.bodyStrong.copyWith(
+              color: active ? t.accentGreenInk : t.textPrimary,
+            ),
+          ),
+          Text(
+            grams == null
+                ? ''
+                : l10n.inventoryUsageWeight(grams!.toStringAsFixed(0)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: t.microSoft.copyWith(color: t.textTertiary),
+          ),
+          const SizedBox(height: DashSpace.xs),
+          if (percent == null)
+            const SizedBox(height: DashBar.thin)
+          else
+            ExcludeSemantics(
+              child: DashProgressBar(
+                value: percent!.clamp(0, 100) / 100.0,
+                height: DashBar.thin,
+                color: t.accentGreen,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1820,6 +2042,24 @@ class _SlotSwatch extends StatelessWidget {
 Color _inkOn(Color colour) {
   final l = colour.computeLuminance();
   return (l + 0.05) / 0.05 >= 1.05 / (l + 0.05) ? Colors.black : Colors.white;
+}
+
+/// Compact block labels split the material family from its chip variant:
+/// `PLA` + `Basic` reads `PLA Basic`, while a chip name that already names the
+/// family (`PLA Basic`, `Bambu PLA Basic`) is kept whole instead of duplicated.
+String? _compactMaterialLabel(AmsTray tray) {
+  String? nonEmpty(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  final type = nonEmpty(tray.trayType);
+  final subBrand = nonEmpty(tray.traySubBrands);
+  final rfidLabel = filamentLabelFromRfid(tray.trayInfoIdx);
+  if (type == null) return subBrand ?? rfidLabel;
+  if (subBrand == null) return rfidLabel ?? type;
+  if (subBrand.toLowerCase().contains(type.toLowerCase())) return subBrand;
+  return '$type $subBrand';
 }
 
 /// Tappable humidity/temperature metadata in the AMS header (opens history).

@@ -8199,6 +8199,13 @@ class AppLocalizationsPl extends AppLocalizations {
       'Karty otwierają się z samą nazwą, statusem i postępem wydruku. Każdą nadal można rozwinąć.';
 
   @override
+  String get compactAmsLayoutTitle => 'Kompaktowy układ AMS';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Pokaż cztery gniazda AMS i zewnętrzną szpulę w jednym rzędzie. Wyłącz, aby zobaczyć szczegółowe karty filamentu.';
+
+  @override
   String get printerCardExpand => 'Rozwiń kartę';
 
   @override

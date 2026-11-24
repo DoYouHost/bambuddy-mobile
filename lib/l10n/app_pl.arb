@@ -3459,6 +3459,8 @@
   "appSettingsNotificationsSubtitle": "Które zdarzenia wysyłają powiadomienie i przy jakich progach",
   "collapsePrinterCardsTitle": "Zwinięte karty drukarek",
   "collapsePrinterCardsDesc": "Karty otwierają się z samą nazwą, statusem i postępem wydruku. Każdą nadal można rozwinąć.",
+  "compactAmsLayoutTitle": "Kompaktowy układ AMS",
+  "compactAmsLayoutDesc": "Pokaż cztery gniazda AMS i zewnętrzną szpulę w jednym rzędzie. Wyłącz, aby zobaczyć szczegółowe karty filamentu.",
   "printerCardExpand": "Rozwiń kartę",
   "printerCardCollapse": "Zwiń kartę",
   "ordersTitle": "Zamówienia",

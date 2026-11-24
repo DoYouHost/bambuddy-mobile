@@ -22,6 +22,23 @@ class PrinterCardsCollapsedByDefaultNotifier extends Notifier<bool> {
   }
 }
 
+/// The app setting: whether AMS slots use the compact five-across layout.
+final compactAmsLayoutProvider =
+    NotifierProvider<CompactAmsLayoutNotifier, bool>(
+      CompactAmsLayoutNotifier.new,
+    );
+
+class CompactAmsLayoutNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.watch(settingsRepositoryProvider).loadCompactAmsLayout();
+
+  Future<void> set(bool compact) async {
+    await ref.read(settingsRepositoryProvider).saveCompactAmsLayout(compact);
+    if (!ref.mounted) return;
+    state = compact;
+  }
+}
+
 /// Which cards are collapsed right now: the setting, plus what the user
 /// toggled by hand since the app started.
 ///

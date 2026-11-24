@@ -2217,6 +2217,8 @@
   "appSettingsNotificationsSubtitle": "哪些事件会发送通知，以及阈值",
   "collapsePrinterCardsTitle": "折叠打印机卡片",
   "collapsePrinterCardsDesc": "卡片默认只显示名称、状态和打印进度，任意卡片仍可展开。",
+  "compactAmsLayoutTitle": "紧凑 AMS 布局",
+  "compactAmsLayoutDesc": "四个 AMS 槽位与外置料盘同排显示，关闭后使用详细耗材卡片。",
   "printerCardExpand": "展开卡片",
   "printerCardCollapse": "收起卡片",
   "ordersTitle": "批量订单",
