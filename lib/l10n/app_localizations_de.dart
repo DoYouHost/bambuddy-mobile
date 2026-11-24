@@ -8133,6 +8133,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Karten zeigen beim Öffnen nur Name, Status und Druckfortschritt. Jede Karte lässt sich weiterhin ausklappen.';
 
   @override
+  String get compactAmsLayoutTitle => 'Kompaktes AMS-Layout';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Vier AMS-Slots und die externe Spule in einer Reihe anzeigen. Deaktivieren für detaillierte Filamentkarten.';
+
+  @override
   String get printerCardExpand => 'Karte ausklappen';
 
   @override

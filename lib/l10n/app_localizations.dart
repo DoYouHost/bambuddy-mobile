@@ -13415,6 +13415,18 @@ abstract class AppLocalizations {
   /// **'Cards open showing only the name, status and print progress. Any card can still be expanded.'**
   String get collapsePrinterCardsDesc;
 
+  /// No description provided for @compactAmsLayoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact AMS layout'**
+  String get compactAmsLayoutTitle;
+
+  /// No description provided for @compactAmsLayoutDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Show four AMS slots and the external spool in one row. Turn off for detailed filament cards.'**
+  String get compactAmsLayoutDesc;
+
   /// No description provided for @printerCardExpand.
   ///
   /// In en, this message translates to:

@@ -8146,6 +8146,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Las tarjetas se abren mostrando solo el nombre, el estado y el progreso de impresión. Cualquier tarjeta se puede seguir expandiendo.';
 
   @override
+  String get compactAmsLayoutTitle => 'Diseño compacto del AMS';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Muestra las cuatro ranuras del AMS y la bobina externa en una sola fila. Desactívalo para ver tarjetas de filamento detalladas.';
+
+  @override
   String get printerCardExpand => 'Expandir tarjeta';
 
   @override

@@ -4148,6 +4148,8 @@
   "appSettingsNotificationsSubtitle": "Welche Ereignisse eine Benachrichtigung senden und ab welchen Schwellenwerten",
   "collapsePrinterCardsTitle": "Eingeklappte Druckerkarten",
   "collapsePrinterCardsDesc": "Karten zeigen beim Öffnen nur Name, Status und Druckfortschritt. Jede Karte lässt sich weiterhin ausklappen.",
+  "compactAmsLayoutTitle": "Kompaktes AMS-Layout",
+  "compactAmsLayoutDesc": "Vier AMS-Slots und die externe Spule in einer Reihe anzeigen. Deaktivieren für detaillierte Filamentkarten.",
   "printerCardExpand": "Karte ausklappen",
   "printerCardCollapse": "Karte einklappen",
   "ordersTitle": "Sammelaufträge",

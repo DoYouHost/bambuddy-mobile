@@ -8048,6 +8048,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cards open showing only the name, status and print progress. Any card can still be expanded.';
 
   @override
+  String get compactAmsLayoutTitle => 'Compact AMS layout';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Show four AMS slots and the external spool in one row. Turn off for detailed filament cards.';
+
+  @override
   String get printerCardExpand => 'Expand card';
 
   @override

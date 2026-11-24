@@ -7724,6 +7724,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get collapsePrinterCardsDesc => '卡片默认只显示名称、状态和打印进度，任意卡片仍可展开。';
 
   @override
+  String get compactAmsLayoutTitle => '紧凑 AMS 布局';
+
+  @override
+  String get compactAmsLayoutDesc => '四个 AMS 槽位与外置料盘同排显示，关闭后使用详细耗材卡片。';
+
+  @override
   String get printerCardExpand => '展开卡片';
 
   @override

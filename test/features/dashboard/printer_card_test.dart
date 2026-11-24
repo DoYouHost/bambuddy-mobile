@@ -27,6 +27,7 @@ import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
 import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
+import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/temp_glyph.dart';
 import 'package:bambuddy_mobile/features/dashboard/temp_readings.dart';
 import 'package:bambuddy_mobile/core/printers/hms_readback.dart';
@@ -319,6 +320,18 @@ class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
   }
 }
 
+class _FixedCompactAms extends CompactAmsLayoutNotifier {
+  _FixedCompactAms(this._value);
+
+  final bool _value;
+
+  @override
+  bool build() => _value;
+}
+
+Override _compactAms(bool value) =>
+    compactAmsLayoutProvider.overrideWith(() => _FixedCompactAms(value));
+
 /// Printer 1 with an assigned, powered-on "Szafa" plug (42W).
 SmartPlugsState _plugState() => SmartPlugsState(
   plugs: const [
@@ -351,6 +364,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(() => stub),
         aiDetectionOverride(),
+        _compactAms(false),
       ],
       child: plApp(
         Scaffold(
@@ -411,6 +425,7 @@ Widget _scope(
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
     ...inertDashboardPollOverrides,
+    _compactAms(false),
   ], extra),
   // On the app, not on the card: a sheet is a route above the card and would
   // otherwise open at 100 %.
@@ -456,6 +471,7 @@ Widget _cardSwap(
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
     ...inertDashboardPollOverrides,
+    _compactAms(false),
   ],
   child: plApp(
     Scaffold(
@@ -1083,6 +1099,63 @@ void main() {
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
     });
+
+    testWidgets(
+      'compact AMS layout puts four slots and external spool in one row',
+      (tester) async {
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: realItem(
+                    oneHolder: true,
+                    trays: const {
+                      2: {
+                        'tray_type': 'PLA',
+                        'tray_sub_brands': '',
+                        'tray_info_idx': 'GFA18',
+                      },
+                    },
+                    top: {
+                      'vt_tray': [
+                        {
+                          'id': 254,
+                          'tray_type': '',
+                          'tray_color': '',
+                          'exists': false,
+                        },
+                      ],
+                    },
+                  ),
+                ),
+              ),
+            ),
+            extra: [_compactAms(true)],
+          ),
+        );
+        await tester.ensureVisible(find.text(pl.detailsShow));
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+
+        expect(find.byType(CompactFilamentSlots), findsOneWidget);
+        expect(find.byType(CompactFilamentCard), findsNWidgets(5));
+        expect(find.text('PLA Basic'), findsWidgets);
+        expect(find.text('PLA Lite'), findsOneWidget);
+        expect(find.text(pl.externalSpool.toUpperCase()), findsNothing);
+        expect(find.text(pl.traySlotEmpty), findsOneWidget);
+
+        final rects = [
+          for (final element in find.byType(CompactFilamentCard).evaluate())
+            tester.getRect(find.byWidget(element.widget)),
+        ];
+        for (final rect in rects.skip(1)) {
+          expect(rect.width, closeTo(rects.first.width, 0.5));
+          expect(rect.height, closeTo(rects.first.height, 0.5));
+        }
+      },
+    );
 
     // Three rows of the card overflowed at 200 % text (by 14, 49 and 63 px):
     // the print buttons, the Wi-Fi and door line, and the AMS header. Width,
@@ -3961,6 +4034,7 @@ void main() {
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
           ...inertDashboardPollOverrides,
+          _compactAms(false),
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
@@ -4840,6 +4914,7 @@ void main() {
         fakeServerProfileOverride(),
         mediaAuthOverride(),
         ...inertDashboardPollOverrides,
+        _compactAms(false),
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
       child: plApp(
@@ -4910,6 +4985,7 @@ void main() {
           fakeServerProfileOverride(),
           mediaAuthOverride(),
           ...inertDashboardPollOverrides,
+          _compactAms(false),
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,

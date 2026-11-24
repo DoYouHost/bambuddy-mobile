@@ -4148,6 +4148,8 @@
   "appSettingsNotificationsSubtitle": "Quels événements envoient une notification, et à partir de quels seuils",
   "collapsePrinterCardsTitle": "Cartes d'imprimante réduites",
   "collapsePrinterCardsDesc": "Les cartes s'ouvrent en n'affichant que le nom, l'état et la progression de l'impression. Chaque carte peut toujours être développée.",
+  "compactAmsLayoutTitle": "Disposition AMS compacte",
+  "compactAmsLayoutDesc": "Afficher les quatre emplacements AMS et la bobine externe sur une seule ligne. Désactiver pour les cartes de filament détaillées.",
   "printerCardExpand": "Développer la carte",
   "printerCardCollapse": "Réduire la carte",
   "ordersTitle": "Commandes groupées",

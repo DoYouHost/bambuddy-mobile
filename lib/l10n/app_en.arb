@@ -5304,6 +5304,8 @@
   "appSettingsNotificationsSubtitle": "Which events send a notification, and at what thresholds",
   "collapsePrinterCardsTitle": "Collapsed printer cards",
   "collapsePrinterCardsDesc": "Cards open showing only the name, status and print progress. Any card can still be expanded.",
+  "compactAmsLayoutTitle": "Compact AMS layout",
+  "compactAmsLayoutDesc": "Show four AMS slots and the external spool in one row. Turn off for detailed filament cards.",
   "printerCardExpand": "Expand card",
   "printerCardCollapse": "Collapse card",
   "ordersTitle": "Batch orders",
