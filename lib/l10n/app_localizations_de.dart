@@ -11011,4 +11011,43 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get maintenanceLogYear => '1 Jahr';
+
+  @override
+  String get spoolScanTitle => 'Spule scannen';
+
+  @override
+  String get spoolScanModeCamera => 'Kamera';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint => 'Halte die Spule an die Rückseite des Handys';
+
+  @override
+  String get spoolScanNfcHelp =>
+      'Der Tag wird dort gelesen, wo die NFC-Antenne sitzt, meist in der Nähe der Kamera.';
+
+  @override
+  String get spoolScanNfcOff => 'NFC ist aus';
+
+  @override
+  String get spoolScanNfcOffHelp =>
+      'Schalte es in den Systemeinstellungen ein, um Tags zu scannen.';
+
+  @override
+  String get spoolScanNfcOpenSettings => 'Einstellungen öffnen';
+
+  @override
+  String get spoolScanTagUnknown => 'Keine Spule hat diesen Tag';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return 'Der Tag $tag ist mit keiner Spule in den Filamenten verknüpft. Verknüpfe ihn in SpoolBuddy und versuche es erneut.';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return '$name wird geöffnet';
+  }
 }

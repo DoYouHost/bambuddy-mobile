@@ -270,6 +270,22 @@ missing channels as `NfcStatus.unsupported`.
 - The `NFC` permission is install-time and shows no dialog; `android.hardware.nfc` is
   declared `required="false"`. The watch manifest removes the permission
   (`docs/play-compliance.md`).
+- **The scanner is one screen with two sides** (`spool_scanner_screen.dart`): the camera
+  reads a QR code, and a Camera | NFC switch under the title reads the tag
+  (`spool_nfc_scan.dart`). Both pop the spool's id, so the three callers (the Filaments
+  button, the home-screen widget, assigning to a slot) need no change. The switch is absent
+  where `NfcReader.status()` says `unsupported`, and that screen is the camera one as it was.
+  **The side used last opens next** (`spool_scan_nfc`, a choice of the device kept across
+  servers); a remembered NFC on a phone that has none shows the camera and keeps the choice.
+  While the phone has not yet answered and the last side was NFC, a black screen waits: the
+  camera is not started for that moment. NFC off says so and opens the system settings;
+  coming back (`resumed`) asks again, and `nfc_unavailable` from the stream does too.
+- **A tag no spool has keeps the screen waiting** and says its number. The shelf is reloaded
+  once before saying so (a tag linked in SpoolBuddy a moment ago is the normal case; a
+  shelf still loading is waited for instead), a second tag read during that is ignored and
+  read as any other when held again, tags read while the scanner closes are ignored, and a
+  shelf that cannot be loaded says why instead of "no spool has this tag". The scanner holds `inventoryProvider` while it is open, so the
+  first tag finds the shelf loaded.
 - **Not tried on a device** when it was written (no NFC phone to hand): the Kotlin compiles
   in both flavors and the Dart side is tested through mocked channels, nothing more.
 

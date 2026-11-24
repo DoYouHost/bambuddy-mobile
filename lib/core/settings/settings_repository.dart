@@ -29,6 +29,7 @@ class SettingsRepository {
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
   static const _maintLogPrinterKey = 'maintenance_log_printer';
+  static const _spoolScanNfcKey = 'spool_scan_nfc';
 
   /// `FinishAlertMemory`'s entry; named here because a server change clears it.
   static const finishAlertKey = 'finish_alert_last';
@@ -294,6 +295,14 @@ class SettingsRepository {
 
   Future<void> saveMergeDismissedAt(int groups) =>
       _prefs.setInt(_mergeDismissedAtKey, groups);
+
+  /// Whether the spool scanner last read NFC rather than the camera, so it opens
+  /// on the one that was used. Absent reads as the camera, the only way it
+  /// scanned before NFC. A choice of this device, kept across servers.
+  bool loadSpoolScanNfc() => _prefs.getBool(_spoolScanNfcKey) ?? false;
+
+  Future<void> saveSpoolScanNfc(bool nfc) =>
+      _prefs.setBool(_spoolScanNfcKey, nfc);
 
   /// The printer whose maintenance log was open last, so the log opens on it
   /// again. Null until one was opened. A printer id means something only on the

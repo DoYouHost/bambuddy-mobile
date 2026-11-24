@@ -18058,6 +18058,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'1 year'**
   String get maintenanceLogYear;
+
+  /// Title of the spool scanner when it offers both the camera and NFC.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a spool'**
+  String get spoolScanTitle;
+
+  /// Segment of the spool scanner's switch: read a QR code with the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get spoolScanModeCamera;
+
+  /// Segment of the spool scanner's switch: read the spool's NFC tag.
+  ///
+  /// In en, this message translates to:
+  /// **'NFC'**
+  String get spoolScanModeNfc;
+
+  /// No description provided for @spoolScanNfcHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the spool to the back of the phone'**
+  String get spoolScanNfcHint;
+
+  /// No description provided for @spoolScanNfcHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Its tag is read where the NFC antenna is, usually near the camera.'**
+  String get spoolScanNfcHelp;
+
+  /// No description provided for @spoolScanNfcOff.
+  ///
+  /// In en, this message translates to:
+  /// **'NFC is off'**
+  String get spoolScanNfcOff;
+
+  /// No description provided for @spoolScanNfcOffHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it on in the system settings to scan tags.'**
+  String get spoolScanNfcOffHelp;
+
+  /// No description provided for @spoolScanNfcOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get spoolScanNfcOpenSettings;
+
+  /// No description provided for @spoolScanTagUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'No spool has this tag'**
+  String get spoolScanTagUnknown;
+
+  /// {tag} is the tag's number, upper-case hex.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag} is not linked to any spool in Filaments. Link it with SpoolBuddy, then try again.'**
+  String spoolScanTagUnknownHelp(String tag);
+
+  /// Shown after a tag was read; {name} is the spool's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening {name}'**
+  String spoolScanOpening(String name);
 }
 
 class _AppLocalizationsDelegate

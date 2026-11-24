@@ -5057,5 +5057,16 @@
   "maintenanceLogDeleteEntryMessage": "«{task}» del {date} se elimina de forma permanente del registro. El último reinicio de la tarea se mantiene: eliminar la entrada no lo deshace.",
   "maintenanceLogEntryDeleted": "Entrada eliminada",
   "maintenanceLogDelete": "Eliminar",
-  "maintenanceLogYear": "1 año"
+  "maintenanceLogYear": "1 año",
+  "spoolScanTitle": "Escanear una bobina",
+  "spoolScanModeCamera": "Cámara",
+  "spoolScanModeNfc": "NFC",
+  "spoolScanNfcHint": "Acerca la bobina a la parte trasera del teléfono",
+  "spoolScanNfcHelp": "La etiqueta se lee donde está la antena NFC, normalmente cerca de la cámara.",
+  "spoolScanNfcOff": "NFC está desactivado",
+  "spoolScanNfcOffHelp": "Actívalo en los ajustes del sistema para escanear etiquetas.",
+  "spoolScanNfcOpenSettings": "Abrir ajustes",
+  "spoolScanTagUnknown": "Ninguna bobina tiene esta etiqueta",
+  "spoolScanTagUnknownHelp": "La etiqueta {tag} no está vinculada a ninguna bobina en Filamentos. Vincúlala en SpoolBuddy y vuelve a intentarlo.",
+  "spoolScanOpening": "Abriendo {name}"
 }

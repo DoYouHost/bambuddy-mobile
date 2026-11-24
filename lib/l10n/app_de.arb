@@ -5057,5 +5057,16 @@
   "maintenanceLogDeleteEntryMessage": "„{task}“ vom {date} wird endgültig aus dem Protokoll entfernt. Das letzte Zurücksetzen der Aufgabe bleibt bestehen: Das Löschen des Eintrags macht es nicht rückgängig.",
   "maintenanceLogEntryDeleted": "Eintrag gelöscht",
   "maintenanceLogDelete": "Löschen",
-  "maintenanceLogYear": "1 Jahr"
+  "maintenanceLogYear": "1 Jahr",
+  "spoolScanTitle": "Spule scannen",
+  "spoolScanModeCamera": "Kamera",
+  "spoolScanModeNfc": "NFC",
+  "spoolScanNfcHint": "Halte die Spule an die Rückseite des Handys",
+  "spoolScanNfcHelp": "Der Tag wird dort gelesen, wo die NFC-Antenne sitzt, meist in der Nähe der Kamera.",
+  "spoolScanNfcOff": "NFC ist aus",
+  "spoolScanNfcOffHelp": "Schalte es in den Systemeinstellungen ein, um Tags zu scannen.",
+  "spoolScanNfcOpenSettings": "Einstellungen öffnen",
+  "spoolScanTagUnknown": "Keine Spule hat diesen Tag",
+  "spoolScanTagUnknownHelp": "Der Tag {tag} ist mit keiner Spule in den Filamenten verknüpft. Verknüpfe ihn in SpoolBuddy und versuche es erneut.",
+  "spoolScanOpening": "{name} wird geöffnet"
 }

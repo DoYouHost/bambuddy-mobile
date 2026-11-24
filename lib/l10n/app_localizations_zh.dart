@@ -10446,4 +10446,41 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get maintenanceLogYear => '1 年';
+
+  @override
+  String get spoolScanTitle => '扫描料盘';
+
+  @override
+  String get spoolScanModeCamera => '相机';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint => '将料盘靠近手机背面';
+
+  @override
+  String get spoolScanNfcHelp => '标签在 NFC 天线处读取，通常靠近摄像头。';
+
+  @override
+  String get spoolScanNfcOff => 'NFC 已关闭';
+
+  @override
+  String get spoolScanNfcOffHelp => '请在系统设置中开启后再扫描标签。';
+
+  @override
+  String get spoolScanNfcOpenSettings => '打开设置';
+
+  @override
+  String get spoolScanTagUnknown => '没有料盘使用此标签';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return '标签 $tag 未与耗材中的任何料盘关联。请先在 SpoolBuddy 中关联，然后重试。';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return '正在打开 $name';
+  }
 }

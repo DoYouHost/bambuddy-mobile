@@ -3039,5 +3039,16 @@
   "maintenanceLogDeleteEntryMessage": "「{task}」（{date}）将从日志中永久删除。任务最近一次重置保持不变：删除记录不会撤销它。",
   "maintenanceLogEntryDeleted": "记录已删除",
   "maintenanceLogDelete": "删除",
-  "maintenanceLogYear": "1 年"
+  "maintenanceLogYear": "1 年",
+  "spoolScanTitle": "扫描料盘",
+  "spoolScanModeCamera": "相机",
+  "spoolScanModeNfc": "NFC",
+  "spoolScanNfcHint": "将料盘靠近手机背面",
+  "spoolScanNfcHelp": "标签在 NFC 天线处读取，通常靠近摄像头。",
+  "spoolScanNfcOff": "NFC 已关闭",
+  "spoolScanNfcOffHelp": "请在系统设置中开启后再扫描标签。",
+  "spoolScanNfcOpenSettings": "打开设置",
+  "spoolScanTagUnknown": "没有料盘使用此标签",
+  "spoolScanTagUnknownHelp": "标签 {tag} 未与耗材中的任何料盘关联。请先在 SpoolBuddy 中关联，然后重试。",
+  "spoolScanOpening": "正在打开 {name}"
 }

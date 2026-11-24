@@ -11120,4 +11120,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get maintenanceLogYear => '1 an';
+
+  @override
+  String get spoolScanTitle => 'Scanner une bobine';
+
+  @override
+  String get spoolScanModeCamera => 'Caméra';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint =>
+      'Approchez la bobine de l\'arrière du téléphone';
+
+  @override
+  String get spoolScanNfcHelp =>
+      'Le tag est lu là où se trouve l\'antenne NFC, en général près de l\'appareil photo.';
+
+  @override
+  String get spoolScanNfcOff => 'Le NFC est désactivé';
+
+  @override
+  String get spoolScanNfcOffHelp =>
+      'Activez-le dans les réglages du système pour scanner des tags.';
+
+  @override
+  String get spoolScanNfcOpenSettings => 'Ouvrir les réglages';
+
+  @override
+  String get spoolScanTagUnknown => 'Aucune bobine n\'a ce tag';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return 'Le tag $tag n\'est lié à aucune bobine dans Filaments. Liez-le dans SpoolBuddy, puis réessayez.';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return 'Ouverture de $name';
+  }
 }

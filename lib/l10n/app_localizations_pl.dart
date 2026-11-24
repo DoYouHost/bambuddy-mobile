@@ -11099,4 +11099,43 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get maintenanceLogYear => '1 rok';
+
+  @override
+  String get spoolScanTitle => 'Skanuj szpulę';
+
+  @override
+  String get spoolScanModeCamera => 'Aparat';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint => 'Przyłóż szpulę do tylnej ścianki telefonu';
+
+  @override
+  String get spoolScanNfcHelp =>
+      'Tag jest odczytywany tam, gdzie leży antena NFC, zwykle przy aparacie.';
+
+  @override
+  String get spoolScanNfcOff => 'NFC jest wyłączone';
+
+  @override
+  String get spoolScanNfcOffHelp =>
+      'Włącz je w ustawieniach systemu, aby skanować tagi.';
+
+  @override
+  String get spoolScanNfcOpenSettings => 'Otwórz ustawienia';
+
+  @override
+  String get spoolScanTagUnknown => 'Żadna szpula nie ma tego tagu';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return 'Tag $tag nie jest powiązany z żadną szpulą w Filamentach. Powiąż go w SpoolBuddy i spróbuj ponownie.';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return 'Otwieram $name';
+  }
 }

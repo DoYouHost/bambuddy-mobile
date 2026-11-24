@@ -11034,4 +11034,44 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get maintenanceLogYear => '1 año';
+
+  @override
+  String get spoolScanTitle => 'Escanear una bobina';
+
+  @override
+  String get spoolScanModeCamera => 'Cámara';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint =>
+      'Acerca la bobina a la parte trasera del teléfono';
+
+  @override
+  String get spoolScanNfcHelp =>
+      'La etiqueta se lee donde está la antena NFC, normalmente cerca de la cámara.';
+
+  @override
+  String get spoolScanNfcOff => 'NFC está desactivado';
+
+  @override
+  String get spoolScanNfcOffHelp =>
+      'Actívalo en los ajustes del sistema para escanear etiquetas.';
+
+  @override
+  String get spoolScanNfcOpenSettings => 'Abrir ajustes';
+
+  @override
+  String get spoolScanTagUnknown => 'Ninguna bobina tiene esta etiqueta';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return 'La etiqueta $tag no está vinculada a ninguna bobina en Filamentos. Vincúlala en SpoolBuddy y vuelve a intentarlo.';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return 'Abriendo $name';
+  }
 }

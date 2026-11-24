@@ -8094,5 +8094,41 @@
   "maintenanceLogYear": "1 year",
   "@maintenanceLogYear": {
     "description": "The oldest choice of the log cleanup, one year in days."
+  },
+  "spoolScanTitle": "Scan a spool",
+  "@spoolScanTitle": {
+    "description": "Title of the spool scanner when it offers both the camera and NFC."
+  },
+  "spoolScanModeCamera": "Camera",
+  "@spoolScanModeCamera": {
+    "description": "Segment of the spool scanner's switch: read a QR code with the camera."
+  },
+  "spoolScanModeNfc": "NFC",
+  "@spoolScanModeNfc": {
+    "description": "Segment of the spool scanner's switch: read the spool's NFC tag."
+  },
+  "spoolScanNfcHint": "Hold the spool to the back of the phone",
+  "spoolScanNfcHelp": "Its tag is read where the NFC antenna is, usually near the camera.",
+  "spoolScanNfcOff": "NFC is off",
+  "spoolScanNfcOffHelp": "Turn it on in the system settings to scan tags.",
+  "spoolScanNfcOpenSettings": "Open settings",
+  "spoolScanTagUnknown": "No spool has this tag",
+  "spoolScanTagUnknownHelp": "Tag {tag} is not linked to any spool in Filaments. Link it with SpoolBuddy, then try again.",
+  "@spoolScanTagUnknownHelp": {
+    "description": "{tag} is the tag's number, upper-case hex.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "spoolScanOpening": "Opening {name}",
+  "@spoolScanOpening": {
+    "description": "Shown after a tag was read; {name} is the spool's name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

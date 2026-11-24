@@ -10,7 +10,7 @@ import '../../l10n/app_localizations.dart';
 /// Fixed dark tokens regardless of system theme: this screen is a full-screen
 /// camera overlay (always black chrome + light text for contrast on the live
 /// preview), so it doesn't follow light/dark system theme like other screens.
-const _kScanTokens = DashTokens.dark(bambuddyBrand);
+const kScanTokens = DashTokens.dark(bambuddyBrand);
 
 /// Full-screen QR code scanner, reusable across features. [extract] turns a raw
 /// barcode value into the result [T] to return via [Navigator.pop] (returning
@@ -23,6 +23,7 @@ class QrScannerScreen<T extends Object> extends StatefulWidget {
     required this.title,
     required this.hint,
     required this.extract,
+    this.header,
   });
 
   /// App-bar title and the heading shown on the permission-denied fallback.
@@ -33,6 +34,10 @@ class QrScannerScreen<T extends Object> extends StatefulWidget {
 
   /// Parses a scanned barcode into the value to return, or null to keep scanning.
   final T? Function(String raw) extract;
+
+  /// Shown under the app bar, over the preview: a caller that offers another
+  /// way to scan puts its switch here.
+  final Widget? header;
 
   @override
   State<QrScannerScreen<T>> createState() => _QrScannerScreenState<T>();
@@ -81,7 +86,7 @@ class _QrScannerScreenState<T extends Object>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final t = _kScanTokens;
+    final t = kScanTokens;
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
@@ -122,6 +127,18 @@ class _QrScannerScreenState<T extends Object>
             errorBuilder: (context, error) =>
                 _ScannerError(error: error, title: widget.title, l10n: l10n),
           ),
+          if (widget.header case final header?)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: kToolbarHeight),
+                  child: header,
+                ),
+              ),
+            ),
           IgnorePointer(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -176,7 +193,7 @@ class _ScannerError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = _kScanTokens;
+    final t = kScanTokens;
     final denied = error.errorCode == MobileScannerErrorCode.permissionDenied;
     return Center(
       child: Padding(

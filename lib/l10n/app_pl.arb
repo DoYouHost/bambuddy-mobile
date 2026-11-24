@@ -4368,5 +4368,16 @@
   "maintenanceLogDeleteEntryMessage": "„{task}” z {date} zostanie trwale usunięty z dziennika. Ostatni reset zadania pozostaje bez zmian: usunięcie wpisu go nie cofa.",
   "maintenanceLogEntryDeleted": "Usunięto wpis",
   "maintenanceLogDelete": "Usuń",
-  "maintenanceLogYear": "1 rok"
+  "maintenanceLogYear": "1 rok",
+  "spoolScanTitle": "Skanuj szpulę",
+  "spoolScanModeCamera": "Aparat",
+  "spoolScanModeNfc": "NFC",
+  "spoolScanNfcHint": "Przyłóż szpulę do tylnej ścianki telefonu",
+  "spoolScanNfcHelp": "Tag jest odczytywany tam, gdzie leży antena NFC, zwykle przy aparacie.",
+  "spoolScanNfcOff": "NFC jest wyłączone",
+  "spoolScanNfcOffHelp": "Włącz je w ustawieniach systemu, aby skanować tagi.",
+  "spoolScanNfcOpenSettings": "Otwórz ustawienia",
+  "spoolScanTagUnknown": "Żadna szpula nie ma tego tagu",
+  "spoolScanTagUnknownHelp": "Tag {tag} nie jest powiązany z żadną szpulą w Filamentach. Powiąż go w SpoolBuddy i spróbuj ponownie.",
+  "spoolScanOpening": "Otwieram {name}"
 }

@@ -10897,4 +10897,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maintenanceLogYear => '1 year';
+
+  @override
+  String get spoolScanTitle => 'Scan a spool';
+
+  @override
+  String get spoolScanModeCamera => 'Camera';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint => 'Hold the spool to the back of the phone';
+
+  @override
+  String get spoolScanNfcHelp =>
+      'Its tag is read where the NFC antenna is, usually near the camera.';
+
+  @override
+  String get spoolScanNfcOff => 'NFC is off';
+
+  @override
+  String get spoolScanNfcOffHelp =>
+      'Turn it on in the system settings to scan tags.';
+
+  @override
+  String get spoolScanNfcOpenSettings => 'Open settings';
+
+  @override
+  String get spoolScanTagUnknown => 'No spool has this tag';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return 'Tag $tag is not linked to any spool in Filaments. Link it with SpoolBuddy, then try again.';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return 'Opening $name';
+  }
 }
