@@ -83,6 +83,54 @@ class _QrScannerScreenState<T extends Object>
     }
   }
 
+  /// The frame to hold the code in, and what to do. Taps pass through it.
+  Widget _viewfinder(DashTokens t) => IgnorePointer(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: widget.header == null ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        Container(
+          key: const ValueKey('scanner_frame'),
+          width: DashSize.d240,
+          height: DashSize.d240,
+          decoration: BoxDecoration(
+            border: Border.all(color: t.accentGreen, width: DashStroke.heavy),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
+          ),
+        ),
+        const SizedBox(height: DashSpace.xl),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.xxl),
+          child: Text(
+            widget.hint,
+            textAlign: TextAlign.center,
+            style: t.titleMd.copyWith(
+              shadows: const [
+                Shadow(blurRadius: DashBlur.md, color: Colors.black),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _torch(DashTokens t) => ValueListenableBuilder<MobileScannerState>(
+    valueListenable: _controller,
+    builder: (context, state, _) {
+      final on = state.torchState == TorchState.on;
+      return IconButton(
+        onPressed: () => _controller.toggleTorch(),
+        tooltip: AppLocalizations.of(context).scannerTorch,
+        isSelected: on,
+        icon: Icon(
+          on ? Icons.flash_on : Icons.flash_off,
+          color: on ? t.accentGreen : t.textPrimary,
+        ),
+      ).tagged('scanner.torch');
+    },
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -99,23 +147,9 @@ class _QrScannerScreenState<T extends Object>
             widget.title,
             style: t.display.copyWith(letterSpacing: DashTracking.tight),
           ),
-          actions: [
-            ValueListenableBuilder<MobileScannerState>(
-              valueListenable: _controller,
-              builder: (context, state, _) {
-                final on = state.torchState == TorchState.on;
-                return IconButton(
-                  onPressed: () => _controller.toggleTorch(),
-                  tooltip: AppLocalizations.of(context).scannerTorch,
-                  isSelected: on,
-                  icon: Icon(
-                    on ? Icons.flash_on : Icons.flash_off,
-                    color: on ? t.accentGreen : t.textPrimary,
-                  ),
-                ).tagged('scanner.torch');
-              },
-            ),
-          ],
+          // With a header the torch sits under it instead, so the bar is the
+          // same on every side of the scanner and the header does not move.
+          actions: [if (widget.header == null) _torch(t)],
         ),
       ),
       body: Stack(
@@ -128,50 +162,42 @@ class _QrScannerScreenState<T extends Object>
                 _ScannerError(error: error, title: widget.title, l10n: l10n),
           ),
           if (widget.header case final header?)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
+            // The body runs behind the bar, and the safe area of a body there
+            // already starts below it: no bar height of our own on top. The
+            // viewfinder gets what the header and the torch leave, and shrinks
+            // into it, so nothing overlaps at a large text or in landscape.
+            Positioned.fill(
               child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: kToolbarHeight),
-                  child: header,
+                child: Column(
+                  children: [
+                    SizedBox(width: double.infinity, child: header),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DashSpace.sm,
+                        ),
+                        child: _torch(t),
+                      ),
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, box) => FittedBox(
+                          // Down only: a frame is 240 dp, not whatever is left.
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: box.maxWidth),
+                            child: _viewfinder(t),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          IgnorePointer(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: DashSize.d240,
-                  height: DashSize.d240,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: t.accentGreen,
-                      width: DashStroke.heavy,
-                    ),
-                    borderRadius: BorderRadius.circular(DashRadius.lg),
-                  ),
-                ),
-                const SizedBox(height: DashSpace.xl),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DashSpace.xxl,
-                  ),
-                  child: Text(
-                    widget.hint,
-                    textAlign: TextAlign.center,
-                    style: t.titleMd.copyWith(
-                      shadows: const [
-                        Shadow(blurRadius: DashBlur.md, color: Colors.black),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+            )
+          else
+            _viewfinder(t),
         ],
       ),
     );
@@ -196,7 +222,8 @@ class _ScannerError extends StatelessWidget {
     final t = kScanTokens;
     final denied = error.errorCode == MobileScannerErrorCode.permissionDenied;
     return Center(
-      child: Padding(
+      // Scrolls: in landscape at a large text this is taller than the screen.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(DashSpace.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -178,6 +178,109 @@ void main() {
     );
   });
 
+  group('the layout', () {
+    for (final scale in const [1.0, 1.5, 2.0]) {
+      testWidgets(
+        'the switch stays where it is when the side changes, at $scale text',
+        (tester) async {
+          await open(tester, scale: scale);
+          final inCamera = tester.getTopLeft(byLogId('spool_scan.mode'));
+
+          await tester.tap(find.text(pl.spoolScanModeNfc));
+          await tester.pumpAndSettle();
+          final inNfc = tester.getTopLeft(byLogId('spool_scan.mode'));
+
+          expect(inNfc, inCamera);
+          await tester.tap(find.text(pl.spoolScanModeCamera));
+          await tester.pumpAndSettle();
+          expect(tester.getTopLeft(byLogId('spool_scan.mode')), inCamera);
+        },
+      );
+    }
+
+    for (final (size, label) in [
+      (const Size(360, 740), 'portrait'),
+      (const Size(740, 360), 'landscape'),
+    ]) {
+      for (final scale in const [1.0, 2.0]) {
+        testWidgets(
+          'the frame is clear of the switch and the torch, $label at $scale text',
+          (tester) async {
+            // A status bar, as a phone has: it is what used up the margin.
+            tester.view
+              ..physicalSize = size
+              ..devicePixelRatio = 1
+              ..padding = FakeViewPadding(
+                top: size.width > size.height ? 24 : 48,
+              )
+              ..viewPadding = FakeViewPadding(
+                top: size.width > size.height ? 24 : 48,
+              );
+            addTearDown(tester.view.reset);
+            await open(tester, scale: scale);
+
+            final frame = tester.getRect(
+              find.byKey(const ValueKey('scanner_frame')),
+            );
+            expect(
+              tester.getRect(byLogId('scanner.torch')).overlaps(frame),
+              isFalse,
+            );
+            expect(
+              tester.getRect(byLogId('spool_scan.mode')).overlaps(frame),
+              isFalse,
+            );
+            expect(
+              frame.width,
+              lessThanOrEqualTo(240),
+              reason:
+                  'the frame shrinks into the room, and is never made larger',
+            );
+          },
+        );
+      }
+    }
+
+    testWidgets('the torch is under the switch, not in the bar', (
+      tester,
+    ) async {
+      await open(tester);
+
+      final torch = byLogId('scanner.torch');
+      expect(torch, findsOneWidget);
+      expect(
+        tester.getTopLeft(torch).dy,
+        greaterThanOrEqualTo(
+          tester.getBottomLeft(byLogId('spool_scan.mode')).dy,
+        ),
+      );
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: torch),
+        findsNothing,
+      );
+    });
+
+    testWidgets('and there is none on the NFC side', (tester) async {
+      await open(tester, remembered: true);
+
+      expect(byLogId('scanner.torch'), findsNothing);
+    });
+
+    testWidgets('a scanner with no switch keeps its torch in the bar', (
+      tester,
+    ) async {
+      await open(tester, status: NfcStatus.unsupported);
+
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: byLogId('scanner.torch'),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('a tag', () {
     testWidgets('of a known spool closes the scanner with its id', (
       tester,
