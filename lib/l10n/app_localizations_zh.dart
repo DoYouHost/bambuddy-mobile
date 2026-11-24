@@ -10355,4 +10355,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get queueDuplicateNone => '这些都无法复制';
+
+  @override
+  String get queueDuplicate => '复制';
 }

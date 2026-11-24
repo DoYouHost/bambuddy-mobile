@@ -239,6 +239,22 @@ class QueueNotifier extends AsyncNotifier<List<QueueItem>> {
     List<QueueItem> items, {
     required String logId,
   }) async {
+    duplicating = true;
+    try {
+      return await _duplicate(items, logId: logId);
+    } finally {
+      duplicating = false;
+    }
+  }
+
+  /// True while a copy request is in flight: a second tap meanwhile would add a
+  /// second set of copies, so [duplicateQueueItems] ignores it.
+  bool duplicating = false;
+
+  Future<({ActionOutcome outcome, int added, int notCopied})> _duplicate(
+    List<QueueItem> items, {
+    required String logId,
+  }) async {
     final copiable = [
       for (final item in items)
         if (item.canDuplicate) item.id,
@@ -455,6 +471,14 @@ final mayStartQueueItemProvider = Provider.family<bool, StartTarget>((
   return target.createdById == me.id ||
       (target.createdById == null && target.printerId != null);
 });
+
+/// Whether to offer Duplicate: the route needs `queue:create` and exists since
+/// server 1.3.3. Hidden, not greyed, where it cannot work (the web greys it).
+final mayDuplicateQueueProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(queueDuplicateProvider).orFalse &&
+      ref.watch(permissionProvider(Permissions.queueCreate)),
+);
 
 /// Filaments loaded on active printers of a model, for the Edit Queue Item
 /// filament-override dropdowns. Keyed by `(model, location)` — location `''`

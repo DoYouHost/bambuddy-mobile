@@ -5036,5 +5036,6 @@
   "amsUnloadAllNoneLoaded": "Kein Slot hat sein Filament im Hotend",
   "queueDuplicateAdded": "{count, plural, =1{1 Kopie ans Ende der Warteschlange gestellt} other{{count} Kopien ans Ende der Warteschlange gestellt}}",
   "queueDuplicateSkipped": "{count, plural, =1{1 Kopie hinzugefügt} other{{count} Kopien hinzugefügt}}; {skipped, plural, =1{1 Eintrag lässt sich nicht kopieren} other{{skipped} Einträge lassen sich nicht kopieren}}",
-  "queueDuplicateNone": "Keiner davon lässt sich kopieren"
+  "queueDuplicateNone": "Keiner davon lässt sich kopieren",
+  "queueDuplicate": "Duplizieren"
 }

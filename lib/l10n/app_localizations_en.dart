@@ -10803,4 +10803,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueDuplicateNone => 'None of these can be duplicated';
+
+  @override
+  String get queueDuplicate => 'Duplicate';
 }

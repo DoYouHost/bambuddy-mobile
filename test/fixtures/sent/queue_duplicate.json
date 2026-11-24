@@ -1,0 +1,12 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/queue/duplicate",
+    "body": {
+      "item_ids": [
+        79,
+        80
+      ]
+    }
+  }
+]

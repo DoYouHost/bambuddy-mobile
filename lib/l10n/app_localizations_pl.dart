@@ -11001,4 +11001,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueDuplicateNone => 'Żadnego z nich nie można skopiować';
+
+  @override
+  String get queueDuplicate => 'Duplikuj';
 }

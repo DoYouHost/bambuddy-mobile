@@ -17932,6 +17932,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None of these can be duplicated'**
   String get queueDuplicateNone;
+
+  /// Row menu entry and selection-bar tooltip that queues another copy of the job (queue duplicate).
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get queueDuplicate;
 }
 
 class _AppLocalizationsDelegate

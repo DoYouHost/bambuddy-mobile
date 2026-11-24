@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// `POST /queue/duplicate` (server #3441) against a real server: which jobs it
 /// copies, how it counts the ones it leaves out (a 200 either way), and what a
@@ -84,6 +85,30 @@ void main() {
         expect(copy.printerId, printerId);
         expect(copy.position, greaterThan(b.position));
       }
+    });
+
+    test('what the selection bar sends is accepted as it is', () async {
+      if (!served) return markTestSkipped('the server predates #3440');
+      final a = await stage();
+      final b = await stage();
+
+      // `queue_duplicate_ui_test.dart` records the bar's request.
+      final res = (await replayWrites(
+        dio,
+        recordedWrites('queue_duplicate'),
+        ids: {
+          'item_ids': [a.id, b.id],
+        },
+      )).single;
+
+      expect(res.statusCode, 200);
+      final body = res.data as Map<String, dynamic>;
+      final created = (body['created_ids'] as List).cast<int>();
+      for (final id in created) {
+        addTearDown(() => remove(id));
+      }
+      expect(created, hasLength(2));
+      expect(body['skipped_count'], 0);
     });
 
     test(

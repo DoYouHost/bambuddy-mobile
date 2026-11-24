@@ -10939,4 +10939,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueDuplicateNone => 'Ninguno se puede duplicar';
+
+  @override
+  String get queueDuplicate => 'Duplicar';
 }

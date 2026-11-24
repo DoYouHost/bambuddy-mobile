@@ -11024,4 +11024,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueDuplicateNone => 'Aucun ne peut être dupliqué';
+
+  @override
+  String get queueDuplicate => 'Dupliquer';
 }

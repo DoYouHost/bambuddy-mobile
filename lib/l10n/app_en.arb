@@ -7998,5 +7998,9 @@
       }
     }
   },
-  "queueDuplicateNone": "None of these can be duplicated"
+  "queueDuplicateNone": "None of these can be duplicated",
+  "queueDuplicate": "Duplicate",
+  "@queueDuplicate": {
+    "description": "Row menu entry and selection-bar tooltip that queues another copy of the job (queue duplicate)."
+  }
 }

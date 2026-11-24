@@ -4347,5 +4347,6 @@
   "amsUnloadAllNoneLoaded": "Żaden slot nie ma filamentu w dyszy",
   "queueDuplicateAdded": "{count, plural, =1{Dodano 1 kopię na koniec kolejki} few{Dodano {count} kopie na koniec kolejki} many{Dodano {count} kopii na koniec kolejki} other{Dodano {count} kopii na koniec kolejki}}",
   "queueDuplicateSkipped": "{count, plural, =1{Dodano 1 kopię} few{Dodano {count} kopie} many{Dodano {count} kopii} other{Dodano {count} kopii}}; {skipped, plural, =1{1 elementu nie można skopiować} few{{skipped} elementów nie można skopiować} many{{skipped} elementów nie można skopiować} other{{skipped} elementów nie można skopiować}}",
-  "queueDuplicateNone": "Żadnego z nich nie można skopiować"
+  "queueDuplicateNone": "Żadnego z nich nie można skopiować",
+  "queueDuplicate": "Duplikuj"
 }

@@ -5036,5 +5036,6 @@
   "amsUnloadAllNoneLoaded": "Aucun emplacement n'a son filament dans un hotend",
   "queueDuplicateAdded": "{count, plural, =1{1 copie ajoutée à la fin de la file d'attente} other{{count} copies ajoutées à la fin de la file d'attente}}",
   "queueDuplicateSkipped": "{count, plural, =1{1 copie ajoutée} other{{count} copies ajoutées}} ; {skipped, plural, =1{1 élément ne peut pas être dupliqué} other{{skipped} éléments ne peuvent pas être dupliqués}}",
-  "queueDuplicateNone": "Aucun ne peut être dupliqué"
+  "queueDuplicateNone": "Aucun ne peut être dupliqué",
+  "queueDuplicate": "Dupliquer"
 }

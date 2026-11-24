@@ -3018,5 +3018,6 @@
   "amsUnloadAllNoneLoaded": "没有槽位的耗材在热端中",
   "queueDuplicateAdded": "{count, plural, other{已将 {count} 份副本添加到队列末尾}}",
   "queueDuplicateSkipped": "{count, plural, other{已添加 {count} 份副本}}；{skipped, plural, other{{skipped} 项无法复制}}",
-  "queueDuplicateNone": "这些都无法复制"
+  "queueDuplicateNone": "这些都无法复制",
+  "queueDuplicate": "复制"
 }

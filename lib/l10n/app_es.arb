@@ -5036,5 +5036,6 @@
   "amsUnloadAllNoneLoaded": "Ninguna ranura tiene su filamento en un hotend",
   "queueDuplicateAdded": "{count, plural, =1{Se añadió 1 copia al final de la cola} other{Se añadieron {count} copias al final de la cola}}",
   "queueDuplicateSkipped": "{count, plural, =1{Se añadió 1 copia} other{Se añadieron {count} copias}}; {skipped, plural, =1{1 elemento no se puede duplicar} other{{skipped} elementos no se pueden duplicar}}",
-  "queueDuplicateNone": "Ninguno se puede duplicar"
+  "queueDuplicateNone": "Ninguno se puede duplicar",
+  "queueDuplicate": "Duplicar"
 }

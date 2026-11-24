@@ -10916,4 +10916,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueDuplicateNone => 'Keiner davon lässt sich kopieren';
+
+  @override
+  String get queueDuplicate => 'Duplizieren';
 }

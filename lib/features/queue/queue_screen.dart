@@ -194,14 +194,25 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
                       ]),
                 ),
               ),
-              logTag(
-                'queue.bulk_edit',
-                IconButton(
-                  icon: const Icon(Icons.edit_note),
-                  tooltip: l10n.queueBulkEdit,
-                  onPressed: () => _bulkEdit(selection),
+              if (ref.watch(mayDuplicateQueueProvider) &&
+                  items.any((i) => selection.contains(i.id) && i.canDuplicate))
+                logTag(
+                  'queue.bulk_duplicate',
+                  IconButton(
+                    icon: const Icon(Icons.content_copy_outlined),
+                    tooltip: l10n.queueDuplicate,
+                    onPressed: () => _bulkDuplicate(selection),
+                  ),
                 ),
-              ),
+              if (ref.watch(mayBulkEditQueueProvider))
+                logTag(
+                  'queue.bulk_edit',
+                  IconButton(
+                    icon: const Icon(Icons.edit_note),
+                    tooltip: l10n.queueBulkEdit,
+                    onPressed: () => _bulkEdit(selection),
+                  ),
+                ),
             ] else if (ref.watch(batchListingProvider).orFalse)
               IconButton(
                 tooltip: l10n.ordersTitle,
@@ -289,6 +300,26 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
     if (ids.isEmpty) return;
     final applied = await openQueueBulkEdit(context, ids);
     if (applied && mounted) ref.read(queueSelectionProvider.notifier).clear();
+  }
+
+  /// Copies what is picked, in the queue's order, and drops the picks once the
+  /// copies are made: the web clears its selection the same way.
+  Future<void> _bulkDuplicate(Set<int> picked) {
+    final items = ref.read(queueProvider).value ?? const <QueueItem>[];
+    return duplicateQueueItems(
+      context,
+      ref,
+      [
+        for (final i in items)
+          if (picked.contains(i.id)) i,
+      ],
+      AppLocalizations.of(context),
+      logId: 'queue.bulk_duplicate',
+      // The request outlives the screen when the user leaves meanwhile.
+      onDone: () {
+        if (mounted) ref.read(queueSelectionProvider.notifier).clear();
+      },
+    );
   }
 
   /// FAB "start next" — delegates to the shared start flow (assign a printer if
@@ -400,7 +431,12 @@ class _QueueCard extends ConsumerWidget {
     // Long press starts a selection (the archive's gesture), a tap extends it.
     // Outside selection mode the card has no tap, as before.
     final selectionNotifier = ref.read(queueSelectionProvider.notifier);
-    final mayPick = selectable && ref.watch(mayBulkEditQueueProvider);
+    // Duplicate has its own permission, and the web lets a row be picked for it
+    // while Edit selected stays off.
+    final mayPick =
+        selectable &&
+        (ref.watch(mayBulkEditQueueProvider) ||
+            ref.watch(mayDuplicateQueueProvider));
 
     final card = logTag(
       'queue.card',
@@ -751,6 +787,8 @@ class _QueueActions extends ConsumerWidget {
               ) ==
               true,
     );
+    final mayDuplicate =
+        item.canDuplicate && ref.watch(mayDuplicateQueueProvider);
     final canPreview = item.archiveId != null || item.libraryFileId != null;
     // Filament mapping needs a printer (for its AMS) and a source file.
     final canMap = canPreview && item.printerId != null;
@@ -771,6 +809,16 @@ class _QueueActions extends ConsumerWidget {
           }
           if (value == 'edit') {
             await openQueueEdit(context, item);
+            return;
+          }
+          if (value == 'duplicate') {
+            await duplicateQueueItems(
+              context,
+              ref,
+              [item],
+              l10n,
+              logId: 'queue.action.duplicate',
+            );
             return;
           }
           // Start: shared flow (assign printer if none → mapping → start).
@@ -829,6 +877,18 @@ class _QueueActions extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.edit_outlined),
                   title: Text(l10n.queueEdit),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+          if (mayDuplicate)
+            PopupMenuItem(
+              value: 'duplicate',
+              child: logTag(
+                'queue.action.duplicate',
+                ListTile(
+                  leading: const Icon(Icons.content_copy_outlined),
+                  title: Text(l10n.queueDuplicate),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),

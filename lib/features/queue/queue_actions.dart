@@ -17,8 +17,8 @@ import 'queue_providers.dart';
 import 'queue_removal.dart';
 
 /// Duplicates [items] and says how it went, in the web's three sentences: all
-/// copied, some left out, none copied. [onDone] runs after a success, for a
-/// caller that clears its selection then. [logId] names the control.
+/// copied, some left out, none copied. [onDone] runs after a success that made
+/// at least one copy, for a caller that clears its selection then. [logId] names the control.
 Future<void> duplicateQueueItems(
   BuildContext context,
   WidgetRef ref,
@@ -28,14 +28,15 @@ Future<void> duplicateQueueItems(
   VoidCallback? onDone,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
-  final result = await ref
-      .read(queueProvider.notifier)
-      .duplicate(items, logId: logId);
+  final notifier = ref.read(queueProvider.notifier);
+  if (notifier.duplicating) return;
+  final result = await notifier.duplicate(items, logId: logId);
   if (!result.outcome.isOk) {
     snackQueueOutcome(messenger, result.outcome, l10n);
     return;
   }
-  onDone?.call();
+  // A copy that made nothing leaves the picks: they may still be wanted.
+  if (result.added > 0) onDone?.call();
   messenger.snack(
     result.added == 0
         ? l10n.queueDuplicateNone
