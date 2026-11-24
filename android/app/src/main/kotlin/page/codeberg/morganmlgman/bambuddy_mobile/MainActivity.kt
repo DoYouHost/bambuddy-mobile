@@ -68,7 +68,20 @@ class MainActivity : FlutterActivity() {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler(null)
         }
         PrintAlarm.release(flutterEngine.dartExecutor.binaryMessenger)
+        flutterEngine.releaseNfc()
         super.cleanUpFlutterEngine(flutterEngine)
+    }
+
+    // Reader mode belongs to the foreground: off with the window, back with it when a
+    // Dart listener is still waiting for a tag. A no-op in the watch flavor.
+    override fun onPause() {
+        nfcPause(this)
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        nfcResume(this)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -76,6 +89,7 @@ class MainActivity : FlutterActivity() {
         flutterEngine.serveWearOngoing(this)
         flutterEngine.serveWearPhoneApp(this)
         flutterEngine.serveWatchFaceColours(this)
+        flutterEngine.serveNfc(this)
         // The settings screen asks about the full-screen permission and rings a test alarm.
         PrintAlarm.serve(flutterEngine.dartExecutor.binaryMessenger, this, this)
         flutterEngine.serve(

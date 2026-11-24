@@ -48,6 +48,7 @@ plugin manifests and are compared by hand (step 2 above).
 | `CHANGE_NETWORK_STATE` | manifest | yes | yes | Qualifies the `connectedDevice` type. |
 | `CHANGE_WIFI_MULTICAST_STATE` | manifest | yes | no | mDNS discovery of the server on the LAN. |
 | `CAMERA` | manifest | yes | no | QR / spool scanner, print photos. |
+| `NFC` | manifest | yes | no | Spool NFC scanner (#71): reads a tag's UID in reader mode while the scanner is open. Install-time, no dialog; the feature is declared `required="false"`, so a phone without NFC still installs it. Approved by the maintainer as optional, 2026-11-23. |
 | `WAKE_LOCK` | plugin | yes | yes | flutter_local_notifications, WorkManager. |
 | `RECEIVE_BOOT_COMPLETED` | plugin | yes | no | Rescheduling notifications after a reboot. |
 | `VIBRATE` | plugin | yes | yes | Notification vibration. |

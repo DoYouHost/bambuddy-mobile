@@ -249,6 +249,30 @@ screen.
   reflectively needs its own rule**, and per [AGENTS.md](../AGENTS.md) broadening
   keep rules is a security-stop decision for the maintainer.
 
+## NFC tags (#71)
+
+The reader is `NfcReader` (`lib/core/nfc/nfc_reader.dart`) over the native `NfcReader.kt`
+of the `mobile` flavor; the watch flavor has a no-op twin, and the Dart side reads the
+missing channels as `NfcStatus.unsupported`.
+
+- **Only the tag's UID is read.** A spool is linked to its tag by that number
+  (`tag_uid` on the spool; `GET /inventory/spools/by-tag` finds it, `tray_uuid` first),
+  so nothing is read from or written to the tag. The UID reaches Dart upper-case hex and
+  goes through `normalizeTagUid`, the server's own rule (the least-significant 16 characters
+  of a longer one). Matching is `InventoryState.spoolForTag`, the same as for an AMS slot.
+- **Reader mode, not foreground dispatch.** `enableReaderMode` needs no intent filter, so
+  the app is never offered for a tag held to the phone for another reason; it runs only
+  while a Dart listener is subscribed and the activity is in the foreground (`onPause` turns
+  it off, `onResume` turns it back on for a listener still waiting).
+- **An EventChannel with no host never says so**: it reports to the framework's error handler
+  and stays open. `tags()` therefore asks `status()` first and ends at once when it says
+  `unsupported`.
+- The `NFC` permission is install-time and shows no dialog; `android.hardware.nfc` is
+  declared `required="false"`. The watch manifest removes the permission
+  (`docs/play-compliance.md`).
+- **Not tried on a device** when it was written (no NFC phone to hand): the Kotlin compiles
+  in both flavors and the Dart side is tested through mocked channels, nothing more.
+
 ## Label sheets of the user's own measures (server #3296)
 
 The stock picker lists the built-in labels, the sheets saved on the server and a

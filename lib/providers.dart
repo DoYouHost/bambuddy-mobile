@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+import 'core/nfc/nfc_reader.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
@@ -1125,6 +1126,9 @@ final printLogCostEnergyProvider = capabilityGate(
 final statsRepositoryProvider = Provider<StatsRepository>(
   (ref) => StatsRepository(ref.watch(apiClientProvider).dio),
 );
+
+/// The phone's NFC reader; tests replace it with a fake.
+final nfcReaderProvider = Provider<NfcReader>((ref) => ChannelNfcReader());
 
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
   (ref) => MaintenanceRepository(
