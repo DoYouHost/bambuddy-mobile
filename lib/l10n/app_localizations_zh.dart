@@ -10483,4 +10483,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String spoolScanOpening(String name) {
     return '正在打开 $name';
   }
+
+  @override
+  String get maintenanceLogPrinter => '打印机';
 }

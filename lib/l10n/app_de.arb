@@ -5068,5 +5068,6 @@
   "spoolScanNfcOpenSettings": "Einstellungen öffnen",
   "spoolScanTagUnknown": "Keine Spule hat diesen Tag",
   "spoolScanTagUnknownHelp": "Der Tag {tag} ist mit keiner Spule in den Filamenten verknüpft. Verknüpfe ihn in SpoolBuddy und versuche es erneut.",
-  "spoolScanOpening": "{name} wird geöffnet"
+  "spoolScanOpening": "{name} wird geöffnet",
+  "maintenanceLogPrinter": "Drucker"
 }

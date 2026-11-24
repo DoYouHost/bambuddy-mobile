@@ -225,7 +225,12 @@ void main() {
       await tester.scrollUntilVisible(
         byLogId('maintenance_log.load_more'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
       );
       await tester.pumpAndSettle();
       expect(find.text(pl.maintenanceLogLoadMore(50, 60)), findsOneWidget);
@@ -237,6 +242,95 @@ void main() {
         for (final r in run.requests) r.queryParameters['offset'],
       ], containsAllInOrder([0, 50]));
       expect(byLogId('maintenance_log.load_more'), findsNothing);
+    });
+  });
+
+  group('many printers', () {
+    // Names as long as real ones: how many fit in two rows depends on them.
+    List<PrinterMaintenanceOverview> fleet(int n) => [
+      for (var i = 1; i <= n; i++)
+        PrinterMaintenanceOverview(printerId: i, printerName: 'Printer $i'),
+    ];
+
+    Finder chip(String name) =>
+        find.widgetWithText(ChoiceChip, name).hitTestable();
+    final select = byLogId('maintenance_log.printer_select').hitTestable();
+
+    for (final scale in scales) {
+      testWidgets('20 printers get the select, not six rows, at $scale text', (
+        tester,
+      ) async {
+        await open(tester, printers: fleet(20), scale: scale);
+
+        expect(select, findsOneWidget);
+        expect(chip('Printer 2'), findsNothing);
+        expect(byLogId('maintenance_log.entry'), findsWidgets);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('a few printers keep their chips', (tester) async {
+      await open(tester, printers: fleet(3));
+
+      expect(select, findsNothing);
+      expect(chip('Printer 3'), findsOneWidget);
+    });
+
+    testWidgets('the chips go as far as two rows and no further', (
+      tester,
+    ) async {
+      // The edge is wherever the third row would start: the last fleet that
+      // still shows chips fills two rows, the next one shows the select.
+      final rowsOfChips = <int>[];
+      int? firstSelect;
+      for (var n = 1; n <= 40 && firstSelect == null; n++) {
+        // A scope left standing would keep the first fleet.
+        await tester.pumpWidget(const SizedBox());
+        await open(tester, printers: fleet(n));
+        if (select.evaluate().isNotEmpty) {
+          firstSelect = n;
+          break;
+        }
+        rowsOfChips.add(
+          {
+            for (var i = 1; i <= n; i++)
+              tester.getTopLeft(chip('Printer $i')).dy.round(),
+          }.length,
+        );
+      }
+
+      expect(firstSelect, isNotNull);
+      expect(rowsOfChips.last, 2, reason: 'the chips used both rows');
+      expect(rowsOfChips.every((rows) => rows <= 2), isTrue);
+    });
+
+    testWidgets('the select picks a printer, which is kept', (tester) async {
+      final prefs = await _prefs();
+      await open(
+        tester,
+        printers: fleet(20),
+        prefs: prefs,
+        rowsP1s: [row(9, task: 'Clean the plate', printer: 2)],
+      );
+
+      await tester.tap(select);
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('maintenance_log.printer_select.option').at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.maintenanceLogTitle('Printer 2')), findsOneWidget);
+      expect(find.text('Clean the plate'), findsOneWidget);
+      expect(prefs.getInt('maintenance_log_printer'), 2);
+    });
+
+    testWidgets('growing past two rows swaps to the select', (tester) async {
+      await open(tester, printers: fleet(5));
+      expect(select, findsNothing);
+
+      overview.replace(fleet(20));
+      await tester.pumpAndSettle();
+
+      expect(select, findsOneWidget);
     });
   });
 

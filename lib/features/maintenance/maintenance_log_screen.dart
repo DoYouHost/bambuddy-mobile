@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/chips_or_select.dart';
 import '../common/dash_async.dart';
 import '../common/device_files.dart';
 import 'maintenance_providers.dart';
@@ -124,9 +125,10 @@ class _MaintenanceLogScreenState extends ConsumerState<MaintenanceLogScreen> {
                         horizontal: DashSpace.gutter,
                         vertical: DashSpace.sm,
                       ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Wrap(
+                      // Chips for a small fleet; the select when they would take
+                      // more than two rows, at this width and text size.
+                      child: ChipsOrSelect(
+                        chips: Wrap(
                           spacing: DashSpace.sm,
                           runSpacing: DashSpace.sm,
                           children: [
@@ -138,6 +140,30 @@ class _MaintenanceLogScreenState extends ConsumerState<MaintenanceLogScreen> {
                               ).tagged(
                                 'maintenance_log.printer',
                                 selected: p.printerId == shown.printerId,
+                              ),
+                          ],
+                        ),
+                        select: dashCombo<int>(
+                          context,
+                          id: 'maintenance_log.printer_select',
+                          // Rebuilt when the printer changes from elsewhere: the
+                          // field only reads its initial selection.
+                          fieldKey: ValueKey(shown.printerId),
+                          label: Text(l10n.maintenanceLogPrinter),
+                          initialSelection: shown.printerId,
+                          textStyle: DashTokens.of(context).body,
+                          onSelected: (id) {
+                            if (id != null) _pick(id);
+                          },
+                          entries: [
+                            for (final p in printers)
+                              DropdownMenuEntry(
+                                value: p.printerId,
+                                label: p.printerName,
+                                labelWidget: logTag(
+                                  'maintenance_log.printer_select.option',
+                                  Text(p.printerName),
+                                ),
                               ),
                           ],
                         ),

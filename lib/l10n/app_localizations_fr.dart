@@ -11160,4 +11160,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String spoolScanOpening(String name) {
     return 'Ouverture de $name';
   }
+
+  @override
+  String get maintenanceLogPrinter => 'Imprimante';
 }

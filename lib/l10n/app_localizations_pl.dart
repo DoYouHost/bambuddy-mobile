@@ -11138,4 +11138,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String spoolScanOpening(String name) {
     return 'Otwieram $name';
   }
+
+  @override
+  String get maintenanceLogPrinter => 'Drukarka';
 }

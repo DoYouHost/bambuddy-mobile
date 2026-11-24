@@ -3050,5 +3050,6 @@
   "spoolScanNfcOpenSettings": "打开设置",
   "spoolScanTagUnknown": "没有料盘使用此标签",
   "spoolScanTagUnknownHelp": "标签 {tag} 未与耗材中的任何料盘关联。请先在 SpoolBuddy 中关联，然后重试。",
-  "spoolScanOpening": "正在打开 {name}"
+  "spoolScanOpening": "正在打开 {name}",
+  "maintenanceLogPrinter": "打印机"
 }

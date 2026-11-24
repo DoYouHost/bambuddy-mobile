@@ -4379,5 +4379,6 @@
   "spoolScanNfcOpenSettings": "Otwórz ustawienia",
   "spoolScanTagUnknown": "Żadna szpula nie ma tego tagu",
   "spoolScanTagUnknownHelp": "Tag {tag} nie jest powiązany z żadną szpulą w Filamentach. Powiąż go w SpoolBuddy i spróbuj ponownie.",
-  "spoolScanOpening": "Otwieram {name}"
+  "spoolScanOpening": "Otwieram {name}",
+  "maintenanceLogPrinter": "Drukarka"
 }

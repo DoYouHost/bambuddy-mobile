@@ -10936,4 +10936,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String spoolScanOpening(String name) {
     return 'Opening $name';
   }
+
+  @override
+  String get maintenanceLogPrinter => 'Printer';
 }

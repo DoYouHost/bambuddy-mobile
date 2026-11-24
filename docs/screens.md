@@ -315,7 +315,15 @@ dedup set is in [notification-delivery.md](notification-delivery.md).
 app bar (gate `maintenanceLog`) opens `/maintenance/log`: one chip per printer, that
 printer's entries newest first, 50 at a time. Which printer was open last is kept
 (`maintenance_log_printer`) and opens next time; an id that is gone falls back to the first
-printer, and a new server forgets it, as it does every other id. The ⋮ menu exports and
+printer, and a new server forgets it, as it does every other id. **The printers are chips
+while they fit in two rows and a select (`dashCombo`) once they would take a third**
+(`ChipsOrSelect`, `lib/features/common/chips_or_select.dart`): a fleet of 20 was six rows
+at 100% text and more than the screen at 200%. The edge is measured from the real layout,
+the chips' runs after they are laid out, never from a count, since the labels, the width and
+the text scale all move it. Both are built and both laid out, only one is painted,
+hit-tested, read by a screen reader and reachable with a keyboard (the render object says
+which is shown and a frame later the other gets `ExcludeFocus`), so a finder that means the
+visible one says `hitTestable()`. The ⋮ menu exports and
 cleans up this printer or all of them; a long press on a row deletes it. Cleanup and delete
 need `maintenance:delete` (an API key's `can_manage_maintenance`) and are absent without
 it, reading and exporting are not. The cleanup offers 30, 90, 180 days and a year and starts

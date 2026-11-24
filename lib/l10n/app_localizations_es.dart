@@ -11074,4 +11074,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String spoolScanOpening(String name) {
     return 'Abriendo $name';
   }
+
+  @override
+  String get maintenanceLogPrinter => 'Impresora';
 }

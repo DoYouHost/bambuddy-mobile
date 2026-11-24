@@ -5068,5 +5068,6 @@
   "spoolScanNfcOpenSettings": "Ouvrir les réglages",
   "spoolScanTagUnknown": "Aucune bobine n'a ce tag",
   "spoolScanTagUnknownHelp": "Le tag {tag} n'est lié à aucune bobine dans Filaments. Liez-le dans SpoolBuddy, puis réessayez.",
-  "spoolScanOpening": "Ouverture de {name}"
+  "spoolScanOpening": "Ouverture de {name}",
+  "maintenanceLogPrinter": "Imprimante"
 }

@@ -18124,6 +18124,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Opening {name}'**
   String spoolScanOpening(String name);
+
+  /// Label of the printer select of the maintenance log, shown when there are too many printers for chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get maintenanceLogPrinter;
 }
 
 class _AppLocalizationsDelegate

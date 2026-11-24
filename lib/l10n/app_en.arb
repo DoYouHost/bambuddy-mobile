@@ -8130,5 +8130,9 @@
         "type": "String"
       }
     }
+  },
+  "maintenanceLogPrinter": "Printer",
+  "@maintenanceLogPrinter": {
+    "description": "Label of the printer select of the maintenance log, shown when there are too many printers for chips."
   }
 }
