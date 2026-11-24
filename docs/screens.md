@@ -311,6 +311,19 @@ preferences. The "Mark done" notification button runs in the background through
 `handleMaintenanceAction`; how that isolate rebuilds its client and avoids losing the
 dedup set is in [notification-delivery.md](notification-delivery.md).
 
+**The log of resets (server 1.3.2, `maintenance_log_screen.dart`).** A history icon in the
+app bar (gate `maintenanceLog`) opens `/maintenance/log`: one chip per printer, that
+printer's entries newest first, 50 at a time. Which printer was open last is kept
+(`maintenance_log_printer`) and opens next time; an id that is gone falls back to the first
+printer, and a new server forgets it, as it does every other id. The ⋮ menu exports and
+cleans up this printer or all of them; a long press on a row deletes it. Cleanup and delete
+need `maintenance:delete` (an API key's `can_manage_maintenance`) and are absent without
+it, reading and exporting are not. The cleanup offers 30, 90, 180 days and a year and starts
+at the year, the age that takes the least; the web asks for a number of days and starts
+there too. The CSV is small, so it goes through `saveBytesToDevice`. The deleted entry's
+task keeps its last reset, which the confirmation says. Recordings: `maintenance_log_cleanup`
+and `maintenance_log_delete_entry`, replayed by `maintenance_log_contract_test.dart`.
+
 ## Statistics
 
 `lib/features/stats/`. Totals come from `GET /archives/stats`; the web's richer

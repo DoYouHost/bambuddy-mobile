@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// What the app remembers by row id belongs to the server that issued the id:
-/// maintenance items already announced, and the last print-ended alert per
-/// printer.
+/// maintenance items already announced, the last print-ended alert per
+/// printer, and the printer whose maintenance log was open last.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -22,6 +22,7 @@ void main() {
     finished = FinishAlertMemory(prefs);
     await settings.saveProfile(_profile(_serverA));
     await settings.saveNotifiedMaintenanceDueIds({10, 12}, serverUrl: _serverA);
+    await settings.saveMaintenanceLogPrinter(3);
     await finished.remember(
       PostedAlert(
         event: NotifEvent.printFinished,
@@ -39,6 +40,7 @@ void main() {
 
     expect(settings.loadNotifiedMaintenanceDueIds(), isEmpty);
     expect(await finished.entries(), isEmpty);
+    expect(settings.loadMaintenanceLogPrinter(), isNull);
   });
 
   test('signing out forgets it too', () async {
@@ -58,6 +60,7 @@ void main() {
 
     expect(settings.loadNotifiedMaintenanceDueIds(), {10, 12});
     expect(await finished.entries(), hasLength(1));
+    expect(settings.loadMaintenanceLogPrinter(), 3);
   });
 }
 

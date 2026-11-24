@@ -10806,4 +10806,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueDuplicate => 'Duplicate';
+
+  @override
+  String get maintenanceLog => 'Maintenance log';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return 'Log · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty =>
+      'No maintenance has been logged for this printer yet';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return 'Load more · $shown of $total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => 'Export CSV, this printer';
+
+  @override
+  String get maintenanceLogExportAll => 'Export CSV, all printers';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => 'Clean up, this printer…';
+
+  @override
+  String get maintenanceLogCleanUpAll => 'Clean up, all printers…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return 'Log saved: $name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => 'Delete old log entries?';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return 'Permanently deletes the entries of $printer older than the age you choose. The last day always stays, and the tasks\' counters are not changed. Export the log first to keep a copy.';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      'Permanently deletes the entries of every printer you can see that are older than the age you choose. The last day always stays, and the tasks\' counters are not changed. Export the log first to keep a copy.';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '$days day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count entries',
+      one: 'Deleted 1 entry',
+      zero: 'No entries deleted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle => 'Delete this log entry?';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '“$task” from $date is permanently removed from the log. The task\'s last reset stays as it is: deleting the entry does not undo it.';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => 'Log entry deleted';
+
+  @override
+  String get maintenanceLogDelete => 'Delete';
+
+  @override
+  String get maintenanceLogYear => '1 year';
 }

@@ -10942,4 +10942,96 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueDuplicate => 'Duplicar';
+
+  @override
+  String get maintenanceLog => 'Registro de mantenimiento';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return 'Registro · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty =>
+      'Aún no se ha registrado mantenimiento de esta impresora';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return 'Cargar más · $shown de $total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => 'Exportar CSV, esta impresora';
+
+  @override
+  String get maintenanceLogExportAll => 'Exportar CSV, todas las impresoras';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => 'Limpiar, esta impresora…';
+
+  @override
+  String get maintenanceLogCleanUpAll => 'Limpiar, todas las impresoras…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return 'Registro guardado: $name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => '¿Eliminar entradas antiguas?';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return 'Elimina de forma permanente las entradas de $printer más antiguas que la edad elegida. El último día siempre se conserva y los contadores de las tareas no cambian. Exporta antes el registro si quieres conservar una copia.';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      'Elimina de forma permanente las entradas de todas las impresoras que puedes ver y que son más antiguas que la edad elegida. El último día siempre se conserva y los contadores de las tareas no cambian. Exporta antes el registro si quieres conservar una copia.';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days días',
+      one: '$days día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se eliminaron $count entradas',
+      one: 'Se eliminó 1 entrada',
+      zero: 'No se eliminó ninguna entrada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle =>
+      '¿Eliminar esta entrada del registro?';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '«$task» del $date se elimina de forma permanente del registro. El último reinicio de la tarea se mantiene: eliminar la entrada no lo deshace.';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => 'Entrada eliminada';
+
+  @override
+  String get maintenanceLogDelete => 'Eliminar';
+
+  @override
+  String get maintenanceLogYear => '1 año';
 }

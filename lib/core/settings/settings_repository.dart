@@ -28,6 +28,7 @@ class SettingsRepository {
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
+  static const _maintLogPrinterKey = 'maintenance_log_printer';
 
   /// `FinishAlertMemory`'s entry; named here because a server change clears it.
   static const finishAlertKey = 'finish_alert_last';
@@ -135,6 +136,7 @@ class SettingsRepository {
   Future<void> _forgetServerState() async {
     await _prefs.remove(_maintNotifiedKey);
     await _prefs.remove(finishAlertKey);
+    await _prefs.remove(_maintLogPrinterKey);
   }
 
   /// Not a secret: a CA certificate is public by design. Kept across "change
@@ -292,6 +294,14 @@ class SettingsRepository {
 
   Future<void> saveMergeDismissedAt(int groups) =>
       _prefs.setInt(_mergeDismissedAtKey, groups);
+
+  /// The printer whose maintenance log was open last, so the log opens on it
+  /// again. Null until one was opened. A printer id means something only on the
+  /// server that issued it, so a new server forgets it.
+  int? loadMaintenanceLogPrinter() => _prefs.getInt(_maintLogPrinterKey);
+
+  Future<void> saveMaintenanceLogPrinter(int printerId) =>
+      _prefs.setInt(_maintLogPrinterKey, printerId);
 
   /// Whether dashboard printer cards open collapsed. Absent reads as expanded,
   /// the only look installs had before the setting existed.

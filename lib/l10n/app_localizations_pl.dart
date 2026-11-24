@@ -11004,4 +11004,99 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueDuplicate => 'Duplikuj';
+
+  @override
+  String get maintenanceLog => 'Dziennik konserwacji';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return 'Dziennik · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty =>
+      'Nie zapisano jeszcze żadnej konserwacji tej drukarki';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return 'Pokaż więcej · $shown z $total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => 'Eksportuj CSV, ta drukarka';
+
+  @override
+  String get maintenanceLogExportAll => 'Eksportuj CSV, wszystkie drukarki';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => 'Wyczyść, ta drukarka…';
+
+  @override
+  String get maintenanceLogCleanUpAll => 'Wyczyść, wszystkie drukarki…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return 'Zapisano dziennik: $name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => 'Usunąć stare wpisy?';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return 'Trwale usuwa wpisy starsze niż wybrany wiek z dziennika drukarki $printer. Ostatni dzień zawsze zostaje, a liczniki zadań się nie zmieniają. Najpierw wyeksportuj dziennik, jeśli chcesz mieć kopię.';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      'Trwale usuwa wpisy wszystkich widocznych dla Ciebie drukarek, starsze niż wybrany wiek. Ostatni dzień zawsze zostaje, a liczniki zadań się nie zmieniają. Najpierw wyeksportuj dziennik, jeśli chcesz mieć kopię.';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days dnia',
+      many: '$days dni',
+      few: '$days dni',
+      one: '$days dzień',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunięto $count wpisu',
+      many: 'Usunięto $count wpisów',
+      few: 'Usunięto $count wpisy',
+      one: 'Usunięto 1 wpis',
+      zero: 'Nie usunięto żadnych wpisów',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle => 'Usunąć ten wpis?';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '„$task” z $date zostanie trwale usunięty z dziennika. Ostatni reset zadania pozostaje bez zmian: usunięcie wpisu go nie cofa.';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => 'Usunięto wpis';
+
+  @override
+  String get maintenanceLogDelete => 'Usuń';
+
+  @override
+  String get maintenanceLogYear => '1 rok';
 }

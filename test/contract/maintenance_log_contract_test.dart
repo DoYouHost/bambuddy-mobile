@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// The log of resets (server #3557) against a real server: that a reset enters
 /// it with its comment and the user, what the CSV holds, and what the cleanup
@@ -119,6 +120,45 @@ void main() {
         limit: 500,
       )).items.map((e) => e.id);
       expect(ids, contains(latest.id));
+    });
+
+    test('what the screen sends for a cleanup is accepted as it is', () async {
+      if (!served) return markTestSkipped('the server predates #3557');
+      await repo.perform(item.id, notes: 'replayed cleanup');
+      final latest = (await repo.fetchLog(printer.printerId)).items.first;
+      addTearDown(() => repo.deleteLogEntry(latest.id));
+
+      // `maintenance_log_screen_test.dart` records the cleanup dialog's request.
+      final res = (await replayWrites(
+        dio,
+        recordedWrites('maintenance_log_cleanup'),
+        item: printer.printerId,
+      )).single;
+
+      expect(res.statusCode, 200);
+      expect((res.data as Map<String, dynamic>)['deleted'], isA<int>());
+      final after = await repo.fetchLog(printer.printerId, limit: 500);
+      expect(
+        after.items.any((e) => e.id == latest.id),
+        isTrue,
+        reason: 'the reset made just now is younger than any age on offer',
+      );
+    });
+
+    test('what the screen sends for a delete is accepted as it is', () async {
+      if (!served) return markTestSkipped('the server predates #3557');
+      await repo.perform(item.id, notes: 'replayed delete');
+      final latest = (await repo.fetchLog(printer.printerId)).items.first;
+
+      final res = (await replayWrites(
+        dio,
+        recordedWrites('maintenance_log_delete_entry'),
+        item: latest.id,
+      )).single;
+
+      expect(res.statusCode, 200);
+      final after = await repo.fetchLog(printer.printerId, limit: 500);
+      expect(after.items.any((e) => e.id == latest.id), isFalse);
     });
 
     test('a cleanup age out of range is refused, not clamped', () async {

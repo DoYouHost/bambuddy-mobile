@@ -1,0 +1,7 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/v1/maintenance/log/1",
+    "body": null
+  }
+]

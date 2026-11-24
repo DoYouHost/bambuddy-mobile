@@ -223,6 +223,11 @@ abstract final class Permissions {
   /// duplicate archives takes (`archives.py::merge_archives`).
   static const archivesDeleteAll = 'archives:delete_all';
 
+  /// Cleaning up the maintenance log and deleting one of its entries; reading
+  /// and exporting it need no more than the key's `can_read_status`. An API key's
+  /// `can_manage_maintenance` is what maps to it.
+  static const maintenanceDelete = 'maintenance:delete';
+
   /// Queueing an archive again — reprint and add to queue alike — on top of
   /// [queueCreate]: reprint-all for any print, reprint-own for the caller's own
   /// and never an ownerless one. An API key's `can_queue` lets it hold either,

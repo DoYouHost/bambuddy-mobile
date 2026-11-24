@@ -8002,5 +8002,97 @@
   "queueDuplicate": "Duplicate",
   "@queueDuplicate": {
     "description": "Row menu entry and selection-bar tooltip that queues another copy of the job (queue duplicate)."
+  },
+  "maintenanceLog": "Maintenance log",
+  "@maintenanceLog": {
+    "description": "Tooltip of the Maintenance app-bar icon that opens the log of resets."
+  },
+  "maintenanceLogTitle": "Log · {printer}",
+  "@maintenanceLogTitle": {
+    "description": "Title of the maintenance log screen: the printer whose log is shown.",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogEmpty": "No maintenance has been logged for this printer yet",
+  "maintenanceLogLoadMore": "Load more · {shown} of {total}",
+  "@maintenanceLogLoadMore": {
+    "description": "Button under the maintenance log: how many entries are shown of how many the server holds.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogHours": "{hours} h",
+  "@maintenanceLogHours": {
+    "description": "The printer's running hours when a task was reset, in a log row.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogExportPrinter": "Export CSV, this printer",
+  "maintenanceLogExportAll": "Export CSV, all printers",
+  "maintenanceLogCleanUpPrinter": "Clean up, this printer…",
+  "maintenanceLogCleanUpAll": "Clean up, all printers…",
+  "maintenanceLogSaved": "Log saved: {name}",
+  "@maintenanceLogSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogCleanUpTitle": "Delete old log entries?",
+  "maintenanceLogCleanUpMessage": "Permanently deletes the entries of {printer} older than the age you choose. The last day always stays, and the tasks' counters are not changed. Export the log first to keep a copy.",
+  "@maintenanceLogCleanUpMessage": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogCleanUpMessageAll": "Permanently deletes the entries of every printer you can see that are older than the age you choose. The last day always stays, and the tasks' counters are not changed. Export the log first to keep a copy.",
+  "maintenanceLogAge": "{days, plural, one{{days} day} other{{days} days}}",
+  "@maintenanceLogAge": {
+    "description": "A choice of how old log entries must be to be cleaned up.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogCleanedUp": "{count, plural, =0{No entries deleted} =1{Deleted 1 entry} other{Deleted {count} entries}}",
+  "@maintenanceLogCleanedUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogDeleteEntryTitle": "Delete this log entry?",
+  "maintenanceLogDeleteEntryMessage": "“{task}” from {date} is permanently removed from the log. The task's last reset stays as it is: deleting the entry does not undo it.",
+  "@maintenanceLogDeleteEntryMessage": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogEntryDeleted": "Log entry deleted",
+  "maintenanceLogDelete": "Delete",
+  "maintenanceLogYear": "1 year",
+  "@maintenanceLogYear": {
+    "description": "The oldest choice of the log cleanup, one year in days."
   }
 }

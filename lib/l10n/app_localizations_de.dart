@@ -10919,4 +10919,96 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueDuplicate => 'Duplizieren';
+
+  @override
+  String get maintenanceLog => 'Wartungsprotokoll';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return 'Protokoll · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty =>
+      'Für diesen Drucker wurde noch keine Wartung protokolliert';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return 'Mehr laden · $shown von $total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => 'CSV exportieren, dieser Drucker';
+
+  @override
+  String get maintenanceLogExportAll => 'CSV exportieren, alle Drucker';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => 'Bereinigen, dieser Drucker…';
+
+  @override
+  String get maintenanceLogCleanUpAll => 'Bereinigen, alle Drucker…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return 'Protokoll gespeichert: $name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => 'Alte Einträge löschen?';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return 'Löscht die Einträge von $printer, die älter sind als das gewählte Alter, endgültig. Der letzte Tag bleibt immer erhalten, und die Zähler der Aufgaben ändern sich nicht. Exportiere das Protokoll zuerst, wenn du eine Kopie behalten willst.';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      'Löscht die Einträge aller Drucker, die du sehen kannst und die älter sind als das gewählte Alter, endgültig. Der letzte Tag bleibt immer erhalten, und die Zähler der Aufgaben ändern sich nicht. Exportiere das Protokoll zuerst, wenn du eine Kopie behalten willst.';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days Tage',
+      one: '$days Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge gelöscht',
+      one: '1 Eintrag gelöscht',
+      zero: 'Keine Einträge gelöscht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle =>
+      'Diesen Protokolleintrag löschen?';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '„$task“ vom $date wird endgültig aus dem Protokoll entfernt. Das letzte Zurücksetzen der Aufgabe bleibt bestehen: Das Löschen des Eintrags macht es nicht rückgängig.';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => 'Eintrag gelöscht';
+
+  @override
+  String get maintenanceLogDelete => 'Löschen';
+
+  @override
+  String get maintenanceLogYear => '1 Jahr';
 }

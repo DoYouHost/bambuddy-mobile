@@ -24,6 +24,7 @@ import 'features/files/trash_screen.dart';
 import 'features/gcode/gcode_viewer_route.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
+import 'features/maintenance/maintenance_log_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/alarm/alarm_settings_screen.dart';
@@ -193,6 +194,11 @@ GoRouter buildAppRouter({
       // Maintenance settings (types + per-printer overrides) — full screen
       // outside shell (pushed from the Maintenance status screen's gear, and
       // from the server settings hub).
+      // The log of maintenance resets, pushed from the Maintenance app bar.
+      GoRoute(
+        path: '/maintenance/log',
+        builder: (_, _) => const MaintenanceLogScreen(),
+      ),
       GoRoute(
         path: '/settings/maintenance',
         builder: (_, _) => const MaintenanceSettingsScreen(),

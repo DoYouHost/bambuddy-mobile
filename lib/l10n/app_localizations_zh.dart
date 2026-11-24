@@ -10358,4 +10358,92 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get queueDuplicate => '复制';
+
+  @override
+  String get maintenanceLog => '维护日志';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return '日志 · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty => '这台打印机尚无维护记录';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return '加载更多 · $shown/$total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours 小时';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => '导出 CSV（此打印机）';
+
+  @override
+  String get maintenanceLogExportAll => '导出 CSV（所有打印机）';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => '清理（此打印机）…';
+
+  @override
+  String get maintenanceLogCleanUpAll => '清理（所有打印机）…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return '日志已保存：$name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => '删除旧记录？';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return '将永久删除 $printer 中早于所选时间的记录。最近一天的记录始终保留，各任务的计数器不会改变。如需备份，请先导出日志。';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      '将永久删除你可见的所有打印机中早于所选时间的记录。最近一天的记录始终保留，各任务的计数器不会改变。如需备份，请先导出日志。';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days 天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已删除 $count 条记录',
+      zero: '没有删除任何记录',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle => '删除这条日志记录？';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '「$task」（$date）将从日志中永久删除。任务最近一次重置保持不变：删除记录不会撤销它。';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => '记录已删除';
+
+  @override
+  String get maintenanceLogDelete => '删除';
+
+  @override
+  String get maintenanceLogYear => '1 年';
 }

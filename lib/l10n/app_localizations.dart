@@ -17938,6 +17938,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Duplicate'**
   String get queueDuplicate;
+
+  /// Tooltip of the Maintenance app-bar icon that opens the log of resets.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance log'**
+  String get maintenanceLog;
+
+  /// Title of the maintenance log screen: the printer whose log is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Log · {printer}'**
+  String maintenanceLogTitle(String printer);
+
+  /// No description provided for @maintenanceLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No maintenance has been logged for this printer yet'**
+  String get maintenanceLogEmpty;
+
+  /// Button under the maintenance log: how many entries are shown of how many the server holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more · {shown} of {total}'**
+  String maintenanceLogLoadMore(int shown, int total);
+
+  /// The printer's running hours when a task was reset, in a log row.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h'**
+  String maintenanceLogHours(int hours);
+
+  /// No description provided for @maintenanceLogExportPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV, this printer'**
+  String get maintenanceLogExportPrinter;
+
+  /// No description provided for @maintenanceLogExportAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV, all printers'**
+  String get maintenanceLogExportAll;
+
+  /// No description provided for @maintenanceLogCleanUpPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean up, this printer…'**
+  String get maintenanceLogCleanUpPrinter;
+
+  /// No description provided for @maintenanceLogCleanUpAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean up, all printers…'**
+  String get maintenanceLogCleanUpAll;
+
+  /// No description provided for @maintenanceLogSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Log saved: {name}'**
+  String maintenanceLogSaved(String name);
+
+  /// No description provided for @maintenanceLogCleanUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete old log entries?'**
+  String get maintenanceLogCleanUpTitle;
+
+  /// No description provided for @maintenanceLogCleanUpMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deletes the entries of {printer} older than the age you choose. The last day always stays, and the tasks\' counters are not changed. Export the log first to keep a copy.'**
+  String maintenanceLogCleanUpMessage(String printer);
+
+  /// No description provided for @maintenanceLogCleanUpMessageAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deletes the entries of every printer you can see that are older than the age you choose. The last day always stays, and the tasks\' counters are not changed. Export the log first to keep a copy.'**
+  String get maintenanceLogCleanUpMessageAll;
+
+  /// A choice of how old log entries must be to be cleaned up.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, one{{days} day} other{{days} days}}'**
+  String maintenanceLogAge(int days);
+
+  /// No description provided for @maintenanceLogCleanedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No entries deleted} =1{Deleted 1 entry} other{Deleted {count} entries}}'**
+  String maintenanceLogCleanedUp(int count);
+
+  /// No description provided for @maintenanceLogDeleteEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this log entry?'**
+  String get maintenanceLogDeleteEntryTitle;
+
+  /// No description provided for @maintenanceLogDeleteEntryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'“{task}” from {date} is permanently removed from the log. The task\'s last reset stays as it is: deleting the entry does not undo it.'**
+  String maintenanceLogDeleteEntryMessage(String task, String date);
+
+  /// No description provided for @maintenanceLogEntryDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Log entry deleted'**
+  String get maintenanceLogEntryDeleted;
+
+  /// No description provided for @maintenanceLogDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get maintenanceLogDelete;
+
+  /// The oldest choice of the log cleanup, one year in days.
+  ///
+  /// In en, this message translates to:
+  /// **'1 year'**
+  String get maintenanceLogYear;
 }
 
 class _AppLocalizationsDelegate

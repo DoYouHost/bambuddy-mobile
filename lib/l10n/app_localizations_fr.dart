@@ -11027,4 +11027,97 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueDuplicate => 'Dupliquer';
+
+  @override
+  String get maintenanceLog => 'Journal de maintenance';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return 'Journal · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty =>
+      'Aucune maintenance n\'a encore été consignée pour cette imprimante';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return 'Charger plus · $shown sur $total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => 'Exporter en CSV, cette imprimante';
+
+  @override
+  String get maintenanceLogExportAll =>
+      'Exporter en CSV, toutes les imprimantes';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => 'Nettoyer, cette imprimante…';
+
+  @override
+  String get maintenanceLogCleanUpAll => 'Nettoyer, toutes les imprimantes…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return 'Journal enregistré : $name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => 'Supprimer les anciennes entrées ?';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return 'Supprime définitivement les entrées de $printer plus anciennes que l\'âge choisi. Le dernier jour reste toujours et les compteurs des tâches ne changent pas. Exportez d\'abord le journal pour en garder une copie.';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      'Supprime définitivement les entrées de toutes les imprimantes que vous pouvez voir, plus anciennes que l\'âge choisi. Le dernier jour reste toujours et les compteurs des tâches ne changent pas. Exportez d\'abord le journal pour en garder une copie.';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days jours',
+      one: '$days jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées supprimées',
+      one: '1 entrée supprimée',
+      zero: 'Aucune entrée supprimée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle =>
+      'Supprimer cette entrée du journal ?';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '« $task » du $date est définitivement retirée du journal. La dernière réinitialisation de la tâche reste en place : supprimer l\'entrée ne l\'annule pas.';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => 'Entrée supprimée';
+
+  @override
+  String get maintenanceLogDelete => 'Supprimer';
+
+  @override
+  String get maintenanceLogYear => '1 an';
 }
