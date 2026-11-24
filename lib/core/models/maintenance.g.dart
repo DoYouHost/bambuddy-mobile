@@ -80,3 +80,19 @@ MaintenanceHistoryEntry _$MaintenanceHistoryEntryFromJson(
       : toDouble(json['hours_at_maintenance']),
   notes: json['notes'] as String?,
 );
+
+MaintenanceLogEntry _$MaintenanceLogEntryFromJson(Map<String, dynamic> json) =>
+    MaintenanceLogEntry(
+      id: (json['id'] as num).toInt(),
+      printerId: (json['printer_id'] as num?)?.toInt(),
+      printerName: json['printer_name'] as String? ?? '',
+      maintenanceTypeId: (json['maintenance_type_id'] as num?)?.toInt(),
+      maintenanceTypeName: json['maintenance_type_name'] as String? ?? '',
+      hoursAtMaintenance: json['hours_at_maintenance'] == null
+          ? 0
+          : toDouble(json['hours_at_maintenance']),
+      notes: json['notes'] as String?,
+      performedById: (json['performed_by_id'] as num?)?.toInt(),
+      performedByUsername: json['performed_by_username'] as String?,
+      performedAt: json['performed_at'] as String?,
+    );

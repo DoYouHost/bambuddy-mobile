@@ -168,3 +168,162 @@ final maintenanceHistoryProvider = FutureProvider.autoDispose
       (ref, itemId) =>
           ref.watch(maintenanceRepositoryProvider).fetchHistory(itemId),
     );
+
+/// What the log screen shows: the entries loaded so far, newest first, how many
+/// the server holds in all, and where the next page starts (rows the server sent,
+/// which can be more than [entries] when one did not parse).
+typedef MaintenanceLogView = ({
+  List<MaintenanceLogEntry> entries,
+  int total,
+  int nextOffset,
+});
+
+final maintenanceLogProvider = AsyncNotifierProvider.autoDispose
+    .family<MaintenanceLogNotifier, MaintenanceLogView, int>(
+      MaintenanceLogNotifier.new,
+    );
+
+/// A printer's log of resets, a page at a time (`GET /maintenance/printers/{id}/log`).
+/// Deleting and cleaning up change what the server holds, so both reload the
+/// first page instead of guessing which rows are gone.
+class MaintenanceLogNotifier extends AsyncNotifier<MaintenanceLogView> {
+  MaintenanceLogNotifier(this.arg);
+
+  /// The printer.
+  final int arg;
+
+  /// The epoch of the page being asked for, or null when none is: a page whose
+  /// list has been reloaded since is no reason to refuse the next one.
+  int? _loadingMoreEpoch;
+
+  /// Counts the reloads: a page asked for before one and answered after it is
+  /// about a list that is gone, and must not be written over the new one.
+  int _epoch = 0;
+
+  @override
+  Future<MaintenanceLogView> build() async {
+    // No profile (mid server-change): nothing to ask, as in the siblings.
+    if (ref.watch(serverProfileProvider) == null) {
+      return (entries: const <MaintenanceLogEntry>[], total: 0, nextOffset: 0);
+    }
+    return _firstPage();
+  }
+
+  Future<MaintenanceLogView> _firstPage() async {
+    final page = await ref.read(maintenanceRepositoryProvider).fetchLog(arg);
+    return (entries: page.items, total: page.total, nextOffset: page.received);
+  }
+
+  /// More rows are on the server than have been asked for.
+  bool get hasMore {
+    final view = state.value;
+    return view != null && view.nextOffset < view.total;
+  }
+
+  /// The next page, added under the loaded rows. A tap while one is in the air,
+  /// or while the list is reloading or failed to, does nothing. A reset made
+  /// between two pages moves every row down by one, so the last row of a page
+  /// can come again at the top of the next: rows already shown are skipped by
+  /// id.
+  Future<ActionOutcome> loadMore({required String logId}) async {
+    final view = state.value;
+    if (view == null ||
+        state.isLoading ||
+        state.hasError ||
+        _loadingMoreEpoch == _epoch ||
+        !hasMore) {
+      return ActionOutcome.ok;
+    }
+    final epoch = _loadingMoreEpoch = _epoch;
+    try {
+      return await runAction(() async {
+        final page = await ref
+            .read(maintenanceRepositoryProvider)
+            .fetchLog(arg, offset: view.nextOffset);
+        // The list was reloaded, or is being, meanwhile: [view] is gone.
+        // Written only over the list the page was asked for.
+        if (!ref.mounted || epoch != _epoch || !identical(state.value, view)) {
+          return;
+        }
+        final shown = {for (final e in view.entries) e.id};
+        state = AsyncData((
+          entries: [
+            ...view.entries,
+            for (final e in page.items)
+              if (!shown.contains(e.id)) e,
+          ],
+          total: page.total,
+          // Nothing came back though more is said to be there: rows went
+          // meanwhile, and the end is reached.
+          nextOffset: page.received == 0
+              ? page.total
+              : view.nextOffset + page.received,
+        ));
+      }, logId: logId);
+    } finally {
+      if (_loadingMoreEpoch == epoch) _loadingMoreEpoch = null;
+    }
+  }
+
+  /// Reloads the first page for a pull-to-refresh: the old rows stay underneath
+  /// and a failure becomes the state, for the screen's retry.
+  Future<void> refresh() async {
+    if (ref.read(serverProfileProvider) == null) return;
+    final epoch = ++_epoch;
+    state = const AsyncLoading<MaintenanceLogView>();
+    final next = await AsyncValue.guard(_firstPage);
+    if (!ref.mounted || epoch != _epoch) return;
+    state = next;
+  }
+
+  /// [refresh] for after a write, which throws: a write that landed and a list
+  /// that could not be reloaded is not a success to report. The failure is the
+  /// state too, because it may have overtaken a [refresh] that is waiting for an
+  /// answer it will now never write.
+  Future<void> _reload() async {
+    final epoch = ++_epoch;
+    try {
+      final view = await _firstPage();
+      if (!ref.mounted || epoch != _epoch) return;
+      state = AsyncData(view);
+    } on Object catch (error, stack) {
+      if (ref.mounted && epoch == _epoch) {
+        state = AsyncError<MaintenanceLogView>(error, stack);
+      }
+      rethrow;
+    }
+  }
+
+  /// Deletes one entry (`DELETE /maintenance/log/{id}`). The task's last reset
+  /// stays as it is.
+  Future<ActionOutcome> deleteEntry(int entryId, {required String logId}) =>
+      runAction(
+        () => ref.read(maintenanceRepositoryProvider).deleteLogEntry(entryId),
+        logId: logId,
+        onSuccess: _reload,
+      );
+
+  /// Drops the entries older than [days] days: this printer's, or those of
+  /// every printer the caller may see when [allPrinters]. [deleted] says how
+  /// many went.
+  Future<({ActionOutcome outcome, int deleted})> cleanUp(
+    int days, {
+    required String logId,
+    bool allPrinters = false,
+  }) async {
+    var deleted = 0;
+    final outcome = await runAction(
+      () async {
+        deleted = await ref
+            .read(maintenanceRepositoryProvider)
+            .cleanUpLog(
+              olderThanDays: days,
+              printerId: allPrinters ? null : arg,
+            );
+      },
+      logId: logId,
+      onSuccess: _reload,
+    );
+    return (outcome: outcome, deleted: deleted);
+  }
+}

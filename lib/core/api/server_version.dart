@@ -140,6 +140,11 @@ enum ServerFeature {
   /// `POST /queue/duplicate`: another copy of queued or printing jobs at the end
   /// of the queue. An older server answers 404 or 405.
   queueDuplicate,
+
+  /// `GET /maintenance/printers/{id}/log` and its export, cleanup and delete
+  /// routes: a log of every reset, with who, when and a comment. An older server
+  /// answers 404 or 405.
+  maintenanceLog,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -259,6 +264,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.wled: (1, 3, 1, 0),
     ServerFeature.ams3hUnloadAll: (1, 3, 3, 0),
     ServerFeature.queueDuplicate: (1, 3, 3, 0),
+    ServerFeature.maintenanceLog: (1, 3, 2, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

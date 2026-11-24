@@ -206,6 +206,12 @@ void main() {
     expect(parse('1.3.3').supports(ServerFeature.ams3hUnloadAll), isTrue);
   });
 
+  test('the maintenance log is offered from 1.3.2, not before', () {
+    expect(parse('1.3.1').supports(ServerFeature.maintenanceLog), isFalse);
+    expect(parse('1.3.2b1').supports(ServerFeature.maintenanceLog), isTrue);
+    expect(parse('1.3.2').supports(ServerFeature.maintenanceLog), isTrue);
+  });
+
   test('duplicating queue jobs is offered from 1.3.3, not before', () {
     expect(parse('1.3.2').supports(ServerFeature.queueDuplicate), isFalse);
     expect(parse('1.3.3b1').supports(ServerFeature.queueDuplicate), isTrue);

@@ -1127,7 +1127,16 @@ final statsRepositoryProvider = Provider<StatsRepository>(
 );
 
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
-  (ref) => MaintenanceRepository(ref.watch(apiClientProvider).dio),
+  (ref) => MaintenanceRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the server keeps the log of maintenance resets. See
+/// `MaintenanceRepository.logCapability`.
+final maintenanceLogSupportedProvider = capabilityGate(
+  (ref) => ref.watch(maintenanceRepositoryProvider).logCapability,
 );
 
 final firmwareRepositoryProvider = Provider<FirmwareRepository>(

@@ -1008,6 +1008,29 @@ abstract final class Endpoints {
   static String maintenanceHistory(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId/history';
 
+  /// A printer's maintenance log, newest first (`MaintenanceLogPage`): `GET`
+  /// with `limit` (1..500, default 50) and `offset`; `DELETE` with
+  /// `older_than_days` (1..36500) removes the entries older than that and answers
+  /// `{deleted}`. Since server 1.3.2 (#3557).
+  static String maintenancePrinterLog(int printerId) =>
+      '$apiPrefix/maintenance/printers/$printerId/log';
+
+  /// `GET` — that printer's log as CSV.
+  static String maintenancePrinterLogExport(int printerId) =>
+      '$apiPrefix/maintenance/printers/$printerId/log/export';
+
+  /// `DELETE` with `older_than_days`: the cleanup across every printer the
+  /// caller may see (`{deleted}`). Needs `maintenance:delete`, which no API key
+  /// scope but `can_manage_maintenance` carries.
+  static const maintenanceLog = '$apiPrefix/maintenance/log';
+
+  /// `GET` — the log of every printer the caller may see, as CSV.
+  static const maintenanceLogExport = '$apiPrefix/maintenance/log/export';
+
+  /// `DELETE` — one entry of the log. The task's last reset stays as it is.
+  static String maintenanceLogEntry(int entryId) =>
+      '$apiPrefix/maintenance/log/$entryId';
+
   // --- Filaments: spool inventory ---
   //
   // Two backends under common interface (see [SpoolInventorySource]):

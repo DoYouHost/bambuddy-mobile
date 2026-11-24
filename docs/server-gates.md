@@ -792,3 +792,25 @@ silent drop, but the app sends nothing until the row says yes, so nothing is obs
 the row decides. Being early costs one 404 shown after a tap, on a 1.3.3b1
 daily older than the commit; being late hides the action, as every app version before this
 one did. The request is cut into pieces of 500 ids, the route's own limit.
+
+### maintenanceLog — 1.3.2 (server #3557, commit fab0025)
+
+A log of every maintenance reset, with who made it, when, the printer's running hours and
+the comment: `GET /maintenance/printers/{id}/log` (pages of 1..500, newest first, `{items,
+total}`), the CSV of one printer (`.../log/export`) and of every printer
+(`/maintenance/log/export`), the cleanup of entries older than N days (`DELETE
+.../log?older_than_days=`, 1..36500, for one printer or all) and the delete of one entry
+(`DELETE /maintenance/log/{id}`, which does not undo the reset). The commit landed on the
+1.3.2b1 dailies on 2026-11-17 and is in the 1.3.2 release: measured on the images
+(`maintenance_log_contract_test.dart`), 1.3.2 and the 1.3.3b1 daily both serve it. A server
+before it was not measured; the routes are new, so 404 or 405 is the expectation. The app
+asks for nothing until the row says yes, so nothing is observed and the row decides; being
+early costs one 404 on a 1.3.2b1 daily older than the commit.
+
+What an API key can do, per surface: reading the log and both exports is `can_read_status`
+(full); the cleanup and the delete need `maintenance:delete`, which maps to
+`can_manage_maintenance` only. A key without it reads and exports but is refused (403) on
+the other two. The CSV starts with a byte order mark (so Excel reads UTF-8) and its text
+columns are written as text, never as formulas; the cleanup keeps at least the last day, and
+an age outside 1..36500 is a 422, not clamped.
+

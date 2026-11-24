@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:app_util/app_util.dart';
@@ -1452,6 +1453,108 @@ void main() {
       final after = await repo.runs();
       expect(after.runs.every((r) => !r.status.isTerminal), isTrue);
       expect(after.runs.map((r) => r.id).toSet(), live);
+    });
+  });
+
+  group('maintenance log', () {
+    // Own backend: the resets and deletions must not leak into the shared one.
+    MaintenanceRepository fresh() => MaintenanceRepository(
+      Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        ),
+    );
+
+    test(
+      'a printer\'s log is its resets, newest first, with who and when',
+      () async {
+        final repo = fresh();
+
+        final page = await repo.fetchLog(1);
+
+        expect(page.total, 3);
+        expect(page.items.map((e) => e.id), [4, 2, 1]);
+        expect(page.items.first.performedByUsername, DemoConfig.username);
+        expect(page.items.any((e) => e.notes != null), isTrue);
+      },
+    );
+
+    test(
+      'a reset enters the log with its comment and the printer\'s hours',
+      () async {
+        final repo = fresh();
+        final overview = await repo.fetchOverview();
+        final item = overview
+            .firstWhere((o) => o.printerId == 1)
+            .maintenanceItems
+            .first;
+        final before = (await repo.fetchLog(1)).total;
+
+        await repo.perform(item.id, notes: 'Done in the demo');
+
+        final page = await repo.fetchLog(1);
+        expect(page.total, before + 1);
+        expect(page.items.first.notes, 'Done in the demo');
+        expect(page.items.first.maintenanceTypeName, item.maintenanceTypeName);
+        expect(page.items.first.hoursAtMaintenance, greaterThan(0));
+      },
+    );
+
+    test('paging and an unknown printer', () async {
+      final repo = fresh();
+
+      expect((await repo.fetchLog(1, limit: 2)).items, hasLength(2));
+      expect((await repo.fetchLog(1, offset: 2)).items, hasLength(1));
+      final beyond = await repo.fetchLog(1, offset: 100);
+      expect(beyond.items, isEmpty);
+      expect(beyond.total, 3);
+      await expectLater(
+        repo.fetchLog(999),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
+    });
+
+    test('an entry goes, and the task\'s state stays', () async {
+      final repo = fresh();
+      final first = (await repo.fetchLog(1)).items.first;
+
+      await repo.deleteLogEntry(first.id);
+
+      expect(
+        (await repo.fetchLog(1)).items.map((e) => e.id),
+        isNot(contains(first.id)),
+      );
+      await expectLater(
+        repo.deleteLogEntry(first.id),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
+    });
+
+    test('a cleanup takes the older entries, of a printer or of all', () async {
+      final repo = fresh();
+
+      // Printer 1 has entries 20, 60 and 120 days old; 30 days keeps one.
+      expect(await repo.cleanUpLog(olderThanDays: 30, printerId: 1), 2);
+      expect((await repo.fetchLog(1)).total, 1);
+      // Printer 2 had 45 and 10 days: a fleet cleanup at 30 takes one more.
+      expect(await repo.cleanUpLog(olderThanDays: 30), 1);
+      expect((await repo.fetchLog(2)).total, 1);
+      expect(await repo.cleanUpLog(olderThanDays: 36500), 0);
+    });
+
+    test('the export is CSV with a byte order mark and a header', () async {
+      final file = await fresh().exportLog(printerId: 1);
+
+      expect(file.bytes.take(3), [0xEF, 0xBB, 0xBF]);
+      expect(
+        utf8.decode(file.bytes.skip(3).toList()),
+        startsWith('Performed at (UTC),Printer,Task,'),
+      );
     });
   });
 

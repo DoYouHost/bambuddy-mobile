@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -627,7 +628,7 @@ class DemoBackend {
         return _plugsRoute(m, s, body);
 
       case 'maintenance':
-        return _maintenanceRoute(m, s, body);
+        return _maintenanceRoute(m, s, q, body);
 
       case 'inventory':
         return _inventoryRoute(m, s, q, body, rawBody);
@@ -6003,8 +6004,13 @@ class DemoBackend {
   DemoResult? _maintenanceRoute(
     String m,
     List<String> s,
+    Map<String, String> q,
     Map<String, dynamic> body,
   ) {
+    if (s.length >= 2 && s[1] == 'log') return _maintenanceLogRoute(m, s, q);
+    if (s.length >= 4 && s[1] == 'printers' && s[3] == 'log') {
+      return _maintenanceLogRoute(m, s, q);
+    }
     if (s.length >= 2 && s[1] == 'overview') {
       return demoOk([
         for (final p in _printers) _maintenanceOverviewFor(p['id'] as int),
@@ -6078,7 +6084,8 @@ class DemoBackend {
       if (s.length >= 4 && s[3] == 'perform') {
         item['hours_since'] = 0.0;
         item['last_performed_at'] = isoUtc(DateTime.now());
-        return demoOk(_maintenanceStatus(itemId!));
+        _logReset(itemId!, body['notes'] as String?);
+        return demoOk(_maintenanceStatus(itemId));
       }
       if (s.length >= 4 && s[3] == 'history') {
         final last = item['last_performed_at'];
@@ -6105,6 +6112,143 @@ class DemoBackend {
         _maintenanceItems.remove(itemId);
         return demoOk(const {'ok': true});
       }
+    }
+    return _fallback(m);
+  }
+
+  /// The log of resets, newest first as the server lists it: a few from the
+  /// past, and one more for every reset made in the demo.
+  late final List<Map<String, dynamic>> _maintenanceLog = [
+    for (final (id, printer, type, days, hours, notes) in const [
+      (6, 3, 2, 5, 40.0, null),
+      (5, 2, 2, 10, 90.5, null),
+      (4, 1, 3, 20, 390.0, 'Replaced the PTFE tube'),
+      (3, 2, 1, 45, 50.0, 'Cleaned the rods'),
+      (2, 1, 2, 60, 300.0, null),
+      (1, 1, 1, 120, 176.5, 'Cleaned and greased the rods'),
+    ])
+      _logEntry(
+        id: id,
+        printerId: printer,
+        typeId: type,
+        performedAt: _daysAgo(days),
+        hours: hours,
+        notes: notes,
+      ),
+  ];
+  int _nextLogId = 7;
+
+  Map<String, dynamic> _logEntry({
+    required int id,
+    required int printerId,
+    required int typeId,
+    required DateTime performedAt,
+    required double hours,
+    String? notes,
+  }) => {
+    'id': id,
+    'printer_id': printerId,
+    'printer_name': rowById(_printers, printerId)?['name'],
+    'maintenance_type_id': typeId,
+    'maintenance_type_name': rowById(_maintenanceTypes, typeId)?['name'],
+    'hours_at_maintenance': hours,
+    'notes': notes,
+    'performed_by_id': 1,
+    'performed_by_username': DemoConfig.username,
+    'performed_at': isoUtc(performedAt),
+  };
+
+  /// A reset of item [itemId] enters the log, as the server writes it.
+  void _logReset(int itemId, String? notes) {
+    final item = _maintenanceItems[itemId];
+    if (item == null) return;
+    final printerId = item['printer_id'] as int;
+    _maintenanceLog.insert(
+      0,
+      _logEntry(
+        id: _nextLogId++,
+        printerId: printerId,
+        typeId: item['type_id'] as int,
+        performedAt: DateTime.now(),
+        hours: _printerHours[printerId] ?? 0,
+        notes: (notes ?? '').isEmpty ? null : notes,
+      ),
+    );
+  }
+
+  /// The routes of the log, in the server's order of checks: 404 for a printer
+  /// that is not there, 422 for a query out of range.
+  DemoResult _maintenanceLogRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+  ) {
+    // `printers/{id}/log[/export]` or `log[/export|/{entry}]`.
+    final perPrinter = s[1] == 'printers';
+    final printerId = perPrinter ? int.tryParse(s[2]) : null;
+    if (perPrinter && rowById(_printers, printerId) == null) {
+      return demoRefuse(404, 'Printer not found');
+    }
+    final tail = s.skip(perPrinter ? 4 : 2).toList();
+    final rows = [
+      for (final e in _maintenanceLog)
+        if (printerId == null || e['printer_id'] == printerId) e,
+    ];
+    if (tail.isEmpty && m == 'GET' && perPrinter) {
+      final limit = intQuery(q, 'limit', 50);
+      final offset = intQuery(q, 'offset', 0);
+      if (limit < 1 || limit > 500 || offset < 0) {
+        return demoRefuse(422, 'limit takes 1..500 and offset 0 or more');
+      }
+      return demoOk({
+        'items': rows.skip(offset).take(limit).toList(),
+        'total': rows.length,
+      });
+    }
+    if (tail.length == 1 && tail.first == 'export' && m == 'GET') {
+      final lines = [
+        'Performed at (UTC),Printer,Task,Performed by,Print hours,Comment',
+        for (final e in rows)
+          [
+            e['performed_at'],
+            e['printer_name'],
+            e['maintenance_type_name'],
+            e['performed_by_username'],
+            (e['hours_at_maintenance'] as num).toStringAsFixed(1),
+            e['notes'] ?? '',
+          ].map((v) => '"$v"').join(','),
+      ];
+      return _file(
+        Uint8List.fromList([
+          0xEF,
+          0xBB,
+          0xBF,
+          ...utf8.encode('${lines.join('\n')}\n'),
+        ]),
+        'text/csv; charset=utf-8',
+      );
+    }
+    if (tail.isEmpty && m == 'DELETE') {
+      final days = int.tryParse(q['older_than_days'] ?? '');
+      if (days == null || days < 1 || days > 36500) {
+        return demoRefuse(422, 'older_than_days takes 1..36500');
+      }
+      final cutoff = DateTime.now().subtract(Duration(days: days));
+      final gone = rows
+          .where(
+            (e) => DateTime.parse(e['performed_at'] as String).isBefore(cutoff),
+          )
+          .toList();
+      _maintenanceLog.removeWhere(gone.contains);
+      return demoOk({'deleted': gone.length});
+    }
+    if (!perPrinter && tail.length == 1 && m == 'DELETE') {
+      final entry = rowById(_maintenanceLog, int.tryParse(tail.first));
+      if (entry == null) {
+        return demoRefuse(404, 'Maintenance log entry not found');
+      }
+      _maintenanceLog.remove(entry);
+      return demoOk({'status': 'deleted', 'id': entry['id']});
     }
     return _fallback(m);
   }
