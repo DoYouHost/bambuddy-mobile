@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/nfc/nfc_reader.dart';
+import 'package:bambuddy_mobile/features/common/qr_scanner_screen.dart'
+    show kScanTokens;
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/spool_scanner_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -28,8 +30,8 @@ void main() {
     tagUid: tagA,
   );
 
-  // The camera plugin: answered "refused", which is all the screen needs to
-  // draw. Every call it gets is kept, to see whether the camera was touched.
+  // The camera plugin: a camera that starts, or one that is refused. Every call
+  // it gets is kept, to see whether the camera was touched.
   const scanner = MethodChannel(
     'dev.steenbakker.mobile_scanner/scanner/method',
   );
@@ -40,12 +42,37 @@ void main() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late List<String> cameraCalls;
+  var cameraRefused = false;
+
+  /// Holds the camera's start until completed, and what torch it reports (-1 is
+  /// none, 0 off).
+  Completer<void>? cameraStartGate;
+  var cameraTorch = 0;
 
   setUp(() {
     cameraCalls = [];
+    cameraRefused = false;
+    cameraStartGate = null;
+    cameraTorch = 0;
     messenger.setMockMethodCallHandler(scanner, (call) async {
       cameraCalls.add(call.method);
-      return call.method == 'state' ? 2 : false;
+      if (call.method == 'start') await cameraStartGate?.future;
+      return switch (call.method) {
+        // 1 is authorised, 2 denied (`request` then answers no).
+        'state' => cameraRefused ? 2 : 1,
+        'request' => false,
+        'start' => {
+          'textureId': 1,
+          'size': {'width': 640.0, 'height': 480.0},
+          'numberOfCameras': 1,
+          'currentTorchState': cameraTorch,
+          // What the Android side of the plugin insists on.
+          'handlesCropAndRotation': true,
+          'naturalDeviceOrientation': 'PORTRAIT_UP',
+          'sensorOrientation': 90,
+        },
+        _ => null,
+      };
     });
     for (final channel in eventChannels) {
       messenger.setMockMethodCallHandler(channel, (_) async => null);
@@ -258,6 +285,166 @@ void main() {
         find.descendant(of: find.byType(AppBar), matching: torch),
         findsNothing,
       );
+    });
+
+    group('the torch', () {
+      IconButton torchButton(WidgetTester tester) => tester.widget<IconButton>(
+        find.descendant(
+          of: byLogId('scanner.torch'),
+          matching: find.byType(IconButton),
+        ),
+      );
+
+      testWidgets(
+        'waits for the camera, which refuses a toggle before it runs',
+        (tester) async {
+          cameraStartGate = Completer<void>();
+          await open(tester);
+          expect(torchButton(tester).onPressed, isNull);
+
+          cameraStartGate!.complete();
+          await tester.pumpAndSettle();
+
+          expect(torchButton(tester).onPressed, isNotNull);
+        },
+      );
+
+      testWidgets('looks off when it is off', (tester) async {
+        cameraStartGate = Completer<void>();
+        await open(tester);
+        Color? iconColour() {
+          final icon = find.descendant(
+            of: byLogId('scanner.torch'),
+            matching: find.byType(Icon),
+          );
+          return IconTheme.of(tester.element(icon)).color;
+        }
+
+        final off = iconColour();
+        cameraStartGate!.complete();
+        await tester.pumpAndSettle();
+
+        expect(off, isNot(iconColour()), reason: 'a disabled torch is dimmed');
+        expect(
+          off,
+          kScanTokens.textSecondary,
+          reason: 'and still legible on the dark scanner, not the theme\'s own',
+        );
+      });
+
+      testWidgets('is off for good on a phone with no flash', (tester) async {
+        cameraTorch = -1;
+        await open(tester);
+
+        expect(torchButton(tester).onPressed, isNull);
+      });
+    });
+
+    testWidgets('the frame waits for the camera, and is there once it runs', (
+      tester,
+    ) async {
+      cameraStartGate = Completer<void>();
+      await open(tester);
+      expect(find.byKey(const ValueKey('scanner_frame')), findsNothing);
+
+      cameraStartGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('scanner_frame')), findsOneWidget);
+    });
+
+    group('when the camera is refused', () {
+      testWidgets('the message is shown, with nothing drawn over it', (
+        tester,
+      ) async {
+        cameraRefused = true;
+        await open(tester);
+
+        expect(find.text(pl.cameraPermissionTitle), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('scanner_frame')),
+          findsNothing,
+          reason: 'the frame and its hint are for a camera that works',
+        );
+        expect(byLogId('scanner.torch'), findsNothing);
+        expect(byLogId('spool_scan.mode'), findsOneWidget);
+      });
+
+      testWidgets('and the way out to NFC is still there', (tester) async {
+        cameraRefused = true;
+        await open(tester);
+
+        await tester.tap(find.text(pl.spoolScanModeNfc));
+        await tester.pumpAndSettle();
+
+        expect(find.text(pl.spoolScanNfcHint), findsOneWidget);
+      });
+
+      for (final scale in const [1.0, 2.0]) {
+        testWidgets('the message is not under the switch, at $scale text', (
+          tester,
+        ) async {
+          tester.view
+            ..physicalSize = const Size(740, 360)
+            ..devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          cameraRefused = true;
+          await open(tester, scale: scale);
+
+          final switchRect = tester.getRect(byLogId('spool_scan.mode'));
+          final title = tester.getRect(find.text(pl.cameraPermissionTitle));
+          expect(title.top, greaterThanOrEqualTo(switchRect.bottom));
+          expect(tester.takeException(), isNull);
+        });
+      }
+
+      for (final scale in const [1.0, 2.0]) {
+        testWidgets(
+          'with no switch it is below the bar in landscape, at $scale text',
+          (tester) async {
+            tester.view
+              ..physicalSize = const Size(740, 360)
+              ..devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            cameraRefused = true;
+            await open(tester, status: NfcStatus.unsupported, scale: scale);
+
+            final bar = tester.getRect(find.byType(AppBar));
+            final title = tester.getRect(find.text(pl.cameraPermissionTitle));
+            expect(title.top, greaterThanOrEqualTo(bar.bottom));
+            expect(tester.takeException(), isNull);
+          },
+        );
+
+        testWidgets(
+          'and so is the frame of a camera that works, at $scale text',
+          (tester) async {
+            tester.view
+              ..physicalSize = const Size(740, 360)
+              ..devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            await open(tester, status: NfcStatus.unsupported, scale: scale);
+
+            final bar = tester.getRect(find.byType(AppBar));
+            final frame = tester.getRect(
+              find.byKey(const ValueKey('scanner_frame')),
+            );
+            expect(frame.top, greaterThanOrEqualTo(bar.bottom));
+            expect(tester.takeException(), isNull);
+          },
+        );
+      }
+
+      testWidgets('a scanner with no switch shows it alone, torch gone', (
+        tester,
+      ) async {
+        cameraRefused = true;
+        await open(tester, status: NfcStatus.unsupported);
+
+        expect(find.text(pl.cameraPermissionTitle), findsOneWidget);
+        expect(find.byKey(const ValueKey('scanner_frame')), findsNothing);
+        expect(byLogId('scanner.torch'), findsNothing);
+      });
     });
 
     testWidgets('and there is none on the NFC side', (tester) async {

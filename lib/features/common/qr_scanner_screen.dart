@@ -15,8 +15,10 @@ const kScanTokens = DashTokens.dark(bambuddyBrand);
 /// Full-screen QR code scanner, reusable across features. [extract] turns a raw
 /// barcode value into the result [T] to return via [Navigator.pop] (returning
 /// null ignores that read and keeps scanning). Closes on the first successful
-/// extract; cancel/back → returns null. Camera permission is handled by
-/// [MobileScanner] (runtime request + `errorBuilder` for denial).
+/// extract; cancel/back → returns null. The controller starts the camera, which
+/// asks for the permission; a camera that does not start (refused or broken) is
+/// shown by this screen from the controller's error, in the room the header
+/// leaves, with nothing drawn over it.
 class QrScannerScreen<T extends Object> extends StatefulWidget {
   const QrScannerScreen({
     super.key,
@@ -26,7 +28,8 @@ class QrScannerScreen<T extends Object> extends StatefulWidget {
     this.header,
   });
 
-  /// App-bar title and the heading shown on the permission-denied fallback.
+  /// App-bar title, and the heading of the failure message for any error that is
+  /// not a refused permission (that one names itself).
   final String title;
 
   /// Instruction line under the viewfinder.
@@ -87,7 +90,7 @@ class _QrScannerScreenState<T extends Object>
   Widget _viewfinder(DashTokens t) => IgnorePointer(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: widget.header == null ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           key: const ValueKey('scanner_frame'),
@@ -118,15 +121,24 @@ class _QrScannerScreenState<T extends Object>
   Widget _torch(DashTokens t) => ValueListenableBuilder<MobileScannerState>(
     valueListenable: _controller,
     builder: (context, state, _) {
+      // Nothing to light when the camera did not start.
+      if (state.error != null) return const SizedBox.shrink();
       final on = state.torchState == TorchState.on;
+      // Off until the camera runs, which the controller refuses a toggle before,
+      // and for ever on a phone with no flash.
+      final usable =
+          state.isRunning && state.torchState != TorchState.unavailable;
       return IconButton(
-        onPressed: () => _controller.toggleTorch(),
+        onPressed: usable ? () => _controller.toggleTorch() : null,
         tooltip: AppLocalizations.of(context).scannerTorch,
         isSelected: on,
-        icon: Icon(
-          on ? Icons.flash_on : Icons.flash_off,
-          color: on ? t.accentGreen : t.textPrimary,
+        // The colour is the button's, not the icon's own: an icon that sets
+        // its own would not dim when the button is off.
+        style: IconButton.styleFrom(
+          foregroundColor: on ? t.accentGreen : t.textPrimary,
+          disabledForegroundColor: t.textSecondary,
         ),
+        icon: Icon(on ? Icons.flash_on : Icons.flash_off),
       ).tagged('scanner.torch');
     },
   );
@@ -155,21 +167,22 @@ class _QrScannerScreenState<T extends Object>
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // The camera's failure is drawn by this screen, not by the preview, so
+          // that it takes the room under the header and nothing is drawn over it.
           MobileScanner(
             controller: _controller,
             onDetect: _onDetect,
-            errorBuilder: (context, error) =>
-                _ScannerError(error: error, title: widget.title, l10n: l10n),
+            errorBuilder: (context, error) => const SizedBox.shrink(),
           ),
-          if (widget.header case final header?)
-            // The body runs behind the bar, and the safe area of a body there
-            // already starts below it: no bar height of our own on top. The
-            // viewfinder gets what the header and the torch leave, and shrinks
-            // into it, so nothing overlaps at a large text or in landscape.
-            Positioned.fill(
-              child: SafeArea(
-                child: Column(
-                  children: [
+          // The body runs behind the bar, and the safe area of a body there
+          // already starts below it: no bar height of our own on top. What the
+          // header and the torch leave is the viewfinder's, which shrinks into
+          // it, so nothing overlaps at a large text or in landscape.
+          Positioned.fill(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  if (widget.header case final header?) ...[
                     SizedBox(width: double.infinity, child: header),
                     Align(
                       alignment: Alignment.centerRight,
@@ -180,24 +193,44 @@ class _QrScannerScreenState<T extends Object>
                         child: _torch(t),
                       ),
                     ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, box) => FittedBox(
-                          // Down only: a frame is 240 dp, not whatever is left.
-                          fit: BoxFit.scaleDown,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: box.maxWidth),
-                            child: _viewfinder(t),
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
-                ),
+                  Expanded(
+                    child: ValueListenableBuilder<MobileScannerState>(
+                      valueListenable: _controller,
+                      builder: (context, state, _) {
+                        final error = state.error;
+                        // Not before the camera is up (a permission prompt may
+                        // be open): a frame that flashed up and went would
+                        // promise a camera that is not coming.
+                        if (error == null && !state.isInitialized) {
+                          return const SizedBox.shrink();
+                        }
+                        if (error != null) {
+                          return _ScannerError(
+                            error: error,
+                            title: widget.title,
+                            l10n: l10n,
+                          );
+                        }
+                        return LayoutBuilder(
+                          builder: (context, box) => FittedBox(
+                            // Down only: a frame is 240 dp, not whatever is left.
+                            fit: BoxFit.scaleDown,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: box.maxWidth,
+                              ),
+                              child: _viewfinder(t),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            )
-          else
-            _viewfinder(t),
+            ),
+          ),
         ],
       ),
     );
