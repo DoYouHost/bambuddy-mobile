@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+import 'core/demo/demo_nfc.dart';
 import 'core/nfc/nfc_reader.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
@@ -1127,8 +1128,15 @@ final statsRepositoryProvider = Provider<StatsRepository>(
   (ref) => StatsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// The phone's NFC reader; tests replace it with a fake.
-final nfcReaderProvider = Provider<NfcReader>((ref) => ChannelNfcReader());
+/// The phone's NFC reader; tests replace it with a fake. The demo has its own, so
+/// that every feature shows on a device without NFC.
+final nfcReaderProvider = Provider<NfcReader>(
+  // Only whether it is the demo: a profile that changes otherwise must not make
+  // a second reader, whose event channel would take the first one's handler.
+  (ref) => ref.watch(serverProfileProvider.select((p) => p?.isDemo ?? false))
+      ? const DemoNfcReader()
+      : ChannelNfcReader(),
+);
 
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
   (ref) => MaintenanceRepository(

@@ -22,6 +22,7 @@ import 'demo_label_templates.dart';
 import 'demo_labels.dart';
 import 'demo_finance.dart';
 import 'demo_manyfold.dart';
+import 'demo_nfc.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -6274,6 +6275,7 @@ class DemoBackend {
       String? archivedAt,
       int? lowStockPct,
       double baseline = 0,
+      String? tagUid,
     }) => {
       'id': id++,
       'material': material,
@@ -6294,7 +6296,7 @@ class DemoBackend {
       'note': null,
       'nozzle_temp_min': material == 'PETG' ? 230 : 190,
       'nozzle_temp_max': material == 'PETG' ? 260 : 230,
-      'tag_uid': null,
+      'tag_uid': tagUid,
       'archived_at': archivedAt,
       'last_used': isoUtc(_daysAgo(id % 6)),
       'created_at': isoUtc(_daysAgo(30 + id)),
@@ -6314,6 +6316,8 @@ class DemoBackend {
         '000000FF',
         used: 340,
         location: 'Shelf A',
+        // What the demo's NFC reader holds to the phone (`demo_nfc.dart`).
+        tagUid: demoNfcSpoolTag,
       ),
       spool(
         'PLA',

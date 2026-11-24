@@ -286,6 +286,10 @@ missing channels as `NfcStatus.unsupported`.
   read as any other when held again, tags read while the scanner closes are ignored, and a
   shelf that cannot be loaded says why instead of "no spool has this tag". The scanner holds `inventoryProvider` while it is open, so the
   first tag finds the shelf loaded.
+- **The demo has its own reader** (`DemoNfcReader`, `lib/core/demo/demo_nfc.dart`): NFC is on, a
+  tag nobody knows is "held" three seconds after the scanner starts listening, and three seconds
+  later the tag of the first demo spool (PLA Basic Black). The demo shows every feature on a
+  device without NFC, which an emulator is; `nfcReaderProvider` picks it for the demo server.
 - **Not tried on a device** when it was written (no NFC phone to hand): the Kotlin compiles
   in both flavors and the Dart side is tested through mocked channels, nothing more.
 
