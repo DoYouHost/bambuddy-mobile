@@ -464,6 +464,20 @@ void main() {
     });
   });
 
+  group('withoutPrinterSuffix', () {
+    test('cuts from the first " @" and trims', () {
+      expect(withoutPrinterSuffix('Bambu PETG HF @BBL X1C'), 'Bambu PETG HF');
+      expect(withoutPrinterSuffix('  Bambu PLA  @ base @ x '), 'Bambu PLA');
+    });
+
+    test('leaves a name with no " @" alone', () {
+      expect(withoutPrinterSuffix('Bambu PLA Basic'), 'Bambu PLA Basic');
+      expect(withoutPrinterSuffix('PLA@x'), 'PLA@x');
+      expect(withoutPrinterSuffix('@BBL'), '@BBL');
+      expect(withoutPrinterSuffix('Bambu PLA @'), 'Bambu PLA');
+    });
+  });
+
   group('filamentNames', () {
     test('asks once for the sorted, de-duplicated ids and keeps the names', () {
       // The body is matched exactly: an unsorted or repeated list is no match.
@@ -511,6 +525,22 @@ void main() {
           'GFX95',
         ]),
         completion({'GFA00': 'Bambu PLA Basic'}),
+      );
+    });
+
+    test('cuts the printer a profile name was made for', () {
+      adapter.onPost(
+        '/api/v1/cloud/filament-info',
+        (s) => s.reply(200, {
+          'GFA00': {'name': 'Bambu PLA Basic @BBL X1C'},
+          'GFG02': {'name': 'Bambu PETG HF @BBL A1M 0.2 nozzle'},
+        }),
+        data: ['GFA00', 'GFG02'],
+      );
+
+      expect(
+        repo.filamentNames(['GFA00', 'GFG02']),
+        completion({'GFA00': 'Bambu PLA Basic', 'GFG02': 'Bambu PETG HF'}),
       );
     });
 

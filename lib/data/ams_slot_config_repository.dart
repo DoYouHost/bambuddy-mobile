@@ -101,7 +101,7 @@ class AmsSlotConfigRepository {
         for (final MapEntry(:key, :value) in (json ?? const {}).entries)
           if (value is Map && value['name'] is String)
             if ((value['name'] as String).trim().isNotEmpty)
-              key: (value['name'] as String).trim(),
+              key: withoutPrinterSuffix(value['name'] as String),
       };
     } on AppApiException {
       return const {};
@@ -258,6 +258,12 @@ class AmsSlotConfigRepository {
   Future<void> _post(String path, {Map<String, dynamic>? query}) =>
       guard(() => _dio.post<dynamic>(path, queryParameters: query));
 }
+
+/// A slicer profile's name without its ` @printer` tail ("Bambu PETG HF @BBL X1C"
+/// reads "Bambu PETG HF"): the row already sits under the printer it belongs to.
+/// The web shows the tail; this is a deliberate deviation.
+String withoutPrinterSuffix(String name) =>
+    name.trim().split(' @').first.trim();
 
 /// Read a list of presets, skipping entries that are not objects and those a
 /// tier left without an id — an unnameable preset cannot be selected anyway.
