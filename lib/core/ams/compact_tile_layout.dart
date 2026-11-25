@@ -7,6 +7,11 @@
 /// - A visible tile is never narrower than [compactTileMinWidth] times the text
 ///   scale, so the tap target passes the accessibility guideline without
 ///   counting the gap beside it.
+/// - A row of n tiles has n - 1 gaps, not n: the last tile of a row has nothing
+///   beside it. The layout counts one extra gap in the width, and the widget
+///   draws the last tile of a row one gap narrower, so the row ends flush with
+///   its container. Counting n gaps cost a 411.43 dp phone (1080 px at 420 dpi)
+///   its sixth tile by 0.57 dp.
 /// - When every tile of the block fits one row at that minimum they share it.
 ///   Otherwise the external group moves, whole, to rows of its own.
 /// - Tiles stretch to fill their row. A group too long for one row splits into
@@ -37,7 +42,7 @@ class CompactRow {
   final int start;
   final int end;
 
-  /// The tile plus its gap.
+  /// The tile plus its gap; the last tile of the row has no gap after it.
   final double slot;
 
   int get count => end - start;
@@ -73,7 +78,7 @@ class CompactBlockLayout {
 /// [width] dp. [textScale] below 1 counts as 1: a smaller font must not make a
 /// tap target smaller.
 ///
-/// A [width] under one slot cannot honour the minimum; every tile then gets a
+/// A [width] under one tile cannot honour the minimum; every tile then gets a
 /// row of its own, [width] wide, instead of failing.
 CompactBlockLayout compactBlockLayout({
   required double width,
@@ -88,23 +93,24 @@ CompactBlockLayout compactBlockLayout({
   final total = amsCount + externalCount;
   if (total == 0) return const CompactBlockLayout([]);
   final minSlot = compactTileMinWidth * scale + compactTileGap;
+  // One gap more than the row shows: every slot carries its gap, the last one
+  // included, and the widget takes that last gap back.
+  final span = width + compactTileGap;
 
-  if (amsCount > 0 &&
-      externalCount > 0 &&
-      total * minSlot <= width + _epsilon) {
+  if (amsCount > 0 && externalCount > 0 && total * minSlot <= span + _epsilon) {
     return CompactBlockLayout([
-      CompactRow(0, total, _singleRowSlot(width, total, minSlot)),
+      CompactRow(0, total, _singleRowSlot(span, total, minSlot)),
     ]);
   }
 
-  final ams = _group(width, amsCount, minSlot, 0);
-  final external = _group(width, externalCount, minSlot, amsCount);
+  final ams = _group(span, amsCount, minSlot, 0);
+  final external = _group(span, externalCount, minSlot, amsCount);
   // The external row keeps the AMS tile width when it fits at it, so the two
   // groups line up. At a narrow width it can hold more tiles per row than the
   // AMS rows do, and then it takes the slot its own tile count allows.
   final externalSlot =
-      ams.rows.isNotEmpty && external.perRow * ams.slot <= width + _epsilon
-      ? math.min(ams.slot, width / external.perRow)
+      ams.rows.isNotEmpty && external.perRow * ams.slot <= span + _epsilon
+      ? math.min(ams.slot, span / external.perRow)
       : external.slot;
   return CompactBlockLayout([
     ...ams.rows,

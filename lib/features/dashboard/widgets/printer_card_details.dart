@@ -774,10 +774,9 @@ class _DetailsPanelState extends ConsumerState<_DetailsPanel> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (switchable) ...[
-                    _FilamentTitle(printerId: printerId),
-                    const SizedBox(height: DashSpace.sm),
-                  ],
+                  // No gap under the title: its row and the unit header below it
+                  // are each a 48 dp tap target, already 29 dp between the texts.
+                  if (switchable) _FilamentTitle(printerId: printerId),
                   for (var i = 0; i < blocks.length; i++) ...[
                     if (i > 0) const SizedBox(height: DashSpace.lg),
                     blocks[i],
@@ -1158,7 +1157,7 @@ class _AmsSection extends ConsumerWidget {
             amsId: unit.id ?? unitIndex,
             drying: unit.isDrying,
           ),
-        const SizedBox(height: DashSpace.md),
+        const SizedBox(height: DashSpace.sm),
         if (trays.isEmpty)
           Text(
             '—',

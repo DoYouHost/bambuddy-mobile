@@ -40,8 +40,9 @@ class _TileSpec {
     filamentName: filamentName,
   );
 
-  Widget tile(double width) => _CompactSlotTile(
+  Widget tile(double width, {required bool last}) => _CompactSlotTile(
     width: width,
+    last: last,
     tray: tray,
     active: active,
     fill: fill,
@@ -125,7 +126,10 @@ class _CompactTiles extends StatelessWidget {
                     i < layout.rows[r].end;
                     i++
                   )
-                    tiles[i].tile(layout.rows[r].slot),
+                    tiles[i].tile(
+                      layout.rows[r].slot,
+                      last: i == layout.rows[r].end - 1,
+                    ),
                 ],
               ),
             ],

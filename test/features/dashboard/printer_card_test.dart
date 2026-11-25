@@ -1406,6 +1406,90 @@ void main() {
         expect(tester.getSize(area).width, 360 - 100);
       });
 
+      testWidgets('six tiles share one row on a 411.43 dp phone and span its '
+          'area exactly', (tester) async {
+        // 1080 px at 420 dpi: the area is 311.43 dp, 0.57 under six whole slots.
+        const phone = 1080 / (420 / 160);
+        await pumpCompact(tester, width: phone);
+
+        expect(slots, findsNWidgets(6));
+        expect(rowTops(tester), hasLength(1));
+        expect(heading, findsNothing);
+        final area = tester.getRect(
+          find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == '_CompactTiles',
+          ),
+        );
+        final rects = [
+          for (final e in slots.evaluate())
+            tester.getRect(find.byWidget(e.widget)),
+        ]..sort((a, b) => a.left.compareTo(b.left));
+        expect(rects.first.left, closeTo(area.left, 0.01));
+        expect(rects.last.right, closeTo(area.right, 0.01));
+        for (final r in rects) {
+          expect(r.width, greaterThanOrEqualTo(48));
+        }
+      });
+
+      for (final width in [1080 / (420 / 160), 360.0]) {
+        for (final scale in [1.0, 1.5, 2.0]) {
+          testWidgets('the material sits at its swatch\'s centre and clear of '
+              'the pill at $width dp, $scale× text', (tester) async {
+            await pumpCompact(tester, width: width, scale: scale);
+
+            expect(slots, findsNWidgets(6));
+            for (final e in slots.evaluate()) {
+              final slot = find.byWidget(e.widget);
+              final text = find
+                  .descendant(of: slot, matching: find.byType(Text))
+                  .first;
+              final swatch = tester.getRect(
+                find.ancestor(of: text, matching: find.byType(Stack)).first,
+              );
+              final name = tester.getRect(text);
+              final pill = tester.getRect(
+                find.descendant(
+                  of: slot,
+                  matching: find.byWidgetPredicate(
+                    (w) => w.runtimeType.toString() == '_SlotPill',
+                  ),
+                ),
+              );
+              expect(name.center.dy, closeTo(swatch.center.dy, 0.5));
+              expect(name.center.dx, closeTo(swatch.center.dx, 0.5));
+              expect(pill.overlaps(name), isFalse, reason: '$pill over $name');
+            }
+          });
+        }
+      }
+
+      testWidgets('the title row touches the unit header, which sits 8 dp over '
+          'the tiles', (tester) async {
+        // Each row is a 48 dp tap target; a gap between them is only air.
+        await pumpCompact(tester, width: 1080 / (420 / 160));
+
+        final title = tester.getRect(
+          find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == '_FilamentTitle',
+          ),
+        );
+        final header = tester.getRect(
+          find
+              .ancestor(
+                of: find.textContaining('AMS').first,
+                matching: find.byType(Wrap),
+              )
+              .first,
+        );
+        final tiles = tester.getRect(
+          find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == '_CompactTiles',
+          ),
+        );
+        expect(header.top - title.bottom, 0);
+        expect(tiles.top - header.bottom, 8);
+      });
+
       testWidgets('the switch changes this printer between the two views', (
         tester,
       ) async {
@@ -1596,8 +1680,8 @@ void main() {
             final material = tester.getRect(find.text('PLA Basic Matte'));
             final percent = tester.getRect(find.text('66%'));
             expect(material.bottom, lessThanOrEqualTo(percent.top));
-            // And under the pill: a swatch too short for the lines centres
-            // them over its top edge.
+            // And under the pill's inner half (8 dp): a swatch too short for the
+            // lines centres them up into it.
             final top = tester
                 .getRect(
                   find
@@ -1608,7 +1692,7 @@ void main() {
                       .first,
                 )
                 .top;
-            expect(material.top - top, greaterThanOrEqualTo(20 - 0.01));
+            expect(material.top - top, greaterThanOrEqualTo(8 - 0.01));
           });
         }
       }

@@ -7,6 +7,7 @@ part of 'printer_card.dart';
 class _CompactSlotTile extends ConsumerWidget {
   const _CompactSlotTile({
     required this.width,
+    required this.last,
     required this.tray,
     required this.active,
     required this.fill,
@@ -18,6 +19,10 @@ class _CompactSlotTile extends ConsumerWidget {
   });
 
   final double width;
+
+  /// The last tile of its row: the slot's gap is not drawn, so the row ends
+  /// flush with its container instead of one gap past it.
+  final bool last;
   final AmsTray tray;
   final bool active;
   final TrayFill fill;
@@ -31,11 +36,18 @@ class _CompactSlotTile extends ConsumerWidget {
   final Color? dryerInk;
   final _SlotRef? slot;
 
-  /// The swatch is nearly square, but never shorter than the pill plus two
-  /// lines of material, so tiles of one row are as tall as each other.
+  /// The swatch is nearly square, but never shorter than two lines of material
+  /// and the room the pill's inner half leaves above them, so tiles of one row
+  /// are as tall as each other and the pill never overlaps the name (it may
+  /// touch it, on the narrowest tile).
   static const _squareness = 0.95;
   static const _lineHeight = 1.15;
   static const _materialLines = 2;
+
+  /// How far the pill (and the dryer mark) stand out of the swatch's corner. It
+  /// is also the room kept above the name, so the part inside the swatch ends
+  /// where the name begins and the name can sit at the swatch's centre.
+  static const _pillOutset = DashSpace.sm;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,12 +101,13 @@ class _CompactSlotTile extends ConsumerWidget {
         MediaQuery.textScalerOf(context).scale(DashFontSize.body) * _lineHeight;
     final swatchHeight = max(
       tileWidth * _squareness,
-      DashSize.d20 + _materialLines * lineHeight + DashSpace.xs,
+      _materialLines * lineHeight + 2 * _pillOutset,
     );
 
     final swatch = SizedBox(
       height: swatchHeight,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned.fill(
             child: CustomPaint(
@@ -108,12 +121,7 @@ class _CompactSlotTile extends ConsumerWidget {
           ),
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.only(
-                top: DashSize.d20,
-                left: DashSpace.xs,
-                right: DashSpace.xs,
-                bottom: DashSpace.xs,
-              ),
+              padding: const EdgeInsets.all(DashSpace.xs),
               child: Center(
                 // The dash or question mark is only a picture of "nothing here";
                 // the caption under the swatch says it in words.
@@ -135,15 +143,15 @@ class _CompactSlotTile extends ConsumerWidget {
             ),
           ),
           if (badge != null)
-            Positioned(
-              top: DashSpace.xs,
-              left: DashSpace.xs,
+            PositionedDirectional(
+              top: -_pillOutset,
+              start: -DashSpace.xs,
               child: _SlotPill(text: badge!),
             ),
           if (dryerInk != null)
-            Positioned(
-              top: DashSpace.xs,
-              right: DashSpace.xs,
+            PositionedDirectional(
+              top: -_pillOutset,
+              end: 0,
               child: Container(
                 width: DashIcon.sm,
                 height: DashIcon.sm,
@@ -207,12 +215,12 @@ class _CompactSlotTile extends ConsumerWidget {
     );
 
     final slot = this.slot;
-    // The slot owns the gap beside the tile; centring a tile of [tileWidth] in
-    // it splits the gap to both sides.
+    // The slot owns the gap after the tile, except the row's last, which has
+    // none to give.
     return SizedBox(
-      width: width,
+      width: last ? tileWidth : width,
       child: Align(
-        alignment: Alignment.topCenter,
+        alignment: AlignmentDirectional.topStart,
         child: SizedBox(
           width: tileWidth,
           child: MergeSemantics(

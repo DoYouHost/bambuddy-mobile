@@ -135,8 +135,11 @@ The same slots as a grid of tiles instead of rows, so a dual-nozzle machine's fo
 AMS slots and two external spools fit one row on a wide phone instead of six rows.
 `_CompactSlotTile` takes the inputs of `_FilamentRow` and shows the material on the
 colour, the slot number (or `L`/`R`, or `E` for an external spool on a single
-nozzle) in a pill at the corner, and under it the colour's name, the percent, the
-grams and a bar. The tile's name is `slotNaming(..., subBrandFirst: true).name` without
+nozzle) in a pill on the corner, and under it the colour's name, the percent, the
+grams and a bar. The material is centred in the swatch. The pill (and the dryer mark on
+the other corner) stands 8 dp out of it, so its inner half ends where a two-line name
+begins, and the swatch is never shorter than two lines plus that 8 dp on each side
+(the pill used to take 20 dp from the top and left the name 8 dp under the centre). The tile's name is `slotNaming(..., subBrandFirst: true).name` without
 the server's filament name: the printer's own `tray_sub_brands` leads, then the preset, the
 spool and the type, and the winner is read **from the slot's material on**
 (`fromMaterial`). The server writes a slot it configures as "brand material subtype"
@@ -167,8 +170,18 @@ A compact printer card does not ask the server for names at all.
   slab. An external group below reuses the AMS tile width when it fits.
 - **Width**: the tile area is the phone minus 100 dp, measured off the real card
   (2 × 16 of card margin, card padding and group padding, and two 1 dp borders each
-  of the card and the group card). Six tiles in a row need 412 dp, five 360 dp, four
-  308 dp at 100 % text; the five on a 360 dp phone sit exactly on the limit.
+  of the card and the group card). A row of n tiles has n - 1 gaps, so six tiles in a
+  row need a 408 dp phone, five 356 dp, four 304 dp at 100 % text. Counting a gap per
+  tile (412 dp for six) left a 411.43 dp phone (1440 px at 560 dpi, a Galaxy S25
+  Ultra in QHD+, or 1080 px at 420 dpi) 0.57 dp short, in two rows. The layout adds
+  one gap to the width and the last tile of a row is drawn one gap narrower, so a full
+  row ends flush with the area. A 384 dp phone (the same Samsung in FHD+) fits five in
+  a row, so six split four and two.
+- **Header gaps**: the filament title row and the unit header are each a 48 dp tap
+  target (a 34 dp button, 19 dp of text), so the texts are already 29 dp apart with
+  no gap between the rows; none is added. The header sits 8 dp over the tiles, in the
+  detailed list too. The 48 dp rows cannot shrink without failing the tap-target
+  guideline.
 - **Spools**: they ride on the printer's last AMS unit, so they can share its row.
   A last unit with no trays draws a dash, and the spools get a block of their own.
 - **Reading**: the tile is one merged node for a screen reader. The bar is outside
