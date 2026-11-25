@@ -49,7 +49,6 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
-import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -477,14 +476,6 @@ Widget _cardSwap(
     ),
   ),
 );
-
-/// The shared status map without the WebSocket client behind it — the banner
-/// only reaches for it to lower the plate-clear gate after an acknowledgement,
-/// and building the real notifier would have this test dial a server.
-class _InertStatuses extends PrinterStatusesNotifier {
-  @override
-  Map<int, PrinterStatus> build() => const {};
-}
 
 void main() {
   testWidgets('card renders name, progress and temperatures from fixture', (
@@ -6512,7 +6503,7 @@ void main() {
       extra: [
         requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
         printerCommandsRepositoryProvider.overrideWithValue(commands),
-        printerStatusesProvider.overrideWith(_InertStatuses.new),
+        inertStatusesOverride,
       ],
     );
 
@@ -8184,7 +8175,7 @@ void main() {
     group('a plate waiting to be cleared', () {
       List<Override> gate() => [
         requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
-        printerStatusesProvider.overrideWith(_InertStatuses.new),
+        inertStatusesOverride,
       ];
 
       testWidgets('is flagged in place of the glyph, offline too', (
@@ -8245,7 +8236,7 @@ void main() {
               requirePlateClearProvider.overrideWithValue(
                 AsyncValue.data(false),
               ),
-              printerStatusesProvider.overrideWith(_InertStatuses.new),
+              inertStatusesOverride,
             ],
           ),
         );
@@ -8276,12 +8267,12 @@ void main() {
       );
     });
 
-    Future<_JogRecorder> openMovement(
+    Future<RecordingCommands> openMovement(
       WidgetTester tester,
       String? model,
       BedJogConvention convention,
     ) async {
-      final repo = _JogRecorder();
+      final repo = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           idle(model),
@@ -8311,7 +8302,7 @@ void main() {
 
       await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
-      expect(repo.distances, [10.0]);
+      expect(repo.calls, ['bedJog:3:10.0:false']);
     });
 
     testWidgets('A1 mini on a flipping server keeps the sign it always had', (
@@ -8325,7 +8316,7 @@ void main() {
 
       await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
-      expect(repo.distances, [-10.0]);
+      expect(repo.calls, ['bedJog:3:-10.0:false']);
     });
 
     testWidgets('A1 mini with the sign unknown: a note, no Z buttons', (
@@ -8340,7 +8331,7 @@ void main() {
       expect(find.text(pl.ctrlMoveZUnknownDirection), findsOneWidget);
       expect(find.text(pl.ctrlMoveZUp), findsNothing);
       expect(find.text(pl.ctrlMoveZDown), findsNothing);
-      expect(repo.distances, isEmpty);
+      expect(repo.calls, isEmpty);
     });
 
     testWidgets('no model: a note, no Z buttons, whatever the server', (
@@ -8350,13 +8341,13 @@ void main() {
 
       expect(find.text(pl.ctrlMoveZNoModel), findsOneWidget);
       expect(find.text(pl.ctrlMoveZUp), findsNothing);
-      expect(repo.distances, isEmpty);
+      expect(repo.calls, isEmpty);
     });
 
     testWidgets('a convention that failed to resolve reads as unknown', (
       tester,
     ) async {
-      final repo = _JogRecorder();
+      final repo = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           idle('A1'),
@@ -8376,6 +8367,7 @@ void main() {
 
       expect(find.text(pl.ctrlMoveZUnknownDirection), findsOneWidget);
       expect(find.text(pl.ctrlMoveZUp), findsNothing);
+      expect(repo.calls, isEmpty);
     });
 
     testWidgets('X1C: up raises the plate, whatever the server', (
@@ -8386,7 +8378,7 @@ void main() {
 
       await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
-      expect(repo.distances, [-10.0]);
+      expect(repo.calls, ['bedJog:3:-10.0:false']);
     });
   });
 
@@ -8634,21 +8626,6 @@ void main() {
       });
     }
   });
-}
-
-/// Records bed jogs; anything else the card calls is a test bug.
-class _JogRecorder implements PrinterCommandsRepository {
-  final distances = <double>[];
-
-  @override
-  Future<void> bedJog(int printerId, double distance, {bool force = false}) {
-    distances.add(distance);
-    return Future.value();
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName}');
 }
 
 /// A server that remembers the presets a slot is given: what the card reads

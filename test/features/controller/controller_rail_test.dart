@@ -1,9 +1,5 @@
-import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_picker.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 const _phone = Size(844, 390);
 
@@ -51,14 +48,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(sp),
           fixedDashboardOverride(
-            DashboardState(
-              printers: [
-                PrinterWithStatus(
-                  printer: Printer(id: 1, name: 'X1C Warsztat', model: 'X1C'),
-                  status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
-                ),
-              ],
-            ),
+            singlePrinterDashboard(name: 'X1C Warsztat', model: 'X1C'),
           ),
           inertStatusesOverride,
           ...inertDashboardPollOverrides,

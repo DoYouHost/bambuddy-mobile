@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 /// What the print log's wire contract has to keep doing.
 ///
@@ -30,11 +31,6 @@ void main() {
 
   PrintLogRepository repo() =>
       PrintLogRepository(dio, ServerVersionService(dio));
-
-  void replyVersion(String version) => adapter.onGet(
-    versionPath,
-    (s) => s.reply(200, {'version': version, 'repo': 'maziggy/bambuddy'}),
-  );
 
   /// A row as a 1.2.6 server sends it — every field populated, so a test that
   /// blanks one is saying something.
@@ -74,7 +70,7 @@ void main() {
 
   group('list', () {
     test('every filter goes out under the name the server takes', () async {
-      replyVersion('1.2.5.2');
+      stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
       adapter.onGet(listPath, (s) => s.reply(200, page([row()])));
 
       await repo().list(
@@ -99,7 +95,7 @@ void main() {
     test(
       'an empty search is left out rather than sent as an empty match',
       () async {
-        replyVersion('1.2.5.2');
+        stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
         adapter.onGet(listPath, (s) => s.reply(200, page([])));
 
         await repo().list(search: '');
@@ -109,7 +105,7 @@ void main() {
     );
 
     test('a date range goes out as a naive UTC instant', () async {
-      replyVersion('1.2.5.2');
+      stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
       adapter.onGet(listPath, (s) => s.reply(200, page([])));
 
       // Built from UTC so the expectation holds wherever the test runs: the
@@ -128,7 +124,7 @@ void main() {
     test(
       'parses the page and keeps the server total, not the row count',
       () async {
-        replyVersion('1.2.5.2');
+        stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
         adapter.onGet(
           listPath,
           (s) => s.reply(200, page([row(), row(id: 8)], total: 137)),
@@ -144,7 +140,7 @@ void main() {
     );
 
     test('a malformed row drops itself, not the page', () async {
-      replyVersion('1.2.5.2');
+      stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
       adapter.onGet(
         listPath,
         (s) => s.reply(200, page(['not an object', row(id: 9)])),
@@ -161,7 +157,7 @@ void main() {
         // The fields are absent, which is what that server sends for every row.
         // Coercing them to 0 would print "0.00 kWh" against a run that drew
         // power — a wrong number reads as a measurement, a blank reads as one.
-        replyVersion('1.2.5.2');
+        stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
         final legacy = row()
           ..remove('cost')
           ..remove('energy_kwh')
@@ -179,7 +175,7 @@ void main() {
     test('a legacy translated failure reason survives parsing', () async {
       // Older web builds saved the label instead of the key, and the
       // archive-side PATCH that mirrors this field validates nothing.
-      replyVersion('1.2.5.2');
+      stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
       adapter.onGet(
         listPath,
         (s) => s.reply(200, page([row(failureReason: 'Zapchana dysza')])),
@@ -191,7 +187,7 @@ void main() {
     });
 
     test('an orphan row — archive deleted — still parses', () async {
-      replyVersion('1.2.5.2');
+      stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
       final orphan = row()..['archive_id'] = null;
       adapter.onGet(listPath, (s) => s.reply(200, page([orphan])));
 
@@ -201,7 +197,7 @@ void main() {
     });
 
     test('sort is dropped on a server that would ignore it', () async {
-      replyVersion('1.2.5.2');
+      stubServerVersion(adapter, '1.2.5.2', repo: 'maziggy/bambuddy');
       adapter.onGet(listPath, (s) => s.reply(200, page([])));
 
       await repo().list(sort: PrintLogSort.cost, descending: false);
@@ -211,7 +207,7 @@ void main() {
     });
 
     test('sort is sent from 1.2.6', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1', repo: 'maziggy/bambuddy');
       adapter.onGet(listPath, (s) => s.reply(200, page([])));
 
       await repo().list(sort: PrintLogSort.cost, descending: false);

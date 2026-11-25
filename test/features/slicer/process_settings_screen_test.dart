@@ -300,9 +300,9 @@ void main() {
   });
 
   group('rules', () {
-    testWidgets('a setting the slicer ignores is shown, greyed, not editable', (
-      tester,
-    ) async {
+    testWidgets('a setting the slicer ignores is shown, greyed, not editable, '
+        'and a disabled node for a screen reader', (tester) async {
+      final handle = tester.ensureSemantics();
       // wall_loops 0 turns have_perimeters false, which disables outer_wall_speed.
       await pump(tester, values: {'wall_loops': '0'});
       await tester.enterText(_searchBox, 'outer wall speed');
@@ -318,16 +318,6 @@ void main() {
         isFalse,
       );
       expect(find.text(pl.processSettingsDisabledHint), findsOneWidget);
-    });
-
-    testWidgets('the greyed label is a disabled node for a screen reader too', (
-      tester,
-    ) async {
-      final handle = tester.ensureSemantics();
-      await pump(tester, values: {'wall_loops': '0'});
-      await tester.enterText(_searchBox, 'outer wall speed');
-      await tester.pumpAndSettle();
-
       expect(
         tester
             .getSemantics(find.text('Outer wall speed'))
@@ -338,14 +328,17 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('an editable setting\'s label is not marked disabled', (
-      tester,
-    ) async {
+    testWidgets('it becomes editable once the dependency is back, and its '
+        'label is not marked disabled', (tester) async {
       final handle = tester.ensureSemantics();
       await pump(tester, values: {'wall_loops': '2'});
       await tester.enterText(_searchBox, 'outer wall speed');
       await tester.pumpAndSettle();
 
+      expect(
+        tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
+        isTrue,
+      );
       expect(
         tester
             .getSemantics(find.text('Outer wall speed'))
@@ -354,18 +347,6 @@ void main() {
         isNot(ui.Tristate.isFalse),
       );
       handle.dispose();
-    });
-
-    testWidgets('it becomes editable once the dependency is back', (
-      tester,
-    ) async {
-      await pump(tester, values: {'wall_loops': '2'});
-      await tester.enterText(_searchBox, 'outer wall speed');
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
-        isTrue,
-      );
     });
   });
 

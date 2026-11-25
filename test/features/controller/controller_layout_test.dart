@@ -1,19 +1,14 @@
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_controls.dart';
 import 'package:bambuddy_mobile/features/controller/controller_overview.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
-import 'package:bambuddy_mobile/providers.dart';
-import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 /// The design's landscape phone, an emulator-sized window, a short phone held
 /// sideways, and a tablet.
@@ -65,38 +60,16 @@ void main() {
     double textScale = 1,
     PrinterStatus status = _printing,
   }) async {
-    useLogicalWindow(tester, size);
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    SharedPreferences.setMockInitialValues({});
-    final sp = await SharedPreferences.getInstance();
-    await pumpPhone(
+    await pumpControllerPanel(
       tester,
-      const Scaffold(
-        body: Padding(
-          padding: EdgeInsets.all(16),
-          // Scaled as the screen scales its body.
-          child: ScaleToFit(child: ControllerOverview(printerId: 1)),
-        ),
-      ),
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sp),
-        noServerProfileOverride,
-        smartPlugsProvider.overrideWith(_Plugs.new),
-        fixedDashboardOverride(
-          DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: const Printer(id: 1, name: 'X1C'),
-                status: status,
-              ),
-            ],
-          ),
-        ),
-        inertStatusesOverride,
-      ],
+      scaledControllerBody(const ControllerOverview(printerId: 1)),
+      status: status,
+      name: 'X1C',
+      size: size,
+      overrides: [smartPlugsProvider.overrideWith(_Plugs.new)],
     );
-    await tester.pump();
   }
 
   /// What scrolls the tab. A text field scrolls its own text, and the speed

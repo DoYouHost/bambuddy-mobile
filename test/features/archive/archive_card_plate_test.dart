@@ -63,28 +63,20 @@ void main() {
     );
   });
 
-  testWidgets('a run with no plate recorded says nothing about plates', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_screen([_archive()]));
-    await tester.pumpAndSettle();
+  // Not even plate 1: an app-started print never sends a plate, so claiming one
+  // would be inventing it. A 0 is the same: plates are numbered from 1 and the
+  // column has no lower bound, so it is something that went wrong upstream, and
+  // "Plate 0" on the card would pass that on to the reader as a fact.
+  for (final plateId in <int?>[null, 0]) {
+    testWidgets(
+      'a run with plate $plateId recorded says nothing about plates',
+      (tester) async {
+        await tester.pumpWidget(_screen([_archive(plateId: plateId)]));
+        await tester.pumpAndSettle();
 
-    // Not even plate 1: an app-started print never sends a plate, so claiming
-    // one would be inventing it.
-    expect(find.byIcon(Icons.grid_view_outlined), findsNothing);
-    expect(find.textContaining('PETG'), findsOneWidget);
-  });
-
-  testWidgets('a recorded plate of 0 is read as no plate, not as plate zero', (
-    tester,
-  ) async {
-    // Plates are numbered from 1 and the column has no lower bound, so a 0 is
-    // something that went wrong upstream rather than a plate anyone printed.
-    // "Plate 0" on the card would pass that on to the reader as a fact.
-    await tester.pumpWidget(_screen([_archive(plateId: 0)]));
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.grid_view_outlined), findsNothing);
-    expect(find.textContaining('PETG'), findsOneWidget);
-  });
+        expect(find.byIcon(Icons.grid_view_outlined), findsNothing);
+        expect(find.textContaining('PETG'), findsOneWidget);
+      },
+    );
+  }
 }

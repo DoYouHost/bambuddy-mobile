@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -18,11 +19,6 @@ void main() {
     adapter = mockServer(dio);
     repo = LabelTemplatesRepository(dio, ServerVersionService(dio));
   });
-
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
 
   Map<String, dynamic> row(int id, String name) => {
     'id': id,
@@ -36,18 +32,18 @@ void main() {
 
   group('capability', () {
     test('the version decides before the listing has answered', () async {
-      replyVersion('1.2.5.7');
+      stubServerVersion(adapter, '1.2.5.7');
       expect(await repo.capability.supported, isFalse);
     });
 
     test('a 1.3.0 server is offered custom sheets', () async {
-      replyVersion('1.3.0');
+      stubServerVersion(adapter, '1.3.0');
       expect(await repo.capability.supported, isTrue);
     });
 
     test('a 404 on the listing hides them where the version would '
         'offer them', () async {
-      replyVersion('1.3.1b1');
+      stubServerVersion(adapter, '1.3.1b1');
       adapter.onGet(
         '/api/v1/label-templates',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -58,7 +54,7 @@ void main() {
     });
 
     test('a listing that answers settles it present', () async {
-      replyVersion('1.2.5.7');
+      stubServerVersion(adapter, '1.2.5.7');
       adapter.onGet('/api/v1/label-templates', (s) => s.reply(200, <Object>[]));
 
       await repo.list();

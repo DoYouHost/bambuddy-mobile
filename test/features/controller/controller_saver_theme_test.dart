@@ -1,13 +1,10 @@
-import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 void main() {
   // The saver re-themes itself dark whatever the app runs in; it must keep
@@ -29,14 +26,7 @@ void main() {
       overrides: [
         noServerProfileOverride,
         fixedDashboardOverride(
-          const DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: Printer(id: 1, name: 'X1C', model: 'X1C'),
-                status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
-              ),
-            ],
-          ),
+          singlePrinterDashboard(name: 'X1C', model: 'X1C'),
         ),
         inertStatusesOverride,
       ],

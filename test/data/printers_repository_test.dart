@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -130,11 +131,6 @@ void main() {
   group('WLED', () {
     setUp(() => repo = PrintersRepository(dio, ServerVersionService(dio)));
 
-    void replyVersion(String version) => adapter.onGet(
-      '/api/v1/updates/version',
-      (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-    );
-
     void replyPrinters(List<Map<String, dynamic>> rows) =>
         adapter.onGet('/api/v1/printers/', (s) => s.reply(200, rows));
 
@@ -145,18 +141,18 @@ void main() {
     );
 
     test('the version decides before a printer row has answered', () async {
-      replyVersion('1.3.0');
+      stubServerVersion(adapter, '1.3.0');
       expect(await repo.wledCapability.supported, isFalse);
     });
 
     test('a 1.3.1b1 daily is offered it before a row has answered', () async {
-      replyVersion('1.3.1b1');
+      stubServerVersion(adapter, '1.3.1b1');
       expect(await repo.wledCapability.supported, isTrue);
     });
 
     test('a row without wled_config closes it on a server whose version '
         'would offer it', () async {
-      replyVersion('1.3.1b1');
+      stubServerVersion(adapter, '1.3.1b1');
       replyPrinters([
         {'id': 1, 'name': 'X1C'},
       ]);
@@ -168,7 +164,7 @@ void main() {
 
     test('a row with wled_config null opens it on a server whose version '
         'would not', () async {
-      replyVersion('1.3.0');
+      stubServerVersion(adapter, '1.3.0');
       replyPrinters([
         {'id': 1, 'name': 'X1C', 'wled_config': null},
       ]);

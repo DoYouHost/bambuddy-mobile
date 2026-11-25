@@ -33,6 +33,11 @@ class FakeArchives implements ArchiveRepository {
   final List<({PrintVerdict? verdict, String? reason, bool clearReason})> sent =
       [];
 
+  /// Every weight [setFilamentGrams] was asked to store, in order.
+  final List<double?> sentGrams = [];
+
+  void release() => held!.complete();
+
   @override
   Future<List<Archive>> list({
     int limit = 50,
@@ -66,6 +71,25 @@ class FakeArchives implements ArchiveRepository {
     sent.add((verdict: verdict, reason: reason, clearReason: clearReason));
     if (held != null) await held!.future;
     return (archive: archive!, applied: applied);
+  }
+
+  /// Answers like the server that stored the weight, or, with [applied] false,
+  /// like one that dropped the key and kept 17.1.
+  @override
+  Future<({Archive archive, bool applied})> setFilamentGrams(
+    int archiveId,
+    double? grams,
+  ) async {
+    if (error != null) throw error!;
+    sentGrams.add(grams);
+    if (held != null) await held!.future;
+    final stored = Archive(
+      id: archiveId,
+      filename: 'benchy.gcode.3mf',
+      status: 'completed',
+      filamentUsedGrams: applied ? grams : 17.1,
+    );
+    return (archive: stored, applied: applied);
   }
 
   @override

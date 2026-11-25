@@ -14,34 +14,27 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers.dart';
 import 'wear_tap_targets.dart';
 
+final _fleet = WearFleet(
+  printers: [
+    PrinterWithStatus(
+      printer: const Printer(id: 7, name: 'X1C'),
+      status: const PrinterStatus(
+        id: 7,
+        connected: true,
+        state: 'RUNNING',
+        progress: 40,
+        remainingTime: 60,
+      ),
+    ),
+    PrinterWithStatus(
+      printer: const Printer(id: 8, name: 'P1S'),
+      status: const PrinterStatus(id: 8, connected: true, state: 'IDLE'),
+    ),
+  ],
+  queuePending: 2,
+);
+
 /// Wear OS app quality rows a widget test can check (docs/play-compliance.md).
-
-class _Transport implements WearTransport {
-  @override
-  Future<WearFleet> getFleet() async => WearFleet(
-    printers: [
-      PrinterWithStatus(
-        printer: const Printer(id: 7, name: 'X1C'),
-        status: const PrinterStatus(
-          id: 7,
-          connected: true,
-          state: 'RUNNING',
-          progress: 40,
-          remainingTime: 60,
-        ),
-      ),
-      PrinterWithStatus(
-        printer: const Printer(id: 8, name: 'P1S'),
-        status: const PrinterStatus(id: 8, connected: true, state: 'IDLE'),
-      ),
-    ],
-    queuePending: 2,
-  );
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
-}
 
 void main() {
   final screens = <String, Widget>{
@@ -62,7 +55,8 @@ void main() {
           overrides: [
             noServerProfileOverride,
             wearTransportProvider.overrideWith(
-              (ref) => HybridWearTransport(relay: _Transport()),
+              (ref) =>
+                  HybridWearTransport(relay: FakeWearTransport(fleet: _fleet)),
             ),
           ],
         );

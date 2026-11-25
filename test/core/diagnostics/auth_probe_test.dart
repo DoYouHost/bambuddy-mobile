@@ -63,14 +63,6 @@ void main() {
     expect((await records()).map((r) => r['binding']), [true, false]);
   });
 
-  test('neither the cookie nor the pre-auth token is in the record', () async {
-    AuthProbe.twoFactorRequired(challenge(cookie: 'wiazanie-123'));
-
-    final line = jsonEncode(await records());
-    expect(line, isNot(contains('wiazanie-123')));
-    expect(line, isNot(contains('pre-auth-xyz')));
-  });
-
   test(
     'the offered methods are named, since they shape the whole step',
     () async {

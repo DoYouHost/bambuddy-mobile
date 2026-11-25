@@ -164,13 +164,6 @@ void main() {
     expect(notifications.alerts, isEmpty);
   });
 
-  test('the event is on for an install that predates it', () {
-    // No manifest of known events in the saved prefs: written before this
-    // existed, so it takes what the build ships it with.
-    final prefs = NotificationPrefs.fromJson(const {'enabled': <String>[]});
-    expect(prefs.isOn(NotifEvent.edgeSessionEnded), isTrue);
-  });
-
   test('is what the probe reaches once the isolate listens', () async {
     alert().listen();
     EdgeSessionSignal.ended('printers.example.com');

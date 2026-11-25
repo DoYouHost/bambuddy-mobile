@@ -23,20 +23,10 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 import 'queue_fakes.dart';
 
-/// Fake notifier — returns the given list without touching the repository/network.
-class _FakeQueueNotifier extends QueueNotifier {
-  _FakeQueueNotifier(this._items);
-
-  final List<QueueItem> _items;
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-}
-
 Widget _screen(List<QueueItem> items) => ProviderScope(
   retry: neverRetry,
   overrides: [
-    queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
+    queueProvider.overrideWith(() => FakeQueue(items)),
     noServerProfileOverride,
   ],
   child: plApp(const QueueScreen()),
@@ -80,7 +70,7 @@ void main() {
       ProviderScope(
         retry: neverRetry,
         overrides: [
-          queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
+          queueProvider.overrideWith(() => FakeQueue([item])),
           noServerProfileOverride,
           batchListingProvider.overrideWithValue(const AsyncData(true)),
         ],
@@ -103,7 +93,7 @@ void main() {
       ProviderScope(
         retry: neverRetry,
         overrides: [
-          queueProvider.overrideWith(() => _FakeQueueNotifier(const [])),
+          queueProvider.overrideWith(() => FakeQueue(const [])),
           noServerProfileOverride,
           batchListingProvider.overrideWithValue(const AsyncData(false)),
         ],
@@ -171,7 +161,7 @@ void main() {
       ProviderScope(
         retry: neverRetry,
         overrides: [
-          queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
+          queueProvider.overrideWith(() => FakeQueue([item])),
           noServerProfileOverride,
         ],
         child: plApp(const QueueScreen(), builder: textScaled(scale)),
@@ -299,7 +289,7 @@ void main() {
           retry: neverRetry,
           overrides: [
             queueProvider.overrideWith(
-              () => _FakeQueueNotifier([named(1, 'Hook'), named(2, long)]),
+              () => FakeQueue([named(1, 'Hook'), named(2, long)]),
             ),
             noServerProfileOverride,
           ],
@@ -372,7 +362,7 @@ void main() {
     Widget screen({required bool held}) => ProviderScope(
       retry: neverRetry,
       overrides: [
-        queueProvider.overrideWith(() => _FakeQueueNotifier([waiting])),
+        queueProvider.overrideWith(() => FakeQueue([waiting])),
         noServerProfileOverride,
         awaitingReviewProvider.overrideWithValue(held),
       ],

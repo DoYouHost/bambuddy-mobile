@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -21,11 +22,6 @@ void main() {
       ServerVersionService(dio),
     );
   });
-
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
 
   Spool row(Map<String, dynamic> extra) =>
       Spool.fromNative({'id': 1, 'material': 'PLA', ...extra});
@@ -90,23 +86,23 @@ void main() {
 
   group('capability', () {
     test('the version decides before anything was seen', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       expect(await repo.lastDriedCapability.supported, isFalse);
     });
 
     test('a 1.2.6 daily is offered the field', () async {
-      replyVersion('1.2.6b1-daily.20261006');
+      stubServerVersion(adapter, '1.2.6b1-daily.20261006');
       expect(await repo.lastDriedCapability.supported, isTrue);
     });
 
     test('a row without the key settles it as absent', () async {
-      replyVersion('1.2.6b1-daily.20260920');
+      stubServerVersion(adapter, '1.2.6b1-daily.20260920');
       repo.observeSpools([row(const {})]);
       expect(await repo.lastDriedCapability.supported, isFalse);
     });
 
     test('a row with a null date settles it as present', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools([
         row(const {'last_dried_at': null}),
       ]);
@@ -114,13 +110,13 @@ void main() {
     });
 
     test('an empty inventory settles nothing', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools(const []);
       expect(repo.lastDriedCapability.observedAnswer, isNull);
     });
 
     test('each latch reads its own key off the same row', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools([
         row(const {'last_dried_at': null}),
       ]);
@@ -131,7 +127,7 @@ void main() {
     test(
       'a row with only the material number does not settle this one',
       () async {
-        replyVersion('1.2.6b1');
+        stubServerVersion(adapter, '1.2.6b1');
         repo.observeSpools([
           row(const {'material_number': null}),
         ]);
