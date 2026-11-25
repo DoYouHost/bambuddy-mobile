@@ -391,14 +391,17 @@ maintainer. Add to the list instead of deviating silently.
   center, an empty budget amount means no budget, the ledger pages with "load more"
   instead of page buttons, and the personal center's edit sends only the budget. See
   [billing.md](billing.md).
-- **The compact AMS tile names a slot by the printer's own short name first**
+- **The compact AMS tile names a slot from its material on, brand dropped**
   (`slotNaming(subBrandFirst: true)`: `tray_sub_brands`, then the preset, the spool, the
-  type). The preset's and the spool's names carry the brand ("Bambu PLA Matte") the tile
-  has no room for; the row, like the web, leads with them. So a slot holding a Bambu spool
-  reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row. A slot whose printer
-  reports no sub-brand falls back to the preset, the spool, then the type. A sub-brand also
-  hides a preset or spool the slot was given, and the tile has no third line to say so.
-  The tile never asks the server for a name. `printer_card_compact.dart`.
+  type, then `fromMaterial` cuts everything before the slot's `tray_type`). The server
+  writes a configured slot's sub-brand as "brand material subtype" (`inventory.py`), so
+  the brand is already in it; the row, like the web, keeps it. A slot holding a Bambu spool
+  reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row; a name that does not hold
+  the material as a whole word, or reads "Support for PLA", stays whole. A modifier in front
+  of the material ("eSun Silk PLA") is cut with the brand: it cannot be told from a
+  two-word brand without a list. The sub-brand also hides a preset or spool the slot was given,
+  and the tile has no third line to say so. The tile never asks the server for a name.
+  `printer_card_compact.dart`.
 - **A server filament name loses its ` @printer` tail** ("Bambu PETG HF @BBL X1C" reads
   "Bambu PETG HF"): the row sits under its printer already and the tail only eats the
   line. The web shows it whole. Cut in `AmsSlotConfigRepository.filamentNames` by `presetDisplayName`,

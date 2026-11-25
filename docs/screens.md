@@ -137,11 +137,15 @@ AMS slots and two external spools fit one row on a wide phone instead of six row
 colour, the slot number (or `L`/`R`, or `E` for an external spool on a single
 nozzle) in a pill at the corner, and under it the colour's name, the percent, the
 grams and a bar. The tile's name is `slotNaming(..., subBrandFirst: true).name` without
-the server's filament name: the printer's own `tray_sub_brands` ("PLA Matte") leads, then
-the preset, the spool and the type, because the preset's and the spool's names carry a
-brand ("Bambu PLA Matte") the tile has no room for. The row keeps the web's order, so the
-same slot reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row, which is the
-maintainer's choice ([the deviation](server-contract-traps.md#deliberate-deviations-from-the-web)).
+the server's filament name: the printer's own `tray_sub_brands` leads, then the preset, the
+spool and the type, and the winner is read **from the slot's material on**
+(`fromMaterial`). The server writes a slot it configures as "brand material subtype"
+(`inventory.py`), so "Bambu PLA Matte" and "eSun PLA Matte" both read "PLA Matte" and
+"Professional Lab PETG" reads "PETG", with no list of brands. A name that does not hold
+the material, or reads "Support for PLA", is kept whole; the type has to be a whole word
+(a hyphen in it may be a space in the name). The row keeps the web's order and the brand, so the same slot
+reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row, which is the maintainer's
+choice ([the deviation](server-contract-traps.md#deliberate-deviations-from-the-web)).
 A compact printer card does not ask the server for names at all.
 
 - **Switching**: the setting `compact_ams_layout` (Settings, Dashboard; off by

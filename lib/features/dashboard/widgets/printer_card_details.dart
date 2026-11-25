@@ -1499,9 +1499,11 @@ class _ExternalInputsEmpty extends StatelessWidget {
 /// the spool, else the catalogue's for the hex; three white PLAs differ only
 /// there. A spool the preset pushed out of the name gets a third line.
 ///
-/// [subBrandFirst] is the compact tile's chain: the printer's own short name
-/// ("PLA Matte") before the preset's and the spool's, which carry the brand
-/// ("Bambu PLA Matte") the tile has no room for.
+/// [subBrandFirst] is the compact tile's chain: the printer's own sub-brand
+/// before the preset's and the spool's, read from the material on ([fromMaterial]),
+/// because the tile has no room for a brand. The server writes a slot it
+/// configures as "brand material subtype" (`inventory.py`), so "Bambu PLA
+/// Matte" reads "PLA Matte" and any other brand goes the same way.
 ({String name, String colour, String? spool}) slotNaming(
   AppLocalizations l10n,
   ColorCatalog catalog,
@@ -1524,7 +1526,7 @@ class _ExternalInputsEmpty extends StatelessWidget {
           )
       ? nonEmpty(presetDisplayName(preset.presetName))
       : null;
-  final name = subBrandFirst
+  final winner = subBrandFirst
       ? sub ??
             presetName ??
             spoolName ??
@@ -1537,15 +1539,43 @@ class _ExternalInputsEmpty extends StatelessWidget {
             sub ??
             nonEmpty(tray.trayType) ??
             '';
+  final name = subBrandFirst ? fromMaterial(winner, tray.trayType) : winner;
   return (
     name: name,
     colour:
         nonEmpty(spool?.colorName) ??
         colorDisplayName(l10n, catalog, tray.trayColor, material: sub),
-    spool: spoolName != null && spoolName.toLowerCase() != name.toLowerCase()
+    // Compared with the winner as it was named, so cutting the brand off a
+    // spool's own name does not make the spool look pushed out.
+    spool:
+        spoolName != null &&
+            spoolName.toLowerCase() != winner.toLowerCase() &&
+            spoolName.toLowerCase() != name.toLowerCase()
         ? spoolName
         : null,
   );
+}
+
+/// [name] from the first word that is the slot's [type], dropping the brand in
+/// front of it ("Bambu PLA Matte" and "eSun PLA Matte" both read "PLA Matte").
+/// A hyphen in the type may be a space in the name ("PETG-CF", "eSun PETG CF").
+/// A name that does not hold the type, or reads "Support for PLA", is kept whole.
+String fromMaterial(String name, String? type) {
+  final material = type?.trim() ?? '';
+  if (material.isEmpty) return name;
+  final pattern = material.split('-').map(RegExp.escape).join(r'[-\s]+');
+  // The word must end where the type does: "Plastics" is not "PLA".
+  final at = RegExp(
+    '(?:^|\\s)($pattern)(?![A-Za-z])',
+    caseSensitive: false,
+  ).firstMatch(name);
+  if (at == null) return name;
+  final from = at.end - at.group(1)!.length;
+  final brand = name.substring(0, from).trim();
+  if (RegExp(r'(?:^|\s)for$', caseSensitive: false).hasMatch(brand)) {
+    return name;
+  }
+  return name.substring(from).trim();
 }
 
 /// One filament slot: the colour swatch with the slot's number inside its fill

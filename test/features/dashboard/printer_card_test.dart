@@ -1311,6 +1311,26 @@ void main() {
           },
         );
 
+        testWidgets(
+          'a tile drops the brand the server wrote into the sub-brand',
+          (tester) async {
+            await pumpCompact(
+              tester,
+              item: realItem(
+                trays: {
+                  3: {'tray_type': 'PLA', 'tray_sub_brands': 'Bambu PLA Matte'},
+                },
+              ),
+            );
+
+            expect(
+              find.descendant(of: slots, matching: find.text('PLA Matte')),
+              findsOneWidget,
+            );
+            expect(find.text('Bambu PLA Matte'), findsNothing);
+          },
+        );
+
         testWidgets('the detailed row still leads with the preset', (
           tester,
         ) async {
