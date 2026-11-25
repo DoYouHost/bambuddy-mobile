@@ -26,12 +26,10 @@ import 'a11y_contrast_report.dart';
 /// every accent and both brightnesses. The plan and the rules are in
 /// docs/plans/a11y-guideline-tests.md; a feature's file only lists its surfaces.
 
-/// The default, the lightest preset fill, and the exact-grey path.
-const a11yAccents = [
-  AccentSource.bambuddy,
-  AccentSource.orange,
-  AccentSource.graphite,
-];
+/// The default and the lightest preset fill. Graphite (the exact-grey path) was
+/// dropped to save about 350 s of a 1455 s run; its cost was measured, its
+/// coverage was not.
+const a11yAccents = [AccentSource.bambuddy, AccentSource.orange];
 
 /// Tall enough that a lazy list builds most of a screen in one frame; the rest
 /// is reached by [a11ySurface]'s scroll pass.

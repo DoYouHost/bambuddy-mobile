@@ -42,14 +42,20 @@ default:
 # on-device ones: the phone's integration_test/ and the watch's patrol_test/ on
 # both watch AVDs. A machine without them (CI, the Claude GitHub Action) runs
 # the host half and says the rest was skipped; it never passes silently.
-[doc('run unit and widget tests, plus on-device tests when an emulator is available')]
+[doc('run unit and widget tests (`test no` skips a11y), plus on-device tests when an emulator is available')]
 [group('1-develop')]
-test:
+test a11y='yes':
     #!/usr/bin/env bash
     set -euo pipefail
     # Piped (ship, ship-dev, an agent) the default reporter prints a line per
-    # test — ~5000 lines; this one prints failures and the summary.
-    flutter test -r failures-only
+    # test — ~5000 lines; this one prints failures and the summary. `no` leaves
+    # out test/a11y (most of the wall clock), as ship-dev does; ship keeps it.
+    if [ '{{a11y}}' = 'no' ]; then
+        mapfile -t files < <(find test -name '*_test.dart' -not -path 'test/a11y/*' | LC_ALL=C sort)
+        flutter test -r failures-only "${files[@]}"
+    else
+        flutter test -r failures-only
+    fi
     if ! command -v adb >/dev/null || [ ! -x "{{emulator_bin}}" ]; then
         echo "On-device tests SKIPPED: no adb or Android emulator on this machine." >&2
         exit 0
@@ -788,7 +794,7 @@ ship-dev target='' bundles='yes':
         just play-internal
         exit 0
     fi
-    just test
+    just test no
     just build "$name" "$code"
     just build-wear "$name" "$code"
     # Renamed only here: unlike the bundles, these APKs are published as release
