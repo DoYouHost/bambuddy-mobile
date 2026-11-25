@@ -27,15 +27,21 @@ void main() {
     presetName: 'Generic PETG @BBL X1C',
   );
 
-  String name(AmsTray t, {Spool? s, SlotPreset? p, String? filamentName}) =>
-      slotNaming(
-        pl,
-        ColorCatalog.empty,
-        t,
-        s,
-        p,
-        filamentName: filamentName,
-      ).name;
+  String name(
+    AmsTray t, {
+    Spool? s,
+    SlotPreset? p,
+    String? filamentName,
+    bool subBrandFirst = false,
+  }) => slotNaming(
+    pl,
+    ColorCatalog.empty,
+    t,
+    s,
+    p,
+    filamentName: filamentName,
+    subBrandFirst: subBrandFirst,
+  ).name;
 
   group('slotNaming name chain', () {
     test('without a server name it is the sub-brand, then the type', () {
@@ -56,6 +62,23 @@ void main() {
       expect(
         name(bare, s: spool, p: preset, filamentName: 'Bambu PETG HF'),
         'Generic PETG',
+      );
+    });
+
+    test('the sub-brand goes before the preset and the spool when asked', () {
+      expect(name(tray, s: spool, p: preset, subBrandFirst: true), 'PETG HF');
+    });
+
+    test('without a sub-brand the tile chain falls back like the row', () {
+      expect(
+        name(bare, s: spool, p: preset, subBrandFirst: true),
+        'Generic PETG',
+      );
+      expect(name(bare, s: spool, subBrandFirst: true), 'eSun PETG');
+      expect(name(bare, subBrandFirst: true), 'PETG');
+      expect(
+        name(bare, filamentName: 'Bambu PETG HF', subBrandFirst: true),
+        'Bambu PETG HF',
       );
     });
 

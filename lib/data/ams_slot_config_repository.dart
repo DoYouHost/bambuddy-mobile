@@ -7,6 +7,7 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/ams_filament_preset.dart';
 import '../core/models/k_profile.dart';
+import '../core/slicer/loaded_spool_match.dart';
 
 /// Everything the "configure AMS slot" flow reads and writes: the three preset
 /// sources, the printer-model registry, the slot→preset mapping, and the two
@@ -97,12 +98,13 @@ class AmsSlotConfigRepository {
         );
         return res.data;
       });
-      return {
+      // The name is a preset's own, so it is cut the way a slot preset's is.
+      final names = {
         for (final MapEntry(:key, :value) in (json ?? const {}).entries)
           if (value is Map && value['name'] is String)
-            if ((value['name'] as String).trim().isNotEmpty)
-              key: withoutPrinterSuffix(value['name'] as String),
+            key: presetDisplayName(value['name'] as String),
       };
+      return names..removeWhere((_, name) => name.isEmpty);
     } on AppApiException {
       return const {};
     }
@@ -258,12 +260,6 @@ class AmsSlotConfigRepository {
   Future<void> _post(String path, {Map<String, dynamic>? query}) =>
       guard(() => _dio.post<dynamic>(path, queryParameters: query));
 }
-
-/// A slicer profile's name without its ` @printer` tail ("Bambu PETG HF @BBL X1C"
-/// reads "Bambu PETG HF"): the row already sits under the printer it belongs to.
-/// The web shows the tail; this is a deliberate deviation.
-String withoutPrinterSuffix(String name) =>
-    name.trim().split(' @').first.trim();
 
 /// Read a list of presets, skipping entries that are not objects and those a
 /// tier left without an id — an unnameable preset cannot be selected anyway.

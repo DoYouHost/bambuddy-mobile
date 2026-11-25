@@ -53,7 +53,14 @@ class _CompactSlotTile extends ConsumerWidget {
         this.slot?.amsId != externalHolderUnit;
     final naming = empty
         ? null
-        : slotNaming(l10n, ref.watchColorNames(), tray, spool, preset);
+        : slotNaming(
+            l10n,
+            ref.watchColorNames(),
+            tray,
+            spool,
+            preset,
+            subBrandFirst: true,
+          );
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final ink = active ? t.accentGreenInk : t.textPrimary;

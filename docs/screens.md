@@ -136,9 +136,11 @@ AMS slots and two external spools fit one row on a wide phone instead of six row
 `_CompactSlotTile` takes the inputs of `_FilamentRow` and shows the material on the
 colour, the slot number (or `L`/`R`, or `E` for an external spool on a single
 nozzle) in a pill at the corner, and under it the colour's name, the percent, the
-grams and a bar. The tile's name is `slotNaming(...).name` **without** the server's
-filament name, so it follows the chain the row used before that step existed: a slot
-with no sub-brand reads "PETG" in the tile and "Bambu PETG HF" in the row, which is the
+grams and a bar. The tile's name is `slotNaming(..., subBrandFirst: true).name` without
+the server's filament name: the printer's own `tray_sub_brands` ("PLA Matte") leads, then
+the preset, the spool and the type, because the preset's and the spool's names carry a
+brand ("Bambu PLA Matte") the tile has no room for. The row keeps the web's order, so the
+same slot reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row, which is the
 maintainer's choice ([the deviation](server-contract-traps.md#deliberate-deviations-from-the-web)).
 A compact printer card does not ask the server for names at all.
 

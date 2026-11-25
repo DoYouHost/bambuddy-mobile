@@ -1239,6 +1239,7 @@ void main() {
         double scale = 1.0,
         bool compact = true,
         PrinterWithStatus? item,
+        List<Override> overrides = const [],
       }) async {
         tester.view.physicalSize = Size(width, 4000);
         tester.view.devicePixelRatio = 1;
@@ -1259,6 +1260,7 @@ void main() {
                 compactAmsLayoutProvider.overrideWith(
                   compact ? _CompactAmsOn.new : _CompactAmsOff.new,
                 ),
+                ...overrides,
               ],
             ),
           ),
@@ -1279,6 +1281,47 @@ void main() {
         for (final e in slots.evaluate())
           tester.getRect(find.byWidget(e.widget)).top.roundToDouble(),
       };
+
+      group('slot name', () {
+        // Slot 3 reports the sub-brand "PLA Basic"; the preset saved for it
+        // carries the brand and the printer, as bambuddy writes it.
+        final presets = {
+          (0, 3): const SlotPreset(
+            amsId: 0,
+            trayId: 3,
+            presetId: 'GFSL99',
+            presetName: 'Bambu PLA Basic @BBL X1C',
+            trayInfoIdx: 'GFA00',
+          ),
+        };
+        final withPreset = [
+          slotPresetsProvider(1).overrideWith((ref) async => presets),
+        ];
+
+        testWidgets(
+          'a tile says the printer\'s short name, not the preset\'s',
+          (tester) async {
+            await pumpCompact(tester, overrides: withPreset);
+
+            expect(
+              find.descendant(of: slots, matching: find.text('PLA Basic')),
+              findsOneWidget,
+            );
+            expect(find.text('Bambu PLA Basic'), findsNothing);
+          },
+        );
+
+        testWidgets('the detailed row still leads with the preset', (
+          tester,
+        ) async {
+          await pumpCompact(tester, compact: false, overrides: withPreset);
+
+          expect(
+            find.descendant(of: slots, matching: find.text('Bambu PLA Basic')),
+            findsOneWidget,
+          );
+        });
+      });
 
       testWidgets('the detailed rows stay the default', (tester) async {
         await pumpCompact(tester, compact: false);

@@ -358,7 +358,7 @@ The web names a slot row with `cloudInfo.name` before it falls back to
   Bambu Cloud presets, the imported profiles, then the built-in table
   (`cloud.py::get_filament_info`). Without a cloud login the answer is still 200, from the
   last two. A name from an imported profile is the preset's own name and can carry an
-  `@printer` suffix, which the row cuts (`withoutPrinterSuffix`; see the deviations below).
+  `@printer` suffix, which the row cuts like a slot preset's (`presetDisplayName`; see the deviations below).
 - **An API key needs `can_access_cloud` and the route's own scope, `can_read_status`.** The
   router-level cloud gate runs first (`cloud.py::_cloud_api_key_gate`: a key from before
   per-user ownership is a 401, one without the cloud scope a 403), then the route's own
@@ -391,13 +391,18 @@ maintainer. Add to the list instead of deviating silently.
   center, an empty budget amount means no budget, the ledger pages with "load more"
   instead of page buttons, and the personal center's edit sends only the budget. See
   [billing.md](billing.md).
-- **The compact AMS tile keeps the older name chain.** The detailed row puts the server's
-  filament name (`filament-info`) before the sub-brand, as the web does; the tile, by the
-  maintainer's choice, does not, so a slot with no sub-brand reads "PETG" in the tile and
-  "Bambu PETG HF" in the row. `printer_card_compact.dart`.
+- **The compact AMS tile names a slot by the printer's own short name first**
+  (`slotNaming(subBrandFirst: true)`: `tray_sub_brands`, then the preset, the spool, the
+  type). The preset's and the spool's names carry the brand ("Bambu PLA Matte") the tile
+  has no room for; the row, like the web, leads with them. So a slot holding a Bambu spool
+  reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row. A slot whose printer
+  reports no sub-brand falls back to the preset, the spool, then the type. A sub-brand also
+  hides a preset or spool the slot was given, and the tile has no third line to say so.
+  The tile never asks the server for a name. `printer_card_compact.dart`.
 - **A server filament name loses its ` @printer` tail** ("Bambu PETG HF @BBL X1C" reads
   "Bambu PETG HF"): the row sits under its printer already and the tail only eats the
-  line. The web shows it whole. Cut in `AmsSlotConfigRepository.filamentNames`.
+  line. The web shows it whole. Cut in `AmsSlotConfigRepository.filamentNames` by `presetDisplayName`,
+  from the last `@`.
 - **"Dismiss all" reads the status back** and says "the printer still reports N errors"
   when the fault returned; the web shows its "cleared" toast on the 200 alone.
   Phone and watch. [The section above](#clearing-hms-errors-does-not-clear-a-standing-fault).

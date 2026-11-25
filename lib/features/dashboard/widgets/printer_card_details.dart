@@ -685,8 +685,7 @@ class _DetailsPanelState extends ConsumerState<_DetailsPanel> {
           ]
         : const <_TileSpec>[];
 
-    // The compact tiles keep the older chain, so only the rows ask the server
-    // for names.
+    // A compact tile never uses the server's name, so only the rows ask.
     final idsKey = compact
         ? ''
         : filamentIdsKey([
@@ -1499,6 +1498,10 @@ class _ExternalInputsEmpty extends StatelessWidget {
 /// printer's preset name (`tray_sub_brands`), else the material. Under it the colour — written on
 /// the spool, else the catalogue's for the hex; three white PLAs differ only
 /// there. A spool the preset pushed out of the name gets a third line.
+///
+/// [subBrandFirst] is the compact tile's chain: the printer's own short name
+/// ("PLA Matte") before the preset's and the spool's, which carry the brand
+/// ("Bambu PLA Matte") the tile has no room for.
 ({String name, String colour, String? spool}) slotNaming(
   AppLocalizations l10n,
   ColorCatalog catalog,
@@ -1506,6 +1509,7 @@ class _ExternalInputsEmpty extends StatelessWidget {
   Spool? spool,
   SlotPreset? preset, {
   String? filamentName,
+  bool subBrandFirst = false,
 }) {
   String? nonEmpty(String? s) =>
       (s == null || s.trim().isEmpty) ? null : s.trim();
@@ -1520,13 +1524,19 @@ class _ExternalInputsEmpty extends StatelessWidget {
           )
       ? nonEmpty(presetDisplayName(preset.presetName))
       : null;
-  final name =
-      presetName ??
-      spoolName ??
-      nonEmpty(filamentName) ??
-      sub ??
-      nonEmpty(tray.trayType) ??
-      '';
+  final name = subBrandFirst
+      ? sub ??
+            presetName ??
+            spoolName ??
+            nonEmpty(filamentName) ??
+            nonEmpty(tray.trayType) ??
+            ''
+      : presetName ??
+            spoolName ??
+            nonEmpty(filamentName) ??
+            sub ??
+            nonEmpty(tray.trayType) ??
+            '';
   return (
     name: name,
     colour:
