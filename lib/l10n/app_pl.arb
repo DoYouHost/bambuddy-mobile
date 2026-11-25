@@ -4380,5 +4380,10 @@
   "spoolScanTagUnknown": "Żadna szpula nie ma tego tagu",
   "spoolScanTagUnknownHelp": "Tag {tag} nie jest powiązany z żadną szpulą w Filamentach. Powiąż go w SpoolBuddy i spróbuj ponownie.",
   "spoolScanOpening": "Otwieram {name}",
-  "maintenanceLogPrinter": "Drukarka"
+  "maintenanceLogPrinter": "Drukarka",
+  "compactAmsLayoutTitle": "Kompaktowe kafelki AMS",
+  "compactAmsLayoutDesc": "Sloty filamentu jako małe kafelki z kolorem, materiałem i numerem slotu. Każdą kartę drukarki można przełączyć na szczegółową listę.",
+  "amsViewCompact": "Widok kompaktowy",
+  "amsViewDetailed": "Widok szczegółowy",
+  "externalSpoolShort": "Z"
 }

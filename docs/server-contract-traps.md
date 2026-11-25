@@ -341,6 +341,36 @@ Flow: paste a URL, resolve it, pick a plate, import to the library.
 - The contract test runs against a real Manyfold in the `daily` CI job
   (`tool/ci/manyfold_setup.rb`, the `BAMBUDDY_CONTRACT_MANYFOLD_*` variables).
 
+## Filament names (`POST /cloud/filament-info`)
+
+The web names a slot row with `cloudInfo.name` before it falls back to
+`tray_sub_brands` (`PrintersPage.tsx`), and the detailed row does the same
+(`slotNaming(filamentName:)`, `filamentNamesProvider`).
+
+- **The body is a bare JSON array of filament ids** (`tray_info_idx`). Dio infers JSON
+  for a map but **not for a list**: without an explicit content type the list goes out as
+  text and the server answers `422 "Input should be a valid list"`. A mocked adapter never
+  sees it; the repository test matches the `content-type` header, and the contract test
+  (`filament_info_contract_test.dart`) is what found it.
+- **The answer is an object with an entry for every id asked**, `{name, k}`, and an empty
+  `name` where nothing resolved. The repository keeps only the non-empty ones.
+- **Lookup order on the server** is its cache (five minutes, per account), the caller's
+  Bambu Cloud presets, the imported profiles, then the built-in table
+  (`cloud.py::get_filament_info`). Without a cloud login the answer is still 200, from the
+  last two. A name from an imported profile is the preset's own name and can carry an
+  `@printer` suffix; the row shows it as sent, as the web does.
+- **An API key needs `can_access_cloud` and the route's own scope, `can_read_status`.** The
+  router-level cloud gate runs first (`cloud.py::_cloud_api_key_gate`: a key from before
+  per-user ownership is a 401, one without the cloud scope a 403), then the route's own
+  permission (`FILAMENTS_READ`, which a key holds as `can_read_status`). So the cloud scope
+  alone is a 403 naming `can_read_status`, and a read-status key without it is a 403 from
+  the gate. The call only decorates a row, so every API failure, the 401 included, reads as
+  no names and ends no session.
+- **Measured on** the `1.2.5`, `latest` (1.3.2) and `daily` (1.3.3b1) images: same shape,
+  same fences, so there is no version gate. A server without the route answers 404 or 405
+  ([above](#an-unknown-route-answers-404-or-405)) and the rows keep the older chain.
+- The `k` (pressure advance) the answer also carries is not read.
+
 ## Deliberate deviations from the web
 
 The web is the default ([AGENTS.md](../AGENTS.md)); these are the places the app follows
@@ -361,6 +391,10 @@ maintainer. Add to the list instead of deviating silently.
   center, an empty budget amount means no budget, the ledger pages with "load more"
   instead of page buttons, and the personal center's edit sends only the budget. See
   [billing.md](billing.md).
+- **The compact AMS tile keeps the older name chain.** The detailed row puts the server's
+  filament name (`filament-info`) before the sub-brand, as the web does; the tile, by the
+  maintainer's choice, does not, so a slot with no sub-brand reads "PETG" in the tile and
+  "Bambu PETG HF" in the row. `printer_card_compact.dart`.
 - **"Dismiss all" reads the status back** and says "the printer still reports N errors"
   when the fault returned; the web shows its "cleared" toast on the 200 alone.
   Phone and watch. [The section above](#clearing-hms-errors-does-not-clear-a-standing-fault).

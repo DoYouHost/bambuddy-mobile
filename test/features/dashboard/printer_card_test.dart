@@ -4,6 +4,7 @@ import 'dart:ui' show Tristate;
 
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart';
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/models/k_profile.dart';
@@ -348,6 +349,8 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
         inertChamberMaxOverride,
+        inertCompactAmsOverride,
+        inertFilamentNamesOverride,
         ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(() => stub),
         aiDetectionOverride(),
@@ -409,6 +412,8 @@ Widget _scope(
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
+    inertCompactAmsOverride,
+    inertFilamentNamesOverride,
     ...inertHistorySupportOverrides,
     ...inertDashboardPollOverrides,
   ], extra),
@@ -454,6 +459,8 @@ Widget _cardSwap(
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
+    inertCompactAmsOverride,
+    inertFilamentNamesOverride,
     ...inertHistorySupportOverrides,
     ...inertDashboardPollOverrides,
   ],
@@ -1082,6 +1089,503 @@ void main() {
       // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
+    });
+
+    group('filament names from the server', () {
+      Future<List<String>> pumpWithNames(
+        WidgetTester tester, {
+        Map<String, String> names = const {},
+        bool compact = false,
+      }) async {
+        final asked = <String>[];
+        tester.view.physicalSize = const Size(420, 4000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [
+              filamentNamesProvider.overrideWith((ref, key) {
+                asked.add(key);
+                return names;
+              }),
+              compactAmsLayoutProvider.overrideWith(
+                compact ? _CompactAmsOn.new : _CompactAmsOff.new,
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        return asked;
+      }
+
+      testWidgets('a row takes the server name of its filament id', (
+        tester,
+      ) async {
+        await pumpWithNames(
+          tester,
+          names: {
+            'GFG02': 'Bambu PETG HF',
+            'GFA00': 'Bambu PLA Basic',
+            'GFU01': 'Bambu TPU 95A',
+          },
+        );
+
+        // Three AMS slots and no sub-brand: PETG, now named.
+        expect(find.text('Bambu PETG HF'), findsNWidgets(3));
+        // The web puts the server's name before the sub-brand, so the slot
+        // reporting "PLA Basic" reads "Bambu PLA Basic", and so does the
+        // second external spool that has the same id.
+        expect(find.text('Bambu PLA Basic'), findsNWidgets(2));
+        expect(find.text('Bambu TPU 95A'), findsOneWidget);
+        expect(find.text('PETG'), findsNothing);
+      });
+
+      testWidgets('a row keeps the older name where the server gives none', (
+        tester,
+      ) async {
+        await pumpWithNames(tester, names: {'GFA00': 'Bambu PLA Basic'});
+
+        expect(find.text('PETG'), findsNWidgets(3));
+        expect(find.text('Bambu PLA Basic'), findsNWidgets(2));
+      });
+
+      testWidgets('one request per card asks for the distinct ids, sorted', (
+        tester,
+      ) async {
+        final asked = await pumpWithNames(tester);
+
+        // AMS: GFG02 ×3 and GFA00; external: GFU01 and GFA00.
+        expect(asked, ['GFA00,GFG02,GFU01']);
+      });
+
+      testWidgets('rows keep their names while a changed set of ids loads', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(420, 4000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final pending = Completer<Map<String, String>>();
+        final overrides = [
+          filamentNamesProvider.overrideWith(
+            (ref, key) => key == 'GFA00,GFG02,GFU01'
+                ? {
+                    'GFG02': 'Bambu PETG HF',
+                    'GFA00': 'Bambu PLA Basic',
+                    'GFU01': 'Bambu TPU 95A',
+                  }
+                : pending.future,
+          ),
+          compactAmsLayoutProvider.overrideWith(_CompactAmsOff.new),
+        ];
+        Widget card(PrinterWithStatus item) => _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: PrinterCard(key: const ValueKey('card'), item: item),
+            ),
+          ),
+          extra: overrides,
+        );
+
+        await tester.pumpWidget(card(realItem()));
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(find.text('Bambu PETG HF'), findsNWidgets(3));
+
+        // A spool with a new id goes into slot 3: a new key, which has no answer
+        // yet. The other two PETG rows must not fall back to "PETG" meanwhile.
+        await tester.pumpWidget(
+          card(
+            realItem(
+              trays: {
+                2: {'tray_info_idx': 'GFB00'},
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Bambu PETG HF'), findsNWidgets(2));
+        expect(find.text('PETG'), findsOneWidget);
+        pending.complete(const {});
+      });
+
+      testWidgets('the compact tiles neither ask nor use the names', (
+        tester,
+      ) async {
+        final asked = await pumpWithNames(
+          tester,
+          names: {'GFG02': 'Bambu PETG HF'},
+          compact: true,
+        );
+
+        expect(asked, isEmpty);
+        expect(find.text('Bambu PETG HF'), findsNothing);
+        expect(find.text('PETG'), findsWidgets);
+      });
+    });
+
+    group('compact AMS tiles', () {
+      Future<void> pumpCompact(
+        WidgetTester tester, {
+        double width = 420,
+        double scale = 1.0,
+        bool compact = true,
+        PrinterWithStatus? item,
+      }) async {
+        tester.view.physicalSize = Size(width, 4000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: Size(width, 4000),
+            ),
+            child: _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: item ?? realItem()),
+                ),
+              ),
+              extra: [
+                compactAmsLayoutProvider.overrideWith(
+                  compact ? _CompactAmsOn.new : _CompactAmsOff.new,
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      final slots = find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+      );
+      final heading = find.text(pl.externalSpool.toUpperCase());
+      Set<double> rowTops(WidgetTester tester) => {
+        for (final e in slots.evaluate())
+          tester.getRect(find.byWidget(e.widget)).top.roundToDouble(),
+      };
+
+      testWidgets('the detailed rows stay the default', (tester) async {
+        await pumpCompact(tester, compact: false);
+
+        // One slot per row, so six tops.
+        expect(slots, findsNWidgets(6));
+        expect(rowTops(tester), hasLength(6));
+        expect(find.byIcon(Icons.grid_view), findsOneWidget);
+        expect(heading, findsOneWidget);
+      });
+
+      testWidgets('four AMS tiles and two external spools share a row when '
+          'they fit, with no heading', (tester) async {
+        await pumpCompact(tester);
+
+        expect(slots, findsNWidgets(6));
+        expect(rowTops(tester), hasLength(1));
+        expect(heading, findsNothing);
+        expect(find.byIcon(Icons.view_list), findsOneWidget);
+        // The slot numbers and the sides stay on the tiles, not only in the
+        // AMS header's own side badge.
+        for (final badge in [
+          '1',
+          '2',
+          '3',
+          '4',
+          pl.extruderLeftShort,
+          pl.extruderRightShort,
+        ]) {
+          expect(
+            find.descendant(of: slots, matching: find.text(badge)),
+            findsOneWidget,
+            reason: badge,
+          );
+        }
+      });
+
+      testWidgets('the external group moves, whole, under its heading when it '
+          'does not fit', (tester) async {
+        await pumpCompact(tester, width: 360);
+
+        expect(slots, findsNWidgets(6));
+        final tops = rowTops(tester);
+        expect(tops, hasLength(2));
+        expect(heading, findsOneWidget);
+        // Four tiles above the heading, two below it.
+        final headingTop = tester.getRect(heading).top;
+        final above = [
+          for (final e in slots.evaluate())
+            if (tester.getRect(find.byWidget(e.widget)).top < headingTop) e,
+        ];
+        expect(above, hasLength(4));
+      });
+
+      testWidgets('the tile area is the phone minus 100 dp', (tester) async {
+        // The layout rule leans on this number; it is read off the real card.
+        await pumpCompact(tester, width: 360);
+
+        final area = find.byWidgetPredicate(
+          (w) => w.runtimeType.toString() == '_CompactTiles',
+        );
+        expect(tester.getSize(area).width, 360 - 100);
+      });
+
+      testWidgets('the switch changes this printer between the two views', (
+        tester,
+      ) async {
+        await pumpCompact(tester);
+        expect(heading, findsNothing);
+
+        await tester.tap(byLogId('printer.ams_layout'));
+        await tester.pump();
+        expect(heading, findsOneWidget);
+        expect(find.byIcon(Icons.grid_view), findsOneWidget);
+
+        await tester.tap(byLogId('printer.ams_layout'));
+        await tester.pump();
+        expect(heading, findsNothing);
+      });
+
+      testWidgets('a printer with no AMS has no switch', (tester) async {
+        await pumpCompact(
+          tester,
+          item: realItem(top: {'ams': const <Object?>[]}),
+        );
+
+        expect(byLogId('printer.ams_layout'), findsNothing);
+      });
+
+      testWidgets('external spools are still drawn when the last AMS unit '
+          'reports no trays', (tester) async {
+        await pumpCompact(tester, item: realItem(unit: {'tray': const []}));
+
+        // Only the two spools: the unit has none to draw, and a dash stands in.
+        expect(slots, findsNWidgets(2));
+        expect(heading, findsOneWidget);
+        expect(byLogId('printer.ams_layout'), findsOneWidget);
+      });
+
+      testWidgets('a printer with nothing to draw has no switch', (
+        tester,
+      ) async {
+        await pumpCompact(
+          tester,
+          item: realItem(unit: {'tray': const []}, top: {'vt_tray': const []}),
+        );
+
+        expect(slots, findsNothing);
+        expect(byLogId('printer.ams_layout'), findsNothing);
+      });
+
+      testWidgets('with two AMS units the spools ride on the second only', (
+        tester,
+      ) async {
+        final first =
+            ((readFixture('ws_printer_status.json') as Map)['data']
+                    as Map)['ams']
+                as List;
+        final second = {
+          ...Map<String, dynamic>.from(first.first as Map),
+          'id': 1,
+        };
+        await pumpCompact(
+          tester,
+          item: realItem(
+            top: {
+              'ams': [first.first, second],
+            },
+          ),
+        );
+
+        expect(slots, findsNWidgets(10));
+        for (final side in [pl.extruderLeftShort, pl.extruderRightShort]) {
+          expect(
+            find.descendant(of: slots, matching: find.text(side)),
+            findsOneWidget,
+            reason: side,
+          );
+        }
+        // The spools share the second unit's row, so the first stays at four.
+        final tops = rowTops(tester).toList()..sort();
+        expect(tops, hasLength(2));
+        int tilesAt(double top) => slots
+            .evaluate()
+            .where(
+              (e) =>
+                  tester.getRect(find.byWidget(e.widget)).top.roundToDouble() ==
+                  top,
+            )
+            .length;
+        expect(tilesAt(tops.first), 4);
+        expect(tilesAt(tops.last), 6);
+        expect(heading, findsNothing);
+      });
+
+      testWidgets('a rack printer keeps its list and gets no switch', (
+        tester,
+      ) async {
+        // Unit 32 is the AMS 3H, which is what makes a printer a rack printer.
+        await pumpCompact(tester, item: realItem(unit: {'id': 32}));
+
+        expect(byLogId('printer.ams_layout'), findsNothing);
+        expect(slots, findsNWidgets(6));
+        expect(rowTops(tester), hasLength(6));
+      });
+
+      testWidgets('a single-nozzle spool is badged with its short name', (
+        tester,
+      ) async {
+        await pumpCompact(
+          tester,
+          item: realItem(
+            oneHolder: true,
+            top: {
+              'temperatures': {'nozzle': 140.0, 'bed': 70.0},
+            },
+          ),
+        );
+
+        expect(
+          find.descendant(
+            of: slots,
+            matching: find.text(pl.externalSpoolShort),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: slots, matching: find.text(pl.extruderLeftShort)),
+          findsNothing,
+        );
+      });
+
+      testWidgets('the switch of one printer leaves another alone', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(420, 8000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    PrinterCard(item: realItem()),
+                    PrinterCard(item: realItem(top: {'id': 2})),
+                  ],
+                ),
+              ),
+            ),
+            extra: [compactAmsLayoutProvider.overrideWith(_CompactAmsOn.new)],
+          ),
+        );
+        await tester.pump();
+        for (final toggle in find.text(pl.detailsShow).evaluate().toList()) {
+          await tester.tap(find.byWidget(toggle.widget).first);
+          await tester.pump();
+        }
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(heading, findsNothing);
+
+        await tester.tap(byLogId('printer.ams_layout').first);
+        await tester.pump();
+
+        // One card is detailed now (its heading is back), the other is not.
+        expect(heading, findsOneWidget);
+      });
+
+      for (final scale in [1.0, 1.5, 2.0]) {
+        for (final width in [360.0, 420.0]) {
+          testWidgets('every tile is a 48 dp target and the material fits at '
+              '$width dp, text scale $scale', (tester) async {
+            await pumpCompact(
+              tester,
+              width: width,
+              scale: scale,
+              item: realItem(
+                trays: {
+                  3: {'tray_sub_brands': 'PLA Basic Matte'},
+                },
+              ),
+            );
+
+            expect(slots, findsNWidgets(6));
+            for (final e in slots.evaluate()) {
+              final size = tester.getSize(find.byWidget(e.widget));
+              expect(size.height, greaterThanOrEqualTo(48));
+              expect(size.width, greaterThanOrEqualTo(48 * scale));
+            }
+            // The material sits above the percent: a swatch too short for two
+            // lines pushes it over the line under it.
+            final material = tester.getRect(find.text('PLA Basic Matte'));
+            final percent = tester.getRect(find.text('66%'));
+            expect(material.bottom, lessThanOrEqualTo(percent.top));
+            // And under the pill: a swatch too short for the lines centres
+            // them over its top edge.
+            final top = tester
+                .getRect(
+                  find
+                      .ancestor(
+                        of: find.text('PLA Basic Matte'),
+                        matching: slots,
+                      )
+                      .first,
+                )
+                .top;
+            expect(material.top - top, greaterThanOrEqualTo(20 - 0.01));
+          });
+        }
+      }
+
+      testWidgets('a screen reader hears a loaded slot once and a blank one '
+          'in words', (tester) async {
+        final semantics = tester.ensureSemantics();
+        await pumpCompact(
+          tester,
+          item: realItem(
+            trays: {
+              // State 9 is a slot the printer reports empty; 11 with no
+              // material is a spool it sees but cannot name.
+              0: {'tray_type': '', 'tray_sub_brands': '', 'state': 9},
+              1: {'tray_type': '', 'tray_sub_brands': '', 'state': 11},
+            },
+          ),
+        );
+
+        SemanticsData dataAround(Finder inner) => tester
+            .getSemantics(
+              find
+                  .ancestor(of: inner, matching: find.byType(MergeSemantics))
+                  .first,
+            )
+            .getSemanticsData();
+        String labelAround(Finder inner) => dataAround(inner).label;
+        expect('66%'.allMatches(labelAround(find.text('66%'))), hasLength(1));
+        // The bar's own "66%" would arrive as the value of the merged node.
+        expect(dataAround(find.text('66%')).value, isEmpty);
+
+        final empty = labelAround(find.text(pl.traySlotEmpty));
+        expect(empty, isNot(contains('0%')));
+        expect(empty, isNot(contains('–')));
+        expect(dataAround(find.text(pl.traySlotEmpty)).value, isEmpty);
+        final unnamed = labelAround(find.text(pl.traySlotUnconfigured));
+        expect(unnamed, isNot(contains('0%')));
+        expect(unnamed, isNot(contains('?')));
+        semantics.dispose();
+      });
     });
 
     // Three rows of the card overflowed at 200 % text (by 14, 49 and 63 px):
@@ -3959,6 +4463,8 @@ void main() {
           inertFirmwareOverride,
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
+          inertCompactAmsOverride,
+          inertFilamentNamesOverride,
           ...inertHistorySupportOverrides,
           ...inertDashboardPollOverrides,
           inventoryBackendOverride(),
@@ -4913,6 +5419,8 @@ void main() {
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
+          inertCompactAmsOverride,
+          inertFilamentNamesOverride,
         ], inertHistorySupportOverrides),
       );
       await tester.pumpAndSettle();
@@ -8068,4 +8576,14 @@ class _SlotPresetRepo implements AmsSlotConfigRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
     '${invocation.memberName} is not part of this test',
   );
+}
+
+class _CompactAmsOn extends CompactAmsLayoutNotifier {
+  @override
+  bool build() => true;
+}
+
+class _CompactAmsOff extends CompactAmsLayoutNotifier {
+  @override
+  bool build() => false;
 }

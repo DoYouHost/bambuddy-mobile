@@ -726,6 +726,9 @@ class DemoBackend {
           return demoRefuse(401, 'Not authenticated');
         }
         if (at(1, 'builtin-filaments')) return demoOk(_builtinFilaments);
+        if (at(1, 'filament-info') && m == 'POST') {
+          return demoOk(_filamentInfo(rawBody));
+        }
         return _fallback(m);
 
       case 'local-presets':
@@ -1996,7 +1999,19 @@ class DemoBackend {
     'door_open': false,
     'ams_exists': true,
     'ams': [_amsUnitPlaOnly()],
-    'vt_tray': const <Object>[],
+    // Both holders of a dual machine, the left one loaded: with the four AMS
+    // slots they are the six tiles the compact view lays out.
+    'vt_tray': [
+      {
+        'id': 254,
+        'tray_type': 'TPU',
+        'tray_sub_brands': 'TPU 95A HF',
+        'tray_color': '4FAE7AFF',
+        'tray_info_idx': 'GFU01',
+        'remain': 71,
+      },
+      {'id': 255, 'tray_type': '', 'tray_color': '', 'remain': 0},
+    ],
     'tray_now': 255,
     // The left head, which is the plain `nozzle` key and the one a print here
     // heats ([_maybePrinting] sets only that one): index 0 is the right head,
@@ -2259,6 +2274,19 @@ class DemoBackend {
     {'filament_id': 'GFG99', 'name': 'Generic PETG'},
     {'filament_id': 'GFB99', 'name': 'Generic ABS'},
   ];
+
+  /// `POST /cloud/filament-info`: an entry for every id asked, named from the
+  /// built-in table and empty where it has none, as the server answers without
+  /// a cloud login. The detailed rows lead with these names.
+  Map<String, dynamic> _filamentInfo(Object? ids) {
+    final names = {
+      for (final f in _builtinFilaments) f['filament_id']!: f['name']!,
+    };
+    return {
+      for (final id in (ids is List ? ids : const []).whereType<String>())
+        id: {'name': names[id] ?? '', 'k': null},
+    };
+  }
 
   /// Presets imported from a slicer bundle. The P1S one is here to show the
   /// printer filter doing something on the X1C card, and the ASA one to show a

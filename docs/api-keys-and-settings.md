@@ -164,3 +164,14 @@ behaves identically.
 A key reaches thumbnails and photos through the `X-API-Key` header, not a token. The
 three-way choice and its traps are in
 [server-contract-traps.md](server-contract-traps.md#media-credentials).
+
+## `/cloud/*` under a key
+
+Two fences, in this order. The router-level gate (`cloud.py::_cloud_api_key_gate`) wants a
+key with an owner (a key from before per-user ownership is a 401) and **`can_access_cloud`**
+(a 403 without it). Then the route's own permission applies, and it maps to the key's usual
+scope: `can_read_status` for `POST /cloud/filament-info` (`FILAMENTS_READ`), another one
+for a route with another permission. So the cloud scope alone is not enough for that
+route. What the app reads from there is decoration (the detailed slot rows' names), so
+it treats any refusal as "no names" and does not ask the user to recreate the key. Details:
+[server-contract-traps.md](server-contract-traps.md#filament-names-post-cloudfilament-info).

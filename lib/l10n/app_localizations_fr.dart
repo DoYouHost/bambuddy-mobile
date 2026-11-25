@@ -11163,4 +11163,20 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get maintenanceLogPrinter => 'Imprimante';
+
+  @override
+  String get compactAmsLayoutTitle => 'Tuiles AMS compactes';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Les emplacements de filament s\'affichent en petites tuiles avec couleur, matière et numéro. Chaque carte d\'imprimante peut revenir à la liste détaillée.';
+
+  @override
+  String get amsViewCompact => 'Vue compacte';
+
+  @override
+  String get amsViewDetailed => 'Vue détaillée';
+
+  @override
+  String get externalSpoolShort => 'E';
 }

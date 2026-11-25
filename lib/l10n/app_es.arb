@@ -5069,5 +5069,10 @@
   "spoolScanTagUnknown": "Ninguna bobina tiene esta etiqueta",
   "spoolScanTagUnknownHelp": "La etiqueta {tag} no está vinculada a ninguna bobina en Filamentos. Vincúlala en SpoolBuddy y vuelve a intentarlo.",
   "spoolScanOpening": "Abriendo {name}",
-  "maintenanceLogPrinter": "Impresora"
+  "maintenanceLogPrinter": "Impresora",
+  "compactAmsLayoutTitle": "Mosaicos AMS compactos",
+  "compactAmsLayoutDesc": "Las ranuras de filamento se muestran como mosaicos pequeños con color, material y número. Cualquier tarjeta de impresora puede volver a la lista detallada.",
+  "amsViewCompact": "Vista compacta",
+  "amsViewDetailed": "Vista detallada",
+  "externalSpoolShort": "E"
 }

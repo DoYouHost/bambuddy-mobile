@@ -5069,5 +5069,10 @@
   "spoolScanTagUnknown": "Keine Spule hat diesen Tag",
   "spoolScanTagUnknownHelp": "Der Tag {tag} ist mit keiner Spule in den Filamenten verknüpft. Verknüpfe ihn in SpoolBuddy und versuche es erneut.",
   "spoolScanOpening": "{name} wird geöffnet",
-  "maintenanceLogPrinter": "Drucker"
+  "maintenanceLogPrinter": "Drucker",
+  "compactAmsLayoutTitle": "Kompakte AMS-Kacheln",
+  "compactAmsLayoutDesc": "Filamentslots erscheinen als kleine Kacheln mit Farbe, Material und Slotnummer. Jede Druckerkarte lässt sich auf die Detailliste umstellen.",
+  "amsViewCompact": "Kompakte Ansicht",
+  "amsViewDetailed": "Detailansicht",
+  "externalSpoolShort": "E"
 }

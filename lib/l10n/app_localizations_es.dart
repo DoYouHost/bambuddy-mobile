@@ -11077,4 +11077,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get maintenanceLogPrinter => 'Impresora';
+
+  @override
+  String get compactAmsLayoutTitle => 'Mosaicos AMS compactos';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Las ranuras de filamento se muestran como mosaicos pequeños con color, material y número. Cualquier tarjeta de impresora puede volver a la lista detallada.';
+
+  @override
+  String get amsViewCompact => 'Vista compacta';
+
+  @override
+  String get amsViewDetailed => 'Vista detallada';
+
+  @override
+  String get externalSpoolShort => 'E';
 }

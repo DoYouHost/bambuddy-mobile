@@ -1653,6 +1653,14 @@ abstract final class Endpoints {
   /// the answer is an error, and the built-in names are all there is.
   static const cloudFilamentIdMap = '$apiPrefix/cloud/filament-id-map';
 
+  /// `POST` a JSON list of filament ids (`tray_info_idx`) → `{id: {name, k}}`, one
+  /// entry for **every** id asked, with an empty `name` where nothing resolved. The
+  /// server looks in its cache, then the caller's Bambu Cloud presets, then the
+  /// imported profiles, then the built-in table, so without a cloud login the answer
+  /// is still 200. An API key needs the cloud scope (403 without it, 401 for a key
+  /// that predates per-user ownership). This is the web's `cloudInfo` (`PrintersPage`).
+  static const cloudFilamentInfo = '$apiPrefix/cloud/filament-info';
+
   /// `GET` → the colour catalogue, `{colors: {hex: name}, by_material:
   /// {"material|hex": name}}`. Not gated on an inventory permission:
   /// every view that names a sliced colour needs it (`routes/inventory.py`).

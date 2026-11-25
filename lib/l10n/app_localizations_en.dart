@@ -10939,4 +10939,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maintenanceLogPrinter => 'Printer';
+
+  @override
+  String get compactAmsLayoutTitle => 'Compact AMS tiles';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Filament slots show as small tiles with colour, material and slot number. Any printer card can switch back to the detailed list.';
+
+  @override
+  String get amsViewCompact => 'Compact view';
+
+  @override
+  String get amsViewDetailed => 'Detailed view';
+
+  @override
+  String get externalSpoolShort => 'E';
 }

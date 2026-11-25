@@ -3051,5 +3051,10 @@
   "spoolScanTagUnknown": "没有料盘使用此标签",
   "spoolScanTagUnknownHelp": "标签 {tag} 未与耗材中的任何料盘关联。请先在 SpoolBuddy 中关联，然后重试。",
   "spoolScanOpening": "正在打开 {name}",
-  "maintenanceLogPrinter": "打印机"
+  "maintenanceLogPrinter": "打印机",
+  "compactAmsLayoutTitle": "紧凑 AMS 磁贴",
+  "compactAmsLayoutDesc": "耗材槽以小磁贴显示颜色、材质和槽位编号。任何打印机卡片都可以切换回详细列表。",
+  "amsViewCompact": "紧凑视图",
+  "amsViewDetailed": "详细视图",
+  "externalSpoolShort": "外"
 }

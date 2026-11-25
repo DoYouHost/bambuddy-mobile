@@ -5069,5 +5069,10 @@
   "spoolScanTagUnknown": "Aucune bobine n'a ce tag",
   "spoolScanTagUnknownHelp": "Le tag {tag} n'est lié à aucune bobine dans Filaments. Liez-le dans SpoolBuddy, puis réessayez.",
   "spoolScanOpening": "Ouverture de {name}",
-  "maintenanceLogPrinter": "Imprimante"
+  "maintenanceLogPrinter": "Imprimante",
+  "compactAmsLayoutTitle": "Tuiles AMS compactes",
+  "compactAmsLayoutDesc": "Les emplacements de filament s'affichent en petites tuiles avec couleur, matière et numéro. Chaque carte d'imprimante peut revenir à la liste détaillée.",
+  "amsViewCompact": "Vue compacte",
+  "amsViewDetailed": "Vue détaillée",
+  "externalSpoolShort": "E"
 }

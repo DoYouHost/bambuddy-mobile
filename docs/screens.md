@@ -105,8 +105,12 @@ under 4.5:1, green and orange at 2.9:1.
   as the web's slot card leads with it, but only while `slotPresetDescribesTray`
   says it still describes the tray; else the spool assigned to the slot
   (`AssignedSpools.spoolOf`, the chain of `fillOf` without its weight conditions,
-  so a spool with no label weight still names it), else `tray_sub_brands`, else
-  `tray_type`. A spool the preset pushed out of the name gets a third line in the
+  so a spool with no label weight still names it), else **the server's name for the
+  tray's filament id** (`POST /cloud/filament-info`, the web's `cloudInfo`: one
+  request per card, `filamentNamesProvider`; so a slot with no sub-brand reads
+  "Bambu PETG HF" instead of "PETG", and one that reports "PLA Basic" reads "Bambu PLA
+  Basic"), else `tray_sub_brands`, else `tray_type`. Without a name from the server,
+  for any reason, the row falls back to the two last steps. A spool the preset pushed out of the name gets a third line in the
   colour's style, so "Generic PLA" in a slot holding an eSun spool shows both.
 - **Saving a preset** sends the slot's `tray_info_idx` with it. Without it the
   server records none, and a slot reconfigured on the printer keeps a name that
@@ -124,6 +128,50 @@ that do not tell the trays apart fall back to the position.
 The name is one line by decision: wrapped, a row at 200 % text turned into a block
 of text with no hierarchy. A material chip was tried and dropped: the name already
 carries the material.
+
+### Compact AMS tiles (PR #78)
+
+The same slots as a grid of tiles instead of rows, so a dual-nozzle machine's four
+AMS slots and two external spools fit one row on a wide phone instead of six rows.
+`_CompactSlotTile` takes the inputs of `_FilamentRow` and shows the material on the
+colour, the slot number (or `L`/`R`, or `E` for an external spool on a single
+nozzle) in a pill at the corner, and under it the colour's name, the percent, the
+grams and a bar. The tile's name is `slotNaming(...).name` **without** the server's
+filament name, so it follows the chain the row used before that step existed: a slot
+with no sub-brand reads "PETG" in the tile and "Bambu PETG HF" in the row, which is the
+maintainer's choice ([the deviation](server-contract-traps.md#deliberate-deviations-from-the-web)).
+A compact printer card does not ask the server for names at all.
+
+- **Switching**: the setting `compact_ams_layout` (Settings, Dashboard; off by
+  default, which is what every earlier version drew) and a switch in the filament
+  block's title row. The switch is per printer and lasts the session
+  (`printerCompactAmsProvider`, the shape of `printerCardCollapseProvider`);
+  changing the setting resets every printer to it. It governs all AMS units and the
+  external spools of the printer together. Its glyph is the view a tap leads to.
+  A rack printer keeps the list (its inputs are named by hotend) and a printer with
+  no AMS, or with nothing to draw, has no switch.
+- **Rows** (`compactBlockLayout`, pure and tested over every width and text size):
+  a visible tile is never narrower than 48 dp times the text scale, and the slot
+  adds a 4 dp gap. If the AMS tiles and the external spools fit one row at that
+  minimum they share it, with no heading; otherwise the whole external group moves
+  to rows of its own under the "External spool" heading. A group never splits
+  across rows apart from wrapping on its own; a group too long for one row splits
+  equally (2 + 2, not 3 + 1) and its tiles fill the rows. Only a single short row
+  (under four tiles) is capped, at the slot of a row of four, so one AMS HT is not a
+  slab. An external group below reuses the AMS tile width when it fits.
+- **Width**: the tile area is the phone minus 100 dp, measured off the real card
+  (2 × 16 of card margin, card padding and group padding, and two 1 dp borders each
+  of the card and the group card). Six tiles in a row need 412 dp, five 360 dp, four
+  308 dp at 100 % text; the five on a 360 dp phone sit exactly on the limit.
+- **Spools**: they ride on the printer's last AMS unit, so they can share its row.
+  A last unit with no trays draws a dash, and the spools get a block of their own.
+- **Reading**: the tile is one merged node for a screen reader. The bar is outside
+  it (its own "66 %" would be read twice, and "0 %" on a slot with no reading), and
+  the dash or question mark on a blank slot is outside it too; the caption says it
+  in words.
+
+Not done on purpose: the row's fill ring and its percent-over-grams column become the
+bar and two lines; the compact tile has no ring.
 
 ### Nozzle figures (#1908)
 

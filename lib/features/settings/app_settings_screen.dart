@@ -117,6 +117,13 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 .read(printerCardsCollapsedByDefaultProvider.notifier)
                 .set,
           ),
+          SettingsSwitchRow(
+            tag: 'app_settings.compact_ams_layout',
+            title: l10n.compactAmsLayoutTitle,
+            subtitle: l10n.compactAmsLayoutDesc,
+            value: ref.watch(compactAmsLayoutProvider),
+            onChanged: ref.read(compactAmsLayoutProvider.notifier).set,
+          ),
         ],
       ),
       const SizedBox(height: DashSpace.xl),

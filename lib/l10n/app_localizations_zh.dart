@@ -10486,4 +10486,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get maintenanceLogPrinter => '打印机';
+
+  @override
+  String get compactAmsLayoutTitle => '紧凑 AMS 磁贴';
+
+  @override
+  String get compactAmsLayoutDesc => '耗材槽以小磁贴显示颜色、材质和槽位编号。任何打印机卡片都可以切换回详细列表。';
+
+  @override
+  String get amsViewCompact => '紧凑视图';
+
+  @override
+  String get amsViewDetailed => '详细视图';
+
+  @override
+  String get externalSpoolShort => '外';
 }

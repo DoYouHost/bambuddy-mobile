@@ -42,6 +42,7 @@ class SettingsRepository {
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
   static const _mergeDismissedAtKey = 'archive_merge_dismissed_at';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
+  static const _compactAmsLayoutKey = 'compact_ams_layout';
   static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
   static const _wallPanelExpandedKey = 'wall_panel_expanded';
   static const _wallLiveCameraKey = 'wall_live_camera';
@@ -319,6 +320,14 @@ class SettingsRepository {
 
   Future<void> savePrinterCardsCollapsed(bool collapsed) =>
       _prefs.setBool(_printerCardsCollapsedKey, collapsed);
+
+  /// Whether the AMS and external spools of a printer card show as compact
+  /// tiles. Absent reads as the detailed rows, which is what every earlier
+  /// version drew.
+  bool loadCompactAmsLayout() => _prefs.getBool(_compactAmsLayoutKey) ?? false;
+
+  Future<void> saveCompactAmsLayout(bool compact) =>
+      _prefs.setBool(_compactAmsLayoutKey, compact);
 
   /// Whether wall mode holds the screen on. Absent reads as on: an always-on
   /// view is what the mode is for.

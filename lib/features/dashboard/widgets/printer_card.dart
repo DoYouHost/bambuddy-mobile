@@ -6,6 +6,7 @@ import 'package:clock/clock.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ams/compact_tile_layout.dart';
 import '../../../core/ams/drying_presets.dart';
 import '../../../core/ams/slot_addressing.dart';
 import '../../../core/api/action_outcome.dart';
@@ -77,6 +78,7 @@ import '../ws_providers.dart';
 import '../skip_objects_screen.dart';
 import '../smart_plugs_providers.dart';
 import '../../../core/theme/dash_theme.dart';
+import '../card_collapse_providers.dart';
 import 'ams_slot_config_sheet.dart';
 import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
@@ -92,6 +94,8 @@ part 'printer_card_panda.dart';
 part 'printer_card_target.dart';
 part 'printer_card_movement.dart';
 part 'printer_card_collapsed.dart';
+part 'printer_card_compact.dart';
+part 'printer_card_filament.dart';
 part 'printer_card_nozzle.dart';
 
 class PrinterCard extends StatefulWidget {

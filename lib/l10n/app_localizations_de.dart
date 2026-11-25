@@ -11053,4 +11053,20 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get maintenanceLogPrinter => 'Drucker';
+
+  @override
+  String get compactAmsLayoutTitle => 'Kompakte AMS-Kacheln';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Filamentslots erscheinen als kleine Kacheln mit Farbe, Material und Slotnummer. Jede Druckerkarte lässt sich auf die Detailliste umstellen.';
+
+  @override
+  String get amsViewCompact => 'Kompakte Ansicht';
+
+  @override
+  String get amsViewDetailed => 'Detailansicht';
+
+  @override
+  String get externalSpoolShort => 'E';
 }

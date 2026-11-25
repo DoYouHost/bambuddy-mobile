@@ -594,7 +594,7 @@ class _DetailsToggle extends StatelessWidget {
 
 /// Expanded details section: AMS unit(s) and external spool as list rows inside
 /// a grouping card, followed by the connectivity (Wi-Fi/door) row.
-class _DetailsPanel extends ConsumerWidget {
+class _DetailsPanel extends ConsumerStatefulWidget {
   const _DetailsPanel({required this.status, this.serial, this.nozzleCount});
 
   final PrinterStatus status;
@@ -602,7 +602,20 @@ class _DetailsPanel extends ConsumerWidget {
   final int? nozzleCount;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DetailsPanel> createState() => _DetailsPanelState();
+}
+
+class _DetailsPanelState extends ConsumerState<_DetailsPanel> {
+  /// The last names the server gave. A new set of filament ids (a spool loaded or
+  /// pulled) is a new provider with no value yet, and without this every row would
+  /// fall back to its older name until the answer arrived.
+  Map<String, String> _names = const {};
+
+  @override
+  Widget build(BuildContext context) {
+    final status = widget.status;
+    final serial = widget.serial;
+    final nozzleCount = widget.nozzleCount;
     final t = DashTokens.of(context);
     final ams = status.ams ?? const [];
     final rack = status.trayLayout.rack;
@@ -620,6 +633,73 @@ class _DetailsPanel extends ConsumerWidget {
     // local — the slot routes, the inventory assignment and the load command.
     int trayIdOf(int i) =>
         externalSlotIndex(spools[i].id ?? externalTrayIdBase);
+
+    // A rack printer names its inputs by hotend, which a tile has no room for,
+    // and a printer with no AMS has nothing to switch.
+    final anyTrays = ams.any((u) => (u.trays ?? const []).isNotEmpty);
+    final switchable =
+        ams.isNotEmpty && !rack && (anyTrays || spools.isNotEmpty);
+    final compact =
+        switchable && ref.watch(printerCompactAmsProvider).isCompact(printerId);
+    TrayFill externalFill(int i) => assigned.fillOf(
+      spools[i],
+      amsId: externalHolderUnit,
+      trayId: trayIdOf(i),
+      serial: serial,
+    );
+    Spool? externalSpool(int i) => assigned.spoolOf(
+      spools[i],
+      amsId: externalHolderUnit,
+      trayId: trayIdOf(i),
+      serial: serial,
+    );
+    _SlotRef externalRef(int i) => _externalSlotRef(
+      l10n: AppLocalizations.of(context),
+      status: status,
+      dual: dual,
+      spool: spools[i],
+      assigned: assigned,
+    );
+    // A unit with no trays draws a dash and no tiles, so the spools cannot ride
+    // on it; they get a block of their own instead.
+    final lastUnitHasTrays =
+        ams.isNotEmpty && (ams.last.trays ?? const []).isNotEmpty;
+    final external = compact
+        ? [
+            for (var i = 0; i < spools.length; i++)
+              _TileSpec(
+                tray: spools[i],
+                active: identical(spools[i], active),
+                fill: externalFill(i),
+                spool: externalSpool(i),
+                preset: presets[(externalHolderUnit, trayIdOf(i))],
+                badge: switch (dual
+                    ? status.extruderForExternal(spools[i].id)
+                    : null) {
+                  1 => AppLocalizations.of(context).extruderLeftShort,
+                  0 => AppLocalizations.of(context).extruderRightShort,
+                  _ => AppLocalizations.of(context).externalSpoolShort,
+                },
+                slot: externalRef(i),
+              ),
+          ]
+        : const <_TileSpec>[];
+
+    // The compact tiles keep the older chain, so only the rows ask the server
+    // for names.
+    final idsKey = compact
+        ? ''
+        : filamentIdsKey([
+            for (final unit in ams)
+              for (final tray in unit.trays ?? const <AmsTray>[])
+                tray.trayInfoIdx,
+            for (final spool in spools) spool.trayInfoIdx,
+          ]);
+    final fresh = idsKey.isEmpty
+        ? null
+        : ref.watch(filamentNamesProvider(idsKey)).value;
+    if (fresh != null) _names = fresh;
+    final filamentNames = idsKey.isEmpty ? const <String, String>{} : _names;
 
     final rackCard = rackCardPositions(status.nozzleRack, rackPrinter: rack);
     final blocks = <Widget>[
@@ -643,6 +723,11 @@ class _DetailsPanel extends ConsumerWidget {
           supportsDrying: status.supportsDrying ?? false,
           printing: status.isPrinting && !status.isPaused,
           connected: status.connected != false,
+          compact: compact,
+          filamentNames: filamentNames,
+          external: i == ams.length - 1 && lastUnitHasTrays
+              ? external
+              : const [],
           slotRef: (trayIndex) => _amsSlotRef(
             status: status,
             dual: dual,
@@ -653,9 +738,11 @@ class _DetailsPanel extends ConsumerWidget {
             amsHtLoad: ref.watch(amsHtLoadProvider).orFalse,
           ),
         ),
+      if (compact && external.isNotEmpty && !lastUnitHasTrays)
+        _CompactTiles(ams: const [], external: external),
       if (rack && spools.isEmpty && reported.isNotEmpty)
         _ExternalInputsEmpty(count: reported.length),
-      if (spools.isNotEmpty)
+      if (spools.isNotEmpty && !compact)
         _SpoolSection(
           trays: spools,
           active: active,
@@ -663,26 +750,11 @@ class _DetailsPanel extends ConsumerWidget {
           extruderOf: dual && !rack
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
-          fillOf: (i) => assigned.fillOf(
-            spools[i],
-            amsId: externalHolderUnit,
-            trayId: trayIdOf(i),
-            serial: serial,
-          ),
+          filamentNameOf: (i) => filamentNames[spools[i].trayInfoIdx],
+          fillOf: externalFill,
           presetOf: (i) => presets[(externalHolderUnit, trayIdOf(i))],
-          spoolOf: (i) => assigned.spoolOf(
-            spools[i],
-            amsId: externalHolderUnit,
-            trayId: trayIdOf(i),
-            serial: serial,
-          ),
-          slotRef: (i) => _externalSlotRef(
-            l10n: AppLocalizations.of(context),
-            status: status,
-            dual: dual,
-            spool: spools[i],
-            assigned: assigned,
-          ),
+          spoolOf: externalSpool,
+          slotRef: externalRef,
         ),
     ];
 
@@ -703,6 +775,10 @@ class _DetailsPanel extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (switchable) ...[
+                    _FilamentTitle(printerId: printerId),
+                    const SizedBox(height: DashSpace.sm),
+                  ],
                   for (var i = 0; i < blocks.length; i++) ...[
                     if (i > 0) const SizedBox(height: DashSpace.lg),
                     blocks[i],
@@ -906,11 +982,23 @@ class _AmsSection extends ConsumerWidget {
     required this.printing,
     required this.connected,
     required this.slotRef,
+    this.compact = false,
+    this.external = const [],
+    this.filamentNames = const {},
   });
 
   final AmsUnit unit;
   final int unitIndex;
   final AmsTray? active;
+
+  /// Draw the slots as compact tiles. [external] are the printer's external
+  /// spools, given to its last unit only, so they can share its tile rows.
+  final bool compact;
+  final List<_TileSpec> external;
+
+  /// [filamentNamesProvider]'s answer by filament id; empty in compact mode,
+  /// whose tiles keep the older chain.
+  final Map<String, String> filamentNames;
 
   /// The side to badge the unit with — a real `ams_extruder_map` entry only.
   final int? extruder;
@@ -988,6 +1076,28 @@ class _AmsSection extends ConsumerWidget {
     final order = [for (var i = 0; i < trays.length; i++) i]
       ..sort((a, b) => unit.slotAt(a).compareTo(unit.slotAt(b)));
 
+    _TileSpec spec(int i) => _TileSpec(
+      tray: trays[i],
+      active: identical(trays[i], active),
+      fill: assigned.fillOf(
+        trays[i],
+        amsId: unit.id ?? unitIndex,
+        trayId: unit.slotAt(i),
+        serial: serial,
+      ),
+      spool: assigned.spoolOf(
+        trays[i],
+        amsId: unit.id ?? unitIndex,
+        trayId: unit.slotAt(i),
+        serial: serial,
+      ),
+      preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
+      badge: '${unit.slotAt(i) + 1}',
+      dryerInk: unit.dryerSlots.contains(unit.slotAt(i)) ? dryerInk : null,
+      slot: slotRef(i),
+      filamentName: filamentNames[trays[i].trayInfoIdx],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1059,32 +1169,15 @@ class _AmsSection extends ConsumerWidget {
             ),
           )
         else
-          // The web addresses a slot by its tray id (`trayForSlot`), not its
-          // place in the report — its fill, label and every action alike.
-          for (final i in order)
-            _FilamentRow(
-              tray: trays[i],
-              active: identical(trays[i], active),
-              fill: assigned.fillOf(
-                trays[i],
-                amsId: unit.id ?? unitIndex,
-                trayId: unit.slotAt(i),
-                serial: serial,
-              ),
-              spool: assigned.spoolOf(
-                trays[i],
-                amsId: unit.id ?? unitIndex,
-                trayId: unit.slotAt(i),
-                serial: serial,
-              ),
-              preset: presets[(unit.id ?? unitIndex, unit.slotAt(i))],
-              last: i == order.last,
-              badge: '${unit.slotAt(i) + 1}',
-              dryerInk: unit.dryerSlots.contains(unit.slotAt(i))
-                  ? dryerInk
-                  : null,
-              slot: slotRef(i),
-            ),
+        // The web addresses a slot by its tray id (`trayForSlot`), not its
+        // place in the report — its fill, label and every action alike.
+        if (compact)
+          _CompactTiles(
+            ams: [for (final i in order) spec(i)],
+            external: external,
+          )
+        else
+          for (final i in order) spec(i).row(last: i == order.last),
         // Under the rows, where a thumb is after reading what is loaded; the
         // web puts it in the header, which a phone's header has no room for at
         // large text.
@@ -1174,10 +1267,14 @@ class _SpoolSection extends StatelessWidget {
     required this.spoolOf,
     required this.presetOf,
     required this.slotRef,
+    required this.filamentNameOf,
     this.rack = false,
   });
 
   final List<AmsTray> trays;
+
+  /// [_FilamentRow.filamentName] of spool [index].
+  final String? Function(int index) filamentNameOf;
   final AmsTray? active;
 
   /// The inputs of a rack printer, named by the hotend each feeds.
@@ -1215,6 +1312,7 @@ class _SpoolSection extends StatelessWidget {
                     _ => null,
                   },
             slot: slotRef(i),
+            filamentName: filamentNameOf(i),
           ),
       ],
     );
@@ -1396,8 +1494,9 @@ class _ExternalInputsEmpty extends StatelessWidget {
 
 /// What a slot row says (#64). The name is the preset bambuddy saved for the
 /// slot while it still describes the tray, as the web's slot card leads with
-/// it; else the spool assigned to it, else the printer's preset name
-/// (`tray_sub_brands`), else the material. Under it the colour — written on
+/// it; else the spool assigned to it, else the server's name for the tray's
+/// filament id (`POST /cloud/filament-info`, the web's `cloudInfo`), else the
+/// printer's preset name (`tray_sub_brands`), else the material. Under it the colour — written on
 /// the spool, else the catalogue's for the hex; three white PLAs differ only
 /// there. A spool the preset pushed out of the name gets a third line.
 ({String name, String colour, String? spool}) slotNaming(
@@ -1405,8 +1504,9 @@ class _ExternalInputsEmpty extends StatelessWidget {
   ColorCatalog catalog,
   AmsTray tray,
   Spool? spool,
-  SlotPreset? preset,
-) {
+  SlotPreset? preset, {
+  String? filamentName,
+}) {
   String? nonEmpty(String? s) =>
       (s == null || s.trim().isEmpty) ? null : s.trim();
   final sub = nonEmpty(tray.traySubBrands);
@@ -1420,7 +1520,13 @@ class _ExternalInputsEmpty extends StatelessWidget {
           )
       ? nonEmpty(presetDisplayName(preset.presetName))
       : null;
-  final name = presetName ?? spoolName ?? sub ?? nonEmpty(tray.trayType) ?? '';
+  final name =
+      presetName ??
+      spoolName ??
+      nonEmpty(filamentName) ??
+      sub ??
+      nonEmpty(tray.trayType) ??
+      '';
   return (
     name: name,
     colour:
@@ -1447,10 +1553,14 @@ class _FilamentRow extends ConsumerWidget {
     this.badge,
     this.dryerInk,
     this.slot,
+    this.filamentName,
   });
 
   final AmsTray tray;
   final bool active;
+
+  /// The server's name for the tray's filament id ([filamentNamesProvider]).
+  final String? filamentName;
 
   /// [AssignedSpools.fillOf]: the percent, and the grams of the spool it was
   /// read from — none when the AMS's own number won, so the two never
@@ -1483,7 +1593,14 @@ class _FilamentRow extends ConsumerWidget {
     final pending = empty && unconfigured ? spool : null;
     final naming = empty
         ? null
-        : slotNaming(l10n, ref.watchColorNames(), tray, spool, preset);
+        : slotNaming(
+            l10n,
+            ref.watchColorNames(),
+            tray,
+            spool,
+            preset,
+            filamentName: filamentName,
+          );
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final ink = active ? t.accentGreenInk : t.textPrimary;

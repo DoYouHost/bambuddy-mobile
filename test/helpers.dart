@@ -40,6 +40,8 @@ import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart'
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
@@ -84,6 +86,23 @@ final inertTotalPrintHoursOverride = printerTotalPrintHoursProvider
 /// The chamber ceiling at 60, which is what an unknown version resolves to, so
 /// gauges and sliders behave as before the probe lands.
 final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWithValue(60);
+
+/// The compact AMS tiles off, with no SharedPreferences behind them: the printer
+/// card reads the setting while it renders.
+final inertCompactAmsOverride = compactAmsLayoutProvider.overrideWith(
+  _InertCompactAms.new,
+);
+
+class _InertCompactAms extends CompactAmsLayoutNotifier {
+  @override
+  bool build() => false;
+}
+
+/// No filament names from the server: the printer card's detailed rows ask for
+/// them while they render, and a real request leaves a hanging Dio timer.
+final inertFilamentNamesOverride = filamentNamesProvider.overrideWith(
+  (ref, idsKey) => const <String, String>{},
+);
 
 /// History shortcuts on, as any current server answers.
 final inertHistorySupportOverrides = [

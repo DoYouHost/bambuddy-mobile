@@ -8134,5 +8134,10 @@
   "maintenanceLogPrinter": "Printer",
   "@maintenanceLogPrinter": {
     "description": "Label of the printer select of the maintenance log, shown when there are too many printers for chips."
-  }
+  },
+  "compactAmsLayoutTitle": "Compact AMS tiles",
+  "compactAmsLayoutDesc": "Filament slots show as small tiles with colour, material and slot number. Any printer card can switch back to the detailed list.",
+  "amsViewCompact": "Compact view",
+  "amsViewDetailed": "Detailed view",
+  "externalSpoolShort": "E"
 }

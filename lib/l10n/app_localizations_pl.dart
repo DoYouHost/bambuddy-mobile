@@ -11141,4 +11141,20 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get maintenanceLogPrinter => 'Drukarka';
+
+  @override
+  String get compactAmsLayoutTitle => 'Kompaktowe kafelki AMS';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Sloty filamentu jako małe kafelki z kolorem, materiałem i numerem slotu. Każdą kartę drukarki można przełączyć na szczegółową listę.';
+
+  @override
+  String get amsViewCompact => 'Widok kompaktowy';
+
+  @override
+  String get amsViewDetailed => 'Widok szczegółowy';
+
+  @override
+  String get externalSpoolShort => 'Z';
 }

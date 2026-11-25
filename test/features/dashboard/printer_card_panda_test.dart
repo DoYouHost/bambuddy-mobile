@@ -89,6 +89,8 @@ void main() {
             inertFirmwareOverride,
             inertTotalPrintHoursOverride,
             inertChamberMaxOverride,
+            inertCompactAmsOverride,
+            inertFilamentNamesOverride,
             ...inertHistorySupportOverrides,
             ...inertDashboardPollOverrides,
           ],

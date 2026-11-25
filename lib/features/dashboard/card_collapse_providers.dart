@@ -57,3 +57,52 @@ class PrinterCardCollapseNotifier extends Notifier<PrinterCardCollapse> {
     toggled: {...state.toggled, printerId: collapsed},
   );
 }
+
+/// The app setting: whether printer cards draw their filament as compact tiles.
+final compactAmsLayoutProvider =
+    NotifierProvider<CompactAmsLayoutNotifier, bool>(
+      CompactAmsLayoutNotifier.new,
+    );
+
+class CompactAmsLayoutNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.watch(settingsRepositoryProvider).loadCompactAmsLayout();
+
+  Future<void> set(bool compact) async {
+    await ref.read(settingsRepositoryProvider).saveCompactAmsLayout(compact);
+    if (!ref.mounted) return;
+    state = compact;
+  }
+}
+
+/// Which cards draw compact tiles right now: the setting, plus what the user
+/// switched by hand on a card since the app started. Held here for the same
+/// reason as [printerCardCollapseProvider] (a scrolled-out card is disposed),
+/// and rebuilt from the setting when it changes, so flipping it restyles every
+/// card.
+final printerCompactAmsProvider =
+    NotifierProvider<PrinterCompactAmsNotifier, PrinterCompactAms>(
+      PrinterCompactAmsNotifier.new,
+    );
+
+class PrinterCompactAms {
+  const PrinterCompactAms({required this.byDefault, this.toggled = const {}});
+
+  final bool byDefault;
+
+  /// Printer id → compact, for the cards switched by hand.
+  final Map<int, bool> toggled;
+
+  bool isCompact(int printerId) => toggled[printerId] ?? byDefault;
+}
+
+class PrinterCompactAmsNotifier extends Notifier<PrinterCompactAms> {
+  @override
+  PrinterCompactAms build() =>
+      PrinterCompactAms(byDefault: ref.watch(compactAmsLayoutProvider));
+
+  void set(int printerId, bool compact) => state = PrinterCompactAms(
+    byDefault: state.byDefault,
+    toggled: {...state.toggled, printerId: compact},
+  );
+}

@@ -18130,6 +18130,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Printer'**
   String get maintenanceLogPrinter;
+
+  /// No description provided for @compactAmsLayoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact AMS tiles'**
+  String get compactAmsLayoutTitle;
+
+  /// No description provided for @compactAmsLayoutDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament slots show as small tiles with colour, material and slot number. Any printer card can switch back to the detailed list.'**
+  String get compactAmsLayoutDesc;
+
+  /// No description provided for @amsViewCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact view'**
+  String get amsViewCompact;
+
+  /// No description provided for @amsViewDetailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed view'**
+  String get amsViewDetailed;
+
+  /// No description provided for @externalSpoolShort.
+  ///
+  /// In en, this message translates to:
+  /// **'E'**
+  String get externalSpoolShort;
 }
 
 class _AppLocalizationsDelegate
