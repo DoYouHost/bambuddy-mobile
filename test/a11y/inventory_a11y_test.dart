@@ -30,10 +30,10 @@ import 'a11y_harness.dart';
 /// confirmation and the mass-edit sheet (pickers, errors, confirmation); the
 /// labels flow step by step; the climate and suppliers sheets with their forms;
 /// the detail sheet in each state, its confirmations and the assign sheet; the
-/// spool form in every state it has, with each picker it opens. Each long sheet
-/// has a scrolled variant, since the harness scrolls the screen behind a sheet,
-/// not the sheet. The scanner's NFC side is covered with a reader the test
-/// drives. Deliberately not covered: the QR scanner's camera side (a camera
+/// spool form in every state it has, with each picker it opens. A long sheet
+/// needs no scrolled variant: the harness pages the list of the route on top,
+/// which behind a sheet is the sheet, so a control at its foot is measured. The
+/// scanner's NFC side is covered with a reader the test drives. Deliberately not covered: the QR scanner's camera side (a camera
 /// platform view, which a widget test cannot show), and the system share, print and save
 /// hand-offs that follow a label print.
 void main() {
@@ -116,17 +116,6 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: (tester) async {
       await tester.tap(byLogId('inventory.filters'));
-    },
-    shows: byLogId('sheet.inventory_filters'),
-  );
-
-  a11ySurface(
-    'inventory, filter sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await tester.tap(byLogId('inventory.filters'));
-      await settle(tester);
-      await scrollSheetDown(tester);
     },
     shows: byLogId('sheet.inventory_filters'),
   );
@@ -320,16 +309,6 @@ void main() {
   );
 
   a11ySurface(
-    'inventory, mass edit sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openBulkEdit(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: byLogId('bulk_edit.apply'),
-  );
-
-  a11ySurface(
     'inventory, mass edit sheet with its errors',
     home: () => const InventoryScreen(),
     arrange: (tester) async {
@@ -437,30 +416,10 @@ void main() {
   );
 
   a11ySurface(
-    'inventory, label template sheet scrolled to the saved sheets',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openLabelTemplates(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: byLogId('labels.custom_sheet'),
-  );
-
-  a11ySurface(
     'inventory, custom label sheet',
     home: () => const InventoryScreen(),
     arrange: _openCustomSheet,
     shows: find.text(pl.labelSheetUse),
-  );
-
-  a11ySurface(
-    'inventory, custom label sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openCustomSheet(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: byLogId('label_sheet.save'),
   );
 
   a11ySurface(
@@ -505,16 +464,6 @@ void main() {
   );
 
   a11ySurface(
-    'inventory, label options sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openLabelOptions(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: byLogId('label_options.destination'),
-  );
-
-  a11ySurface(
     'inventory, label options sheet for PNG',
     overrides: [_pngPrefs],
     home: () => const InventoryScreen(),
@@ -551,17 +500,6 @@ void main() {
       await tester.tap(find.text(_black).first);
     },
     shows: byLogId('spool_actions.unassign'),
-  );
-
-  a11ySurface(
-    'inventory, detail sheet of a loaded spool scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await tester.tap(find.text(_black).first);
-      await settle(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: find.text(pl.inventoryUsageHistory),
   );
 
   a11ySurface(
@@ -726,26 +664,6 @@ void main() {
     shows: find.text(pl.inventoryNewSpool),
   );
 
-  a11ySurface(
-    'inventory, new spool form scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openNewSpool(tester);
-      await scrollSheetDown(tester, times: 6);
-    },
-    shows: byLogId('spool_form.cost_per_kg'),
-  );
-
-  a11ySurface(
-    'inventory, new spool form scrolled to its end',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openNewSpool(tester);
-      await scrollSheetDown(tester, times: 16);
-    },
-    shows: byLogId('spool_form.save'),
-  );
-
   // The default's switch and scope select exist only for a typed material, and
   // the select only while the switch is on: the state the other scenarios of
   // this form never reach.
@@ -871,26 +789,6 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: _openEditOfBlack,
     shows: find.text(pl.inventoryEditSpool),
-  );
-
-  a11ySurface(
-    'inventory, edit spool form scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openEditOfBlack(tester);
-      await scrollSheetDown(tester, times: 6);
-    },
-    shows: byLogId('spool_form.cost_per_kg'),
-  );
-
-  a11ySurface(
-    'inventory, edit spool form scrolled to its end',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openEditOfBlack(tester);
-      await scrollSheetDown(tester, times: 16);
-    },
-    shows: byLogId('spool_form.save'),
   );
 
   a11ySurface(
