@@ -153,7 +153,7 @@ void main() {
     expect(find.text('2'), findsOneWidget);
   });
 
-  testWidgets('a sideloaded build never asks Play and shows nothing', (
+  testWidgets('a sideloaded build never asks Play and counts nothing', (
     tester,
   ) async {
     installedBy('dev.imranr.obtainium');
@@ -161,7 +161,9 @@ void main() {
     await pump(tester, drawerHost());
     await tester.tap(find.byType(DrawerButton));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.campaign_outlined), findsNothing);
+    expect(find.byIcon(Icons.campaign_outlined), findsOneWidget);
+    final badges = tester.widgetList<Badge>(find.byType(Badge));
+    expect(badges.every((b) => !b.isLabelVisible), isTrue);
     expect(play, isEmpty);
   });
 

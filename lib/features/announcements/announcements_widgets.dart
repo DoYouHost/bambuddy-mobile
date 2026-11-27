@@ -34,10 +34,10 @@ class AnnouncementsDrawerButton extends ConsumerWidget {
   }
 }
 
-/// The inbox entry in the drawer header. Absent while the server says this
-/// session gets no announcements — an API key, an older server, or a
-/// non-admin before the admin shares them — unless the app has an update of
-/// its own to show there.
+/// The inbox entry in the drawer header, there for every session: the app's own
+/// entries do not depend on the sign-in. Where the server gives no inbox (an API
+/// key, an older server, a non-admin it is not shared with) the screen just has
+/// none of its entries.
 class AnnouncementsHeaderButton extends ConsumerWidget {
   const AnnouncementsHeaderButton({super.key});
 
@@ -45,11 +45,7 @@ class AnnouncementsHeaderButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final server = ref.watch(announcementsProvider).value?.visible ?? false;
     final unread = watchUnreadCount(ref);
-    if (!server && !ref.watch(appUpdateProvider).offered) {
-      return const SizedBox.shrink();
-    }
     return IconButton(
       tooltip: unread > 0
           ? l10n.announcementsUnread(unread)
