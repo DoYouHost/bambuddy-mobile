@@ -43,6 +43,9 @@ void main() {
     ).readAsStringSync();
 
     expect(helper, contains('VideoPlayerController.networkUrl'));
-    expect(helper, contains('httpHeaders: source.auth.headers'));
+    // Both halves reach the player: the session's credential, and Cloudflare
+    // Access's (#72), which ExoPlayer would otherwise never carry.
+    expect(helper, contains('...source.auth.headers'));
+    expect(helper, contains('...edgeHeadersFor(url)'));
   });
 }

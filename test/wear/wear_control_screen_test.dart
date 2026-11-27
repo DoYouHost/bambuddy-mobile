@@ -12,19 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
 
-class _FakeTransport implements WearTransport {
-  _FakeTransport(this.fleet);
-
-  final WearFleet fleet;
-
-  @override
-  Future<WearFleet> getFleet() async => fleet;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
-}
-
 /// Records the acknowledgement, and can answer it the way a pre-#2864 server
 /// did — through the relay, which forwards the server's words without their
 /// status code.
@@ -114,7 +101,9 @@ Future<void> _pump(
   overrides: [
     noServerProfileOverride,
     wearTransportProvider.overrideWith(
-      (ref) => HybridWearTransport(relay: transport ?? _FakeTransport(fleet)),
+      (ref) => HybridWearTransport(
+        relay: transport ?? FakeWearTransport(fleet: fleet),
+      ),
     ),
     requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
   ],

@@ -12,8 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// record added on the UI side and filed in the generic lane again — never
 /// shows up as a broken behaviour, only as a report nobody can search.
 void main() {
+  // Where the app's half of the hand-over lives; it moved out of the dashboard
+  // screen, which is why this scans the file that owns the service lifecycle.
   final dashboard = File(
-    'lib/features/dashboard/dashboard_screen.dart',
+    'lib/features/dashboard/background_handover.dart',
   ).readAsStringSync();
 
   test('the UI files its half of the lifecycle in the service lane', () {

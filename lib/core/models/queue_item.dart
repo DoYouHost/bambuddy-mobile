@@ -64,6 +64,7 @@ class QueueItem {
     this.requirePreviousSuccess = false,
     this.autoOffAfter = false,
     this.manualStart = false,
+    this.cleanupLibraryAfterDispatch = false,
     this.plateId,
     this.bedLevelling = CalibrationOption.auto,
     this.flowCali = CalibrationOption.auto,
@@ -243,6 +244,11 @@ class QueueItem {
   @JsonKey(defaultValue: false)
   final bool manualStart;
 
+  /// A printer-card upload: its temporary library file is deleted when the job
+  /// dispatches (#2819), so there is nothing left to copy a second job from.
+  @JsonKey(defaultValue: false)
+  final bool cleanupLibraryAfterDispatch;
+
   /// 1-indexed plate for multi-plate 3MF; null = auto/plate 1.
   final int? plateId;
 
@@ -375,6 +381,16 @@ class QueueItem {
         return QueueItemStatusKind.unknown;
     }
   }
+
+  /// Whether `POST /queue/duplicate` can copy this job, as the web's
+  /// `canDuplicate`: queued or printing, with a file that outlives dispatch.
+  /// The wire status, not [statusKind]: the route compares it exactly. Beyond
+  /// the web's rule, a job whose archive was deleted is left out: the route
+  /// answers that archive as missing and skips the job.
+  bool get canDuplicate =>
+      (status == 'pending' || status == 'printing') &&
+      !archiveDeleted &&
+      !(cleanupLibraryAfterDispatch && archiveId == null);
 
   /// Whether item is active (pending, scheduled, printing, or paused).
   bool get isActive =>

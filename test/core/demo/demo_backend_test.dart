@@ -1,12 +1,17 @@
 import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
+import 'package:collection/collection.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
+import 'package:bambuddy_mobile/core/models/queue_settings.dart';
+import 'package:bambuddy_mobile/core/models/wled_config.dart';
+import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
@@ -22,6 +27,8 @@ import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
+import 'package:bambuddy_mobile/data/ai_detection_repository.dart';
 import 'package:bambuddy_mobile/data/external_links_repository.dart';
 import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
@@ -51,7 +58,6 @@ import 'package:bambuddy_mobile/data/profile_defaults_repository.dart';
 import 'package:bambuddy_mobile/core/models/spool_preset_override.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
-import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
@@ -65,6 +71,7 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/panda_breath.dart';
 import 'package:bambuddy_mobile/features/queue/queue_filaments.dart';
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,6 +105,87 @@ void main() {
             if (p.mounted) p.position,
         ],
         [7],
+      );
+    });
+
+    test('the H3C rack nozzles report their own figures, one without a print '
+        'time', () async {
+      final h3c = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 7).status!;
+      final rack = h3c.nozzleRack!;
+
+      expect(rack, hasLength(rackSlotCount));
+      expect(rack.every((n) => n.wear != null && n.stat != null), isTrue);
+      expect(rack.every((n) => (n.serialNumber ?? '').isNotEmpty), isTrue);
+      expect(rack.singleWhere((n) => n.stat == 1).id, 0);
+      expect(
+        rack.where((n) => n.printTimeS == null),
+        hasLength(1),
+        reason: 'the card must show it with no print time row',
+      );
+      expect(rack.map((n) => n.printTimeS).whereType<int>().toSet(), {
+        14400,
+        90061,
+        7320,
+        600,
+        28800,
+        3600,
+        172800,
+        0,
+      });
+    });
+
+    test(
+      'every printer serves a dispatch priority, and the order is set',
+      () async {
+        final printers = await PrintersRepository(dio).fetchPrinters();
+
+        expect(printers.every((p) => p.servesDispatchPriority), isTrue);
+        expect(
+          {for (final p in printers) p.id: p.dispatchPriority},
+          {1: 2, 2: null, 3: null, 4: null, 5: 1, 6: null, 7: null},
+        );
+        expect(
+          QueueSettings.fromSettings(
+            await ServerSettingsRepository(dio).fetch(),
+          ).dispatchOrder,
+          ModelDispatchOrder.priority,
+        );
+      },
+    );
+
+    test('the P1S has a Panda Breath, and a command reaches it', () async {
+      final repo = PrintersRepository(dio);
+      final commands = PrinterCommandsRepository(dio);
+      Future<PandaBreathState?> panda(int id) async => (await repo.fetchAll())
+          .firstWhere((p) => p.printer.id == id)
+          .status
+          ?.pandaBreath;
+
+      expect(await panda(1), isNull);
+      final before = (await panda(2))!;
+      expect(before.knownMode, isNotNull);
+      addTearDown(() async {
+        await commands.setPandaBreathOn(2, on: before.workOn!);
+        await commands.setPandaBreathMode(2, before.knownMode!);
+        await commands.setPandaBreathTarget(2, before.targetTemp!.round());
+      });
+
+      await commands.setPandaBreathMode(2, PandaBreathMode.drying);
+      await commands.setPandaBreathTarget(2, 55);
+      final drying = (await panda(2))!;
+      expect(drying.knownMode, PandaBreathMode.drying);
+      expect(drying.targetTemp, 55);
+      expect(drying.dryingRunning, isTrue);
+
+      await commands.setPandaBreathOn(2, on: false);
+      expect((await panda(2))!.workOn, isFalse);
+
+      // A printer without one answers as the server does.
+      await expectLater(
+        commands.setPandaBreathOn(1, on: true),
+        throwsA(isA<ApiException>()),
       );
     });
 
@@ -143,6 +231,114 @@ void main() {
       expect(list.where((a) => a.timeAccuracy != null), isNotEmpty);
       expect(list.where((a) => a.wearCost != null), isNotEmpty);
       expect(list.every((a) => a.createdByUsername != null), isTrue);
+    });
+
+    test('a print run more than once totals what its runs cost', () async {
+      final repo = ArchiveRepository(dio);
+      final drawer = (await repo.list()).firstWhere(
+        (a) => a.printName == 'Bag dispenser',
+      );
+      final runs = await repo.runs(drawer.id);
+
+      expect(runs.length, drawer.runCount);
+      expect(drawer.showsRunTotals, isTrue);
+      expect(
+        drawer.totalFilamentCost,
+        closeTo(runs.fold<double>(0, (sum, r) => sum + (r.cost ?? 0)), 0.005),
+      );
+      expect(drawer.totalFilamentCost, isNot(drawer.cost));
+    });
+
+    test(
+      'deleting prints of an archive brings its counts and totals along',
+      () async {
+        // Own backend: the deletion must not leak into the shared one.
+        final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+          ..httpClientAdapter = DemoHttpClientAdapter(
+            DemoBackend.fresh().handle,
+            latency: Duration.zero,
+          );
+        final repo = ArchiveRepository(own);
+        final log = PrintLogRepository(own);
+        Future<Archive> drawer() async => (await repo.list()).firstWhere(
+          (a) => a.printName == 'Bag dispenser',
+        );
+        final before = await drawer();
+        final runs = await repo.runs(before.id);
+
+        await log.deleteEntry(runs.first.id);
+        final two = await drawer();
+        expect(two.runCount, before.runCount - 1);
+        expect(two.showsRunTotals, isTrue);
+        expect(two.totalFilamentCost, lessThan(before.totalFilamentCost!));
+
+        for (final run in runs.skip(1)) {
+          await log.deleteEntry(run.id);
+        }
+        final none = await drawer();
+        expect(none.runCount, 0);
+        expect(none.showsRunTotals, isFalse);
+        expect(none.totalFilamentCost, isNull);
+        expect(none.totalCost, isNotNull, reason: 'its own figures come back');
+      },
+    );
+
+    test(
+      'Unload All is answered for the H3C and refused for the rest',
+      () async {
+        final repo = PrinterCommandsRepository(dio);
+        final h3c = (await PrintersRepository(dio).fetchStatus(7))!;
+
+        expect(h3c.ams!.single.hasAms3hSlotInHotend, isTrue);
+        await repo.amsUnloadAll(7);
+        await expectLater(
+          repo.amsUnloadAll(1),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', 400),
+          ),
+        );
+      },
+    );
+
+    test('duplicating queue jobs copies the queued and the printing, and '
+        'counts the rest', () async {
+      // Own backend: the copies must not leak into the shared one.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final queue = QueueRepository(own);
+      final pending = await queue.fetch(status: 'pending');
+      final printing = await queue.fetch(status: 'printing');
+      final done = await queue.fetchHistory();
+      expect(pending, isNotEmpty);
+      expect(printing, isNotEmpty);
+      expect(done, isNotEmpty);
+
+      final result = await queue.duplicate([
+        pending.first.id,
+        printing.first.id,
+        done.first.id,
+        999999,
+      ]);
+
+      expect(result.created, hasLength(2));
+      expect(result.skipped, 2);
+      final after = await queue.fetch(status: 'pending');
+      expect(after.length, pending.length + 2);
+      expect(
+        after.map((i) => i.id),
+        containsAll(result.created),
+        reason: 'the copies are queued, not running',
+      );
+      expect(
+        after
+            .where((i) => result.created.contains(i.id))
+            .every((i) => i.position > pending.first.position),
+        isTrue,
+        reason: 'at the end of the queue',
+      );
     });
 
     test('queue has pending items', () async {
@@ -857,7 +1053,17 @@ void main() {
       expect(result.merged, [group.survivor.id]);
       expect(result.skipped.single.reason, 'not_a_group');
       expect((await repo.list()).length, before - 1);
-      expect(await repo.runs(group.survivor.id), hasLength(2));
+      final runs = await repo.runs(group.survivor.id);
+      expect(runs, hasLength(2));
+      // The merged archive's totals are those of both prints, not the one the
+      // survivor had before.
+      final merged = (await repo.list()).firstWhere(
+        (a) => a.id == group.survivor.id,
+      );
+      expect(
+        merged.totalFilamentCost,
+        closeTo(runs.fold<double>(0, (sum, r) => sum + (r.cost ?? 0)), 0.005),
+      );
       expect(await repo.mergeCount(), 0);
     });
 
@@ -1250,6 +1456,108 @@ void main() {
     });
   });
 
+  group('maintenance log', () {
+    // Own backend: the resets and deletions must not leak into the shared one.
+    MaintenanceRepository fresh() => MaintenanceRepository(
+      Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        ),
+    );
+
+    test(
+      'a printer\'s log is its resets, newest first, with who and when',
+      () async {
+        final repo = fresh();
+
+        final page = await repo.fetchLog(1);
+
+        expect(page.total, 3);
+        expect(page.items.map((e) => e.id), [4, 2, 1]);
+        expect(page.items.first.performedByUsername, DemoConfig.username);
+        expect(page.items.any((e) => e.notes != null), isTrue);
+      },
+    );
+
+    test(
+      'a reset enters the log with its comment and the printer\'s hours',
+      () async {
+        final repo = fresh();
+        final overview = await repo.fetchOverview();
+        final item = overview
+            .firstWhere((o) => o.printerId == 1)
+            .maintenanceItems
+            .first;
+        final before = (await repo.fetchLog(1)).total;
+
+        await repo.perform(item.id, notes: 'Done in the demo');
+
+        final page = await repo.fetchLog(1);
+        expect(page.total, before + 1);
+        expect(page.items.first.notes, 'Done in the demo');
+        expect(page.items.first.maintenanceTypeName, item.maintenanceTypeName);
+        expect(page.items.first.hoursAtMaintenance, greaterThan(0));
+      },
+    );
+
+    test('paging and an unknown printer', () async {
+      final repo = fresh();
+
+      expect((await repo.fetchLog(1, limit: 2)).items, hasLength(2));
+      expect((await repo.fetchLog(1, offset: 2)).items, hasLength(1));
+      final beyond = await repo.fetchLog(1, offset: 100);
+      expect(beyond.items, isEmpty);
+      expect(beyond.total, 3);
+      await expectLater(
+        repo.fetchLog(999),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
+    });
+
+    test('an entry goes, and the task\'s state stays', () async {
+      final repo = fresh();
+      final first = (await repo.fetchLog(1)).items.first;
+
+      await repo.deleteLogEntry(first.id);
+
+      expect(
+        (await repo.fetchLog(1)).items.map((e) => e.id),
+        isNot(contains(first.id)),
+      );
+      await expectLater(
+        repo.deleteLogEntry(first.id),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
+    });
+
+    test('a cleanup takes the older entries, of a printer or of all', () async {
+      final repo = fresh();
+
+      // Printer 1 has entries 20, 60 and 120 days old; 30 days keeps one.
+      expect(await repo.cleanUpLog(olderThanDays: 30, printerId: 1), 2);
+      expect((await repo.fetchLog(1)).total, 1);
+      // Printer 2 had 45 and 10 days: a fleet cleanup at 30 takes one more.
+      expect(await repo.cleanUpLog(olderThanDays: 30), 1);
+      expect((await repo.fetchLog(2)).total, 1);
+      expect(await repo.cleanUpLog(olderThanDays: 36500), 0);
+    });
+
+    test('the export is CSV with a byte order mark and a header', () async {
+      final file = await fresh().exportLog(printerId: 1);
+
+      expect(file.bytes.take(3), [0xEF, 0xBB, 0xBF]);
+      expect(
+        utf8.decode(file.bytes.skip(3).toList()),
+        startsWith('Performed at (UTC),Printer,Task,'),
+      );
+    });
+  });
+
   group('maintenance', () {
     test('overview, types, perform resets counters', () async {
       final repo = MaintenanceRepository(dio);
@@ -1540,6 +1848,32 @@ void main() {
 
       // A location nobody measures answers with nothing, not a 404.
       expect(await repo.readings(1), isEmpty);
+    });
+  });
+
+  group('AI failure detection', () {
+    test('every running print has an entry, the idle machines none', () async {
+      final status = (await AiDetectionRepository(dio).fetch())!;
+
+      expect(status.enabled, isTrue);
+      expect(status.monitoredPrinters, isNull);
+      // The default: printers 1 and 6 print.
+      expect(status.perPrinter.keys, unorderedEquals([1, 6]));
+      expect(status.detectionFor(1)!.cls, AiDetectionClass.safe);
+      expect(status.detectionFor(1)!.printQuality, 9);
+      expect(status.detectionFor(6)!.cls, AiDetectionClass.warning);
+      expect(status.detectionFor(2), isNull);
+    });
+
+    test('with nobody printing there is nothing to rate', () async {
+      DemoBackend.printingPrinters = 0;
+      addTearDown(
+        () =>
+            DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+      );
+      final status = (await AiDetectionRepository(dio).fetch())!;
+      expect(status.enabled, isTrue);
+      expect(status.perPrinter, isEmpty);
     });
   });
 
@@ -2530,6 +2864,48 @@ void main() {
       for (final f in ServerFeature.values)
         if (!version!.supports(f)) f.name,
     ], isEmpty);
+  });
+
+  group('WLED', () {
+    final repo = PrintersRepository(dio);
+
+    test('every printer row carries the key, so the gate opens off the '
+        'listing', () async {
+      await repo.fetchPrinters();
+      expect(repo.wledCapability.observedAnswer, isTrue);
+    });
+
+    test('the mapped preset WLED no longer has is missing from its list, '
+        'so the screen shows a saved id', () async {
+      final printer = (await repo.fetchPrinters()).first;
+      final config = printer.wledConfig!;
+      final presets = await repo.fetchWledPresets(printer.id, config.baseUrl!);
+      expect(config.enabled, isTrue);
+      expect(
+        config.presets.values.where((id) => presets.none((p) => p.id == id)),
+        [4],
+      );
+    });
+
+    test('a save is kept and read back', () async {
+      const next = WledConfig(
+        enabled: true,
+        baseUrl: 'http://192.168.4.41',
+        presets: {WledState.paused: 5},
+      );
+      final saved = await repo.saveWledConfig(2, next);
+      expect(saved.wledConfig?.baseUrl, 'http://192.168.4.41');
+      final row = (await repo.fetchPrinters()).firstWhere((p) => p.id == 2);
+      expect(row.wledConfig?.presets, {WledState.paused: 5});
+    });
+
+    test('both tests answer', () async {
+      expect(
+        (await repo.testWledConnection(1, 'http://192.168.4.40')).name,
+        isNotNull,
+      );
+      await repo.testWledPreset(1, 'http://192.168.4.40', 1);
+    });
   });
 
   group('material numbers', () {

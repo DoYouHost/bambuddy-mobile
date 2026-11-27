@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -28,27 +29,22 @@ void main() {
     );
   });
 
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
-
   const list = '/api/v1/inventory/profile-defaults';
 
   group('capability', () {
     test('the version decides before anything was seen', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       expect(await repo.capability.supported, isFalse);
     });
 
     test('a 1.2.6 daily is offered the feature', () async {
-      replyVersion('1.2.6b1-daily.20261030');
+      stubServerVersion(adapter, '1.2.6b1-daily.20261030');
       expect(await repo.capability.supported, isTrue);
     });
 
     test('a 404 on the listing hides it on a server the version '
         'would have offered it to', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(list, (s) => s.reply(404, {'detail': 'Not Found'}));
 
       expect(await repo.list(), isEmpty);
@@ -56,7 +52,7 @@ void main() {
     });
 
     test('a 403 on the listing is a refusal, not an empty list', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(list, (s) => s.reply(403, {'detail': 'Forbidden'}));
 
       expect(await repo.list(), isEmpty);
@@ -155,7 +151,7 @@ void main() {
     });
 
     test('a server without the route answers null and hides itself', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(path, (s) => s.reply(404, {'detail': 'Not Found'}));
 
       expect(await repo.resolve(const ProfileProduct(material: 'PLA')), isNull);

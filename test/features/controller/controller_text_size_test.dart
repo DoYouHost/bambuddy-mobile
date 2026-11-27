@@ -158,7 +158,7 @@ void main() {
         overrides: layerOverrides([
           sharedPreferencesProvider.overrideWithValue(sp),
           noServerProfileOverride,
-          inertSmartPlugsOverride,
+          ...inertDashboardPollOverrides,
           fixedDashboardOverride(
             DashboardState(
               printers: [
@@ -561,10 +561,15 @@ void main() {
               status: _status(temps),
             );
 
+            // No text is scaled to fit. (A pictogram's SVG has a FittedBox of
+            // its own, with no text in it.)
             expect(
               find.descendant(
                 of: find.byType(ControllerOverview),
-                matching: find.byType(FittedBox),
+                matching: find.ancestor(
+                  of: find.byType(Text),
+                  matching: find.byType(FittedBox),
+                ),
               ),
               findsNothing,
             );
@@ -674,12 +679,16 @@ void main() {
             status: _status(_threeHeaters),
           );
 
-          // The body's own scale is the one FittedBox; the tabs, the name and
-          // the state are not scaled.
+          // The body's own scale is the one FittedBox around text; the tabs, the
+          // name and the state are not scaled. (A pictogram's SVG has a
+          // FittedBox of its own, with no text in it.)
           expect(
             find.descendant(
               of: find.byType(ControllerScreen),
-              matching: find.byType(FittedBox),
+              matching: find.ancestor(
+                of: find.byType(Text),
+                matching: find.byType(FittedBox),
+              ),
             ),
             findsOneWidget,
           );

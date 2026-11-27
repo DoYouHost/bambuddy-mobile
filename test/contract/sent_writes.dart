@@ -76,21 +76,20 @@ List<SentWrite> recordedWrites(String name) => [
 
 /// Sends [writes] through [dio] in order and returns each answer; a refusal is
 /// returned too, for the test to name. Ids that differ on the live server are
-/// swapped in: [item] for the id in a path ([itemIn] says where it sits, the
-/// queue item by default), and [ids] for the body keys it names (a key the body
-/// lacks stays absent).
+/// swapped in: [item] for the first path segment that is all digits
+/// (`/queue/11/start`, `/printers/1/ams/load`), and [ids] for the body keys it
+/// names (a key the body lacks stays absent).
 Future<List<Response<dynamic>>> replayWrites(
   Dio dio,
   List<SentWrite> writes, {
   int? item,
-  Pattern? itemIn,
   Map<String, Object?> ids = const {},
 }) async => [
   for (final w in writes)
     await dio.request<dynamic>(
       item == null
           ? w.path
-          : w.path.replaceFirst(itemIn ?? RegExp(r'(?<=/queue/)\d+'), '$item'),
+          : w.path.replaceFirst(RegExp(r'(?<=/)\d+(?=/|$)'), '$item'),
       data: switch (w.body) {
         final Map<String, dynamic> body => {
           ...body,

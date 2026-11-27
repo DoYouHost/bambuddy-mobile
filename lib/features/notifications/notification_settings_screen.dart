@@ -7,6 +7,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import 'low_stock_threshold_row.dart';
 
 /// Whether the system is currently swallowing every alert, which the switches
 /// below cannot show on their own: they keep reading "on" while nothing is
@@ -38,6 +39,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final t = DashTokens.of(context);
     final prefs = ref.watch(notificationPrefsProvider);
     final notifier = ref.read(notificationPrefsProvider.notifier);
+    final serverHasLowStock = ref.watch(serverHasLowStockProvider);
 
     return DashBackground(
       child: Scaffold(
@@ -102,17 +104,24 @@ class NotificationSettingsScreen extends ConsumerWidget {
             SettingsSectionHeader(l10n.notifThresholdsHeader),
             SettingsCard(
               rows: [
-                SettingsSlider(
-                  tag: 'notifications.threshold',
-                  label: l10n.notifLowFilamentThreshold(
-                    prefs.lowFilamentThreshold,
+                // The server's threshold when it has one; an older server has
+                // none, and the alert then runs on this phone's own.
+                if (serverHasLowStock)
+                  LowStockThresholdRow(
+                    dimmed: !prefs.isOn(NotifEvent.lowFilament),
+                  )
+                else
+                  SettingsSlider(
+                    tag: 'notifications.threshold',
+                    label: l10n.notifLowFilamentThreshold(
+                      prefs.lowFilamentThreshold,
+                    ),
+                    value: prefs.lowFilamentThreshold,
+                    min: 1,
+                    max: 50,
+                    enabled: prefs.isOn(NotifEvent.lowFilament),
+                    onChanged: notifier.setLowFilamentThreshold,
                   ),
-                  value: prefs.lowFilamentThreshold,
-                  min: 1,
-                  max: 50,
-                  enabled: prefs.isOn(NotifEvent.lowFilament),
-                  onChanged: notifier.setLowFilamentThreshold,
-                ),
                 SettingsSlider(
                   tag: 'notifications.threshold',
                   label: l10n.notifHumidityThreshold(
@@ -204,6 +213,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
       NotifEvent.billingAlert,
       l.notifEvtBilling,
       l.notifEvtBillingDesc,
+    ),
+    _EventRow(
+      NotifEvent.edgeSessionEnded,
+      l.notifEvtEdgeSession,
+      l.notifEvtEdgeSessionDesc,
     ),
   ];
 }

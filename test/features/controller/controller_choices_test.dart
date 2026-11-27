@@ -1,12 +1,8 @@
-import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_move.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/controller/controller_settings.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -16,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 /// The preset rows (step, length, saver time) are measured with the app's own
 /// fonts: the test font is as wide as it is tall, so with it a label that fits
@@ -47,18 +44,7 @@ void main() {
                     RecordingCommands(),
                   ),
                   fixedDashboardOverride(
-                    const DashboardState(
-                      printers: [
-                        PrinterWithStatus(
-                          printer: Printer(id: 1, name: 'X1C', model: 'X1C'),
-                          status: PrinterStatus(
-                            id: 1,
-                            connected: true,
-                            state: 'IDLE',
-                          ),
-                        ),
-                      ],
-                    ),
+                    singlePrinterDashboard(name: 'X1C', model: 'X1C'),
                   ),
                   inertStatusesOverride,
                 ],

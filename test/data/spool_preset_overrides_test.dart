@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -20,11 +21,6 @@ void main() {
     sent = captureRequests(dio);
   });
 
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
-
   InventoryRepository nativeRepo() => InventoryRepository(
     NativeInventorySource(dio),
     ServerVersionService(dio),
@@ -32,7 +28,7 @@ void main() {
 
   group('reading a spool\'s per-model presets', () {
     test('keeps both levels of the cascade, and what each names', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/inventory/spools/7/filament-presets',
         (s) => s.reply(200, [
@@ -71,7 +67,7 @@ void main() {
       // that never had it (`inventory.py::"Spool not found"`), so it cannot
       // settle the question — opening one stale spool used to hide the whole
       // section until the app was restarted.
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/inventory/spools/7/filament-presets',
         (s) => s.reply(404, {'detail': 'Spool not found'}),
@@ -88,7 +84,7 @@ void main() {
 
     test('a 403 reaches the caller — a form that showed nothing would '
         'invite a save that wipes what it could not read', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/inventory/spools/7/filament-presets',
         (s) => s.reply(403, {'detail': 'Missing required permissions'}),
@@ -109,13 +105,13 @@ void main() {
 
   group('the version behind the latch', () {
     test('a server older than the route is not offered the section', () async {
-      replyVersion('1.2.5.4');
+      stubServerVersion(adapter, '1.2.5.4');
 
       expect(await nativeRepo().presetOverridesCapability.supported, isFalse);
     });
 
     test('the beta the route shipped in counts as its release', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
 
       expect(await nativeRepo().presetOverridesCapability.supported, isTrue);
     });
@@ -135,7 +131,7 @@ void main() {
     test(
       'sends the write shape, and nothing the route does not accept',
       () async {
-        replyVersion('1.2.6b1');
+        stubServerVersion(adapter, '1.2.6b1');
         adapter.onPut(
           '/api/v1/inventory/spools/7/filament-presets',
           (s) => s.reply(200, []),
@@ -164,7 +160,7 @@ void main() {
     );
 
     test('an empty list is how the last override is cleared', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onPut(
         '/api/v1/inventory/spools/7/filament-presets',
         (s) => s.reply(200, []),
@@ -182,7 +178,7 @@ void main() {
         // Same shape as the drying cancel: the route 404s for a missing spool,
         // and reading that as "this server has no overrides" took the whole
         // section away until the app restarted.
-        replyVersion('1.2.6b1');
+        stubServerVersion(adapter, '1.2.6b1');
         adapter.onPut(
           '/api/v1/inventory/spools/7/filament-presets',
           (s) => s.reply(404, {'detail': 'Spool not found'}),
@@ -202,7 +198,7 @@ void main() {
     test(
       'a refusal reaches the user — the save was something they asked for',
       () async {
-        replyVersion('1.2.6b1');
+        stubServerVersion(adapter, '1.2.6b1');
         adapter.onPut(
           '/api/v1/inventory/spools/7/filament-presets',
           (s) => s.reply(403, {'detail': 'Missing required permissions'}),
@@ -228,7 +224,7 @@ void main() {
   });
 
   test('the Spoolman twin is the same call on the Spoolman path', () async {
-    replyVersion('1.2.6b1');
+    stubServerVersion(adapter, '1.2.6b1');
     adapter.onGet(
       '/api/v1/spoolman/inventory/spools/7/filament-presets',
       (s) => s.reply(200, [

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -21,11 +22,6 @@ void main() {
     sent = captureRequests(dio);
     repo = ArchiveRepository(dio, ServerVersionService(dio));
   });
-
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
 
   // A run as 1.3.0 sends it; an older server sends the keys up to
   // `user_verdict` and none of the per-print ones.
@@ -123,7 +119,7 @@ void main() {
 
   group('runsCapability', () {
     test('a row with the per-print keys settles it on', () async {
-      replyVersion('1.2.5');
+      stubServerVersion(adapter, '1.2.5');
       adapter.onGet(
         runsPath,
         (s) => s.reply(200, {
@@ -138,7 +134,7 @@ void main() {
     });
 
     test('a row without them settles it off', () async {
-      replyVersion('1.3.1');
+      stubServerVersion(adapter, '1.3.1');
       adapter.onGet(
         runsPath,
         (s) => s.reply(200, {
@@ -153,7 +149,7 @@ void main() {
     });
 
     test('an archive with no prints leaves it to the version', () async {
-      replyVersion('1.2.5.7');
+      stubServerVersion(adapter, '1.2.5.7');
       adapter.onGet(runsPath, (s) => s.reply(200, {'items': [], 'total': 0}));
 
       await repo.runs(5);

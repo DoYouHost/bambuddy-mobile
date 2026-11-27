@@ -238,8 +238,7 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       baseUrl: profile.baseUrl,
       coverPath: cover,
       dio: ref.read(bareDioProvider),
-      auth: ({bool forceRefresh = false}) =>
-          media.auth(forceRefresh: forceRefresh),
+      auth: media.auth,
     );
   }
 

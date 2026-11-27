@@ -48,6 +48,7 @@ plugin manifests and are compared by hand (step 2 above).
 | `CHANGE_NETWORK_STATE` | manifest | yes | yes | Qualifies the `connectedDevice` type. |
 | `CHANGE_WIFI_MULTICAST_STATE` | manifest | yes | no | mDNS discovery of the server on the LAN. |
 | `CAMERA` | manifest | yes | no | QR / spool scanner, print photos. |
+| `NFC` | manifest | yes | no | Spool NFC scanner (#71): reads a tag's UID in reader mode while the scanner is open. Install-time, no dialog; the feature is declared `required="false"`, so a phone without NFC still installs it. Approved by the maintainer as optional, 2026-11-23. |
 | `WAKE_LOCK` | plugin | yes | yes | flutter_local_notifications, WorkManager. |
 | `RECEIVE_BOOT_COMPLETED` | plugin | yes | no | Rescheduling notifications after a reboot. |
 | `VIBRATE` | plugin | yes | yes | Notification vibration. |
@@ -118,6 +119,7 @@ asset rows are n/a.
 | Battery optimisation exemption | test | Not requested (#53). `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is allowed only for messaging without FCM, safety, task automation or a peripheral companion keeping a device online — a print monitor is none of them. The app opens its own settings page and the user sets battery use to unrestricted; an exemption granted before stays across the update. `compliance_test.dart` refuses the permission in the manifest. |
 | Store screenshots | test + manual | `compliance_test.dart`: 320–3840 px and the long side at most twice the short ([Add preview assets](https://support.google.com/googleplay/android-developer/answer/9866151)); retaken by `tool/store_screenshots.sh` (docs/release.md). At most 8 per device type is picked at upload. |
 | Data safety form | manual | `docs/privacy-policy.md`; the bug report sends a log only on the user's tap. |
+| In-app updates (Play Core) | manual + test | The flexible flow of [In-app updates](https://developer.android.com/guide/playcore/in-app-updates), phone only. Under the [Play Core terms](https://developer.android.com/guide/playcore#license). Check the Data safety answers against the table in that guide. `check_wear_apk.py` keeps Play Core's activity out of the watch APK. |
 | Account deletion | n/a | the app creates no accounts; they live on the user's own server. |
 | Target API deadline | test | see above |
 | Local Network permission | **open** | Policy announcement of 2026-10-29: `ACCESS_LOCAL_NETWORK` is restricted to core functionality that a device picker cannot cover, and an app **targeting API 37+** must submit a Play Console declaration for it (effective 2027-08-25, via the general permission declaration form `goo.gle/play-permission-decl-form`; no Local Network-specific questions were published yet). Not due while the target is 36; it becomes due together with the permission itself ([foreground-service.md](foreground-service.md#trap-ahead-access_local_network-android-17)). The declaration has to say that the user's own server sits on a LAN address, so a picker cannot replace the permission. |

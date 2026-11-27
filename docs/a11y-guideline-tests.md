@@ -2,7 +2,7 @@
 
 Every app screen is rendered in a widget test and held to Flutter's accessibility
 guidelines (`textContrastGuideline`, `androidTapTargetGuideline`,
-`labeledTapTargetGuideline`) under three accents, both themes, and three text sizes.
+`labeledTapTargetGuideline`) under two accents, both themes, and three text sizes.
 This file is the state of that work, the facts it rests on, and what is left. Read it
 before touching `test/a11y/` or fixing a finding it reports.
 
@@ -57,7 +57,7 @@ release:
 
 ## What the harness does
 
-- `a11ySurface` runs a screen under three accents in both themes at 100 % text, plus
+- `a11ySurface` runs a screen under two accents in both themes at 100 % text, plus
   150 % and 200 % under the first accent in light (`a11yTextScales`). Widget tests
   elsewhere pass at text scale 1.0, 1.5 and 2.0 too (AGENTS.md).
 - Widget tests run in the **app theme**: `plApp` in `test/helpers.dart` passes

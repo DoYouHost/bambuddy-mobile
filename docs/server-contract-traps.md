@@ -54,9 +54,11 @@ print log takes instants instead and needs no zone.
   [notification-rules.md](notification-rules.md).
 - Handled besides `printer_status`: `print_start/complete`, `plate_not_empty`,
   `archive_updated`, `print_confirm_request`, `pipeline_run_updated`,
-  `inventory_changed` / `spool_assignment_changed`, `announcements_changed`
-  (`ws_messages.dart`). Not handled: `queue_item_uploading`,
-  `queue_item_upload_progress`, `queue_item_acked`, `spool_usage_logged`.
+  `inventory_changed` / `spool_assignment_changed` / `spool_usage_logged` (one
+  message: the shelf changed; the last is what a print's consumption sends *instead of*
+  `inventory_changed`, `main.py` around `usage_on_print_complete`),
+  `announcements_changed` (`ws_messages.dart`). Not handled: `queue_item_uploading`,
+  `queue_item_upload_progress`, `queue_item_acked`.
 - Codes 4000–4008 in the frontend bundle are printer HMS codes, not WebSocket close
   codes.
 - Fixture: `test/fixtures/ws_printer_status.json`.
@@ -266,8 +268,19 @@ The catalog is `/library/tags` (CRUD), assignment is `bulk-assign`, and the filt
   same trap as the project link (`library.py::update_folder`). `LibraryRepository.moveFolder`
   sends `parentId ?? 0`. The route has taken `parent_id` since before 1.2.5, so there is
   no gate; server #3306 only added refusals (a local folder cannot go into a mount, a
-  mount cannot move), which `folderMoveTargets` mirrors from the web's
-  `moveDisallowedFolderIds` so the picker never offers them.
+  mount cannot move), which `folderMoveBlock` mirrors from the web's
+  `moveDisallowedFolderIds` so the picker never lets one be picked: like the web's
+  `FolderTargetList` it shows them in the tree, dimmed, with the reason.
+- **A file moves into a writable mount with its bytes.** `POST /library/files/move`
+  copies the file onto the mount and repoints it, and back again to the root; measured
+  the same on 1.2.5, 1.3.1 and the dailies (`library_external_move_contract_test.dart`).
+  A read-only mount is a 403 before anything moves, which `fileMoveBlock` mirrors. The
+  other refusals are per file and arrive inside a **200**: `moved`, `skipped` and
+  `skipped_reasons` (`code`, English `reason`) — a name already on the mount, a source
+  gone from disk, a file the user does not own; a file deleted meanwhile is neither
+  moved nor skipped. The web ignores the body and says "Files moved" on any 200; the app
+  says the reason when nothing moved, and records only the `code`, since the reason
+  names the file and the mount's path.
 
 ### Projects (`/api/v1/projects/*`)
 
@@ -328,6 +341,36 @@ Flow: paste a URL, resolve it, pick a plate, import to the library.
 - The contract test runs against a real Manyfold in the `daily` CI job
   (`tool/ci/manyfold_setup.rb`, the `BAMBUDDY_CONTRACT_MANYFOLD_*` variables).
 
+## Filament names (`POST /cloud/filament-info`)
+
+The web names a slot row with `cloudInfo.name` before it falls back to
+`tray_sub_brands` (`PrintersPage.tsx`), and the detailed row does the same
+(`slotNaming(filamentName:)`, `filamentNamesProvider`).
+
+- **The body is a bare JSON array of filament ids** (`tray_info_idx`). Dio infers JSON
+  for a map but **not for a list**: without an explicit content type the list goes out as
+  text and the server answers `422 "Input should be a valid list"`. A mocked adapter never
+  sees it; the repository test matches the `content-type` header, and the contract test
+  (`filament_info_contract_test.dart`) is what found it.
+- **The answer is an object with an entry for every id asked**, `{name, k}`, and an empty
+  `name` where nothing resolved. The repository keeps only the non-empty ones.
+- **Lookup order on the server** is its cache (five minutes, per account), the caller's
+  Bambu Cloud presets, the imported profiles, then the built-in table
+  (`cloud.py::get_filament_info`). Without a cloud login the answer is still 200, from the
+  last two. A name from an imported profile is the preset's own name and can carry an
+  `@printer` suffix, which the row cuts like a slot preset's (`presetDisplayName`; see the deviations below).
+- **An API key needs `can_access_cloud` and the route's own scope, `can_read_status`.** The
+  router-level cloud gate runs first (`cloud.py::_cloud_api_key_gate`: a key from before
+  per-user ownership is a 401, one without the cloud scope a 403), then the route's own
+  permission (`FILAMENTS_READ`, which a key holds as `can_read_status`). So the cloud scope
+  alone is a 403 naming `can_read_status`, and a read-status key without it is a 403 from
+  the gate. The call only decorates a row, so every API failure, the 401 included, reads as
+  no names and ends no session.
+- **Measured on** the `1.2.5`, `latest` (1.3.2) and `daily` (1.3.3b1) images: same shape,
+  same fences, so there is no version gate. A server without the route answers 404 or 405
+  ([above](#an-unknown-route-answers-404-or-405)) and the rows keep the older chain.
+- The `k` (pressure advance) the answer also carries is not read.
+
 ## Deliberate deviations from the web
 
 The web is the default ([AGENTS.md](../AGENTS.md)); these are the places the app follows
@@ -348,6 +391,21 @@ maintainer. Add to the list instead of deviating silently.
   center, an empty budget amount means no budget, the ledger pages with "load more"
   instead of page buttons, and the personal center's edit sends only the budget. See
   [billing.md](billing.md).
+- **The compact AMS tile names a slot from its material on, brand dropped**
+  (`slotNaming(subBrandFirst: true)`: `tray_sub_brands`, then the preset, the spool, the
+  type, then `fromMaterial` cuts everything before the slot's `tray_type`). The server
+  writes a configured slot's sub-brand as "brand material subtype" (`inventory.py`), so
+  the brand is already in it; the row, like the web, keeps it. A slot holding a Bambu spool
+  reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row; a name that does not hold
+  the material as a whole word, or reads "Support for PLA", stays whole. A modifier in front
+  of the material ("eSun Silk PLA") is cut with the brand: it cannot be told from a
+  two-word brand without a list. The sub-brand also hides a preset or spool the slot was given,
+  and the tile has no third line to say so. The tile never asks the server for a name.
+  `printer_card_compact.dart`.
+- **A server filament name loses its ` @printer` tail** ("Bambu PETG HF @BBL X1C" reads
+  "Bambu PETG HF"): the row sits under its printer already and the tail only eats the
+  line. The web shows it whole. Cut in `AmsSlotConfigRepository.filamentNames` by `presetDisplayName`,
+  from the last `@`.
 - **"Dismiss all" reads the status back** and says "the printer still reports N errors"
   when the fault returned; the web shows its "cleared" toast on the 200 alone.
   Phone and watch. [The section above](#clearing-hms-errors-does-not-clear-a-standing-fault).

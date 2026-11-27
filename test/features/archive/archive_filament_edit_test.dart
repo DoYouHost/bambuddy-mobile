@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
-import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_filament_edit.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
@@ -16,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'archive_fakes.dart';
 
 /// The weight a print is recorded with — the one archive field the app types
 /// into. Written for the print that archived without its 3MF and therefore has
@@ -167,7 +167,7 @@ void main() {
   });
 
   group('the row', () {
-    late _FakeArchives repository;
+    late FakeArchives repository;
 
     Widget row(Archive archive) => ProviderScope(
       retry: neverRetry,
@@ -194,7 +194,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    setUp(() => repository = _FakeArchives());
+    setUp(() => repository = FakeArchives());
 
     testWidgets('a print with no weight says so rather than showing a zero', (
       tester,
@@ -235,7 +235,7 @@ void main() {
 
       await edit(tester, '42');
 
-      expect(repository.sent, [42.0]);
+      expect(repository.sentGrams, [42.0]);
       expect(find.text(pl.archiveFilamentSaved), findsOneWidget);
       expect(
         find.text(pl.archiveFilamentGrams('42')),
@@ -275,7 +275,7 @@ void main() {
 
       await edit(tester, '17.1');
 
-      expect(repository.sent, isEmpty);
+      expect(repository.sentGrams, isEmpty);
       expect(find.text(pl.archiveFilamentSaved), findsNothing);
     });
 
@@ -285,7 +285,7 @@ void main() {
 
       await edit(tester, '');
 
-      expect(repository.sent, [null]);
+      expect(repository.sentGrams, [null]);
       expect(find.text(pl.archiveFilamentNone), findsOneWidget);
     });
 
@@ -317,7 +317,7 @@ void main() {
 
       await edit(tester, '1.2.3');
 
-      expect(repository.sent, isEmpty);
+      expect(repository.sentGrams, isEmpty);
       expect(find.text(pl.archiveFilamentNotANumber), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget, reason: 'still open');
       expect(
@@ -386,7 +386,7 @@ void main() {
   testWidgets('a save the user walked away from still reaches the list', (
     tester,
   ) async {
-    final repository = _FakeArchives()..held = Completer<void>();
+    final repository = FakeArchives()..held = Completer<void>();
     final container = ProviderContainer(
       retry: neverRetry,
       overrides: [
@@ -434,7 +434,7 @@ void main() {
     // indeterminate progress indicator never settles.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(repository.sent, [42.0], reason: 'the request is on the wire');
+    expect(repository.sentGrams, [42.0], reason: 'the request is on the wire');
 
     // The sheet goes while it is still there.
     await tester.pumpWidget(app(const SizedBox.shrink()));
@@ -483,40 +483,4 @@ void main() {
 
     expect(find.byType(ArchiveFilamentRow), findsOneWidget);
   });
-}
-
-/// The list the screen holds, with nothing behind it.
-
-/// Records the weights it was asked to store and answers like the server that
-/// stored them — or, with [applied] false, like one that dropped the key.
-class _FakeArchives implements ArchiveRepository {
-  final List<double?> sent = [];
-  bool applied = true;
-  AppApiException? error;
-
-  /// Set before the edit to leave the request in flight until [release].
-  Completer<void>? held;
-
-  void release() => held!.complete();
-
-  @override
-  Future<({Archive archive, bool applied})> setFilamentGrams(
-    int archiveId,
-    double? grams,
-  ) async {
-    if (error != null) throw error!;
-    sent.add(grams);
-    if (held != null) await held!.future;
-    final stored = Archive(
-      id: archiveId,
-      filename: 'benchy.gcode.3mf',
-      status: 'completed',
-      filamentUsedGrams: applied ? grams : 17.1,
-    );
-    return (archive: stored, applied: applied);
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }

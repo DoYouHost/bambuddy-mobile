@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -19,25 +20,20 @@ void main() {
     repo = PrinterLocationsRepository(dio, ServerVersionService(dio));
   });
 
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
-
   group('capability', () {
     test('the version decides before anything was seen', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       expect(await repo.capability.supported, isFalse);
     });
 
     test('a 1.2.6 daily is offered the screen', () async {
-      replyVersion('1.2.6b1-daily.20261004');
+      stubServerVersion(adapter, '1.2.6b1-daily.20261004');
       expect(await repo.capability.supported, isTrue);
     });
 
     test('a 404 on the listing hides it on a server the version '
         'would have offered it to', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/printer-locations/',
         (s) => s.reply(404, {'detail': 'Not Found'}),

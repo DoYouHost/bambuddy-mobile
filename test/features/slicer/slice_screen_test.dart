@@ -716,46 +716,14 @@ void main() {
       expect(body['filament_preset'], {'source': 'local', 'id': '30'});
     });
 
-    testWidgets('locks every control the profiles drive', (tester) async {
+    testWidgets('locks every control the profiles drive, dims it and drops '
+        'its chevron', (tester) async {
       await openSheet(tester, embedded: designed);
       ListTile tile(String label) => tester.widget<ListTile>(
         find.ancestor(of: find.text(label), matching: find.byType(ListTile)),
       );
-
-      expect(tile('Drukarka').enabled, isTrue);
-      await tester.tap(find.text(pl.sliceAsDesigned));
-      await tester.pumpAndSettle();
-
-      // The printer among them: moving off the design's target would drop the
-      // gate and take the switch with it.
-      expect(tile('Drukarka').enabled, isFalse);
-      expect(tile('Proces / Jakość').enabled, isFalse);
-      expect(tile('Płyta robocza').enabled, isFalse);
-      expect(tile('Ustawienia procesu').enabled, isFalse);
-      expect(tile('Filament').enabled, isFalse);
-    });
-
-    testWidgets('cannot have the printer changed under it', (tester) async {
-      // Why the flag needs no reset on a printer change: there is no way to
-      // make one. The row does not open, so a switch left on cannot be carried
-      // to a printer the design does not target.
-      await openSheet(tester, embedded: designed);
-      await tester.tap(find.text(pl.sliceAsDesigned));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(pl.slicePrinter));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(pl.sliceSearchHint),
-        findsNothing,
-        reason: 'the preset picker must not have opened',
-      );
-    });
-
-    testWidgets('dims a locked row, and drops its chevron', (tester) async {
       // ListTile.enabled alone barely reads on the dark theme — the row still
       // looked tappable, which is what a live emulator showed.
-      await openSheet(tester, embedded: designed);
       double dimOf(String label) => tester
           .widgetList<Opacity>(
             find.ancestor(of: find.text(label), matching: find.byType(Opacity)),
@@ -774,16 +742,40 @@ void main() {
           )
           .length;
 
+      expect(tile('Drukarka').enabled, isTrue);
       expect(dimOf('Drukarka'), 1.0);
       expect(chevronsIn('Drukarka'), 1);
-
       await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
+      // The printer among them: moving off the design's target would drop the
+      // gate and take the switch with it.
+      expect(tile('Drukarka').enabled, isFalse);
+      expect(tile('Proces / Jakość').enabled, isFalse);
+      expect(tile('Płyta robocza').enabled, isFalse);
+      expect(tile('Ustawienia procesu').enabled, isFalse);
+      expect(tile('Filament').enabled, isFalse);
       expect(dimOf('Drukarka'), lessThan(0.6));
       expect(dimOf('Płyta robocza'), lessThan(0.6));
       expect(chevronsIn('Drukarka'), 0);
       expect(chevronsIn('Płyta robocza'), 0);
+    });
+
+    testWidgets('cannot have the printer changed under it', (tester) async {
+      // Why the flag needs no reset on a printer change: there is no way to
+      // make one. The row does not open, so a switch left on cannot be carried
+      // to a printer the design does not target.
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text(pl.sliceAsDesigned));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(pl.slicePrinter));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(pl.sliceSearchHint),
+        findsNothing,
+        reason: 'the preset picker must not have opened',
+      );
     });
 
     testWidgets('drops a build plate that was picked before it was turned on', (

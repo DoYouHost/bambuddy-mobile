@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
@@ -71,7 +72,7 @@ void main() {
       async.flushMicrotasks();
       final before = repo.polls;
 
-      container.read(smartPlugsProvider.notifier).setOnScreen(false);
+      container.read(dashboardWatchedProvider.notifier).setOnScreen(false);
       async.elapse(smartPlugPollInterval * 4);
 
       expect(repo.polls, before);
@@ -83,7 +84,7 @@ void main() {
       final container = makeContainer();
       addTearDown(container.dispose);
       async.flushMicrotasks();
-      final notifier = container.read(smartPlugsProvider.notifier)
+      final notifier = container.read(dashboardWatchedProvider.notifier)
         ..setOnScreen(false);
       async.elapse(smartPlugPollInterval * 4);
       final before = repo.polls;
@@ -103,12 +104,12 @@ void main() {
       final container = makeContainer();
       addTearDown(container.dispose);
       async.flushMicrotasks();
-      final notifier = container.read(smartPlugsProvider.notifier)
+      final notifier = container.read(dashboardWatchedProvider.notifier)
         ..setOnScreen(false)
-        ..pausePolling();
+        ..setForeground(false);
       final before = repo.polls;
 
-      notifier.resumePolling();
+      notifier.setForeground(true);
       async.flushMicrotasks();
       async.elapse(smartPlugPollInterval * 3);
 

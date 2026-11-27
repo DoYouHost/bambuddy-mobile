@@ -200,8 +200,9 @@ Android/Vulkan markers are enough.
 
 ## A server behind a private CA (#62)
 
-**Why a CA installed on the phone does not help.** Every request goes through
-`dart:io`: Dio, the WebSocket, the MJPEG stream and `Image.network`. `dart:io`
+**Why a CA installed on the phone does not help.** Almost every request goes through
+`dart:io`: Dio, the WebSocket, the MJPEG stream and `Image.network`. (The two that do not,
+the timelapse player and the G-code viewer, are below: *ExoPlayer and a WebView*.) `dart:io`
 keeps its own copy of the system roots and never reads the Android user store. It
 also ignores `network_security_config`. A reverse proxy signed by the user's own
 root CA therefore fails with `CERTIFICATE_VERIFY_FAILED` even when Chrome on the
@@ -324,3 +325,197 @@ that says there is none.
 `test/core/api/client_cert_test.dart` proves the handshake against a server on 127.0.0.1
 that asks for a certificate. `dart:io` cannot make one mandatory, so the server answers
 with the subject it received.
+
+## ExoPlayer and a WebView behind a private CA or mutual TLS (#62, #65)
+
+The timelapse player (`video_player`, ExoPlayer) and the G-code viewer (a WebView whose page
+`fetch`es the file) run on Android's own network stack, not on `dart:io`. `useTls` only sets
+`HttpOverrides`, so neither knew the CA or the client certificate the user imported: ExoPlayer
+trusts the system roots and a WebView the same, and neither presents a client certificate
+(`webview_flutter` does not implement `onReceivedClientCertRequest`, and answering
+`onReceivedSslError` with `proceed` would switch certificate checking off). Behind a private
+CA or mTLS both screens failed. `NativeTlsTest` shows it on a device: an `HttpURLConnection`
+(what ExoPlayer opens) and a WebView both refuse a server no system root vouches for.
+
+**The bridge.** For an https server, while this isolate holds a CA or a client certificate
+(`needsLoopbackBridge`, `presentsTlsIdentity()`), the video and the G-code are fetched by the
+app and the native stack is pointed at the app (`lib/core/api/loopback_proxy.dart`):
+
+- **Timelapse:** `timelapsePlayer` returns a player on `http://127.0.0.1:<port>/<token>`;
+  `Range` is passed through so seeking works, and `HEAD` too.
+- **G-code:** the page is loaded with the bridge as its base URL, so its `fetch` is
+  same-origin with it, and the credential headers stay inside the bridge instead of in the
+  page. (`NativeTlsTest` also checks that a WebView page based on a loopback origin fetches
+  from it, and that `HttpURLConnection` reaches the loopback over cleartext, which the manifest
+  allows.)
+- Without a CA or certificate nothing changes: the player and the page talk to the server
+  directly, with Cloudflare Access's headers where there is one.
+
+**What the bridge is, and why it is narrow.** A listener on the loopback carries the app's
+credentials, and anything on the phone can connect to a loopback port. So: it exists only while
+something holds a `LoopbackLease` (the shared server opens with the first and closes with the
+last, and a later one gets a new port); it binds `127.0.0.1` only; it serves only the URLs it was
+given, each under its own 128-bit random path, and answers anything else with 404; it refuses a
+`Host` that is not `127.0.0.1:<its port>` (DNS rebinding); GET and HEAD only; it forwards
+`Range` and nothing else the caller sent, and sends the headers it was registered with. It
+fetches through `dart:io`, so the CA, the client certificate and Cloudflare Access's wrapper
+apply, and a redirect is handed back, not followed with the route's headers. A fetch that
+cannot be made is a 502. The response body follows the caller's pace, and a caller that goes
+away stops the download.
+
+**Traps.**
+
+- A `VideoPlayerController` gives its lease back in `dispose` (`_BridgedPlayer`); a screen that
+  drops one without disposing it keeps the listener up.
+- **`HttpClientRequest.abort` does nothing once the response has arrived** (`_HttpClientRequest`
+  completes the connection's destruction only while the response is still pending). Dio's
+  cancel of a streamed download works by cancelling the read, which leaves the connection open
+  until the next write finds it closed; the preflight (`checkEdgeAccess`) is a `HEAD` for that
+  reason, with no body to stop.
+
+## A server behind Cloudflare Access (#72)
+
+Cloudflare Access sits in front of a reverse proxy and answers a request it does not
+accept with a **302 to `<team>.cloudflareaccess.com`**, a sign-in page of HTML. To the app
+that is a 200 (or the identity provider's page) that is not bambuddy's. Two credentials
+get a request through, and the user picks one in a sheet (`edge_access_sheet.dart`): a
+**service token** (two headers, `CF-Access-Client-Id` and `CF-Access-Client-Secret`) or a
+**browser sign-in** (the `CF_Authorization` cookie a WebView collects).
+
+**Recommend the token.** It does not expire on a schedule, so alerts, the ongoing
+notification, widgets and the watch keep working unattended. A browser session ends (24 h
+is Cloudflare's default), and everything behind it stops until the user signs in again. The
+sheet says so before the browser sign-in, and says that some providers (Google among
+them) refuse an embedded browser. The user agent is left alone: posing as another
+browser would be a lie to those providers.
+
+**Where it is offered.** The setup screen probes the server; only when the probe raises
+`EdgeAccessException` (it went through a Cloudflare sign-in and did not return to the
+server) does it show a banner and a "Set up" button. Once a credential is saved
+it has a row in app settings (`edge_access_tile.dart`); a person whose server is not behind
+Access never sees either.
+
+**One wrapper, in `dart:io`.** The credential is stamped onto every request by an
+`HttpClient` wrapper installed through `HttpOverrides` (`edge_http_client.dart`,
+`edge_request.dart`), which `useTls(ca, cert, edge)` sets per isolate like the CA. REST,
+the WebSocket, the MJPEG stream, `Image.network` and the background isolates all pass
+through it. The WebSocket makes a fresh `HttpClient` per connection (`ws_client.dart`):
+`WebSocket.connect`'s own static client is created once and would keep the credential it
+started with.
+
+**Traps.**
+
+- **A credential is bound to one host and to https.** `EdgeAccess.appliesTo` compares the
+  host lower-cased and the scheme; the port is not compared. Plain http never carries it.
+- **Never follow a redirect to another origin with it.** `EdgeRequest` follows redirects
+  itself: same-origin ones through `response.redirect()`, a cross-origin 3xx it returns as
+  it is. The SDK's own follower copies headers it does not know cross-origin, which would
+  hand the secret to the team domain or the identity provider. `EdgeAccessProbe` then reads
+  that unfollowed 302 as the sign-in page it is.
+- **Headers are stamped late, and idempotently.** A caller's own `Cookie` (the two-factor
+  challenge sends one) is merged with the session cookie, not replaced by it.
+- **The sign-in page is not an API answer.** `EdgeAccessProbe` (last interceptor of
+  `createBareDio`) turns a journey that went through the team domain, or was
+  told to go there, and did not come back to the host that sent it, into
+  `EdgeAccessException(host)`: `edgeAccessRequired` when the app presented nothing for
+  that hop, `edgeAccessRejected` when it did. The error carries no response, so no caller
+  reads the login page's 200 as bambuddy's. The host is the one that *sent* the request to
+  Cloudflare, which is why an alias that redirects to the canonical host binds the
+  credential to the canonical one. "Strict service token" mode (401/403 instead of a 302)
+  has no reliable marker and is not detected.
+- **ExoPlayer and a WebView do not go through `dart:io`.** The timelapse player gets the
+  headers through `edgeHeadersFor(url)`, but ExoPlayer would forward them across a
+  redirect, so `checkEdgeAccess` (`timelapse_url.dart`) asks first with a Dart `HEAD`, which has no body
+  to stop (a `GET` with a range is answered whole by a server that ignores it, and
+  cancelling a read left the connection open until the next write found it closed), and
+  no redirect following. The G-code viewer's
+  WebView `fetch` gets the headers too, never the `Cookie` (a script may not set it), and
+  its URL is relative to the page so it cannot leave the server's origin. `Image.network`
+  has one client per isolate: a credential changed while the app runs reaches images after
+  a restart.
+- **The cookie is HttpOnly.** `document.cookie` cannot see it; Android's `CookieManager`
+  can, so the `edge_cookie` channel (`EdgeCookies.kt`, `edge_cookie.dart`) reads and clears
+  it. `EdgeSignIn.check` takes, of the cookies that parse and have not ended, the one that ends
+  last: the store lists an older one from a previous sign-in first, and order is not
+  what says which is current. Its expiry is read from the token (`jwtExpiry`),
+  never taken on faith. `clear` flushes before it answers; the store writes to disk in
+  batches, and a process killed in between would bring the cookie back. Everything a
+  WebView holds is cleared when a session is removed or replaced, and before signing in
+  again, so the WebView cannot hand back the session that was just refused.
+  `EdgeCookiesTest` runs the channel's native half against a real WebView on the emulator
+  (`just test-device`).
+
+**Storage.** The secrets go to `flutter_secure_storage` under a namespace of their own
+(`edge_access`), like the client certificate: outside the `deleteAll` a sign-out runs,
+because the credential belongs to the proxy and not to the account. The flag
+`has_edge_access` in preferences lets `loadEdgeAccess` skip secure storage when there is
+none. It is part of `TlsIdentity`, so `setEdge`, `setAll` and the others share the queued,
+undoable `_change`: writes before deletes, a secret before its flag, undo in reverse.
+
+**A credential that stops working.** `EdgeAccessProbe` tells `EdgeSessionSignal` when it
+presented a credential and Cloudflare still sent the request to sign-in: a browser
+session that ended or was revoked, or a service token that expired or was. Each isolate
+that can say so sets a listener: the UI isolate and the foreground service post, the
+isolates a notification button wakes only record (`EdgeSessionAlert`). Two marks in
+preferences, because "recorded" is not "told": `edge_session_ended` (what the dashboard
+banner reads, refreshed on resume) and `edge_session_notified` (claimed before the post
+and given back if it fails, so two isolates that find out together ring once and a failed
+post is retried). The event is `NotifEvent.edgeSessionEnded`, alert id band 19, on by
+default, with a switch in the notification settings. Banner and notification are the
+same for both kinds and differ in words and in the way out: a session says "expired" and
+signs in again (`signInAgain`, which empties the WebView first); a token says "refused"
+and opens the sheet to replace it. Any change of the credential made on the phone
+(`setEdge`) clears both marks, the same one saved again included; the watch, which keeps
+no marks, does not. Nothing is raised before a server is set up: the setup screen probes
+with the credential it was just given, and a wrong one is shown there. (With "Change
+server" the old profile is still saved, so a wrong credential typed for the new server
+does raise it.) **It clears itself.** A request that carried the credential in force and came back as
+anything but the sign-in page (an error status of the server's own included) was accepted
+by Cloudflare, and the probe says so (`EdgeSessionSignal.accepted`). An isolate looks at
+the marks at most once a minute, and never within a minute of the ending, which is
+kept with the mark (`edge_session_ended_at`), so whichever isolate asks is held off by the
+ending's own time and a request that was already on its way when the refusal came cannot
+take the banner down at once. A redirect does not count: it says where to go, not that
+Cloudflare accepted the request. A recovery takes down only the banner of that host. If an ending is recorded for that host, both marks go and the banner with them; the
+next refusal is told again. A refusal that was only for a while (a policy being edited, a
+rule that missed) therefore does not leave a banner up for a token that works. The
+notification already in the tray is taken back by the isolate that clears the marks, if it can
+post (`NotificationService.cancelAlert`, recorded as `withdrawn`); an isolate that cannot post
+leaves it. The probe also drops a refusal that
+arrives after the credential was replaced: it snapshots what was presented when the request
+left (`options.extra`) and signals only if that is still the one in force.
+**There is no notification ahead of the expiry:** signing in while the
+cookie is still valid does not renew it. The banner lives on the dashboard only.
+
+**Re-login behind Access.** `AuthService.silentReLogin` lets `EdgeAccessException` out
+instead of swallowing it: a re-login that met Cloudflare says nothing about the password,
+and the interceptor used to turn it into `serverUnreachable`.
+
+**The watch** has no screen for any of this. It gets the credential with the rest of its
+config (`WatchConfigCodec`, one JSON string under `edge`), as it does the certificate, and
+`PendingWatchConfig.adopt` stores it with `setAll`, so a push without one clears the
+watch's. The codec binds it to the profile's server on both ends (`https` and the same
+host) and takes a session's expiry from its cookie again on decode. The phone re-pushes
+whenever the identity changes, a re-sign-in included.
+
+## Google Play in-app updates
+
+The check, the download and the install are `app_update` in app-shared; the entry
+on the Announcements screen and the dashboard's restart banner are
+`lib/features/announcements/app_update.dart`. The entry is the app's own and never
+reaches the server: the maintainers' feed is signed, and the server has no route
+that adds to it.
+
+- **Which version is offered is Play's choice** and the API does not name the track:
+  production users hear of production releases, a tester of the track they are on.
+  Internal testers hear of a `play-internal` upload before it is promoted.
+- **Only a Play install asks** (`installerStore`). It cannot be tried from a local
+  build; use [internal app sharing](https://developer.android.com/guide/playcore/in-app-updates/test).
+- **A missing entry is explained by `play_check`** in the diagnostic log: the
+  installer and, for a Play install, what Play answered. The last one is written
+  again when a recording starts.
+- **The watch has no in-app updates.** `in_app_update` and Play Core are still in
+  its APK, because the generated plugin registrant names the plugin in both flavors
+  and catches only `Exception`, so excluding the library is not an option. Nothing
+  calls it there. Its activity is stripped in the wear manifest. It adds no
+  permission; the release APK grew by 33 KB when it came in.

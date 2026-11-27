@@ -1,18 +1,15 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/common/media_image.dart';
 import 'package:bambuddy_mobile/features/controller/controller_overview.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/skip_objects_screen.dart';
 import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 const _phone = Size(844, 390);
 
@@ -40,32 +37,19 @@ void main() {
     PrinterStatus status, {
     Map<String, Object> prefs = const {},
   }) async {
-    useLogicalWindow(tester, _phone);
     commands = RecordingCommands();
-    SharedPreferences.setMockInitialValues(prefs);
-    final sp = await SharedPreferences.getInstance();
-    await pumpPhone(
+    await pumpControllerPanel(
       tester,
       const Scaffold(body: ControllerOverview(printerId: 1)),
+      status: status,
+      name: 'X1C Warsztat',
+      size: _phone,
+      prefs: prefs,
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(sp),
-        noServerProfileOverride,
         printerCommandsRepositoryProvider.overrideWithValue(commands),
-        fixedDashboardOverride(
-          DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: const Printer(id: 1, name: 'X1C Warsztat'),
-                status: status,
-              ),
-            ],
-          ),
-        ),
-        inertStatusesOverride,
-        inertSmartPlugsOverride,
+        ...inertDashboardPollOverrides,
       ],
     );
-    await tester.pump();
   }
 
   group('the job', () {

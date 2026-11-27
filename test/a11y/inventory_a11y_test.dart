@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/demo/demo_label_printer.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/nfc/nfc_reader.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
@@ -8,7 +11,9 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/features/inventory/profile_defaults_screen.dart';
+import 'package:bambuddy_mobile/features/inventory/spool_scanner_screen.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -25,13 +30,46 @@ import 'a11y_harness.dart';
 /// confirmation and the mass-edit sheet (pickers, errors, confirmation); the
 /// labels flow step by step; the climate and suppliers sheets with their forms;
 /// the detail sheet in each state, its confirmations and the assign sheet; the
-/// spool form in every state it has, with each picker it opens. Each long sheet
-/// has a scrolled variant, since the harness scrolls the screen behind a sheet,
-/// not the sheet. Deliberately not covered: the QR scanner (a camera platform
-/// view, which a widget test cannot show), and the system share, print and save
+/// spool form in every state it has, with each picker it opens. A long sheet
+/// needs no scrolled variant: the harness pages the list of the route on top,
+/// which behind a sheet is the sheet, so a control at its foot is measured. The
+/// scanner's NFC side is covered with a reader the test drives. Deliberately not covered: the QR scanner's camera side (a camera
+/// platform view, which a widget test cannot show), and the system share, print and save
 /// hand-offs that follow a label print.
 void main() {
   // The demo is process-wide and these surfaces write to it.
+
+  // --- The scanner's NFC side ---
+
+  // The camera side is a platform view; the NFC side is plain widgets over a
+  // reader the test drives.
+  a11ySurface(
+    'spool scanner, NFC',
+    home: () => const SpoolScannerScreen(),
+    overrides: [nfcReaderProvider.overrideWithValue(_Nfc(NfcStatus.ready))],
+    prefs: const {'spool_scan_nfc': true},
+    shows: find.text(pl.spoolScanNfcHint),
+  );
+
+  a11ySurface(
+    'spool scanner, NFC is off',
+    home: () => const SpoolScannerScreen(),
+    overrides: [nfcReaderProvider.overrideWithValue(_Nfc(NfcStatus.disabled))],
+    prefs: const {'spool_scan_nfc': true},
+    shows: byLogId('spool_scan.nfc_settings'),
+  );
+
+  final unknownTag = _Nfc(NfcStatus.ready);
+  a11ySurface(
+    'spool scanner, a tag no spool has',
+    home: () => const SpoolScannerScreen(),
+    overrides: [nfcReaderProvider.overrideWithValue(unknownTag)],
+    prefs: const {'spool_scan_nfc': true},
+    arrange: (tester) async {
+      unknownTag.read('04FFFFFFFFFFFF');
+    },
+    shows: find.text(pl.spoolScanTagUnknown),
+  );
 
   // --- List ---
 
@@ -78,17 +116,6 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: (tester) async {
       await tester.tap(byLogId('inventory.filters'));
-    },
-    shows: byLogId('sheet.inventory_filters'),
-  );
-
-  a11ySurface(
-    'inventory, filter sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await tester.tap(byLogId('inventory.filters'));
-      await settle(tester);
-      await scrollSheetDown(tester);
     },
     shows: byLogId('sheet.inventory_filters'),
   );
@@ -282,16 +309,6 @@ void main() {
   );
 
   a11ySurface(
-    'inventory, mass edit sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openBulkEdit(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: byLogId('bulk_edit.apply'),
-  );
-
-  a11ySurface(
     'inventory, mass edit sheet with its errors',
     home: () => const InventoryScreen(),
     arrange: (tester) async {
@@ -399,6 +416,37 @@ void main() {
   );
 
   a11ySurface(
+    'inventory, custom label sheet',
+    home: () => const InventoryScreen(),
+    arrange: _openCustomSheet,
+    shows: find.text(pl.labelSheetUse),
+  );
+
+  a11ySurface(
+    'inventory, custom label sheet that does not fit',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openCustomSheet(tester);
+      await tester.enterText(byLogId('label_sheet.columns'), '9');
+      await scrollSheetDown(tester);
+    },
+    shows: find.text(pl.labelSheetTooWide('598,5', '210')),
+  );
+
+  a11ySurface(
+    'inventory, saved label sheet being edited',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openLabelTemplates(tester);
+      await scrollSheetDown(tester);
+      await tester.tap(byLogId('labels.edit_template').first);
+      await settle(tester);
+      await scrollSheetDown(tester);
+    },
+    shows: byLogId('label_sheet.delete'),
+  );
+
+  a11ySurface(
     'inventory, label starting position sheet',
     home: () => const InventoryScreen(),
     arrange: (tester) async {
@@ -413,16 +461,6 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: _openLabelOptions,
     shows: find.text(pl.labelOptionsTitle),
-  );
-
-  a11ySurface(
-    'inventory, label options sheet scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openLabelOptions(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: byLogId('label_options.destination'),
   );
 
   a11ySurface(
@@ -462,17 +500,6 @@ void main() {
       await tester.tap(find.text(_black).first);
     },
     shows: byLogId('spool_actions.unassign'),
-  );
-
-  a11ySurface(
-    'inventory, detail sheet of a loaded spool scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await tester.tap(find.text(_black).first);
-      await settle(tester);
-      await scrollSheetDown(tester);
-    },
-    shows: find.text(pl.inventoryUsageHistory),
   );
 
   a11ySurface(
@@ -637,26 +664,6 @@ void main() {
     shows: find.text(pl.inventoryNewSpool),
   );
 
-  a11ySurface(
-    'inventory, new spool form scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openNewSpool(tester);
-      await scrollSheetDown(tester, times: 6);
-    },
-    shows: byLogId('spool_form.cost_per_kg'),
-  );
-
-  a11ySurface(
-    'inventory, new spool form scrolled to its end',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openNewSpool(tester);
-      await scrollSheetDown(tester, times: 16);
-    },
-    shows: byLogId('spool_form.save'),
-  );
-
   // The default's switch and scope select exist only for a typed material, and
   // the select only while the switch is on: the state the other scenarios of
   // this form never reach.
@@ -782,26 +789,6 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: _openEditOfBlack,
     shows: find.text(pl.inventoryEditSpool),
-  );
-
-  a11ySurface(
-    'inventory, edit spool form scrolled',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openEditOfBlack(tester);
-      await scrollSheetDown(tester, times: 6);
-    },
-    shows: byLogId('spool_form.cost_per_kg'),
-  );
-
-  a11ySurface(
-    'inventory, edit spool form scrolled to its end',
-    home: () => const InventoryScreen(),
-    arrange: (tester) async {
-      await _openEditOfBlack(tester);
-      await scrollSheetDown(tester, times: 16);
-    },
-    shows: byLogId('spool_form.save'),
   );
 
   a11ySurface(
@@ -969,6 +956,13 @@ Future<void> _openLabelTemplates(WidgetTester tester) async {
   await settle(tester);
 }
 
+Future<void> _openCustomSheet(WidgetTester tester) async {
+  await _openLabelTemplates(tester);
+  await scrollSheetDown(tester);
+  await tester.tap(byLogId('labels.custom_sheet'));
+  await settle(tester);
+}
+
 Future<void> _openLabelOptions(WidgetTester tester) async {
   await _openLabelTemplates(tester);
   await tester.tap(find.text(pl.inventoryLabelsBox62));
@@ -1106,3 +1100,22 @@ class _DemoLabelPrinterUrl extends LabelPrinterUrlNotifier {
 final _labelPrinterChosen = labelPrinterUrlProvider.overrideWith(
   _DemoLabelPrinterUrl.new,
 );
+
+/// A phone's NFC the test drives.
+class _Nfc implements NfcReader {
+  _Nfc(this._status);
+
+  final NfcStatus _status;
+  final _controller = StreamController<String>.broadcast();
+
+  void read(String uid) => _controller.add(uid);
+
+  @override
+  Future<NfcStatus> status() async => _status;
+
+  @override
+  Future<void> openSettings() async {}
+
+  @override
+  Stream<String> tags() => _controller.stream;
+}

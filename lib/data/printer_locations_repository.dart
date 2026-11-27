@@ -46,11 +46,11 @@ class PrinterLocationsRepository {
   /// A 409 is a name already taken, case-insensitively.
   Future<PrinterLocation> create(PrinterLocationDraft draft) =>
       capability.watching(observing: const {}, () async {
-        final res = await _dio.post<Map<String, dynamic>>(
+        return _dio.postObject(
           Endpoints.printerLocations,
+          PrinterLocation.fromJson,
           data: draft.toCreateJson(),
         );
-        return PrinterLocation.fromJson(res.data ?? const {});
       });
 
   /// Renames and/or restyles. A 404 is a location that is gone, a 409 a
@@ -58,11 +58,11 @@ class PrinterLocationsRepository {
   /// printers the caller cannot see (or a group's grant only an admin moves).
   Future<PrinterLocation> update(PrinterLocationDraft draft) =>
       capability.watching(observing: const {}, () async {
-        final res = await _dio.patch<Map<String, dynamic>>(
+        return _dio.patchObject(
           Endpoints.printerLocations,
+          PrinterLocation.fromJson,
           data: draft.toUpdateJson(),
         );
-        return PrinterLocation.fromJson(res.data ?? const {});
       });
 
   /// Their printers end up with no location. Queue items aimed at a deleted

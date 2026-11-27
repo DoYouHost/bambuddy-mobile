@@ -10,15 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
-
-class _Queue extends QueueNotifier {
-  _Queue(this._items);
-
-  final List<QueueItem> _items;
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-}
+import 'queue_fakes.dart';
 
 class _Statuses extends PrinterStatusesNotifier {
   @override
@@ -86,7 +78,7 @@ void main() {
         ProviderScope(
           retry: neverRetry,
           overrides: [
-            queueProvider.overrideWith(() => _Queue([_item])),
+            queueProvider.overrideWith(() => FakeQueue([_item])),
             noServerProfileOverride,
             printerStatusesProvider.overrideWith(_Statuses.new),
             plateListProvider.overrideWith((ref, key) async => _plates),

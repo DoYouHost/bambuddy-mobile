@@ -416,8 +416,8 @@ void main() {
 
       expect(find.text(pl.queueOptTimelapse), findsNothing);
       expect(find.text(pl.queueEditPreheatDesc), findsNothing);
-      expect(find.text(pl.queueEditPrintOptions), findsOneWidget);
-      expect(find.text(pl.queueEditPreheat), findsOneWidget);
+      expect(find.text(pl.queueEditPrintOptions.toUpperCase()), findsOneWidget);
+      expect(find.text(pl.queueEditPreheat.toUpperCase()), findsOneWidget);
     });
 
     testWidgets('the header opens and closes its own section only', (

@@ -13,15 +13,24 @@ class ConnectionBanner extends StatelessWidget {
     super.key,
     required this.message,
     this.tone = BannerTone.error,
+    this.action,
+    this.icon,
   });
 
   final String message;
   final BannerTone tone;
 
+  /// The one thing to do about it, at the end of the line.
+  final Widget? action;
+
+  /// Replaces the tone's own icon, for a banner that is not about the
+  /// connection.
+  final IconData? icon;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (bg, fg, icon) = switch (tone) {
+    final (bg, fg, toneIcon) = switch (tone) {
       BannerTone.error => (
         scheme.errorContainer,
         scheme.onErrorContainer,
@@ -42,11 +51,15 @@ class ConnectionBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: DashIcon.md, color: fg),
+            Icon(icon ?? toneIcon, size: DashIcon.md, color: fg),
             const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(message, style: TextStyle(color: fg)),
             ),
+            if (action != null) ...[
+              const SizedBox(width: DashSpace.sm),
+              action!,
+            ],
           ],
         ),
       ),

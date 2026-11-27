@@ -38,6 +38,10 @@ const rackSlotCount = 9;
 /// The H3C reports its AMS 3H as this unit; read only when `ams_type` is not.
 const ams3hUnit = 32;
 
+/// An AMS 3H slot's `state` while its filament sits in its hotend
+/// (`AMS3H_TRAY_IN_HOTEND`, `amsHelpers.ts`); 26 is "at the inlet".
+const ams3hTrayInHotend = 27;
+
 const _rackTrayBase = {AmsType.zmultiA: 28, AmsType.zmultiB: 37};
 const _amsLiteMixedTrayBase = 24;
 

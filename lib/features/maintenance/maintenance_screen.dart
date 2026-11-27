@@ -67,6 +67,15 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
           context,
           title: l10n.navMaintenance,
           actions: [
+            if (ref.watch(maintenanceLogSupportedProvider).orFalse)
+              logTag(
+                'maintenance.log',
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  tooltip: l10n.maintenanceLog,
+                  onPressed: () => context.push('/maintenance/log'),
+                ),
+              ),
             logTag(
               'maintenance.settings',
               IconButton(

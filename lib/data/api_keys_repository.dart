@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -45,22 +46,22 @@ class ApiKeysRepository {
   /// again.
   Future<CreatedApiKey> create(ApiKeyCreateInput body) {
     return guardKeepingDetail(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
+      return _dio.postObject(
         Endpoints.apiKeys,
+        CreatedApiKey.fromJson,
         data: body.toJson(),
       );
-      return CreatedApiKey.fromJson(res.data ?? const {});
     });
   }
 
   /// PATCH /api-keys/{id}.
   Future<ApiKey> update(int keyId, ApiKeyUpdateInput body) {
     return guardKeepingDetail(() async {
-      final res = await _dio.patch<Map<String, dynamic>>(
+      return _dio.patchObject(
         Endpoints.apiKeyById(keyId),
+        ApiKey.fromJson,
         data: body.toJson(),
       );
-      return ApiKey.fromJson(res.data ?? const {});
     });
   }
 

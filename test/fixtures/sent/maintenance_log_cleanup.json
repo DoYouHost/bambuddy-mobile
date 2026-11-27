@@ -1,0 +1,10 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/v1/maintenance/printers/1/log",
+    "body": null,
+    "query": {
+      "older_than_days": 90
+    }
+  }
+]

@@ -6,6 +6,7 @@ import 'package:clock/clock.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ams/compact_tile_layout.dart';
 import '../../../core/ams/drying_presets.dart';
 import '../../../core/ams/slot_addressing.dart';
 import '../../../core/api/action_outcome.dart';
@@ -14,6 +15,7 @@ import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory.dart';
+import '../../../core/models/panda_breath.dart';
 import '../../../core/models/printer.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
@@ -39,12 +41,16 @@ import '../../common/api_failure_snack.dart';
 import '../../common/color_catalog.dart';
 import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
+import '../../common/fact_row.dart';
+import '../../common/filament_dot.dart';
+import '../../common/section_label.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';
 import '../../common/plate_clear.dart';
 import '../../common/speed_name.dart';
 import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
+import 'ai_detection_item.dart';
 import 'pause_marker.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
@@ -62,14 +68,17 @@ import '../controls_providers.dart';
 import '../print_lifecycle.dart';
 import '../smart_plug_actions.dart';
 import 'pill_switch.dart';
+import '../temp_glyph.dart';
 import '../temp_readings.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
+import '../ai_detection_providers.dart';
 import '../firmware_providers.dart';
 import '../ws_providers.dart';
 import '../skip_objects_screen.dart';
 import '../smart_plugs_providers.dart';
 import '../../../core/theme/dash_theme.dart';
+import '../card_collapse_providers.dart';
 import 'ams_slot_config_sheet.dart';
 import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
@@ -81,8 +90,13 @@ part 'printer_card_scheduled_drying.dart';
 part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
+part 'printer_card_panda.dart';
+part 'printer_card_target.dart';
 part 'printer_card_movement.dart';
 part 'printer_card_collapsed.dart';
+part 'printer_card_compact.dart';
+part 'printer_card_filament.dart';
+part 'printer_card_nozzle.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({
@@ -240,6 +254,8 @@ class _PrinterCardState extends State<PrinterCard> {
             // bambuddy's own flag rather than anything on the machine.
             if (status != null)
               _PlateClearBanner(printerId: printerId, status: status),
+            if (status?.pandaBreath case final panda?)
+              _PandaBreathRow(printerId: printerId, panda: panda),
           ],
         ),
       );
@@ -327,16 +343,18 @@ class _PrinterCardState extends State<PrinterCard> {
           ],
           if (printing) ...[
             const SizedBox(height: DashSpace.md),
-            _PrintPanel(status: status!),
+            _PrintPanel(printerId: printerId, status: status!),
           ],
-          if (readings.isNotEmpty) ...[
+          if (readings.isNotEmpty || status?.pandaBreath != null) ...[
             const SizedBox(height: DashSpace.lg),
             _TempGrid(
               readings: readings,
+              panda: status?.pandaBreath,
               printerId: printerId,
               model: model,
               activeExtruder: status?.activeExtruder,
               printing: printing,
+              nozzles: status?.nozzleRack,
             ),
           ],
           if (status != null) ...[

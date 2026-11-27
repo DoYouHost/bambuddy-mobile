@@ -7,11 +7,15 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
+import 'package:bambuddy_mobile/features/queue/color_substitution_chip.dart';
+import 'package:bambuddy_mobile/features/queue/queue_filament_chips.dart';
+import 'package:bambuddy_mobile/features/queue/queue_item_view.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter/rendering.dart' show RenderPointerListener;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,20 +23,10 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 import 'queue_fakes.dart';
 
-/// Fake notifier — returns the given list without touching the repository/network.
-class _FakeQueueNotifier extends QueueNotifier {
-  _FakeQueueNotifier(this._items);
-
-  final List<QueueItem> _items;
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-}
-
 Widget _screen(List<QueueItem> items) => ProviderScope(
   retry: neverRetry,
   overrides: [
-    queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
+    queueProvider.overrideWith(() => FakeQueue(items)),
     noServerProfileOverride,
   ],
   child: plApp(const QueueScreen()),
@@ -76,7 +70,7 @@ void main() {
       ProviderScope(
         retry: neverRetry,
         overrides: [
-          queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
+          queueProvider.overrideWith(() => FakeQueue([item])),
           noServerProfileOverride,
           batchListingProvider.overrideWithValue(const AsyncData(true)),
         ],
@@ -99,7 +93,7 @@ void main() {
       ProviderScope(
         retry: neverRetry,
         overrides: [
-          queueProvider.overrideWith(() => _FakeQueueNotifier(const [])),
+          queueProvider.overrideWith(() => FakeQueue(const [])),
           noServerProfileOverride,
           batchListingProvider.overrideWithValue(const AsyncData(false)),
         ],
@@ -139,6 +133,179 @@ void main() {
     },
   );
 
+  QueueItem substituted({int slots = 1, String status = 'printing'}) =>
+      QueueItem.fromJson({
+        ...(readFixture('queue_item.json') as Map<String, dynamic>),
+        'status': status,
+        'color_substitutions': [
+          for (var i = 1; i <= slots; i++)
+            {
+              'slot_id': i,
+              'type': 'PLA',
+              'wanted': '#FF0000',
+              'got': '#0000FF',
+              'tray': 0,
+            },
+        ],
+      });
+
+  /// The queue at [scale]x text on a 360 dp phone, the width the layout is
+  /// tuned for; the default test surface is wide enough to hide a cramped card.
+  Future<void> pumpPhone(
+    WidgetTester tester,
+    QueueItem item, {
+    required double scale,
+  }) async {
+    useLogicalWindow(tester, const Size(360, 800));
+    await tester.pumpWidget(
+      ProviderScope(
+        retry: neverRetry,
+        overrides: [
+          queueProvider.overrideWith(() => FakeQueue([item])),
+          noServerProfileOverride,
+        ],
+        child: plApp(const QueueScreen(), builder: textScaled(scale)),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the substitution pill is level with the filament chip at '
+        '${scale}x text', (tester) async {
+      await pumpPhone(tester, substituted(), scale: scale);
+
+      // One slot: the pill has no text, so the only text in the chip row is
+      // the filament's label.
+      final filament = tester.getCenter(
+        find.descendant(
+          of: find.byType(QueueFilamentChips),
+          matching: find.byType(Text),
+        ),
+      );
+      final pill = tester.getCenter(
+        find.descendant(
+          of: byLogId('queue.color_substitution'),
+          matching: find.byIcon(Icons.error_outline),
+        ),
+      );
+      // A wrapped chip would be a different row and fail the `dy` check.
+      expect(pill.dx, lessThan(filament.dx));
+      expect(pill.dy, closeTo(filament.dy, 1));
+    });
+
+    testWidgets('a waiting job with three swapped colours fits at ${scale}x '
+        'text and the name keeps its width', (tester) async {
+      final item = substituted(slots: 3, status: 'pending');
+      await pumpPhone(tester, item, scale: scale);
+
+      // An overflow is an exception in a widget test; it must not be there.
+      expect(tester.takeException(), isNull);
+      // The name shares no column with the chips, so the text size does not
+      // narrow it. Beside the handle, the picture and a 48 dp menu it has 130
+      // dp; from 150% text it has the row to itself, next to the menu, 246 dp.
+      expect(
+        tester.getSize(find.text(item.displayName)).width,
+        greaterThanOrEqualTo(scale >= 1.5 ? 240 : 120),
+      );
+      // Handle and menu keep their 24 dp: the theme scales icons with the
+      // text, and a 48 dp menu glyph is what narrowed the name to 102 dp.
+      for (final icon in [Icons.drag_indicator, Icons.more_vert]) {
+        final glyph = tester.widget<RichText>(
+          find.descendant(
+            of: find.byIcon(icon),
+            matching: find.byType(RichText),
+          ),
+        );
+        expect(glyph.text.style?.fontSize, 24, reason: '$icon');
+      }
+    });
+  }
+
+  testWidgets('the whole box of the drag handle takes the finger, not only '
+      'the glyph in it', (tester) async {
+    await pumpPhone(tester, substituted(slots: 0, status: 'pending'), scale: 1);
+
+    final box = tester.getRect(
+      find
+          .ancestor(
+            of: find.byIcon(Icons.drag_indicator),
+            matching: find.byType(SizedBox),
+          )
+          .first,
+    );
+    expect(box.size, const Size(48, 56));
+    Set<RenderPointerListener> listenersAt(Offset at) => tester
+        .hitTestOnBinding(at)
+        .path
+        .map((entry) => entry.target)
+        .whereType<RenderPointerListener>()
+        .toSet();
+    final centre = listenersAt(box.center);
+    expect(centre, isNotEmpty);
+    // A drag that starts in the gap around the glyph must reach the same
+    // listeners, or it scrolls the list or swipes the card instead.
+    expect(listenersAt(box.topLeft + const Offset(3, 3)), containsAll(centre));
+  });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets(
+      'the name sits ${scale >= 1.5 ? 'above' : 'beside'} the picture '
+      'at ${scale}x text',
+      (tester) async {
+        final item = substituted(slots: 0, status: 'pending');
+        await pumpPhone(tester, item, scale: scale);
+
+        final name = tester.getRect(find.text(item.displayName));
+        final picture = tester.getRect(find.byType(QueueThumbnail));
+        if (scale >= 1.5) {
+          // From 150% text the name takes a row of its own.
+          expect(name.bottom, lessThanOrEqualTo(picture.top));
+        } else {
+          // Below it the name is on the picture's row, to its right.
+          expect(name.left, greaterThanOrEqualTo(picture.right));
+          expect(name.center.dy, inInclusiveRange(picture.top, picture.bottom));
+        }
+      },
+    );
+  }
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('a long name is cut after two lines at ${scale}x text', (
+      tester,
+    ) async {
+      useLogicalWindow(tester, const Size(360, 1600));
+      QueueItem named(int id, String name) => QueueItem.fromJson({
+        ...(readFixture('queue_item.json') as Map<String, dynamic>),
+        'id': id,
+        'position': id,
+        'status': 'pending',
+        'archive_name': name,
+      });
+      const long =
+          'Gridfinity baseplate 6x6 with magnets and label slot - final v3';
+      await tester.pumpWidget(
+        ProviderScope(
+          retry: neverRetry,
+          overrides: [
+            queueProvider.overrideWith(
+              () => FakeQueue([named(1, 'Hook'), named(2, long)]),
+            ),
+            noServerProfileOverride,
+          ],
+          child: plApp(const QueueScreen(), builder: textScaled(scale)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final oneLine = tester.getSize(find.text('Hook')).height;
+      final cut = tester.getSize(find.text(long)).height;
+      // Two lines, not three: the end of a long name is dropped, not the card
+      // grown without limit.
+      expect(cut, closeTo(2 * oneLine, 1));
+    });
+  }
+
   testWidgets('a card of a server without the field has no such chip', (
     tester,
   ) async {
@@ -150,6 +317,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(byLogId('queue.color_substitution'), findsNothing);
+    // Not in the tree at all, not merely drawn empty: a zero-size child that
+    // lands on a new run still adds a run spacing.
+    expect(find.byType(ColorSubstitutionChip), findsNothing);
   });
 
   testWidgets('an empty queue shows a message', (tester) async {
@@ -192,7 +362,7 @@ void main() {
     Widget screen({required bool held}) => ProviderScope(
       retry: neverRetry,
       overrides: [
-        queueProvider.overrideWith(() => _FakeQueueNotifier([waiting])),
+        queueProvider.overrideWith(() => FakeQueue([waiting])),
         noServerProfileOverride,
         awaitingReviewProvider.overrideWithValue(held),
       ],

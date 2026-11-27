@@ -333,6 +333,61 @@ void main() {
         closeTo(0.24, 1e-9),
       );
     });
+
+    group('an archive printed more than once', () {
+      const own = {'cost': 1.0, 'energy_cost': 0.1, 'wear_cost': 0.2};
+      const totals = {
+        'total_cost': 3.0,
+        'total_energy_kwh': 0.9,
+        'total_energy_cost': 0.3,
+        'total_wear_cost': 0.6,
+      };
+
+      test('shows what all its runs cost, as the web card does', () {
+        final a = parse({...own, ...totals, 'run_count': 3});
+        expect(a.shownFilamentCost, 3.0);
+        expect(a.shownEnergyKwh, 0.9);
+        expect(a.shownEnergyCost, 0.3);
+        expect(a.shownWearCost, 0.6);
+        expect(a.totalCost, closeTo(3.9, 1e-9));
+      });
+
+      test('a run total that is missing stays hidden, not the first run', () {
+        final a = parse({...own, 'total_cost': 3.0, 'run_count': 2});
+        expect(a.shownEnergyCost, isNull);
+        expect(a.shownWearCost, isNull);
+        expect(a.totalCost, 3.0);
+      });
+
+      test('a server with run_count but without the totals keeps its own', () {
+        final a = parse({...own, 'run_count': 3});
+        expect(a.showsRunTotals, isFalse);
+        expect(a.shownFilamentCost, 1.0);
+        expect(a.totalCost, closeTo(1.3, 1e-9));
+      });
+
+      test('totals sent as null on a run total server stay hidden', () {
+        final a = parse({
+          ...own,
+          'run_count': 2,
+          'total_cost': null,
+          'total_energy_kwh': null,
+          'total_energy_cost': null,
+          'total_wear_cost': null,
+        });
+        expect(a.showsRunTotals, isTrue);
+        expect(a.totalCost, isNull);
+      });
+
+      test('one run, or a server without the aggregate, keeps its own', () {
+        for (final runs in [0, 1]) {
+          final a = parse({...own, ...totals, 'run_count': runs});
+          expect(a.shownFilamentCost, 1.0);
+          expect(a.totalCost, closeTo(1.3, 1e-9));
+        }
+        expect(parse(own).totalCost, closeTo(1.3, 1e-9));
+      });
+    });
   });
 
   group('filament slots', () {

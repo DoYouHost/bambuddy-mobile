@@ -871,6 +871,7 @@
   "errClientCertRefused": "Serwer wymaga ważnego certyfikatu klienta",
   "errConnection": "Błąd połączenia",
   "errMalformedResponse": "Nieprawidłowa odpowiedź serwera",
+  "errNotBambuddy": "Pod tym adresem nie ma serwera Bambuddy — sprawdź port i usuń ewentualną ścieżkę za nim.",
   "errInvalidCredentials": "Nieprawidłowy login lub hasło",
   "errTwoFactorUnsupported": "Konto wymaga 2FA — nieobsługiwane w tej wersji. Użyj klucza API (Ustawienia → API Keys na serwerze).",
   "errTwoFactorCodeRejected": "Zły kod — sprawdź go i spróbuj ponownie.",
@@ -1056,7 +1057,7 @@
   "navFilaments": "Filamenty",
   "inventoryEmpty": "Brak szpul w magazynie",
   "inventoryNoMatches": "Brak filamentów pasujących do wyszukiwania",
-  "inventorySearchHint": "Szukaj: materiał, marka, kolor…",
+  "inventorySearchHint": "Szukaj: ID, materiał, marka, kolor…",
   "inventoryLowStock": "Mało",
   "inventoryFilters": "Filtry",
   "inventoryFilterStatus": "Status",
@@ -1353,6 +1354,149 @@
   "@inventoryLabelsStartSlot": {
     "placeholders": {
       "position": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetCustom": "Własny arkusz",
+  "labelSheetCustomHint": "Własna strona, rozmiar etykiety i siatka",
+  "labelSheetSavedTitle": "Zapisane szablony",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} etykieta} few{{count} etykiety} many{{count} etykiet} other{{count} etykiety}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Strona",
+  "labelSheetLabelWidth": "Szerokość etykiety, mm",
+  "labelSheetLabelHeight": "Wysokość etykiety, mm",
+  "labelSheetColumns": "Kolumny",
+  "labelSheetRows": "Wiersze",
+  "labelSheetTopMargin": "Margines górny, mm",
+  "labelSheetLeftMargin": "Margines lewy, mm",
+  "labelSheetColumnGap": "Odstęp między kolumnami, mm",
+  "labelSheetRowGap": "Odstęp między wierszami, mm",
+  "labelSheetIncomplete": "Wpisz liczbę w każde pole.",
+  "labelSheetTooSmall": "Etykieta musi mieć co najmniej {minWidth} mm szerokości i {minHeight} mm wysokości.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Rozmiary, marginesy i odstępy mogą mieć najwyżej {max} mm.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Liczba kolumn musi być całkowita, od 1 do {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Liczba wierszy musi być całkowita, od 1 do {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Marginesy i odstępy nie mogą być ujemne.",
+  "labelSheetTooWide": "Etykiety razem z lewym marginesem mają {size} mm szerokości, a strona tylko {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Etykiety razem z górnym marginesem mają {size} mm wysokości, a strona tylko {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Użyj tego arkusza",
+  "labelSheetName": "Nazwa szablonu",
+  "labelSheetNameTaken": "Szablon o tej nazwie już istnieje.",
+  "labelSheetSaveAs": "Zapisz jako szablon",
+  "labelSheetSaveChanges": "Zapisz zmiany",
+  "labelSheetDelete": "Usuń szablon",
+  "labelSheetSaved": "Zapisano szablon „{name}”",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Usunięto szablon „{name}”",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Usunąć „{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Etykiety wydrukowane wcześniej zostają bez zmian.",
+  "labelSheetEdit": "Edytuj szablon",
+  "labelSheetSaveAsNew": "Zapisz jako nowy",
+  "labelPngTooLarge": "PNG ma limit {maxPages} stron arkusza przy {dpi} dpi, a ten wydruk potrzebuje {pages}. Użyj PDF, niższej rozdzielczości albo mniej szpul.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
         "type": "int"
       }
     }
@@ -3819,7 +3963,7 @@
   "announcementsEarlier": "Wcześniejsze ({count})",
   "announcementsNew": "Nowe",
   "announcementsReadMore": "Czytaj więcej",
-  "announcementsSource": "Od twórców Bambuddy, pobierane z GitHuba.",
+  "announcementsSource": "Wpisy Bambuddy pochodzą od jego twórców i są pobierane z GitHuba.",
   "announcementLevelInfo": "Informacja",
   "announcementLevelImportant": "Ważne",
   "announcementLevelCritical": "Krytyczne",
@@ -4060,5 +4204,193 @@
         "type": "int"
       }
     }
-  }
+  },
+  "serverSettingsWledSubtitle": "Presety oświetlenia dla stanów drukarki",
+  "wledTitle": "WLED",
+  "wledDescription": "Kolory i efekty ustawiasz w WLED. Serwer tylko przełącza na preset przypisany do stanu drukarki.",
+  "wledPrinter": "Drukarka",
+  "wledEnabled": "Integracja z WLED",
+  "wledEnabledDesc": "Przełączaj presety wraz ze zmianą stanu drukarki",
+  "wledUrl": "Adres WLED",
+  "wledUrlRequired": "Wymagany, gdy integracja jest włączona",
+  "wledLoadPresets": "Wczytaj presety",
+  "wledTestConnection": "Testuj połączenie",
+  "wledConnected": "Połączono z {name}",
+  "wledConnectedVersion": "Połączono z {name}, wersja {version}",
+  "wledUnreachable": "WLED nie odpowiada",
+  "wledPresetsLoaded": "{count, plural, =0{WLED nie ma presetów} =1{Wczytano 1 preset} few{Wczytano {count} presety} many{Wczytano {count} presetów} other{Wczytano {count} presetu}}",
+  "wledPresetsOffline": "WLED jest nieosiągalny. Zapisane presety zostają.",
+  "wledMappingHeader": "Preset dla stanu",
+  "wledSegmentHint": "Tworząc preset w WLED, zaznacz jego segment i włącz „Checked segments only”.",
+  "wledNoPreset": "Bez presetu",
+  "wledPresetSaved": "Zapisany preset {id}",
+  "wledPresetOption": "{name} ({id})",
+  "wledTestPreset": "Testuj preset dla stanu {state}",
+  "wledPresetTested": "Preset włączony",
+  "wledPresetTestFailed": "WLED nie przełączył presetu",
+  "wledFinishedTimeout": "Powrót do „Bezczynna” po (sekundach)",
+  "wledFinishedTimeoutHint": "Tyle sekund po końcu wydruku włącza się preset stanu „Bezczynna”. 0 wyłącza powrót.",
+  "wledFinishedTimeoutInvalid": "Liczba całkowita od 0 do 86400",
+  "wledSave": "Zapisz",
+  "wledSaved": "Zapisano ustawienia WLED",
+  "wledRefused": "Nie przyjęto: {reason}",
+  "wledNoPrinters": "Brak drukarek do skonfigurowania",
+  "wledStateIdle": "Bezczynna",
+  "wledStatePrepare": "Przygotowanie",
+  "wledStatePrinting": "Drukuje",
+  "wledStatePaused": "Wstrzymana",
+  "wledStateFinished": "Zakończone",
+  "wledStateError": "Błąd",
+  "wledStateQueueWaiting": "Czeka na zdjęcie wydruku",
+  "wledStateFilamentProblem": "Problem z filamentem",
+  "wledStateHmsError": "Błąd HMS",
+  "wledStateOffline": "Offline",
+  "fmMoveBlockedCurrent": "Już tutaj",
+  "fmMoveBlockedSelf": "Przenoszony folder",
+  "fmMoveBlockedInside": "Wewnątrz przenoszonego folderu",
+  "fmMoveBlockedExternal": "Folder zewnętrzny",
+  "fmMoveBlockedNotWritable": "Nie twój i nieudostępniony",
+  "fmMoveBlockedReadOnly": "Folder tylko do odczytu",
+  "fmNotMoved": "Nie przeniesiono pliku",
+  "fmNotMovedReason": "Nie przeniesiono pliku: {reason}",
+  "aiDetectionSafe": "Bezpieczny",
+  "aiDetectionWarning": "Ostrzeżenie",
+  "aiDetectionFailure": "Awaria",
+  "aiDetectionNotChecking": "Nie sprawdza",
+  "aiDetectionStarting": "Uruchamianie",
+  "aiDetectionTipStatus": "Wykrywanie awarii AI: {status}",
+  "aiDetectionTipScore": "Wykrywanie awarii AI: {status} (wynik {score})",
+  "aiDetectionTipQuality": "Wykrywanie awarii AI: {status} (jakość wydruku {quality}/10)",
+  "aiDetectionTipError": "Wykrywanie awarii AI nie sprawdza tego wydruku: {reason}",
+  "aiDetectionTipErrorNoReason": "Wykrywanie awarii AI nie sprawdza tego wydruku",
+  "aiDetectionTipStarting": "Wykrywanie awarii AI: oczekiwanie na pierwszy wynik",
+  "aiDetectionLimitReached": "osiągnięto limit użycia",
+  "notifLowStockTitle": "Niski filament poniżej {percent}%",
+  "notifLowStockDesc": "Ustawiane na serwerze dla wszystkich. Własny próg szpuli ma pierwszeństwo.",
+  "notifLowStockEdit": "Zmień próg niskiego filamentu",
+  "notifLowStockInputLabel": "Procent wagi z etykiety",
+  "notifLowStockInvalid": "Podaj liczbę od 0,1 do 99,9.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "Wysłano do grzałki Panda Breath",
+  "pandaBreathOffline": "Grzałka offline",
+  "pandaBreathTurnOn": "Włącz",
+  "pandaBreathTurnOff": "Wyłącz",
+  "pandaBreathMode": "Tryb",
+  "pandaBreathModeOn": "Zawsze włączona",
+  "pandaBreathModeDrying": "Suszenie",
+  "pandaBreathDryingLeft": "Suszenie, zostało {minutes} min",
+  "pandaBreathTarget": "Temperatura docelowa 0–{max} °C",
+  "queueSettingsDispatchLabel": "Drukarka dla zadań na dowolny model",
+  "queueSettingsDispatchDesc": "Która drukarka dostaje zadanie z kolejki na cały model. Zajęte i offline są pomijane.",
+  "queueSettingsDispatchFewestHours": "Najmniej godzin druku",
+  "queueSettingsDispatchMostHours": "Najwięcej godzin druku",
+  "queueSettingsDispatchLeastRecentlyUsed": "Nieużywana najdłużej",
+  "queueSettingsDispatchPriority": "Priorytet drukarki",
+  "editPrinterDispatchPriority": "Priorytet dla zadań na dowolny model",
+  "editPrinterDispatchPriorityHelp": "Najniższy numer idzie pierwszy, puste na koniec. Działa, gdy zadania na dowolny model idą według priorytetu drukarki.",
+  "editPrinterDispatchPriorityInvalid": "Wpisz liczbę całkowitą od 0 do 100000",
+  "nozzleSheetTitle": "Pozycja {position}",
+  "nozzleSectionTitle": "Dysza",
+  "nozzleLabelDiameter": "Średnica",
+  "nozzleLabelType": "Typ",
+  "nozzleLabelFlow": "Przepływ",
+  "nozzleLabelStatus": "Stan",
+  "nozzleLabelWear": "Zużycie",
+  "nozzleLabelPrintTime": "Czas druku",
+  "nozzleLabelMaxTemp": "Maks. temp.",
+  "nozzleLabelSerial": "Numer seryjny",
+  "nozzleLabelFilament": "Filament",
+  "nozzleMaterialStainless": "Stal nierdzewna",
+  "nozzleMaterialHardened": "Stal hartowana",
+  "nozzleMaterialTungsten": "Węglik wolframu",
+  "nozzleStatusDocked": "W magazynie",
+  "nozzleStatusMounted": "Na głowicy",
+  "nozzleWearValue": "{percent}%",
+  "nozzleMaxTempValue": "{degrees} °C",
+  "nozzleDiameterValue": "{diameter} mm",
+  "errEdgeAccessRequired": "Serwer jest za Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access nie przyjął zapisanych danych dostępu",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Skonfiguruj",
+  "edgeAccessServiceToken": "Token usługi",
+  "edgeAccessServiceTokenHint": "Działa w tle, więc powiadomienia i zegarek nadal działają.",
+  "edgeAccessClientId": "Identyfikator klienta",
+  "edgeAccessClientSecret": "Sekret klienta",
+  "edgeAccessFor": "Dla {host}",
+  "edgeAccessConfigured": "Token usługi dla {host}",
+  "edgeAccessSave": "Zapisz",
+  "edgeAccessRemove": "Usuń",
+  "edgeAccessRemoveTitle": "Usunąć Cloudflare Access?",
+  "edgeAccessRemoveMessage": "Aplikacja nie połączy się z tym serwerem, dopóki nie skonfigurujesz go ponownie.",
+  "edgeAccessRecommended": "Zalecane",
+  "edgeAccessBrowser": "Logowanie w przeglądarce",
+  "edgeAccessBrowserHint": "Wygasa. Logujesz się ponownie ręcznie.",
+  "edgeAccessSignIn": "Zaloguj",
+  "edgeAccessWarnTitle": "Logowanie w przeglądarce wygasa",
+  "edgeAccessWarnMessage": "Gdy sesja Cloudflare się skończy, powiadomienia, stałe powiadomienie, widżety i zegarek przestaną działać do ponownego zalogowania. Token usługi nie wymaga logowania. Niektórzy dostawcy, w tym Google, odmawiają logowania w osadzonej przeglądarce; wtedy użyj tokenu usługi.",
+  "edgeAccessWarnConfirm": "Kontynuuj mimo to",
+  "edgeAccessWarnUseToken": "Użyj tokenu usługi",
+  "edgeAccessSignInFailed": "Strona się nie załadowała.",
+  "edgeAccessConfiguredBrowser": "Logowanie w przeglądarce dla {host}",
+  "notifEdgeSessionTitle": "Sesja Cloudflare wygasła",
+  "notifEdgeSessionBody": "Powiadomienia są wyłączone. Zaloguj się ponownie, aby je włączyć.",
+  "notifEvtEdgeSession": "Cloudflare Access",
+  "notifEvtEdgeSessionDesc": "Gdy Cloudflare przestanie przyjmować logowanie lub token usługi aplikacji i powiadomienia ustaną",
+  "edgeSessionBanner": "Sesja Cloudflare wygasła",
+  "notifEdgeTokenTitle": "Cloudflare odrzucił token usługi",
+  "notifEdgeTokenBody": "Powiadomienia są wyłączone. Wymień token usługi, aby je włączyć.",
+  "edgeTokenBanner": "Cloudflare odrzucił token usługi",
+  "amsUnloadAll": "Wyładuj wszystko",
+  "amsUnloadAllTitle": "Wyładować wszystkie sloty?",
+  "amsUnloadAllMessage": "Drukarka wyładuje po kolei każdy załadowany slot AMS 3H. Gdy o to poprosi, wyciągnij filament z AMS 3H ręcznie, więc zostań przy drukarce.",
+  "amsUnloadAllStarted": "Wyładowywanie wszystkich załadowanych slotów. Gdy drukarka o to poprosi, wyciągnij filament z AMS 3H ręcznie.",
+  "amsUnloadAllNoneLoaded": "Żaden slot nie ma filamentu w dyszy",
+  "queueDuplicateAdded": "{count, plural, =1{Dodano 1 kopię na koniec kolejki} few{Dodano {count} kopie na koniec kolejki} many{Dodano {count} kopii na koniec kolejki} other{Dodano {count} kopii na koniec kolejki}}",
+  "queueDuplicateSkipped": "{count, plural, =1{Dodano 1 kopię} few{Dodano {count} kopie} many{Dodano {count} kopii} other{Dodano {count} kopii}}; {skipped, plural, =1{1 elementu nie można skopiować} few{{skipped} elementów nie można skopiować} many{{skipped} elementów nie można skopiować} other{{skipped} elementów nie można skopiować}}",
+  "queueDuplicateNone": "Żadnego z nich nie można skopiować",
+  "queueDuplicate": "Duplikuj",
+  "maintenanceLog": "Dziennik konserwacji",
+  "maintenanceLogTitle": "Dziennik · {printer}",
+  "maintenanceLogEmpty": "Nie zapisano jeszcze żadnej konserwacji tej drukarki",
+  "maintenanceLogLoadMore": "Pokaż więcej · {shown} z {total}",
+  "maintenanceLogHours": "{hours} h",
+  "maintenanceLogExportPrinter": "Eksportuj CSV, ta drukarka",
+  "maintenanceLogExportAll": "Eksportuj CSV, wszystkie drukarki",
+  "maintenanceLogCleanUpPrinter": "Wyczyść, ta drukarka…",
+  "maintenanceLogCleanUpAll": "Wyczyść, wszystkie drukarki…",
+  "maintenanceLogSaved": "Zapisano dziennik: {name}",
+  "maintenanceLogCleanUpTitle": "Usunąć stare wpisy?",
+  "maintenanceLogCleanUpMessage": "Trwale usuwa wpisy starsze niż wybrany wiek z dziennika drukarki {printer}. Ostatni dzień zawsze zostaje, a liczniki zadań się nie zmieniają. Najpierw wyeksportuj dziennik, jeśli chcesz mieć kopię.",
+  "maintenanceLogCleanUpMessageAll": "Trwale usuwa wpisy wszystkich widocznych dla Ciebie drukarek, starsze niż wybrany wiek. Ostatni dzień zawsze zostaje, a liczniki zadań się nie zmieniają. Najpierw wyeksportuj dziennik, jeśli chcesz mieć kopię.",
+  "maintenanceLogAge": "{days, plural, one{{days} dzień} few{{days} dni} many{{days} dni} other{{days} dnia}}",
+  "maintenanceLogCleanedUp": "{count, plural, =0{Nie usunięto żadnych wpisów} one{Usunięto 1 wpis} few{Usunięto {count} wpisy} many{Usunięto {count} wpisów} other{Usunięto {count} wpisu}}",
+  "maintenanceLogDeleteEntryTitle": "Usunąć ten wpis?",
+  "maintenanceLogDeleteEntryMessage": "„{task}” z {date} zostanie trwale usunięty z dziennika. Ostatni reset zadania pozostaje bez zmian: usunięcie wpisu go nie cofa.",
+  "maintenanceLogEntryDeleted": "Usunięto wpis",
+  "maintenanceLogDelete": "Usuń",
+  "maintenanceLogYear": "1 rok",
+  "spoolScanTitle": "Skanuj szpulę",
+  "spoolScanModeCamera": "Aparat",
+  "spoolScanModeNfc": "NFC",
+  "spoolScanNfcHint": "Przyłóż szpulę do tylnej ścianki telefonu",
+  "spoolScanNfcHelp": "Tag jest odczytywany tam, gdzie leży antena NFC, zwykle przy aparacie.",
+  "spoolScanNfcOff": "NFC jest wyłączone",
+  "spoolScanNfcOffHelp": "Włącz je w ustawieniach systemu, aby skanować tagi.",
+  "spoolScanNfcOpenSettings": "Otwórz ustawienia",
+  "spoolScanTagUnknown": "Żadna szpula nie ma tego tagu",
+  "spoolScanTagUnknownHelp": "Tag {tag} nie jest powiązany z żadną szpulą w Filamentach. Powiąż go w SpoolBuddy i spróbuj ponownie.",
+  "spoolScanOpening": "Otwieram {name}",
+  "maintenanceLogPrinter": "Drukarka",
+  "compactAmsLayoutTitle": "Kompaktowe kafelki AMS",
+  "compactAmsLayoutDesc": "Sloty filamentu jako małe kafelki z kolorem, materiałem i numerem slotu. Każdą kartę drukarki można przełączyć na szczegółową listę.",
+  "amsViewCompact": "Widok kompaktowy",
+  "amsViewDetailed": "Widok szczegółowy",
+  "externalSpoolShort": "Z",
+  "announcementsSourceMobile": "Aplikacja mobilna",
+  "appUpdateTitle": "Dostępna nowa wersja aplikacji",
+  "appUpdateBody": "Do pobrania z Google Play.",
+  "appUpdateDownloading": "Pobieranie…",
+  "appUpdateButton": "Aktualizuj",
+  "appUpdateReady": "Aktualizacja pobrana",
+  "appUpdateRestart": "Restartuj"
 }

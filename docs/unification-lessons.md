@@ -38,12 +38,22 @@ is the map and the decisions.
 | `DashPill`, `DashSpace`, the `cardBox` and `subCardBox(radius)` decorations, `buildDashThemeData` | `dash_ui` package |
 | `textWidth` (`text_measure.dart`), `classifyDioException` (`dio_failure.dart`), `ServerReachability` | `app_util` package |
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
+| `FactRow`: a fact as the label on the left and its value on the right, read first, with an icon where the list has them (a spool's details, a user's, a nozzle's figures); the label takes up to 45% of the row and the value the rest, at its end; `stacked` and `below` for free text and a note under the row | [fact_row.dart](../lib/features/common/fact_row.dart) |
+| `SectionLabel`: the small heading over a group, one look (bold, secondary ink, capitals, `DashTracking.caps`) and a heading for a screen reader; a card's title is another role (`titleSm`, `titleMd`) |
+| `_StepSlider`, `_TargetNumeral`, `_HeldWhen` in [printer_card_target.dart](../lib/features/dashboard/widgets/printer_card_target.dart): the −/+ buttons, slider and presets of the temperature, Panda Breath, fan and drying sheets, the big number above them, and the dim-and-block that takes the keyboard with it |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
 | `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
+| `treat404AsAbsent`, and `treatPathCaptureAsAbsent` for a route an older server reads as `/<resource>/{id}` and refuses with a 422 (`/archives/merge-count`, `/queue/batches`) | [observed_capability.dart](../lib/core/api/observed_capability.dart) |
+| `dashboardWatchedProvider`: the app in the foreground and the dashboard on screen, what the smart-plug and AI-detection polls run on; `absentOrRefused` (`api_exceptions.dart`): the `guardAbsent` statuses of a feed that shows nothing on a 404 or a 403 | [dashboard/providers.dart](../lib/features/dashboard/providers.dart), [api_exceptions.dart](../lib/core/api/api_exceptions.dart) |
+| `printerListProvider`: every printer's configuration, no statuses, for any picker or filter that names printers | [providers.dart](../lib/providers.dart) |
+| `tintBox(accent, {radius})`: the washed, outlined box of a banner or notice, and of an accent row or chip when it passes its own radius; `bodyBoldPrimary`: a heading inside a sheet or a row's main line; `caption` and `pillText(tone)`: the small tracked text of a temperature tile or a sheet's caption, and of a pill | [dash_theme.dart](../lib/core/theme/dash_theme.dart) (`BambuddyAccent`) |
+| `verdictLook`: a kept or binned print's label, icon and colours, for the card's mark and a run's pill; each keeps its own "awaiting" | [print_outcome.dart](../lib/features/archive/print_outcome.dart) |
 | `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else; `intListFromJson`: a server-sent id list | [json_utils.dart](../lib/core/models/json_utils.dart) |
 | `TrayLayout`, `globalTrayId`, `rackExternalLabel`: a slot's numbers on any printer, the H3C's rack included; `mappingSlotLabel`: a slot as the filament mapping names it, on the phone's form and the controller's | [slot_addressing.dart](../lib/core/ams/slot_addressing.dart), [filament_mapping.dart](../lib/core/ams/filament_mapping.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
+| `taggedPayload` / `parseTaggedPayload`: a notification payload is `<kind>:<fields>:<serverTag>`, the tag appended in one place so a new kind cannot forget it (HMS, maintenance and outcome use it; what a field means stays with each parser, and maintenance still reads the bare list older builds wrote) | [background_api.dart](../lib/core/notifications/background_api.dart) |
+| `_Feed<T>` in the WebSocket client: one broadcast stream per kind of frame, offered each frame in order. A new kind is a field, a `_feeds` entry and a getter, and `ws_client_test` has one frame per kind | [ws_client.dart](../lib/core/api/ws_client.dart) |
 | `TimerFactory`, the injectable timer | [offline_debounce.dart](../lib/core/printers/offline_debounce.dart) |
 | `startQueueItem`, `removeFromQueue`: a job's Start and Remove, from the queue screen and the controller alike | [queue_actions.dart](../lib/features/queue/queue_actions.dart) |
 | `QueueThumbnail`, `queueStatusLabel`, `queueStagedLabel`, `queueTargetLabel`; `pollQueue` (in `queue_providers.dart`) for a screen that shows the queue outside its tab | [queue_item_view.dart](../lib/features/queue/queue_item_view.dart) |
@@ -54,7 +64,9 @@ is the map and the decisions.
 | `ProgressRingPainter`: the screen saver's and the statistics' ring, pixel for pixel what each drew | [progress_ring.dart](../lib/features/common/progress_ring.dart) |
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
-| `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
+| `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test, the live id swapped for the first all-digit path segment | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
+| `inertDashboardPollOverrides`: the dashboard's polls silenced, for any test that puts a printing card on screen | [test/helpers.dart](../test/helpers.dart) |
+| `textScaled(scale)`: the `builder:` for a run at 150 % or 200 % text, for `plApp` and `pumpPhone` | [test/helpers.dart](../test/helpers.dart) |
 | `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test; `firstRequest`: what the server published to the stand-in printer | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
 
 ## Traps that cost real debugging
@@ -91,6 +103,27 @@ is the map and the decisions.
 
 ## Deliberately not unified
 
+- **A switch row widget for the light row and the Panda Breath row.** Same box
+  (that is `tintBox(radius: xl)`), but the light row toggles on a tap of the whole
+  row, the Panda row opens a sheet and toggles only on its switch, which is its
+  own 48 dp target, and it carries a second line and a state where no switch is
+  offered. A widget for two would take a subtitle, a tap mode and a no-switch
+  flag.
+- **The tile caption and the pill text stay tight.** A temperature tile's text caption
+  (an unknown sensor's; the Panda Breath's was one until it got a pictogram) shares a
+  line with the setpoint, and `tempGridColumns` measures it; at the
+  heading's `caps` tracking "PANDA BREATH" would have turned the two-column grid into
+  one on a 360 dp phone. They are `caption` and `pillText(tone)` in the theme, and
+  `BambuddyAccent.caption` is what the grid measures with, so the measuring and the
+  drawing cannot drift apart.
+- **Three tracked texts are not headings:** the Bambuddy wordmark, the "ID" badge
+  of a skip-objects row and the card titles. `tracking_roles_test.dart` lists the
+  first two by name.
+- **The queue bulk-edit rows' keyboard hole.** `IgnorePointer` alone leaves a
+  focused control answering Enter (measured). `_HeldWhen` closes it for the
+  card's sheets; `queue_bulk_edit_screen.dart` still dims with `Opacity` and
+  `IgnorePointer` at 0.5, a different opacity, and is the maintainer's call.
+
 Each of these was measured; the merge either changes pixels or behaviour, or costs
 more than the lines it saves.
 
@@ -124,12 +157,15 @@ more than the lines it saves.
   pointing one at another changes behaviour (see the comment on
   `printerModelsProvider` in
   [inventory_providers.dart](../lib/features/inventory/inventory_providers.dart)).
-- **The other colour dots.** `FilamentDot` (archive) outlines in `textTertiary`,
-  the printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and
-  the mapping sheet's and controller's swatches draw a question mark for an unknown
+- **The other colour dots.** `FilamentDot` (archive rows and calendar, and the nozzle
+  sheet; `lib/features/common/filament_dot.dart`) outlines in `textTertiary`, the
+  printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and the
+  mapping sheet's and controller's swatches draw a question mark for an unknown
   colour. Each differs from `ColorDot` in outline or fallback, so merging them would
   change pixels or need a flag per difference; only the three identical ones
-  (queue history, queue edit, substitution chip) share it.
+  (queue history, queue edit, substitution chip) share it, and the two identical
+  `FilamentDot`s (the archive's and the one the nozzle sheet wrote for itself) share
+  theirs.
 - **`Archive.isSliced`** mirrors the web's `isSlicedFile` (a `.gcode` / `.gcode.*`
   name, or slice metadata), so it is not folded into `isSlicedFilename`.
 - **`plateLabel` vs `batchPlateLabel`** word things differently on purpose, and
@@ -150,6 +186,81 @@ more than the lines it saves.
   the owner's key listing, so it does not go through `mintContractApiKey`.
 - **`_goneWithin` (projects contract test) vs `pollUntil`** (`contract_harness.dart`):
   there a timeout is the answer ("it never went away"), not an error.
+
+- **A base class for the dashboard's three polls** (`DashboardNotifier`,
+  `SmartPlugsNotifier`, `AiDetectionNotifier`). Each has a timer, a generation
+  counter and a `ref.mounted` check, about ten lines, and differs in everything
+  else: the roster poll retunes between two intervals on the socket's state and
+  reports its error, the plugs keep optimistic overrides with timers of their
+  own, detection arms its timer only once the server says it is on. A shared
+  base would take a hook per difference.
+- **`DashboardNotifier`'s pause vs `dashboardWatchedProvider`.** The roster poll
+  stops for the background only, not for another tab: it feeds the statuses
+  every tab and the print monitor read. Pointing it at the shared flag would
+  stop it off screen.
+- **`_cardWithPlugs` in `printer_card_test.dart`** lists `aiDetectionOverride()`
+  by itself instead of `inertDashboardPollOverrides`: that scope stubs the plugs
+  it is about.
+
+- **The banner widgets.** `_ResumeBanner` (queue) and `ArchiveMergeBanner` share
+  their geometry, but differ in tone, icon, a dismiss button and a confirm dialog;
+  `_No3mfBanner` has another layout altogether (a title and a body, a docs button).
+  A widget for two users would take an `actions` list and a tone pair. Only the
+  decoration is shared, `tintBox`.
+- **Save and delete handlers with a busy flag** (`_CustomSheetFormState`,
+  `_SupplierFormSheetState`, the finance, location, tag, user and group forms).
+  Each differs in what success does (stay open, pop), which statuses get their own
+  wording (409, a 404 that means "create a new one"), and when to invalidate. Only
+  the three-line `catch (_) { …; rethrow; }` is the same, and that is the rule in
+  AGENTS.md, not a helper. Same reason as the "N of M" runner.
+- **A base class for the small gated repositories** (label templates, suppliers,
+  profile defaults). They share a constructor and one `late final capability`
+  line; the rest is each route's own request. `watching(observing: const {}, …)`
+  on a write stays spelled out: the parameter is the rule ("a write settles
+  nothing"), and a name for it hides that.
+- **The native and Spoolman inventory sources.** Besides the shared private
+  helpers, the twins that differ only by endpoint are one-liners; the rest differ
+  in decoder, body or behaviour (Spoolman unassigns by spool id, parses a 207, has
+  no `skippedKey`), which a record of paths would need an override for.
+- **A registry for capability gates.** Each gate needs the same three facts (the
+  feature, where its latch lives, `whenUnknown`) however it is declared, and the
+  explicit `capabilityGate(...)` lines are what a grep finds.
+- **Demo `PATCH`/`PUT` key copying.** The `containsKey` copies in
+  `demo_backend.dart` each go on to their own transform (a folder's `parent_id` 0
+  becomes null, a supplier's name is trimmed, a queue item's printer name is
+  derived); a helper would save about twenty lines and sit next to the special case
+  anyway.
+- **`_StockCard` and the other option cards** fall under the shared card tile
+  above: radius, fill, border and padding differ per picker.
+- **The archive media routes.** `/timelapse`, `/archive/photos` and
+  `/timelapse/edit` are each built once; two go through `Uri`, and the editor's
+  link encodes its name. Three builder functions would have one caller each.
+- **Five text-scale builders keep their own `builder:`**: they pass a ready
+  `TextScaler` or wrap the child (`TourHost`, `wearShapeBuilder`).
+- **A finder for "the `TextField` under this log id".** It fits 33 of 71
+  `find.descendant` calls, one or two per file, and saves a line at each.
+- **The label picker's test harness** (`_CapturingRepository`, `_MemoryPrefs`,
+  `openTemplatePicker`) has one user, `inventory_labels_test.dart`.
+
+## The 2026-11 critical-code scan
+
+Five candidates, each measured or read before it was touched:
+
+- **Server-tagged payloads** (done): the three builders and parsers repeated the
+  split, the count and the empty-tag check; `taggedPayload` / `parseTaggedPayload`
+  own them. The fields' meaning and the legacy bare maintenance list stay per kind.
+- **`FinishAlertMemory`'s write path** (already done by the write queue of the same
+  scan): `remember` and `forget` both go through `_write`.
+- **WebSocket frame dispatch** (done): nine of the client's ten controllers (the connection state
+  stays one), nine branches and nine `close()` calls became `_Feed<T>`. Four kinds (plate, print, pipeline run, confirm)
+  could be dropped from the dispatch without a test failing, which the one-frame-per-kind
+  test now catches.
+- **`_OngoingKey`** (done, measured): on `ValueEquality`, 45 ns per `==` against 1 ns
+  by hand, once per frame. `PrinterStatus` stays hand-written, as the backlog says.
+- **The media-auth closure** (done): `media.auth` is already the
+  `Future<MediaAuth> Function({bool forceRefresh})` the fetchers take, so the four
+  wrapping closures are the tear-off. The two service helpers that guard the same
+  three fields stay two: with the closure gone each is five lines.
 
 ## What was dropped as history
 

@@ -12,6 +12,7 @@ import '../common/speed_name.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/smart_plug_actions.dart';
 import '../dashboard/smart_plugs_providers.dart';
+import '../dashboard/temp_glyph.dart';
 import '../dashboard/temp_readings.dart';
 import '../dashboard/widgets/pill_switch.dart';
 import 'scale_to_fit.dart';
@@ -141,11 +142,10 @@ class _ReadingTile extends ConsumerWidget {
   final bool showTarget;
   final bool active;
 
-  /// One line: the dot, the name and the reading, with no bar. The tile for a
+  /// One line: the pictogram, the name and the reading, with no bar. The tile for a
   /// large text size, where four tall tiles do not fit a row.
   final bool compact;
 
-  static const _dot = 8.0;
   static const _bar = 4.0;
 
   @override
@@ -155,7 +155,14 @@ class _ReadingTile extends ConsumerWidget {
     final chamberMax = ref.watch(chamberMaxTargetProvider);
     final actual = reading.actual;
     final target = reading.target;
-    final color = reading.gaugeColor(t);
+    // The heat state tints the pictogram and nothing else; the reading and the
+    // bar are neutral, as on the printer card.
+    final inkOfState = reading.gaugeInk(t);
+    final glyph = TempGlyph(
+      kind: reading.kind,
+      color: inkOfState,
+      airductIsHeating: reading.airductIsHeating,
+    );
     // On two heads the plain key is the first nozzle, not "the" nozzle.
     final label =
         dual && reading.kind == TempKind.nozzle && reading.index == null
@@ -167,7 +174,7 @@ class _ReadingTile extends ConsumerWidget {
         children: [
           TextSpan(
             text: actual == null ? '—' : '${actual.round()}°',
-            style: t.monoHeadline.copyWith(color: reading.gaugeInk(t)),
+            style: t.monoHeadline.copyWith(color: t.textPrimary),
           ),
           if (showTarget && target != null && target > 0)
             TextSpan(
@@ -187,6 +194,10 @@ class _ReadingTile extends ConsumerWidget {
         label,
         if (actual != null) '${actual.round()}°',
         if (target != null && target > 0) '/ ${target.round()}°',
+        // The chamber's drawing shows the duct mode, so a reader is told it.
+        if (reading.kind == TempKind.chamber &&
+            reading.airductIsHeating != null)
+          '${l10n.ctrlAirduct}: ${reading.airductIsHeating! ? l10n.ctrlAirductHeating : l10n.ctrlAirductCooling}',
       ].join(' '),
       child: ExcludeSemantics(
         child: Container(
@@ -212,14 +223,7 @@ class _ReadingTile extends ConsumerWidget {
           child: compact
               ? Row(
                   children: [
-                    Container(
-                      width: _dot,
-                      height: _dot,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                    glyph,
                     const SizedBox(width: DashSpace.sm),
                     Expanded(
                       child: Text(
@@ -237,14 +241,7 @@ class _ReadingTile extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          width: _dot,
-                          height: _dot,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                        glyph,
                         const SizedBox(width: DashSpace.sm),
                         Expanded(
                           child: Text(
@@ -266,7 +263,7 @@ class _ReadingTile extends ConsumerWidget {
                               1.0,
                             ),
                       height: _bar,
-                      color: color,
+                      color: t.textSecondary,
                     ),
                   ],
                 ),
@@ -528,7 +525,7 @@ class _SwitchTile extends StatelessWidget {
                             // One line at a large text size, where a second
                             // line does not fit the height of a finger.
                             large && sub != null ? '$label · $sub' : label,
-                            style: t.bodyBold.copyWith(color: t.textPrimary),
+                            style: t.bodyBoldPrimary,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -754,6 +751,7 @@ class ControllerCard extends StatelessWidget {
   ControllerCard.single({
     Key? key,
     required String title,
+    Widget? titleLeading,
     Widget? trailing,
     required Widget child,
     bool shrink = false,
@@ -762,6 +760,7 @@ class ControllerCard extends StatelessWidget {
          sections: [
            ControllerSection(
              title: title,
+             titleLeading: titleLeading,
              trailing: trailing,
              shrink: shrink,
              child: child,
@@ -841,6 +840,7 @@ class ControllerSection extends StatelessWidget {
     super.key,
     required this.title,
     required this.child,
+    this.titleLeading,
     this.trailing,
     this.flex = 1,
     this.shrink = false,
@@ -852,6 +852,9 @@ class ControllerSection extends StatelessWidget {
   final bool shrink;
 
   final String title;
+
+  /// A drawing before the title: a temperature card's pictogram.
+  final Widget? titleLeading;
   final Widget? trailing;
   final Widget child;
 
@@ -870,6 +873,10 @@ class ControllerSection extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: headerHeight),
           child: Row(
             children: [
+              if (titleLeading case final leading?) ...[
+                leading,
+                const SizedBox(width: DashSpace.sm),
+              ],
               Expanded(
                 child: Text(
                   title,

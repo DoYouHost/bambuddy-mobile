@@ -7,6 +7,7 @@ import '../../data/failure_analysis_cache.dart';
 import '../../data/print_log_repository.dart';
 import '../../providers.dart';
 import '../stats/stats_providers.dart';
+import '../../core/models/value_equality.dart';
 
 /// How many rows one page asks for. Well under the server's cap of 500
 /// ([PrintLogRepository.maxPageSize]) — the list pages on the wire, unlike the
@@ -17,7 +18,7 @@ const printLogPageSize = 50;
 /// filter — the endpoint pages, so filtering the rows already loaded would
 /// answer "the failures on this page" rather than "the failures".
 @immutable
-class PrintLogFilters {
+class PrintLogFilters with ValueEquality {
   const PrintLogFilters({
     this.query = '',
     this.printerId,
@@ -78,19 +79,7 @@ class PrintLogFilters {
   );
 
   @override
-  bool operator ==(Object other) =>
-      other is PrintLogFilters &&
-      other.query == query &&
-      other.printerId == printerId &&
-      other.status == status &&
-      other.username == username &&
-      other.from == from &&
-      other.to == to &&
-      other.sort == sort &&
-      other.descending == descending;
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     query,
     printerId,
     status,
@@ -99,7 +88,7 @@ class PrintLogFilters {
     to,
     sort,
     descending,
-  );
+  ];
 }
 
 /// Active filters. Kept apart from the list itself so changing one re-runs the

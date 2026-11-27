@@ -14,8 +14,10 @@ import 'core/notifications/hms_stop_request.dart';
 import 'core/notifications/launch_relay.dart';
 import 'core/models/current_user.dart';
 import 'core/theme/appearance_providers.dart';
+import 'core/watch/watch_push.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/archive/outcome_sheet.dart';
+import 'features/dashboard/background_handover.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
@@ -67,8 +69,9 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
     _pushToWatch();
-    // Answer watch relay requests for as long as the app lives (plan 05).
-    unawaited(ref.read(wearRelayHandlerProvider).start());
+    // Stops a service left over from the last launch, then takes the watch
+    // relay and the finish-photo hunt, and follows pause and resume from here.
+    ref.read(backgroundHandoverProvider).start();
   }
 
   @override
@@ -225,20 +228,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     });
   }
 
-  void _pushToWatch() {
-    final profile = ref.read(serverProfileProvider);
-    if (profile == null) return;
-    unawaited(
-      ref
-          .read(watchConfigSyncProvider)
-          .push(
-            profile,
-            theme: ref.read(watchThemeProvider),
-            ca: ref.read(customCaProvider),
-            clientCert: ref.read(clientCertProvider),
-          ),
-    );
-  }
+  void _pushToWatch() => pushConfigToWatch(ref.read);
 
   /// Kept on disk for the foreground service isolate, which formats the ETA in
   /// its notifications and has no way to read the 24-hour switch itself.

@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_prints.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
+import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -36,30 +37,71 @@ Future<void> pumpControllerScreen(
       overrides: layerOverrides([
         sharedPreferencesProvider.overrideWithValue(sp),
         fixedDashboardOverride(
-          DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: Printer(
-                  id: controllerTestPrinterId,
-                  name: controllerTestPrinterName,
-                  model: model,
-                ),
-                status: const PrinterStatus(
-                  id: controllerTestPrinterId,
-                  connected: true,
-                  state: 'IDLE',
-                ),
-              ),
-            ],
-          ),
+          singlePrinterDashboard(name: controllerTestPrinterName, model: model),
         ),
         inertStatusesOverride,
-        inertSmartPlugsOverride,
+        ...inertDashboardPollOverrides,
       ], overrides),
       child: plApp(const ControllerScreen(printerId: controllerTestPrinterId)),
     ),
   );
   await settle(tester);
+}
+
+/// A dashboard holding printer [id] alone, idle and reachable unless [status]
+/// says otherwise.
+DashboardState singlePrinterDashboard({
+  PrinterStatus? status,
+  String name = 'P',
+  String? model,
+  int id = controllerTestPrinterId,
+}) => DashboardState(
+  printers: [
+    PrinterWithStatus(
+      printer: Printer(id: id, name: name, model: model),
+      status: status ?? PrinterStatus(id: id, connected: true, state: 'IDLE'),
+    ),
+  ],
+);
+
+/// [child] scaled the way the controller screen scales a tab's body.
+Widget scaledControllerBody(Widget child, {bool reflows = false}) => Scaffold(
+  body: Padding(
+    padding: const EdgeInsets.all(16),
+    child: ScaleToFit(reflows: reflows, child: child),
+  ),
+);
+
+/// [home] on a landscape phone with one printer ([status], [name], [model]) and
+/// no server profile, for a test of one tab or panel rather than the whole
+/// screen. [prefs] seeds SharedPreferences; [overrides] come last, so a test
+/// replaces any of the base ones.
+Future<void> pumpControllerPanel(
+  WidgetTester tester,
+  Widget home, {
+  PrinterStatus? status,
+  String name = 'P',
+  String? model,
+  Size size = const Size(844, 390),
+  Map<String, Object> prefs = const {},
+  List<Override> overrides = const [],
+}) async {
+  useLogicalWindow(tester, size);
+  SharedPreferences.setMockInitialValues(prefs);
+  final sp = await SharedPreferences.getInstance();
+  await pumpPhone(
+    tester,
+    home,
+    overrides: layerOverrides([
+      sharedPreferencesProvider.overrideWithValue(sp),
+      noServerProfileOverride,
+      fixedDashboardOverride(
+        singlePrinterDashboard(status: status, name: name, model: model),
+      ),
+      inertStatusesOverride,
+    ], overrides),
+  );
+  await tester.pump();
 }
 
 /// Opens the Prints tab on [view].

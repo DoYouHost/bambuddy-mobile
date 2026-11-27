@@ -498,10 +498,8 @@ class _InertWearRelay extends WearRelayHandler {
   Future<void> stop() async {}
 }
 
-/// The dashboard with the API client already built. The empty-roster body
-/// listens to `ServerReachability`, and the first client built (by the drawer
-/// button, earlier in the same frame) resets it, which marks that listener
-/// dirty mid-build. The running app builds the client long before the screen.
+/// The dashboard with the API client already built. The running app builds the
+/// client long before the screen.
 class _WarmedDashboard extends ConsumerWidget {
   const _WarmedDashboard();
 
@@ -545,6 +543,7 @@ final _editedPrinter = Printer.fromJson(const {
   'is_active': true,
   'auto_archive': true,
   'wear_cost_per_hour': 0.25,
+  'dispatch_priority': 2,
 });
 
 /// Name, address, serial and access code, in the order the form lays them out.

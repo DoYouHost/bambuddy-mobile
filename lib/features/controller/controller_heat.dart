@@ -12,6 +12,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/outcome_snack.dart';
 import '../dashboard/controls_providers.dart';
+import '../dashboard/temp_glyph.dart';
 import '../dashboard/temp_readings.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
@@ -292,7 +293,9 @@ class _HeaterCard extends ConsumerWidget {
     final label = dual && reading.kind == TempKind.nozzle
         ? l10n.tempNozzleNumbered(reading.index == null ? '1' : '2')
         : reading.label(l10n);
-    final color = reading.gaugeColor(t, target: shown.toDouble());
+    // The heat state tints the pictogram in the title; the ring and the reading
+    // are neutral, as on the printer card.
+    final heatInk = reading.gaugeInk(t, target: shown.toDouble());
     // The ring takes the room the card has, and the reading in it grows with it.
     // The target is on the button, not here.
     final readingText = actual == null ? '—' : '${actual.round()}°';
@@ -308,7 +311,7 @@ class _HeaterCard extends ConsumerWidget {
                   : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
               strokeWidth: _ringStroke * side / _ringSize,
               backgroundColor: t.gaugeTrack,
-              valueColor: AlwaysStoppedAnimation(color),
+              valueColor: AlwaysStoppedAnimation(t.textSecondary),
               strokeCap: StrokeCap.round,
             ),
           ),
@@ -319,7 +322,7 @@ class _HeaterCard extends ConsumerWidget {
           textScaler: TextScaler.noScaling,
           style: t.monoDisplay.copyWith(
             fontSize: side * _readingShare,
-            color: reading.gaugeInk(t, target: shown.toDouble()),
+            color: t.textPrimary,
           ),
         ),
       ],
@@ -383,6 +386,13 @@ class _HeaterCard extends ConsumerWidget {
 
     return ControllerCard.single(
       title: label,
+      titleLeading: TempGlyph(
+        kind: reading.kind,
+        color: heatInk,
+        airductIsHeating: reading.kind == TempKind.chamber
+            ? (pending.airductHeating ?? reading.airductIsHeating)
+            : null,
+      ),
       shrink: wide,
       trailing: dual && reading.kind == TempKind.nozzle
           ? _NozzleSwitch(

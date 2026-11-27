@@ -24,6 +24,7 @@ import 'features/files/trash_screen.dart';
 import 'features/gcode/gcode_viewer_route.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
+import 'features/maintenance/maintenance_log_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/alarm/alarm_settings_screen.dart';
@@ -34,6 +35,7 @@ import 'features/settings/queue_settings_screen.dart';
 import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
+import 'features/settings/wled_settings_screen.dart';
 import 'features/model_sources/model_sources_screen.dart';
 import 'features/locations/printer_locations_screen.dart';
 import 'features/orders/order_edit_screen.dart';
@@ -184,10 +186,19 @@ GoRouter buildAppRouter({
         path: '/settings/profile-defaults',
         builder: (_, _) => const ProfileDefaultsScreen(),
       ),
+      GoRoute(
+        path: '/settings/wled',
+        builder: (_, _) => const WledSettingsScreen(),
+      ),
 
       // Maintenance settings (types + per-printer overrides) — full screen
       // outside shell (pushed from the Maintenance status screen's gear, and
       // from the server settings hub).
+      // The log of maintenance resets, pushed from the Maintenance app bar.
+      GoRoute(
+        path: '/maintenance/log',
+        builder: (_, _) => const MaintenanceLogScreen(),
+      ),
       GoRoute(
         path: '/settings/maintenance',
         builder: (_, _) => const MaintenanceSettingsScreen(),
@@ -432,7 +443,7 @@ GoRouter buildAppRouter({
         },
       ),
 
-      // Shell with bottom navigation bar — three tabs as branches.
+      // Shell with bottom navigation bar — five tabs as branches.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             RootScaffold(navigationShell: navigationShell),

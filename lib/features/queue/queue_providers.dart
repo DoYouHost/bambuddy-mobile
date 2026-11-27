@@ -229,6 +229,61 @@ class QueueNotifier extends AsyncNotifier<List<QueueItem>> {
     return (outcome: outcome, result: result);
   }
 
+  /// Another copy of each of [items] at the end of the queue
+  /// (`POST /queue/duplicate`). Only what the route can copy is sent, as the
+  /// web does; [notCopied] adds those left out here to the ones the server
+  /// skipped, because a 200 is not "all done". The list is reloaded on success.
+  /// [logId] is the control that asked, in the `logTag` vocabulary: a row's
+  /// action and the selection's bar are two different controls.
+  Future<({ActionOutcome outcome, int added, int notCopied})> duplicate(
+    List<QueueItem> items, {
+    required String logId,
+  }) async {
+    duplicating = true;
+    try {
+      return await _duplicate(items, logId: logId);
+    } finally {
+      duplicating = false;
+    }
+  }
+
+  /// True while a copy request is in flight: a second tap meanwhile would add a
+  /// second set of copies, so [duplicateQueueItems] ignores it.
+  bool duplicating = false;
+
+  Future<({ActionOutcome outcome, int added, int notCopied})> _duplicate(
+    List<QueueItem> items, {
+    required String logId,
+  }) async {
+    final copiable = [
+      for (final item in items)
+        if (item.canDuplicate) item.id,
+    ];
+    var notCopied = items.length - copiable.length;
+    var added = 0;
+    if (copiable.isEmpty) {
+      return (outcome: ActionOutcome.ok, added: 0, notCopied: notCopied);
+    }
+    final outcome = await runAction(
+      () async {
+        final result = await ref
+            .read(queueRepositoryProvider)
+            .duplicate(copiable);
+        added = result.created.length;
+        notCopied += result.skipped;
+      },
+      logId: logId,
+      onSuccess: refresh,
+    );
+    // A list longer than one request goes in pieces, and an early piece may have
+    // been copied before a later one failed: show what is there.
+    if (!outcome.isOk &&
+        copiable.length > QueueRepository.duplicateBatchLimit) {
+      await refresh();
+    }
+    return (outcome: outcome, added: added, notCopied: notCopied);
+  }
+
   /// Clear the previous-print gate on [printerId] and restore the jobs it
   /// skipped (`POST /queue/printer/{id}/resume`). [restored] is how many came
   /// back, for the sentence the caller shows; both lists are reloaded on success.
@@ -417,16 +472,13 @@ final mayStartQueueItemProvider = Provider.family<bool, StartTarget>((
       (target.createdById == null && target.printerId != null);
 });
 
-/// All printers regardless of state, for the Edit Queue Item target picker.
-/// Unlike [availablePrintersProvider] it does NOT drop busy/printing printers,
-/// so the item's currently-assigned printer is always present and selectable
-/// (mirrors the web edit modal's `showInactive`).
-final allPrintersProvider = FutureProvider.autoDispose<List<Printer>>((
-  ref,
-) async {
-  final all = await ref.watch(printersRepositoryProvider).fetchAll();
-  return [for (final p in all) p.printer];
-});
+/// Whether to offer Duplicate: the route needs `queue:create` and exists since
+/// server 1.3.3. Hidden, not greyed, where it cannot work (the web greys it).
+final mayDuplicateQueueProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(queueDuplicateProvider).orFalse &&
+      ref.watch(permissionProvider(Permissions.queueCreate)),
+);
 
 /// Filaments loaded on active printers of a model, for the Edit Queue Item
 /// filament-override dropdowns. Keyed by `(model, location)` — location `''`

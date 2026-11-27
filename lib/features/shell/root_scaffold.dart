@@ -9,7 +9,7 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../dashboard/smart_plugs_providers.dart';
+import '../dashboard/providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../links/external_links_providers.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
@@ -74,14 +74,14 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
 
   /// The tabs are an [IndexedStack], so a screen the user left is still mounted
   /// and its providers keep running. Nothing tells them they are off screen —
-  /// this does, for the one that polls.
+  /// this does, for the ones that poll.
   void _reportVisibleTab() {
     final onDashboard =
         navigationShell.currentIndex == RootScaffold.dashboardTab;
     // Deferred: a notifier must not be poked while the tree is building.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(smartPlugsProvider.notifier).setOnScreen(onDashboard);
+      ref.read(dashboardWatchedProvider.notifier).setOnScreen(onDashboard);
     });
   }
 

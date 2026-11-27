@@ -80,6 +80,17 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// WLED behind a printer (server #1528), all `POST` with the URL in the body
+  /// so a URL not yet saved can be tried: `presets` lists WLED's own presets,
+  /// `test-connection` reads its name and version, `test-preset` switches one
+  /// on. None changes what is stored; a WLED that does not answer is a 502.
+  static String printerWledPresets(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/presets';
+  static String printerWledTestConnection(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-connection';
+  static String printerWledTestPreset(int printerId) =>
+      '$apiPrefix/printers/$printerId/wled/test-preset';
+
   /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
   /// [...]}`: grams left on the spool bound to each loaded slot, which the
   /// web's mapping sorts by when "prefer lowest remaining" is on
@@ -263,6 +274,13 @@ abstract final class Endpoints {
   static String chamberTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/chamber';
 
+  /// The Panda Breath bound to the printer (server #1466). JSON body with
+  /// exactly one of `work_on`, `mode`, `target_temp` (0–60), else 400; 404 when
+  /// no heater is bound, 503 when the server's MQTT broker is down. Offer it
+  /// only for a status that carries `panda_breath`: the route came with it.
+  static String pandaBreath(int printerId) =>
+      '$apiPrefix/printers/$printerId/panda-breath';
+
   /// Airduct flap mode. Query: `mode=cooling|heating`. Supported on
   /// P2S/X2D/H2* — gate via `supportsAirduct` first.
   static String airductMode(int printerId) =>
@@ -358,6 +376,11 @@ abstract final class Endpoints {
   static String amsUnload(int printerId) =>
       '$apiPrefix/printers/$printerId/ams/unload';
 
+  /// Unload every loaded slot of an H3C's AMS 3H. 400 when the printer has no
+  /// AMS 3H or is not connected, 409 when no slot has its filament in a hotend.
+  static String amsUnloadAll(int printerId) =>
+      '$apiPrefix/printers/$printerId/ams/unload-all';
+
   /// Re-read one AMS slot's RFID tag. Path ids are **local** (unit id, slot
   /// within the unit) — not the global number [amsLoad] takes. Gated on
   /// `printers:ams_rfid`, a permission of its own: a key allowed to control the
@@ -451,6 +474,12 @@ abstract final class Endpoints {
   /// (not pending, claimed by a dispatch, not the caller's) are only counted.
   /// Present since server v0.1.2.
   static const queueBulk = '$apiPrefix/queue/bulk';
+
+  /// `POST` — `{item_ids}` (1 to 500): another copy of each queued or printing
+  /// job at the end of the queue. Answers `{created_ids, skipped_count}`: the
+  /// jobs it may not copy are counted, not refused. Needs `queue:create` (a key
+  /// with `can_queue`). Since server 1.3.3.
+  static const queueDuplicate = '$apiPrefix/queue/duplicate';
 
   /// `POST` — acknowledge the failed prints behind a printer's
   /// `require_previous_success` gate and put the jobs it skipped back to
@@ -979,6 +1008,29 @@ abstract final class Endpoints {
   static String maintenanceHistory(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId/history';
 
+  /// A printer's maintenance log, newest first (`MaintenanceLogPage`): `GET`
+  /// with `limit` (1..500, default 50) and `offset`; `DELETE` with
+  /// `older_than_days` (1..36500) removes the entries older than that and answers
+  /// `{deleted}`. Since server 1.3.2 (#3557).
+  static String maintenancePrinterLog(int printerId) =>
+      '$apiPrefix/maintenance/printers/$printerId/log';
+
+  /// `GET` — that printer's log as CSV.
+  static String maintenancePrinterLogExport(int printerId) =>
+      '$apiPrefix/maintenance/printers/$printerId/log/export';
+
+  /// `DELETE` with `older_than_days`: the cleanup across every printer the
+  /// caller may see (`{deleted}`). Needs `maintenance:delete`, which no API key
+  /// scope but `can_manage_maintenance` carries.
+  static const maintenanceLog = '$apiPrefix/maintenance/log';
+
+  /// `GET` — the log of every printer the caller may see, as CSV.
+  static const maintenanceLogExport = '$apiPrefix/maintenance/log/export';
+
+  /// `DELETE` — one entry of the log. The task's last reset stays as it is.
+  static String maintenanceLogEntry(int entryId) =>
+      '$apiPrefix/maintenance/log/$entryId';
+
   // --- Filaments: spool inventory ---
   //
   // Two backends under common interface (see [SpoolInventorySource]):
@@ -1152,6 +1204,13 @@ abstract final class Endpoints {
   /// PDF, not JSON — fetch with `ResponseType.bytes`. Server caps the batch at
   /// 500 ids and 404s if any id is unknown.
   static const inventoryLabels = '$apiPrefix/inventory/labels';
+
+  /// Saved custom label sheets (`LabelTemplateResponse[]`, server #3296) —
+  /// `POST` here, `PUT`/`DELETE` on [labelTemplate]. One list for both
+  /// inventory backends, and everyone on the install sees it.
+  static const labelTemplates = '$apiPrefix/label-templates';
+
+  static String labelTemplate(int id) => '$apiPrefix/label-templates/$id';
 
   // --- Home Assistant sensors bound to a storage location (server #2827) ---
 
@@ -1435,6 +1494,26 @@ abstract final class Endpoints {
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
 
+  // --- AI failure detection (Obico #1546, OctoEverywhere #3169) ---
+  //
+  // Two providers, one at a time (`routes/settings.py` refuses both enabled).
+  // Each has a `printer-status` made for the printer cards: no configuration,
+  // so `printers:read` (an API key's `can_read_status`) is enough, narrowed to
+  // the printers the caller may see. A server from before a provider 404s its
+  // route: Obico's is there from 1.2.5.2 (1.2.5 has `/obico/status` only, which
+  // wants `settings:read`), OctoEverywhere's from 1.3.0. The rest of both
+  // routers is settings, left to the web.
+
+  /// `GET` → `{enabled, monitored_printers, per_printer, last_error}`; an entry
+  /// of `per_printer` is `{class, frame_count, score, error}`.
+  static const obicoPrinterStatus = '$apiPrefix/obico/printer-status';
+
+  /// `GET` → the same envelope plus `last_error_code`; an entry carries
+  /// `print_quality` (1 to 10, null before the first result) instead of
+  /// `score`, and `error_code`.
+  static const octoEverywherePrinterStatus =
+      '$apiPrefix/octoeverywhere/printer-status';
+
   // --- Manyfold (#1471, server dev from 2026-10-04) ---
   //
   // A self-hosted model library, browsed through the server; nothing is
@@ -1573,6 +1652,14 @@ abstract final class Endpoints {
   /// which the built-in table cannot name. Needs a cloud login: without one
   /// the answer is an error, and the built-in names are all there is.
   static const cloudFilamentIdMap = '$apiPrefix/cloud/filament-id-map';
+
+  /// `POST` a JSON list of filament ids (`tray_info_idx`) → `{id: {name, k}}`, one
+  /// entry for **every** id asked, with an empty `name` where nothing resolved. The
+  /// server looks in its cache, then the caller's Bambu Cloud presets, then the
+  /// imported profiles, then the built-in table, so without a cloud login the answer
+  /// is still 200. An API key needs the cloud scope (403 without it, 401 for a key
+  /// that predates per-user ownership). This is the web's `cloudInfo` (`PrintersPage`).
+  static const cloudFilamentInfo = '$apiPrefix/cloud/filament-info';
 
   /// `GET` → the colour catalogue, `{colors: {hex: name}, by_material:
   /// {"material|hex": name}}`. Not gated on an inventory permission:

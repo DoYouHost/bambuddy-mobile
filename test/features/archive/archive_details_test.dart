@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
+import 'package:bambuddy_mobile/features/common/filament_dot.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -50,7 +51,7 @@ Future<void> _pump(WidgetTester tester, Widget child) => pumpPhone(
   Scaffold(body: SingleChildScrollView(child: child)),
   overrides: [
     noServerProfileOverride,
-    printersForPickerProvider.overrideWith(
+    printerListProvider.overrideWith(
       (ref) async => const [Printer(id: 4, name: 'Workshop X2D')],
     ),
   ],
@@ -198,6 +199,30 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('1.50'), findsOneWidget);
+    });
+
+    testWidgets('printed more than once, the sum is what all the runs cost', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        ArchiveStatsPanel(
+          archive: _part.copyWith(
+            runCount: 3,
+            totalFilamentCost: 0.51,
+            totalEnergyKwh: 0.9,
+            totalEnergyCost: 0.21,
+            totalWearCost: 0.54,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1.26'), findsOneWidget);
+      expect(find.text('0.51'), findsOneWidget);
+      expect(find.text('0.21'), findsOneWidget);
+      expect(find.text('0.54'), findsOneWidget);
+      expect(find.text('0.42'), findsNothing);
     });
 
     testWidgets('one line per slot when the slicer listed them', (

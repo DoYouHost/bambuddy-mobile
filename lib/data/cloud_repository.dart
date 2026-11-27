@@ -23,15 +23,15 @@ class CloudRepository {
     required String password,
     String region = 'global',
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.cloudLogin,
+      CloudLoginResult.fromJson,
       data: <String, dynamic>{
         'email': email,
         'password': password,
         'region': region,
       },
     );
-    return CloudLoginResult.fromJson(res.data ?? const {});
   });
 
   /// POST /cloud/verify — submit 2FA/OTP code (email or TOTP).
@@ -41,8 +41,9 @@ class CloudRepository {
     String? tfaKey,
     String region = 'global',
   }) => guard(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
+    return _dio.postObject(
       Endpoints.cloudVerify,
+      CloudLoginResult.fromJson,
       data: <String, dynamic>{
         'email': email,
         'code': code,
@@ -50,7 +51,6 @@ class CloudRepository {
         'region': region,
       },
     );
-    return CloudLoginResult.fromJson(res.data ?? const {});
   });
 
   /// POST /cloud/logout — logout (clears cloud token on server side).

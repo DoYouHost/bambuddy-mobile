@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:app_util/app_util.dart';
 
@@ -10,12 +13,16 @@ import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
 import '../models/queue_item.dart'
     show kModelGateWaitReason, kPreviousFailureGate;
+import '../models/label_template.dart';
+import '../models/panda_breath.dart';
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_result.dart';
+import 'demo_label_templates.dart';
 import 'demo_labels.dart';
 import 'demo_finance.dart';
 import 'demo_manyfold.dart';
+import 'demo_nfc.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -174,6 +181,10 @@ class DemoBackend {
   final List<Map<String, dynamic>> _scheduledDryings = [];
   int _nextScheduledDryingId = 1;
   final Map<int, bool> _plugOn = {1: true, 2: false, 3: true};
+  // The P1S's Panda Breath (#1466), the one heater in the fleet.
+  bool _pandaOn = true;
+  String _pandaMode = 'auto mode';
+  int _pandaTarget = 45;
   // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
   // over the generated status so a demo write shows on the card, the way the
   // printer's own push would.
@@ -397,13 +408,13 @@ class DemoBackend {
         // gated control appears over data that is not there — and the queue
         // form would offer two states over three-state calibrations.
         //
-        // 1.3.1 is the newest row of the gate table (`move` on an assignment);
+        // 1.3.3 is the newest row of the gate table (Unload All on an AMS 3H);
         // the beta suffix because that is where the contract really lives
         // today. Every older row is below it, so no gate hides a demo feature —
         // the users listing is the one thing decided by probing instead.
         if (at(1, 'version')) {
           return demoOk(const {
-            'version': '1.3.1b1',
+            'version': '1.3.3b1',
             'repo': 'maziggy/bambuddy',
           });
         }
@@ -458,6 +469,7 @@ class DemoBackend {
               return demoOk(const {'ok': true});
           }
         }
+        if (at(2, 'panda-breath')) return _pandaBreathCommand(pid, body);
         if (at(2, 'airduct-mode')) {
           _airductMode[pid] = q['mode'] == 'heating' ? 1 : 0;
           return demoOk(const {'ok': true});
@@ -489,6 +501,17 @@ class DemoBackend {
           return demoOk(const {'success': true});
         }
         if (at(2, 'clear-plate')) return demoOk(const {'ok': true});
+        if (at(2, 'wled') && s.length == 4 && m == 'POST') {
+          return switch (s[3]) {
+            'presets' => demoOk(_wledPresets),
+            'test-connection' => demoOk(const {
+              'name': 'Workshop strip',
+              'version': '0.15.1',
+            }),
+            'test-preset' => demoOk(const {'success': true}),
+            _ => demoNotFound(),
+          };
+        }
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') {
             return demoOk(_printerFiles(q['path'] ?? '/', pid));
@@ -539,6 +562,18 @@ class DemoBackend {
         if (at(2, 'ams')) {
           // `ams/{ams}/tray/{tray}/reset` — the tray id sits past the literal.
           if (at(6, 'reset')) return _resetSlot(pid, id(3) ?? 0, id(5) ?? 0);
+          // Unload All names its refusals: only the H3C has an AMS 3H, and it
+          // has one slot on the toolhead.
+          if (at(3, 'unload-all')) {
+            if (pid != 7) {
+              return demoRefuse(400, 'Unload all needs an AMS 3H');
+            }
+            return demoOk(const {
+              'success': true,
+              'message': 'Unloading 1 AMS 3H slots',
+              'count': 1,
+            });
+          }
           // Load, unload and the RFID re-read change nothing a demo can show:
           // there is no filament path to move anything along.
           return demoOk(const {'ok': true});
@@ -594,7 +629,7 @@ class DemoBackend {
         return _plugsRoute(m, s, body);
 
       case 'maintenance':
-        return _maintenanceRoute(m, s, body);
+        return _maintenanceRoute(m, s, q, body);
 
       case 'inventory':
         return _inventoryRoute(m, s, q, body, rawBody);
@@ -649,6 +684,25 @@ class DemoBackend {
         if (s.length == 1 && m == 'GET') return demoOk(_externalLinks);
         return demoNotFound();
 
+      case 'obico':
+        // One provider at a time, as on the server: the demo runs
+        // OctoEverywhere, so Obico answers that it is off.
+        if (at(1, 'printer-status') && m == 'GET') {
+          return demoOk({
+            'enabled': false,
+            'monitored_printers': null,
+            'per_printer': <String, dynamic>{},
+            'last_error': null,
+          });
+        }
+        return demoNotFound();
+
+      case 'octoeverywhere':
+        if (at(1, 'printer-status') && m == 'GET') {
+          return demoOk(_aiDetectionStatus());
+        }
+        return demoNotFound();
+
       case 'manyfold':
         if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
         return _manyfold.route(m, s, q, body);
@@ -672,6 +726,9 @@ class DemoBackend {
           return demoRefuse(401, 'Not authenticated');
         }
         if (at(1, 'builtin-filaments')) return demoOk(_builtinFilaments);
+        if (at(1, 'filament-info') && m == 'POST') {
+          return demoOk(_filamentInfo(rawBody));
+        }
         return _fallback(m);
 
       case 'local-presets':
@@ -702,9 +759,15 @@ class DemoBackend {
 
       case 'finance':
         return _finance.route(m, s.skip(1).toList(), q, body);
+
+      case 'label-templates':
+        return _labelTemplates.route(m, s, body);
     }
     return null;
   }
+
+  /// Saved custom label sheets: two to start with, and state.
+  final _labelTemplates = DemoLabelTemplates();
 
   /// Billing: the cost centers, their members and the ledger.
   final _finance = DemoFinance();
@@ -796,6 +859,13 @@ class DemoBackend {
     'queue_keep_warm_max_minutes': 45,
     // Off the server's default of 5, like the rows above it.
     'pause_warning_minutes': 10,
+    // Off the server's default of `fewest_hours`, so the row visibly reads it:
+    // the two X1 Carbons carry priorities 2 and 1 in `_printers`, and the rest
+    // none, which is last.
+    'model_dispatch_order': 'priority',
+    // Off the server's default of 20, so the spool list and the notification
+    // settings row visibly read it. The Silk Gold spool (9.5% left) is below it.
+    'low_stock_threshold': 15.0,
   };
 
   Map<String, dynamic> get _demoUser => {
@@ -1391,6 +1461,7 @@ class DemoBackend {
       'wear_cost': null,
       'created_at': isoUtc(DateTime.now()),
     };
+    _setRunTotals(archive, _printLog);
     _archives.insert(0, archive);
     return archive;
   }
@@ -1436,6 +1507,21 @@ class DemoBackend {
   /// service isolate, which has no status poll of its own, not at all.
   List<int> get printerIds => [for (final p in _printers) p['id'] as int];
 
+  /// A printer deleted on the server, which the app cannot do itself (the web
+  /// UI does): for the test that watches the background service find out.
+  @visibleForTesting
+  void removePrinter(int id) => _printers.removeWhere((p) => p['id'] == id);
+
+  /// What the demo's WLED controller answers to `/presets.json`, as the server
+  /// lists it. Preset 4, mapped to Failed on the X1 Carbon, is missing on
+  /// purpose: the screen's "saved preset" row is on show.
+  static const _wledPresets = [
+    {'id': 1, 'name': 'Calm white'},
+    {'id': 2, 'name': 'Progress green'},
+    {'id': 3, 'name': 'Done rainbow'},
+    {'id': 5, 'name': 'Night off'},
+  ];
+
   final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
@@ -1446,8 +1532,15 @@ class DemoBackend {
       'model': 'X1C',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': 2,
       'nozzle_count': 1,
       'wear_cost_per_hour': _demoWearCostPerHour,
+      'wled_config': {
+        'enabled': true,
+        'base_url': 'http://192.168.4.40',
+        'presets': {'idle': 1, 'printing': 2, 'finished': 3, 'error': 4},
+        'finished_timeout_seconds': 300,
+      },
     },
     {
       'id': 2,
@@ -1458,6 +1551,7 @@ class DemoBackend {
       'model': 'P1S',
       'location': 'Office',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     {
@@ -1469,6 +1563,7 @@ class DemoBackend {
       'model': 'A1 mini',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     // Carries both P2S accessory fan kits — the only configuration that shows
@@ -1483,6 +1578,7 @@ class DemoBackend {
       'model': 'P2S',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
     // The second X1C, and the only reason the fleet is five rather than four:
@@ -1501,6 +1597,7 @@ class DemoBackend {
       'model': 'X1C',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': 1,
       'nozzle_count': 1,
     },
     // The only machine with two nozzles and a chamber heater, so the four
@@ -1515,6 +1612,7 @@ class DemoBackend {
       'model': 'H2D',
       'location': 'Workshop',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 2,
     },
     // The only rack printer: an AMS 3H numbered 28-36 with its dryer, nine
@@ -1529,6 +1627,7 @@ class DemoBackend {
       'model': 'H3C',
       'location': 'Office',
       'is_active': true,
+      'dispatch_priority': null,
       'nozzle_count': 1,
     },
   ];
@@ -1541,9 +1640,8 @@ class DemoBackend {
   };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(
-    printerId,
-    switch (printerId) {
+  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(printerId, {
+    ...switch (printerId) {
       1 => _statusPrinting(),
       2 => _maybePrinting(2, _statusIdle(), 'Mop station'),
       4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
@@ -1560,7 +1658,61 @@ class DemoBackend {
         'state': null,
       },
     },
-  );
+    // Written for every printer, null where none is bound, as the server does.
+    'panda_breath': printerId == 2 ? _pandaBreathJson() : null,
+  });
+
+  Map<String, dynamic> _pandaBreathJson() {
+    final drying = _pandaOn && _pandaMode == 'filament drying';
+    return {
+      'device_id': 'pb-demo',
+      'online': true,
+      'chamber_temp': _r1(
+        _pandaOn ? _pandaTarget - 2 + _wiggle(0.8, phase: 45) : 27,
+      ),
+      'target_temp': _pandaTarget.toDouble(),
+      'work_on': _pandaOn,
+      'mode': _pandaMode,
+      'filament_drying_mode': drying ? 'PLA' : null,
+      'drying_running': drying,
+      'drying_remaining_min': drying ? 95.0 : null,
+    };
+  }
+
+  /// Mirrors the route's checks in its order: the body's validation (422),
+  /// exactly one field (400), then a heater on the printer (404).
+  DemoResult _pandaBreathCommand(int pid, Map<String, dynamic> body) {
+    bool valid(String key, Object value) => switch (key) {
+      'work_on' => value is bool,
+      'mode' => PandaBreathMode.values.any((m) => m.wire == value),
+      _ => value is int && value >= 0 && value <= pandaBreathMaxTargetC,
+    };
+    // Unknown keys are dropped and nulls mean "not sent", as in Pydantic.
+    final changes = {
+      for (final MapEntry(:key, :value) in body.entries)
+        if (value != null &&
+            const {'work_on', 'mode', 'target_temp'}.contains(key))
+          key: value as Object,
+    };
+    for (final MapEntry(:key, :value) in changes.entries) {
+      if (!valid(key, value)) return demoRefuse(422, 'Invalid $key');
+    }
+    if (changes.length != 1) {
+      return demoRefuse(400, 'Send exactly one of work_on, mode, target_temp');
+    }
+    if (pid != 2) {
+      return demoRefuse(404, 'No Panda Breath is bound to this printer');
+    }
+    switch (changes.entries.single) {
+      case MapEntry(key: 'work_on', :final bool value):
+        _pandaOn = value;
+      case MapEntry(key: 'mode', :final String value):
+        _pandaMode = value;
+      case MapEntry(key: 'target_temp', :final int value):
+        _pandaTarget = value;
+    }
+    return demoOk(const {'success': true});
+  }
 
   /// Lays whatever the slot sheet wrote over the generated trays.
   ///
@@ -1847,12 +1999,49 @@ class DemoBackend {
     'door_open': false,
     'ams_exists': true,
     'ams': [_amsUnitPlaOnly()],
-    'vt_tray': const <Object>[],
+    // Both holders of a dual machine, the left one loaded: with the four AMS
+    // slots they are the six tiles the compact view lays out.
+    'vt_tray': [
+      {
+        'id': 254,
+        'tray_type': 'TPU',
+        'tray_sub_brands': 'TPU 95A HF',
+        'tray_color': '4FAE7AFF',
+        'tray_info_idx': 'GFU01',
+        'remain': 71,
+      },
+      {'id': 255, 'tray_type': '', 'tray_color': '', 'remain': 0},
+    ],
     'tray_now': 255,
     // The left head, which is the plain `nozzle` key and the one a print here
     // heats ([_maybePrinting] sets only that one): index 0 is the right head,
     // `nozzle_2`, which would be marked active while it sat cold.
     'active_extruder': 1,
+    // The two heads' own figures, as a H2D sends them: id 0 is the right one
+    // (`nozzle_2`), id 1 the left, and neither is a rack dock. The left one
+    // reports no wear, which the sheet has to leave out.
+    'nozzle_rack': [
+      {
+        'id': 0,
+        'nozzle_type': 'HS01',
+        'nozzle_diameter': '0.6',
+        'wear': 18,
+        'print_time_s': 7320,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0R001',
+      },
+      {
+        'id': 1,
+        'nozzle_type': 'HH01',
+        'nozzle_diameter': '0.4',
+        'wear': null,
+        'print_time_s': 3661,
+        'stat': 1,
+        'max_temp': 300,
+        'serial_number': '09K00A9H2D0L001',
+      },
+    ],
     'hms_errors': const <Object>[],
     'firmware_version': '01.01.00.00',
     'cover_url': null,
@@ -1929,6 +2118,8 @@ class DemoBackend {
                       'tray_color': colour,
                       'tray_info_idx': 'GFA00',
                       'remain': 40 + i * 6,
+                      // Slot 6 is the one on the toolhead.
+                      if (i == 6) 'state': ams3hTrayInHotend,
                     },
           ],
         },
@@ -1958,6 +2149,16 @@ class DemoBackend {
             'nozzle_diameter': i == 3 ? '0.6' : '0.4',
             'filament_color': colours[i] ?? '00000000',
             'filament_type': colours[i] == null ? '' : 'PLA',
+            // What each nozzle reports about itself: the mounted one has
+            // printed longest, 7 is a newer nozzle, and 8 reports no print time
+            // (older firmware), so the card has to leave that row out.
+            'wear': [12, 8, 21, 3, 15, 30, 44, 0, 6][i],
+            'print_time_s': i == 8
+                ? null
+                : [14400, 90061, 7320, 600, 28800, 3600, 172800, 0][i],
+            'stat': i == 6 ? 1 : 0,
+            'max_temp': i == 7 ? 300 : 280,
+            'serial_number': '0K00A9${i}C3X00${i + 1}',
           },
       ],
       'hms_errors': const <Object>[],
@@ -2073,6 +2274,19 @@ class DemoBackend {
     {'filament_id': 'GFG99', 'name': 'Generic PETG'},
     {'filament_id': 'GFB99', 'name': 'Generic ABS'},
   ];
+
+  /// `POST /cloud/filament-info`: an entry for every id asked, named from the
+  /// built-in table and empty where it has none, as the server answers without
+  /// a cloud login. The detailed rows lead with these names.
+  Map<String, dynamic> _filamentInfo(Object? ids) {
+    final names = {
+      for (final f in _builtinFilaments) f['filament_id']!: f['name']!,
+    };
+    return {
+      for (final id in (ids is List ? ids : const []).whereType<String>())
+        id: {'name': names[id] ?? '', 'k': null},
+    };
+  }
 
   /// Presets imported from a slicer bundle. The P1S one is here to show the
   /// printer filter doing something on the X1C card, and the ASA one to show a
@@ -3098,6 +3312,9 @@ class DemoBackend {
     if (s.length == 4 && s[1] == 'model' && s[3] == 'resume' && m == 'POST') {
       return _resumeModelAfterFailure(Uri.decodeComponent(s[2]));
     }
+    if (s.length == 2 && s[1] == 'duplicate' && m == 'POST') {
+      return _duplicateQueued(body);
+    }
     if (s.length >= 2 && s[1] == 'reorder') {
       final items = body['items'];
       if (items is List) {
@@ -3172,6 +3389,45 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  /// `POST /queue/duplicate`: a copy of each queued or printing job at the end
+  /// of the queue, and a count of the ones it may not copy (not queued or
+  /// printing, or a printer-card upload whose file goes with the original).
+  DemoResult _duplicateQueued(Map<String, dynamic> body) {
+    final asked = body['item_ids'];
+    if (asked is! List || asked.isEmpty || asked.length > 500) {
+      return demoRefuse(422, 'item_ids takes 1 to 500 ids');
+    }
+    final created = <int>[];
+    for (final id in asked.toSet()) {
+      final source = rowById([?_printingRow, ..._queue], id);
+      final copiable =
+          source != null &&
+          (source['status'] == 'pending' || source['status'] == 'printing') &&
+          source['archive_deleted'] != true &&
+          !(source['cleanup_library_after_dispatch'] == true &&
+              source['archive_id'] == null);
+      if (!copiable) continue;
+      final copy = {
+        ...source,
+        'id': _nextQueueId++,
+        'status': 'pending',
+        'position': _queue.length + 1,
+        'started_at': null,
+        'completed_at': null,
+        'batch_id': null,
+        'batch_name': null,
+        'manual_start': false,
+        'created_at': isoUtc(DateTime.now()),
+      };
+      _queue.add(copy);
+      created.add(copy['id'] as int);
+    }
+    return demoOk({
+      'created_ids': created,
+      'skipped_count': asked.toSet().length - created.length,
+    });
+  }
 
   /// The job printer 1 is running, as the queue lists it while it runs: the
   /// card on the Printers tab and the top of the queue are the same print. Built
@@ -3689,7 +3945,14 @@ class DemoBackend {
 
   // --- Archives + stats ---
 
-  late final List<Map<String, dynamic>> _archives = _buildArchives();
+  late final List<Map<String, dynamic>> _archiveRows = _buildArchives();
+
+  /// Reading the archives builds the print log first: the run totals on each
+  /// row are summed from it (`_setRunTotals`).
+  List<Map<String, dynamic>> get _archives {
+    _printLog;
+    return _archiveRows;
+  }
 
   List<Map<String, dynamic>> _buildArchives() {
     var id = 40;
@@ -4067,7 +4330,7 @@ class DemoBackend {
       };
     }
 
-    final multi = _archives.firstWhere((a) => a['run_count'] == 3);
+    final multi = _archiveRows.firstWhere((a) => a['run_count'] == 3);
 
     Map<String, dynamic> orphan(
       String name,
@@ -4107,7 +4370,7 @@ class DemoBackend {
       };
     }
 
-    return [
+    final log = [
       // Newest first, the order the server sorts by.
       orphan(
         'Bracket v3 (deleted archive)',
@@ -4117,7 +4380,7 @@ class DemoBackend {
         failureReason: 'cloggedNozzle',
         energyKwh: 0.06,
       ),
-      for (final a in _archives) row(a),
+      for (final a in _archiveRows) row(a),
       earlier(
         multi,
         plateId: 1,
@@ -4135,6 +4398,47 @@ class DemoBackend {
       ),
       orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
     ];
+    for (final a in _archiveRows) {
+      _setRunTotals(a, log);
+    }
+    return log;
+  }
+
+  /// The run counts and totals of an archive whose prints were moved or
+  /// deleted, read again from the print log.
+  void _syncRuns(Map<String, dynamic> archive) {
+    final runs = _printLog.where((e) => e['archive_id'] == archive['id']);
+    archive['run_count'] = runs.length;
+    archive['successful_run_count'] = runs
+        .where((e) => e['status'] == 'completed')
+        .length;
+    archive['failed_run_count'] = runs
+        .where((e) => e['status'] == 'failed')
+        .length;
+    _setRunTotals(archive, _printLog);
+  }
+
+  /// The four `total_*` figures the server sums over an archive's prints
+  /// (`_load_run_aggregates`, #3609); null where no print has the figure.
+  void _setRunTotals(
+    Map<String, dynamic> archive,
+    List<Map<String, dynamic>> log,
+  ) {
+    final runs = log.where((e) => e['archive_id'] == archive['id']);
+    double? sum(String key, int digits) {
+      final values = [
+        for (final r in runs)
+          if (r[key] case final num v) v,
+      ];
+      if (values.isEmpty) return null;
+      final total = values.reduce((a, b) => a + b);
+      return double.parse(total.toStringAsFixed(digits));
+    }
+
+    archive['total_cost'] = sum('cost', 2);
+    archive['total_energy_kwh'] = sum('energy_kwh', 3);
+    archive['total_energy_cost'] = sum('energy_cost', 2);
+    archive['total_wear_cost'] = sum('wear_cost', 2);
   }
 
   String? _printerName(int? printerId) {
@@ -4171,6 +4475,7 @@ class DemoBackend {
         // Clears every row, ignoring the filters above — as the route does.
         final deleted = _printLog.length;
         _printLog.clear();
+        _archives.forEach(_syncRuns);
         return demoOk({'deleted': deleted});
       }
       return _fallback(m);
@@ -4183,6 +4488,8 @@ class DemoBackend {
 
     if (m == 'DELETE') {
       _printLog.remove(entry);
+      final owner = rowById(_archives, entry['archive_id']);
+      if (owner != null) _syncRuns(owner);
       return demoOk({'status': 'deleted', 'id': entryId});
     }
     if (m == 'PATCH') {
@@ -4547,14 +4854,7 @@ class DemoBackend {
           run['archive_id'] = survivor['id'];
         }
       }
-      final runs = _printLog.where((e) => e['archive_id'] == survivor['id']);
-      survivor['run_count'] = runs.length;
-      survivor['successful_run_count'] = runs
-          .where((e) => e['status'] == 'completed')
-          .length;
-      survivor['failed_run_count'] = runs
-          .where((e) => e['status'] == 'failed')
-          .length;
+      _syncRuns(survivor);
       _archives.removeWhere(others.contains);
       merged.add({
         'survivor_id': survivor['id'],
@@ -5733,8 +6033,13 @@ class DemoBackend {
   DemoResult? _maintenanceRoute(
     String m,
     List<String> s,
+    Map<String, String> q,
     Map<String, dynamic> body,
   ) {
+    if (s.length >= 2 && s[1] == 'log') return _maintenanceLogRoute(m, s, q);
+    if (s.length >= 4 && s[1] == 'printers' && s[3] == 'log') {
+      return _maintenanceLogRoute(m, s, q);
+    }
     if (s.length >= 2 && s[1] == 'overview') {
       return demoOk([
         for (final p in _printers) _maintenanceOverviewFor(p['id'] as int),
@@ -5808,7 +6113,8 @@ class DemoBackend {
       if (s.length >= 4 && s[3] == 'perform') {
         item['hours_since'] = 0.0;
         item['last_performed_at'] = isoUtc(DateTime.now());
-        return demoOk(_maintenanceStatus(itemId!));
+        _logReset(itemId!, body['notes'] as String?);
+        return demoOk(_maintenanceStatus(itemId));
       }
       if (s.length >= 4 && s[3] == 'history') {
         final last = item['last_performed_at'];
@@ -5839,6 +6145,143 @@ class DemoBackend {
     return _fallback(m);
   }
 
+  /// The log of resets, newest first as the server lists it: a few from the
+  /// past, and one more for every reset made in the demo.
+  late final List<Map<String, dynamic>> _maintenanceLog = [
+    for (final (id, printer, type, days, hours, notes) in const [
+      (6, 3, 2, 5, 40.0, null),
+      (5, 2, 2, 10, 90.5, null),
+      (4, 1, 3, 20, 390.0, 'Replaced the PTFE tube'),
+      (3, 2, 1, 45, 50.0, 'Cleaned the rods'),
+      (2, 1, 2, 60, 300.0, null),
+      (1, 1, 1, 120, 176.5, 'Cleaned and greased the rods'),
+    ])
+      _logEntry(
+        id: id,
+        printerId: printer,
+        typeId: type,
+        performedAt: _daysAgo(days),
+        hours: hours,
+        notes: notes,
+      ),
+  ];
+  int _nextLogId = 7;
+
+  Map<String, dynamic> _logEntry({
+    required int id,
+    required int printerId,
+    required int typeId,
+    required DateTime performedAt,
+    required double hours,
+    String? notes,
+  }) => {
+    'id': id,
+    'printer_id': printerId,
+    'printer_name': rowById(_printers, printerId)?['name'],
+    'maintenance_type_id': typeId,
+    'maintenance_type_name': rowById(_maintenanceTypes, typeId)?['name'],
+    'hours_at_maintenance': hours,
+    'notes': notes,
+    'performed_by_id': 1,
+    'performed_by_username': DemoConfig.username,
+    'performed_at': isoUtc(performedAt),
+  };
+
+  /// A reset of item [itemId] enters the log, as the server writes it.
+  void _logReset(int itemId, String? notes) {
+    final item = _maintenanceItems[itemId];
+    if (item == null) return;
+    final printerId = item['printer_id'] as int;
+    _maintenanceLog.insert(
+      0,
+      _logEntry(
+        id: _nextLogId++,
+        printerId: printerId,
+        typeId: item['type_id'] as int,
+        performedAt: DateTime.now(),
+        hours: _printerHours[printerId] ?? 0,
+        notes: (notes ?? '').isEmpty ? null : notes,
+      ),
+    );
+  }
+
+  /// The routes of the log, in the server's order of checks: 404 for a printer
+  /// that is not there, 422 for a query out of range.
+  DemoResult _maintenanceLogRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+  ) {
+    // `printers/{id}/log[/export]` or `log[/export|/{entry}]`.
+    final perPrinter = s[1] == 'printers';
+    final printerId = perPrinter ? int.tryParse(s[2]) : null;
+    if (perPrinter && rowById(_printers, printerId) == null) {
+      return demoRefuse(404, 'Printer not found');
+    }
+    final tail = s.skip(perPrinter ? 4 : 2).toList();
+    final rows = [
+      for (final e in _maintenanceLog)
+        if (printerId == null || e['printer_id'] == printerId) e,
+    ];
+    if (tail.isEmpty && m == 'GET' && perPrinter) {
+      final limit = intQuery(q, 'limit', 50);
+      final offset = intQuery(q, 'offset', 0);
+      if (limit < 1 || limit > 500 || offset < 0) {
+        return demoRefuse(422, 'limit takes 1..500 and offset 0 or more');
+      }
+      return demoOk({
+        'items': rows.skip(offset).take(limit).toList(),
+        'total': rows.length,
+      });
+    }
+    if (tail.length == 1 && tail.first == 'export' && m == 'GET') {
+      final lines = [
+        'Performed at (UTC),Printer,Task,Performed by,Print hours,Comment',
+        for (final e in rows)
+          [
+            e['performed_at'],
+            e['printer_name'],
+            e['maintenance_type_name'],
+            e['performed_by_username'],
+            (e['hours_at_maintenance'] as num).toStringAsFixed(1),
+            e['notes'] ?? '',
+          ].map((v) => '"$v"').join(','),
+      ];
+      return _file(
+        Uint8List.fromList([
+          0xEF,
+          0xBB,
+          0xBF,
+          ...utf8.encode('${lines.join('\n')}\n'),
+        ]),
+        'text/csv; charset=utf-8',
+      );
+    }
+    if (tail.isEmpty && m == 'DELETE') {
+      final days = int.tryParse(q['older_than_days'] ?? '');
+      if (days == null || days < 1 || days > 36500) {
+        return demoRefuse(422, 'older_than_days takes 1..36500');
+      }
+      final cutoff = DateTime.now().subtract(Duration(days: days));
+      final gone = rows
+          .where(
+            (e) => DateTime.parse(e['performed_at'] as String).isBefore(cutoff),
+          )
+          .toList();
+      _maintenanceLog.removeWhere(gone.contains);
+      return demoOk({'deleted': gone.length});
+    }
+    if (!perPrinter && tail.length == 1 && m == 'DELETE') {
+      final entry = rowById(_maintenanceLog, int.tryParse(tail.first));
+      if (entry == null) {
+        return demoRefuse(404, 'Maintenance log entry not found');
+      }
+      _maintenanceLog.remove(entry);
+      return demoOk({'status': 'deleted', 'id': entry['id']});
+    }
+    return _fallback(m);
+  }
+
   // --- Inventory (native) ---
 
   late final List<Map<String, dynamic>> _spools = _buildSpools();
@@ -5860,6 +6303,7 @@ class DemoBackend {
       String? archivedAt,
       int? lowStockPct,
       double baseline = 0,
+      String? tagUid,
     }) => {
       'id': id++,
       'material': material,
@@ -5880,7 +6324,7 @@ class DemoBackend {
       'note': null,
       'nozzle_temp_min': material == 'PETG' ? 230 : 190,
       'nozzle_temp_max': material == 'PETG' ? 260 : 230,
-      'tag_uid': null,
+      'tag_uid': tagUid,
       'archived_at': archivedAt,
       'last_used': isoUtc(_daysAgo(id % 6)),
       'created_at': isoUtc(_daysAgo(30 + id)),
@@ -5900,6 +6344,8 @@ class DemoBackend {
         '000000FF',
         used: 340,
         location: 'Shelf A',
+        // What the demo's NFC reader holds to the phone (`demo_nfc.dart`).
+        tagUid: demoNfcSpoolTag,
       ),
       spool(
         'PLA',
@@ -6565,7 +7011,23 @@ class DemoBackend {
       return demoRefuse(422, 'unknown template ${body['template']}');
     }
 
-    final capacity = template.sheetCapacity;
+    // `LabelOptions.layout_only_for_custom`: a layout goes with the custom
+    // template and with no other, and one the renderer cannot fit is refused.
+    final rawLayout = body['layout'];
+    final layout = rawLayout is Map<String, dynamic>
+        ? SheetLayout.tryFromJson(rawLayout)
+        : null;
+    if ((template == SpoolLabelTemplate.custom) != (rawLayout != null)) {
+      return demoRefuse(
+        422,
+        'layout is required for template "custom" and not allowed otherwise',
+      );
+    }
+    if (rawLayout != null && (layout == null || layout.problem != null)) {
+      return demoRefuse(422, 'invalid sheet layout');
+    }
+
+    final capacity = layout?.capacity ?? template.sheetCapacity;
     final start = (body['starting_position'] as num?)?.toInt() ?? 1;
     if (start < 1 || start > (capacity ?? 1)) {
       return demoRefuse(
@@ -6610,6 +7072,7 @@ class DemoBackend {
           DemoLabelSpool.fromJson(_spools.firstWhere((x) => x['id'] == id)),
       ],
       template: template,
+      layout: layout,
       fields: fields,
       monochrome: body['monochrome'] == true,
       startingPosition: start,
@@ -7340,6 +7803,35 @@ class DemoBackend {
       'update_available': false,
     },
   ];
+
+  // --- AI failure detection ---
+
+  /// `GET /octoeverywhere/printer-status`: every printer monitored, an entry
+  /// per running print as the server keeps them. The demo's own print is rated
+  /// well; the second machine carries a warning, so both colours are on screen
+  /// with the default two printers printing.
+  Map<String, dynamic> _aiDetectionStatus() {
+    final running = [
+      for (final id in _printOrder)
+        if (_printsNow(id) && !(id == 1 && _stopped)) id,
+    ];
+    return {
+      'enabled': true,
+      'monitored_printers': null,
+      'per_printer': {
+        for (final (i, id) in running.indexed)
+          '$id': {
+            'class': i == 1 ? 'warning' : 'safe',
+            'print_quality': i == 1 ? 4 : 9,
+            'frame_count': _elapsedSec ~/ 10,
+            'error': null,
+            'error_code': null,
+          },
+      },
+      'last_error': null,
+      'last_error_code': null,
+    };
+  }
 
   // --- Manyfold ---
 

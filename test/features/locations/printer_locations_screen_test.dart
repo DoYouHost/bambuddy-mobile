@@ -7,7 +7,9 @@ import 'package:bambuddy_mobile/data/printer_locations_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/locations/printer_locations_screen.dart';
+import 'package:bambuddy_mobile/features/locations/printer_locations_widgets.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -79,12 +81,7 @@ void main() {
         inertStatusesOverride,
         if (user != null) currentUserOverride(user),
       ],
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
-      ),
+      builder: textScaled(textScale),
     );
     await tester.pumpAndSettle();
   }
@@ -111,6 +108,52 @@ void main() {
         );
         expect(move.width, greaterThan(411 / 2 - 40));
       }
+    });
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('a folded card is its header target top to bottom at text '
+        '$scale', (tester) async {
+      tester.view.physicalSize = const Size(411, 4000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpScreen(tester, textScale: scale);
+
+      final header = find
+          .ancestor(of: find.text('Workshop'), matching: find.byType(InkWell))
+          .first;
+      final card = find
+          .ancestor(
+            of: header,
+            matching: find.byWidgetPredicate(
+              (w) => w is Container && w.decoration is BoxDecoration,
+            ),
+          )
+          .first;
+      final h = tester.getRect(header);
+      // Inside the 1 dp border, the header and then delete reach every edge.
+      final c = tester.getRect(card).deflate(1);
+      expect(h.top, c.top);
+      expect(h.bottom, c.bottom);
+      expect(h.left, c.left);
+      final delete = find.descendant(
+        of: card,
+        matching: byLogId('locations.delete'),
+      );
+      expect(tester.getRect(delete).right, c.right);
+      expect(tester.takeException(), isNull);
+
+      // Two lines at 2.0x outgrow 48 dp; they still keep off the border.
+      final content = tester.getRect(
+        find.descendant(of: header, matching: find.byType(Row)).first,
+      );
+      expect(content.top - h.top, greaterThanOrEqualTo(DashSpace.xs));
+      expect(h.bottom - content.bottom, greaterThanOrEqualTo(DashSpace.xs));
+
+      // A tap at the very top, where the old padding used to swallow it.
+      await tester.tapAt(Offset(h.center.dx, c.top + 2));
+      await tester.pumpAndSettle();
+      expect(find.text('Bench'), findsOneWidget);
     });
   }
 
@@ -371,7 +414,16 @@ void main() {
 
     await tester.tap(find.text('Office'));
     await tester.pumpAndSettle();
-    await tester.tap(byLogId('locations.printer_select'));
+    // The unlocated printer's row is on screen too: tick the one in Office.
+    await tester.tap(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('Office'),
+          matching: find.byType(LocationCard),
+        ),
+        matching: byLogId('locations.printer_select'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(byLogId('locations.move_selected'), findsOneWidget);
 

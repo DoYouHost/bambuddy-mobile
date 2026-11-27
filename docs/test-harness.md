@@ -64,7 +64,7 @@ the real one. This file keeps the reasons; the code keeps one line each.
   key, and the auth interceptors differ.
 - **The inert overrides** (`inertFirmwareOverride`, `inertAnnouncementsOverride`,
   `inertExternalLinksOverride`, `inertTotalPrintHoursOverride`, `inertChamberMaxOverride`,
-  `inertHistorySupportOverrides`, `inertSmartPlugsOverride`,
+  `inertCompactAmsOverride`, `inertFilamentNamesOverride`, `inertHistorySupportOverrides`, `inertSmartPlugsOverride`,
   `inertStatusesOverride`) keep a provider the screen reads while it renders off
   the network. A real fetch leaves a hanging Dio timer, and a live poll
   outlives the test; both trip the framework's pending-timer check.

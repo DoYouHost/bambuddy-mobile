@@ -1,4 +1,5 @@
 import '../models/json_utils.dart';
+import '../models/label_template.dart';
 import '../models/spool_label.dart';
 
 /// Where a rendered label file goes.
@@ -33,6 +34,7 @@ class LabelPrintPrefs {
     this.copies = 1,
     this.cutAtEnd = true,
     this.cutEvery = 0,
+    this.customLayout,
   });
 
   final bool monochrome;
@@ -53,6 +55,12 @@ class LabelPrintPrefs {
   final int copies;
   final bool cutAtEnd;
   final int cutEvery;
+
+  /// The one-off custom sheet last used, which the form opens with. Null until
+  /// one has been; never cleared, since a form always has something to start
+  /// from. Written beside the older keys, so a version that does not know it
+  /// reads the rest as before.
+  final SheetLayout? customLayout;
 
   /// Where the file goes, given what is possible right now: a PNG cannot be
   /// printed or sent to the print server (which takes PDF), and a label printer
@@ -95,6 +103,7 @@ class LabelPrintPrefs {
     int? copies,
     bool? cutAtEnd,
     int? cutEvery,
+    SheetLayout? customLayout,
   }) => LabelPrintPrefs(
     monochrome: monochrome ?? this.monochrome,
     destination: destination ?? this.destination,
@@ -104,6 +113,7 @@ class LabelPrintPrefs {
     copies: copies ?? this.copies,
     cutAtEnd: cutAtEnd ?? this.cutAtEnd,
     cutEvery: cutEvery ?? this.cutEvery,
+    customLayout: customLayout ?? this.customLayout,
   );
 
   Map<String, dynamic> toJson() => {
@@ -118,6 +128,7 @@ class LabelPrintPrefs {
     'copies': copies,
     'cut_at_end': cutAtEnd,
     'cut_every': cutEvery,
+    if (customLayout != null) 'custom_layout': customLayout!.toJson(),
   };
 
   /// Tolerant: a value that is missing, of the wrong type or no longer a known
@@ -142,6 +153,7 @@ class LabelPrintPrefs {
       }
     }
 
+    final rawLayout = json['custom_layout'];
     return LabelPrintPrefs(
       monochrome: json['monochrome'] == true,
       destination: enumByName(LabelDestination.values, json['destination']),
@@ -153,6 +165,9 @@ class LabelPrintPrefs {
       copies: whole('copies', 1, min: 1, max: labelPrinterMaxCopies),
       cutAtEnd: json['cut_at_end'] != false,
       cutEvery: whole('cut_every', 0),
+      customLayout: rawLayout is Map<String, dynamic>
+          ? SheetLayout.tryFromJson(rawLayout)
+          : null,
     );
   }
 }

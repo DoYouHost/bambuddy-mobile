@@ -24,6 +24,8 @@ import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/group_write.dart';
+import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_create.dart';
 import 'package:bambuddy_mobile/core/models/user_write.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/account_repository.dart';
@@ -72,6 +74,12 @@ String? get brokerSkipReason =>
 /// their own run and put the setting back after.
 String? get contractSpoolmanUrl =>
     Platform.environment['BAMBUDDY_CONTRACT_SPOOLMAN_URL'];
+
+/// `tool/ci/fake_wled.py` as the server and this process both reach it,
+/// `http://<container ip>`: a process on the host is not reachable from the
+/// server's container wherever the host firewall drops that traffic.
+String? get contractWledUrl =>
+    Platform.environment['BAMBUDDY_CONTRACT_WLED_URL'];
 
 String? get spoolmanSkipReason =>
     contractSkipReason ??
@@ -272,7 +280,16 @@ ProviderContainer contractContainer(Dio dio) {
 }
 
 /// One report from the stand-in printer, as a Bambu printer publishes it.
-Future<void> publishReport(String serial, Map<String, Object?> print) async {
+Future<void> publishReport(String serial, Map<String, Object?> print) =>
+    publishTopic('device/$serial/report', jsonEncode({'print': print}));
+
+/// One message on the stand-in broker. [retain] keeps it for a client that
+/// subscribes later; an empty retained message clears the topic.
+Future<void> publishTopic(
+  String topic,
+  String message, {
+  bool retain = false,
+}) async {
   final result = await Process.run('docker', [
     'exec',
     contractBrokerContainer!,
@@ -285,9 +302,9 @@ Future<void> publishReport(String serial, Map<String, Object?> print) async {
     '--cafile',
     '/mosquitto/certs/server.crt',
     '-t',
-    'device/$serial/report',
-    '-m',
-    jsonEncode({'print': print}),
+    topic,
+    if (retain) '-r',
+    if (message.isEmpty) '-n' else ...['-m', message],
   ]);
   if (result.exitCode != 0) {
     throw StateError('mosquitto_pub failed: ${result.stderr}');
@@ -298,15 +315,30 @@ Future<void> publishReport(String serial, Map<String, Object?> print) async {
 /// while [send] runs that [where] picks, as its `print` object. The server
 /// publishes other requests on the same topic (pushall and the like), hence the
 /// filter.
+Future<Map<String, dynamic>> firstRequest(
+  String serial,
+  Future<void> Function() send, {
+  required bool Function(Map<String, dynamic> print) where,
+}) async {
+  final message = await firstMessage(
+    'device/$serial/request',
+    send,
+    where: (m) => m['print'] is Map<String, dynamic> && where(m['print']),
+  );
+  return message['print'] as Map<String, dynamic>;
+}
+
+/// The first JSON object published on [topic] while [send] runs that [where]
+/// picks.
 ///
 /// `-d` makes mosquitto_sub log its SUBACK to the same stdout the messages
 /// arrive on, so one subscription can wait for it before [send] — a request
 /// sent earlier is never delivered. `-W` bounds the process inside the
 /// container.
-Future<Map<String, dynamic>> firstRequest(
-  String serial,
+Future<Map<String, dynamic>> firstMessage(
+  String topic,
   Future<void> Function() send, {
-  required bool Function(Map<String, dynamic> print) where,
+  required bool Function(Map<String, dynamic> message) where,
 }) async {
   final sub = await Process.start('docker', [
     'exec',
@@ -324,7 +356,7 @@ Future<Map<String, dynamic>> firstRequest(
     '--cafile',
     '/mosquitto/certs/server.crt',
     '-t',
-    'device/$serial/request',
+    topic,
     '-W',
     '20',
   ]);
@@ -339,11 +371,11 @@ Future<Map<String, dynamic>> firstRequest(
           return;
         }
         if (!line.startsWith('{')) return;
-        final print = (jsonDecode(line) as Map)['print'];
-        if (print is Map<String, dynamic> &&
-            where(print) &&
+        final message = jsonDecode(line);
+        if (message is Map<String, dynamic> &&
+            where(message) &&
             !found.isCompleted) {
-          found.complete(print);
+          found.complete(message);
         }
       });
   try {
@@ -386,3 +418,35 @@ Future<ServerVersion> contractServerVersion() async {
   ).current();
   return version!;
 }
+
+const _same = Object();
+
+/// The edit form's save of [printer] as the server holds it: every field its
+/// own, and every key the server served sent with its current value.
+///
+/// [model], [wearCostPerHour] and [dispatchPriority] replace the row's value,
+/// and a null given is a null sent — which clears the field; leave one out to
+/// keep it. [served] narrows which optional keys go out, as an older server's
+/// row would.
+PrinterUpdate saveOf(
+  Printer printer, {
+  Object? model = _same,
+  Object? wearCostPerHour = _same,
+  Object? dispatchPriority = _same,
+  Set<String>? served,
+}) => PrinterUpdate(
+  name: printer.name,
+  ipAddress: printer.ipAddress!,
+  autoArchive: printer.autoArchive ?? true,
+  isActive: printer.isActive ?? true,
+  location: printer.location,
+  model: identical(model, _same) ? printer.model : model as String?,
+  wearCostPerHour: identical(wearCostPerHour, _same)
+      ? printer.wearCostPerHour
+      // A num, not a double: `Object?` takes the literal `0` as an int.
+      : (wearCostPerHour as num?)?.toDouble(),
+  dispatchPriority: identical(dispatchPriority, _same)
+      ? printer.dispatchPriority
+      : dispatchPriority as int?,
+  served: served ?? printer.servedKeys,
+);

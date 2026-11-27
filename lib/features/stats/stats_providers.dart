@@ -12,6 +12,7 @@ import '../../data/inventory_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'stats_computed.dart';
+import '../../core/models/value_equality.dart';
 
 /// Active time range label — shared by AppBar and widget captions.
 String statsRangeLabel(AppLocalizations l10n, StatsRange range) =>
@@ -30,7 +31,7 @@ enum StatsRange { allTime, last7Days, last30Days, last90Days, thisYear, custom }
 
 /// Stats filter: time range (+ optional explicit dates for [StatsRange.custom]).
 @immutable
-class StatsFilter {
+class StatsFilter with ValueEquality {
   const StatsFilter({
     this.range = StatsRange.allTime,
     this.from,
@@ -55,15 +56,7 @@ class StatsFilter {
       );
 
   @override
-  bool operator ==(Object other) =>
-      other is StatsFilter &&
-      other.range == range &&
-      other.from == from &&
-      other.to == to &&
-      other.createdById == createdById;
-
-  @override
-  int get hashCode => Object.hash(range, from, to, createdById);
+  List<Object?> get props => [range, from, to, createdById];
 }
 
 /// Active stats filter. Changing value reloads [statsProvider].

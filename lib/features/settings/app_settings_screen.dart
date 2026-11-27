@@ -15,6 +15,7 @@ import '../tour/tour_beacon.dart';
 import '../wall/wall_providers.dart';
 import '../label_printer/label_printer_screen.dart';
 import 'certificates_card.dart';
+import 'edge_access_tile.dart';
 import 'demo_printers_provider.dart';
 import 'watch_settings.dart';
 
@@ -116,6 +117,13 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 .read(printerCardsCollapsedByDefaultProvider.notifier)
                 .set,
           ),
+          SettingsSwitchRow(
+            tag: 'app_settings.compact_ams_layout',
+            title: l10n.compactAmsLayoutTitle,
+            subtitle: l10n.compactAmsLayoutDesc,
+            value: ref.watch(compactAmsLayoutProvider),
+            onChanged: ref.read(compactAmsLayoutProvider.notifier).set,
+          ),
         ],
       ),
       const SizedBox(height: DashSpace.xl),
@@ -157,6 +165,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       const SizedBox(height: DashSpace.xl),
       SettingsSectionHeader(l10n.certificatesTitle),
       const CertificatesCard(),
+      const EdgeAccessTile(),
       const SizedBox(height: DashSpace.xl),
       SettingsSectionHeader(l10n.notifSettingsTitle),
       SettingsEntryTile(

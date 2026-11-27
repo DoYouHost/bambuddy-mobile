@@ -43,6 +43,10 @@
          README lists it with INTERNET as everything Android needs. A normal
          permission — no runtime prompt. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+    <!-- That permission implies a required android.hardware.wifi, which Play then
+         uses to hide the app from Wi-Fi-less devices (an Ethernet-only tablet or
+         desktop still reaches a LAN server). -->
+    <uses-feature android:name="android.hardware.wifi" android:required="false"/>
     <!-- No WAKE_LOCK of ours any more (see `allowWakeLock` in lib/main.dart).
          flutter_foreground_task declares the permission in its own manifest, so
          it still merges into the APK — nothing in this app acquires a lock. -->
@@ -54,6 +58,12 @@
          permission requested when the scanner opens. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- Spool NFC tags (#71): the inventory reads a tag's UID in reader mode while
+         its scanner is open, so there is no intent filter and the app is never offered
+         for a tag held to the phone for another reason. Install-time, no dialog.
+         Optional: a phone without NFC installs the app and loses that scanner. -->
+    <uses-permission android:name="android.permission.NFC"/>
+    <uses-feature android:name="android.hardware.nfc" android:required="false"/>
     <!-- Self-hosted bambuddy servers on a LAN usually have no TLS; remote access
          should go over HTTPS through a reverse proxy (see README). -->
     <!-- Predictive back (Android 13+): opt in so the system animates the back

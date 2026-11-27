@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -362,13 +363,8 @@ class _WallPanel extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    (settings ? l10n.wallPanelSettings : l10n.wallPanelFarm)
-                        .toUpperCase(),
-                    style: t.label.copyWith(
-                      color: t.accentGreenInk,
-                      letterSpacing: DashTracking.label,
-                    ),
+                  child: SectionLabel(
+                    settings ? l10n.wallPanelSettings : l10n.wallPanelFarm,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -447,7 +443,7 @@ class _SectionHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: t.bodyBold)),
+          Expanded(child: SectionLabel(title)),
           Text('$count', style: t.monoLabel),
         ],
       ),

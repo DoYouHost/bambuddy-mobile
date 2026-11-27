@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -17,11 +18,6 @@ void main() {
     adapter = mockServer(dio);
     repo = HeaterHistoryRepository(dio, ServerVersionService(dio));
   });
-
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
 
   Map<String, dynamic> response() => {
     'printer_id': 3,
@@ -116,7 +112,7 @@ void main() {
     /// The route landed in v0.2.4.8, still under the old numbering — the
     /// threshold must catch both schemes.
     test('server version: 0.2.4.7 no, 0.2.4.8 and 1.2.5 yes', () async {
-      replyVersion('0.2.4.7');
+      stubServerVersion(adapter, '0.2.4.7');
       expect(await repo.historyCapability.supported, isFalse);
 
       final newer = HeaterHistoryRepository(dio, ServerVersionService(dio));
@@ -153,7 +149,7 @@ void main() {
     test(
       'a 404 from the route overrides a version that claimed otherwise',
       () async {
-        replyVersion('1.2.5.1');
+        stubServerVersion(adapter, '1.2.5.1');
         adapter.onGet(
           '/api/v1/printer-sensor-history/3',
           (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -170,7 +166,7 @@ void main() {
     test(
       '403 (a key without permission) hides the chart despite the route existing',
       () async {
-        replyVersion('1.2.5.1');
+        stubServerVersion(adapter, '1.2.5.1');
         adapter.onGet(
           '/api/v1/printer-sensor-history/3',
           (s) => s.reply(403, {'detail': 'Missing required permissions'}),
@@ -184,7 +180,7 @@ void main() {
     );
 
     test('a successful response clears an earlier refusal', () async {
-      replyVersion('1.2.5.1');
+      stubServerVersion(adapter, '1.2.5.1');
       adapter
         ..onGet(
           '/api/v1/printer-sensor-history/3',

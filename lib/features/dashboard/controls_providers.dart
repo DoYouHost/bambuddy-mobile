@@ -7,6 +7,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/models/panda_breath.dart';
 import '../../core/printers/bed_jog.dart';
 import '../../core/printers/hms_readback.dart';
 import '../../data/ams_slot_config_repository.dart';
@@ -29,6 +30,7 @@ enum ControlAction {
   move,
   hms,
   ams,
+  pandaBreath,
 }
 
 /// The server permission a control route is gated on.
@@ -386,6 +388,28 @@ class ControlsNotifier extends Notifier<ControlsState> {
     clearKey: 'fan:$fan',
   );
 
+  /// The printer's Panda Breath. No optimistic overlay, as on the web: the
+  /// heater's reply reaches the status within a frame, and one in-flight flag
+  /// for all three keeps a second change from racing the first.
+  Future<ActionOutcome> setPandaBreathOn(int id, {required bool on}) => _run(
+    id,
+    ControlAction.pandaBreath,
+    () => _repo.setPandaBreathOn(id, on: on),
+  );
+
+  Future<ActionOutcome> setPandaBreathMode(int id, PandaBreathMode mode) =>
+      _run(
+        id,
+        ControlAction.pandaBreath,
+        () => _repo.setPandaBreathMode(id, mode),
+      );
+
+  Future<ActionOutcome> setPandaBreathTarget(int id, int target) => _run(
+    id,
+    ControlAction.pandaBreath,
+    () => _repo.setPandaBreathTarget(id, target),
+  );
+
   /// Start AMS drying. No optimistic overlay — the AMS `dry_time`/`dry_status`
   /// in status reflects it within a poll/WS frame.
   Future<ActionOutcome> startDrying(
@@ -427,6 +451,11 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// is the only way to say which of the two hotends to empty.
   Future<ActionOutcome> amsUnload(int id, {int? trayId}) =>
       _run(id, ControlAction.ams, () => _repo.amsUnload(id, trayId: trayId));
+
+  /// Unload every loaded slot of an H3C's AMS 3H. In [ControlAction.ams] like
+  /// the single-slot actions: it moves the same filament path.
+  Future<ActionOutcome> amsUnloadAll(int id) =>
+      _run(id, ControlAction.ams, () => _repo.amsUnloadAll(id));
 
   /// Re-read one slot's RFID tag. Ids are local to the unit.
   ///

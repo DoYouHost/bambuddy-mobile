@@ -9,11 +9,16 @@ import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+import 'core/demo/demo_nfc.dart';
+import 'core/nfc/nfc_reader.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
 import 'core/api/client_cert.dart';
 import 'core/api/custom_ca.dart';
+import 'core/api/edge_access.dart';
+import 'core/api/edge_cookie.dart';
+import 'core/notifications/edge_session_alert.dart';
 import 'core/api/tls_overrides.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
@@ -41,8 +46,13 @@ import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
+import 'core/models/inventory.dart'
+    show lowStockThresholdFrom, lowStockThresholdKey;
+import 'core/models/printer.dart';
+import 'core/models/label_template.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
+import 'data/ai_detection_repository.dart';
 import 'data/ams_history_repository.dart';
 import 'data/api_keys_repository.dart';
 import 'data/archive_repository.dart';
@@ -56,6 +66,7 @@ import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
 import 'data/profile_defaults_repository.dart';
+import 'data/label_templates_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/announcements_repository.dart';
@@ -231,9 +242,9 @@ final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
     loadFacts: ref.watch(sessionFactsProvider),
     sessionDuration: recordingLimit,
     sessionBytes: recordingSizeLimit,
-    // The socket probe is bambuddy's own, so the recorder cannot know to open
-    // and flush it; it is handed over here instead.
-    listeners: const [WsSessionListener()],
+    // bambuddy's own probes, which the recorder cannot know to open and flush;
+    // they are handed over here instead.
+    listeners: const [WsSessionListener(), PlayCheckProbe()],
   ),
 );
 
@@ -267,14 +278,20 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
 });
 
 /// What this app shows a server's TLS on top of the system: the CA it trusts
-/// (#62) and the certificate it presents (#65). One state for both because one
-/// `SecurityContext` carries both: a change to both at once — "Remove all", a
-/// watch adopting both — is one rebuild of every client, not two.
-typedef TlsIdentity = ({CustomCa? ca, ClientCert? cert});
+/// (#62) and the certificate it presents (#65), and with them the Cloudflare
+/// Access credential it presents to the server's host (#72). One state for all
+/// three because one `HttpOverrides` carries them: a change to several at once
+/// — "Remove all", a watch adopting its config — is one rebuild of every
+/// client, not one per field.
+typedef TlsIdentity = ({CustomCa? ca, ClientCert? cert, EdgeAccess? edge});
 
 /// The client certificate `main` read from secure storage and already presents;
 /// null in tests and on an install without one.
 final initialClientCertProvider = Provider<ClientCert?>((_) => null);
+
+/// The Cloudflare Access credential `main` read from secure storage, as
+/// [initialClientCertProvider].
+final initialEdgeAccessProvider = Provider<EdgeAccess?>((_) => null);
 
 final tlsIdentityProvider = NotifierProvider<TlsIdentityNotifier, TlsIdentity>(
   TlsIdentityNotifier.new,
@@ -290,56 +307,187 @@ final clientCertProvider = Provider<ClientCert?>(
   (ref) => ref.watch(tlsIdentityProvider).cert,
 );
 
+/// The Cloudflare Access credential alone, as [customCaProvider].
+final edgeAccessProvider = Provider<EdgeAccess?>(
+  (ref) => ref.watch(tlsIdentityProvider).edge,
+);
+
+/// The host whose browser session ended, while that is not yet answered (#72);
+/// null otherwise. Held in preferences because the isolate that finds out is
+/// often not this one, and read again where the app comes back to the front.
+final edgeSessionEndedProvider =
+    NotifierProvider<EdgeSessionEndedNotifier, String?>(
+      EdgeSessionEndedNotifier.new,
+    );
+
+class EdgeSessionEndedNotifier extends Notifier<String?> {
+  @override
+  String? build() {
+    final ended = edgeSessionEndings.listen((host) => state = host);
+    final recovered = edgeSessionRecoveries.listen((host) {
+      if (state == host) state = null;
+    });
+    ref.onDispose(() {
+      ended.cancel();
+      recovered.cancel();
+    });
+    return ref.read(settingsRepositoryProvider).loadEdgeSessionEnded();
+  }
+
+  /// What another isolate wrote since.
+  Future<void> refresh() async {
+    final settings = await ref.read(settingsRepositoryProvider).reloaded();
+    if (ref.mounted) state = settings.loadEdgeSessionEnded();
+  }
+
+  void clear() => state = null;
+}
+
 class TlsIdentityNotifier extends Notifier<TlsIdentity> {
   @override
   TlsIdentity build() => (
     ca: ref.read(settingsRepositoryProvider).loadCustomCa(),
     cert: ref.read(initialClientCertProvider),
+    edge: ref.read(initialEdgeAccessProvider),
   );
 
   final _writes = SerialQueue();
 
   Future<void> setCa(CustomCa? ca) =>
-      _change((now) => (ca: ca, cert: now.cert));
+      _change((now) => (ca: ca, cert: now.cert, edge: now.edge));
 
   Future<void> setCert(ClientCert? cert) =>
-      _change((now) => (ca: now.ca, cert: cert));
+      _change((now) => (ca: now.ca, cert: cert, edge: now.edge));
 
+  /// Also forgets that a session ended: any change of the credential is the
+  /// answer to that, and an unchanged one (the same session saved again) is
+  /// skipped by [_change], so the mark is cleared here and not there.
+  Future<void> setEdge(EdgeAccess? edge) async {
+    await _change((now) => (ca: now.ca, cert: now.cert, edge: edge));
+    if (!ref.mounted) return;
+    await ref.read(settingsRepositoryProvider).saveEdgeSessionEnded(null);
+    if (ref.mounted) ref.read(edgeSessionEndedProvider.notifier).clear();
+  }
+
+  /// The certificates together, for "Remove all"; the Cloudflare credential
+  /// stays, as it is not a certificate.
   Future<void> setBoth(CustomCa? ca, ClientCert? cert) =>
-      _change((_) => (ca: ca, cert: cert));
+      _change((now) => (ca: ca, cert: cert, edge: now.edge));
+
+  /// Everything at once: a watch adopting the whole config the phone sent.
+  Future<void> setAll(CustomCa? ca, ClientCert? cert, EdgeAccess? edge) =>
+      _change((_) => (ca: ca, cert: cert, edge: edge));
 
   /// Queued, so two calls cannot finish out of order, and [next] is computed
   /// from the state as it is when its turn comes. Unchanged is skipped: the
   /// invalidate rebuilds every API client and the watch's relay listener.
   ///
-  /// Secure storage first, as the one write likely to throw, and before its
-  /// flag both ways: a write that throws leaves the store, the flag, the CA
-  /// and this state as they were, and a removal that fails keeps no key on
-  /// disk behind a flag that says there is none.
-  Future<void> _change(TlsIdentity Function(TlsIdentity now) next) =>
-      _writes.run(() async {
-        final now = state;
-        final target = next(now);
-        if (target == now) return;
-        final settings = ref.read(settingsRepositoryProvider);
-        if (target.cert != now.cert) {
-          await ref.read(clientCertStoreProvider).write(target.cert);
-          await settings.saveHasClientCert(target.cert != null);
+  /// A failed change is no change. Each stored part is a step that registers
+  /// an undo for every operation that went through, run in this order: writes
+  /// before deletes, so a secret that is being
+  /// replaced is never deleted before its replacement is safely written (a
+  /// Keystore that cannot encrypt can often still delete, and then the undo,
+  /// which writes the old one back, would fail too). A step stores its secret
+  /// first and sets its flag after, so a failure leaves no key behind a flag
+  /// that says there is none. When one throws, what went through is undone in
+  /// reverse, each best effort, and the original error is what the caller sees.
+  Future<void> _change(
+    TlsIdentity Function(TlsIdentity now) next,
+  ) => _writes.run(() async {
+    // A call queued behind one that outlived the container.
+    if (!ref.mounted) return;
+    final now = state;
+    final target = next(now);
+    if (target == now) return;
+    final settings = ref.read(settingsRepositoryProvider);
+    final certStore = ref.read(clientCertStoreProvider);
+    final edgeStore = ref.read(edgeAccessStoreProvider);
+    // Pushed after each operation that succeeded, never before: a write that
+    // was refused changed nothing, and taking it "back" would delete a secret
+    // that is still on disk (a Keystore that failed to read at start leaves the
+    // entry there and this state empty). A secret and its flag are put back
+    // together, the secret first: when the secret cannot be put back, the flag
+    // is left alone and still matches the disk.
+    final undos = <Future<void> Function()>[];
+    final steps = <_Step>[
+      if (target.cert != now.cert)
+        (
+          writes: target.cert != null,
+          apply: () async {
+            await certStore.write(target.cert);
+            undos.add(() async {
+              await certStore.write(now.cert);
+              await settings.saveHasClientCert(now.cert != null);
+            });
+            await settings.saveHasClientCert(target.cert != null);
+          },
+        ),
+      if (target.edge != now.edge)
+        (
+          writes: target.edge != null,
+          apply: () async {
+            await edgeStore.write(target.edge);
+            undos.add(() async {
+              await edgeStore.write(now.edge);
+              await settings.saveHasEdgeAccess(now.edge != null);
+            });
+            await settings.saveHasEdgeAccess(target.edge != null);
+          },
+        ),
+      if (target.ca != now.ca)
+        (
+          writes: target.ca != null,
+          apply: () async {
+            await settings.saveCustomCa(target.ca);
+            undos.add(() => settings.saveCustomCa(now.ca));
+          },
+        ),
+    ];
+    try {
+      for (final step in [
+        ...steps.where((s) => s.writes),
+        ...steps.where((s) => !s.writes),
+      ]) {
+        await step.apply();
+      }
+    } on Object {
+      for (final undo in undos.reversed) {
+        try {
+          await undo();
+        } on Object {
+          // Best effort: the caller is told about the error that started it.
         }
-        if (target.ca != now.ca) await settings.saveCustomCa(target.ca);
-        useTls(target.ca, target.cert);
-        if (!ref.mounted) return;
-        state = target;
-        // Dio keeps the `HttpClient` it made on its first request, so a retry
-        // after importing would still be refused. The API client follows
-        // through `authServiceProvider`. Invalidated rather than watched:
-        // watching would make every Dio depend on preferences.
-        ref.invalidate(bareDioProvider);
-      });
+      }
+      rethrow;
+    }
+    useTls(target.ca, target.cert, target.edge);
+    if (!ref.mounted) return;
+    // Dio keeps the `HttpClient` it made on its first request, so a retry
+    // after importing would still be refused. The API client follows
+    // through `authServiceProvider`. Invalidated rather than watched:
+    // watching would make every Dio depend on preferences. Before the
+    // state changes, so a listener that reads a client gets the new one.
+    ref.invalidate(bareDioProvider);
+    state = target;
+  });
 }
+
+/// One stored part of a [TlsIdentity] change. `apply` registers its own undo
+/// after each operation that went through.
+typedef _Step = ({bool writes, Future<void> Function() apply});
 
 final clientCertStoreProvider = Provider<ClientCertStore>(
   (_) => ClientCertStore(),
+);
+
+final edgeAccessStoreProvider = Provider<EdgeAccessStore>(
+  (_) => EdgeAccessStore(),
+);
+
+/// The sign-in WebView's cookie store; replaced in tests, which have no
+/// `CookieManager` to ask.
+final edgeCookieJarProvider = Provider<EdgeCookieJar>(
+  (_) => const WebViewEdgeCookieJar(),
 );
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());
@@ -427,7 +575,13 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
     await settings.markTourDue();
-    if (ref.mounted) state = profile;
+    if (!ref.mounted) return;
+    // What the last server answered says nothing about this one. Here and not in
+    // a provider's build: forgetting notifies the widgets that listen, and a
+    // build is the one place they may not be told. The same server under
+    // another login keeps what was learnt.
+    if (state?.baseUrl != profile.baseUrl) ServerReachability.instance.forget();
+    state = profile;
   }
 
   /// "Logout / change server": clear profile and all secrets.
@@ -438,7 +592,9 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     final credentials = ref.read(credentialsStoreProvider);
     await settings.clearProfile();
     await credentials.clearAll();
-    if (ref.mounted) state = null;
+    if (!ref.mounted) return;
+    ServerReachability.instance.forget();
+    state = null;
   }
 }
 
@@ -603,7 +759,24 @@ final apiKeyNotificationScopeProvider = capabilityGate(
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
-  (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrintersRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the server maps printer states to WLED presets. The printer
+/// listing settles it, so nothing probes.
+final wledSupportedProvider = capabilityGate(
+  (ref) => ref.watch(printersRepositoryProvider).wledCapability,
+);
+
+/// Every printer's configuration, without statuses: the pickers and filters
+/// that name printers. `autoDispose`, so each one that opens reads the fleet
+/// afresh. A queue item's target picker keeps a busy printer listed, since
+/// nothing here drops one (the web edit modal's `showInactive`).
+final printerListProvider = FutureProvider.autoDispose<List<Printer>>(
+  (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
 );
 
 /// Whether the server can hold a user's jobs for review (#1620). See
@@ -633,6 +806,13 @@ final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
 /// `PrinterCommandsRepository.amsHtLoadCapability`.
 final amsHtLoadProvider = capabilityGate(
   (ref) => ref.watch(printerCommandsRepositoryProvider).amsHtLoadCapability,
+);
+
+/// Whether the server has Unload All for an AMS 3H. See
+/// `PrinterCommandsRepository.ams3hUnloadAllCapability`.
+final ams3hUnloadAllProvider = capabilityGate(
+  (ref) =>
+      ref.watch(printerCommandsRepositoryProvider).ams3hUnloadAllCapability,
 );
 
 /// Filament presets and the two slot-configuration commands.
@@ -666,6 +846,28 @@ final suppliersRepositoryProvider = Provider<SuppliersRepository>(
 /// the statistics screen's supplier card.
 final suppliersSupportedProvider = capabilityGate(
   (ref) => ref.watch(suppliersRepositoryProvider).capability,
+);
+
+/// Saved custom label sheets — one list for both inventory backends.
+final labelTemplatesRepositoryProvider = Provider<LabelTemplatesRepository>(
+  (ref) => LabelTemplatesRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// The saved custom sheets, asked again each time the picker opens: someone
+/// else may have saved or deleted one since. The request is also what settles
+/// [labelTemplatesSupportedProvider], so a failure is the picker's to ignore.
+final labelTemplatesProvider =
+    FutureProvider.autoDispose<List<SavedLabelTemplate>>(
+      (ref) => ref.watch(labelTemplatesRepositoryProvider).list(),
+    );
+
+/// Whether this server takes a custom label sheet, saved or one-off. The label
+/// picker's own listing settles it, so nothing probes.
+final labelTemplatesSupportedProvider = capabilityGate(
+  (ref) => ref.watch(labelTemplatesRepositoryProvider).capability,
 );
 
 /// Whether this server stores a material number on a spool. Whether the
@@ -809,6 +1011,12 @@ final triStateCalibrationProvider = capabilityGate(
   (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
+/// Whether the server has `POST /queue/duplicate`. See
+/// `QueueRepository.duplicateCapability`.
+final queueDuplicateProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).duplicateCapability,
+);
+
 /// Whether a queued job can ask for its outcome (#1898) — the print form's
 /// "Ask for outcome" switch. See `QueueRepository.outcomeCapability`.
 final queueOutcomeProvider = capabilityGate(
@@ -920,8 +1128,27 @@ final statsRepositoryProvider = Provider<StatsRepository>(
   (ref) => StatsRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// The phone's NFC reader; tests replace it with a fake. The demo has its own, so
+/// that every feature shows on a device without NFC.
+final nfcReaderProvider = Provider<NfcReader>(
+  // Only whether it is the demo: a profile that changes otherwise must not make
+  // a second reader, whose event channel would take the first one's handler.
+  (ref) => ref.watch(serverProfileProvider.select((p) => p?.isDemo ?? false))
+      ? const DemoNfcReader()
+      : ChannelNfcReader(),
+);
+
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
-  (ref) => MaintenanceRepository(ref.watch(apiClientProvider).dio),
+  (ref) => MaintenanceRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the server keeps the log of maintenance resets. See
+/// `MaintenanceRepository.logCapability`.
+final maintenanceLogSupportedProvider = capabilityGate(
+  (ref) => ref.watch(maintenanceRepositoryProvider).logCapability,
 );
 
 final firmwareRepositoryProvider = Provider<FirmwareRepository>(
@@ -1173,6 +1400,34 @@ final pipelineMaxCopiesProvider = serverValue<int>((settings) {
   return parsed > 0 ? parsed : 50;
 });
 
+/// Where the low-stock threshold is read from: `GET /settings`, or for a session
+/// that may not read that (`settings:read` is more than this number is worth,
+/// and a 403 there left it at the default) the flags every signed-in user can
+/// see (`GET /settings/ui-flags`, which carries `low_stock_threshold` on a
+/// server that has the route). Asked only when the first has no answer.
+final _lowStockSourceProvider = Provider<Map<String, dynamic>>((ref) {
+  final asked = ref.watch(serverSettingsProvider);
+  final settings = asked.value ?? const {};
+  if (settings.containsKey(lowStockThresholdKey)) return settings;
+  // Still on its way: the flags are for an answer without the key, not for the
+  // wait, or every session would make both requests on a cold start.
+  if (asked.isLoading && !asked.hasValue) return const {};
+  return ref.watch(serverUiFlagsProvider).value ?? const {};
+});
+
+/// The server-wide low-stock percentage (`low_stock_threshold`, 20 unless set):
+/// what a spool without a threshold of its own is measured against, in the
+/// list and in the background alert alike.
+final lowStockThresholdProvider = Provider<double>(
+  (ref) => lowStockThresholdFrom(ref.watch(_lowStockSourceProvider)),
+);
+
+/// Whether the server states a low-stock threshold at all. An older one does
+/// not, and the alert is then the phone's own.
+final serverHasLowStockProvider = Provider<bool>(
+  (ref) => ref.watch(_lowStockSourceProvider).containsKey(lowStockThresholdKey),
+);
+
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
 final currencySymbolProvider = serverValue<String>((settings) {
@@ -1233,6 +1488,11 @@ final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
+
+/// The server's AI failure detection as the printer cards read it.
+final aiDetectionRepositoryProvider = Provider<AiDetectionRepository>(
+  (ref) => AiDetectionRepository(ref.watch(apiClientProvider).dio),
+);
 
 /// The server's sidebar links and their counts, read only.
 final externalLinksRepositoryProvider = Provider<ExternalLinksRepository>(

@@ -28,50 +28,46 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  testWidgets('a print with no recording and no photos has no badges', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_screen([testArchive()]));
-    await tester.pumpAndSettle();
+  final cases = <(String, Archive, {bool movie, bool photo})>[
+    (
+      'a print with no recording and no photos has no badges',
+      testArchive(),
+      movie: false,
+      photo: false,
+    ),
+    (
+      'timelapse_path → recording badge on the card',
+      testArchive(timelapsePath: 'archive/1/video.mp4'),
+      movie: true,
+      photo: false,
+    ),
+    (
+      'photos → photo badge on the card',
+      testArchive(photos: const ['finish.jpg']),
+      movie: false,
+      photo: true,
+    ),
+    (
+      'both badges at once',
+      testArchive(
+        timelapsePath: 'archive/1/video.mp4',
+        photos: const ['finish.jpg', 'hand.jpg'],
+      ),
+      movie: true,
+      photo: true,
+    ),
+  ];
 
-    expect(find.byIcon(Icons.movie), findsNothing);
-    expect(find.byIcon(Icons.photo_camera), findsNothing);
-  });
+  for (final (name, archive, :movie, :photo) in cases) {
+    testWidgets(name, (tester) async {
+      await tester.pumpWidget(_screen([archive]));
+      await tester.pumpAndSettle();
 
-  testWidgets('timelapse_path → recording badge on the card', (tester) async {
-    await tester.pumpWidget(
-      _screen([testArchive(timelapsePath: 'archive/1/video.mp4')]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.movie), findsOneWidget);
-    expect(find.byIcon(Icons.photo_camera), findsNothing);
-  });
-
-  testWidgets('photos → photo badge on the card', (tester) async {
-    await tester.pumpWidget(
-      _screen([
-        testArchive(photos: const ['finish.jpg']),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.photo_camera), findsOneWidget);
-    expect(find.byIcon(Icons.movie), findsNothing);
-  });
-
-  testWidgets('both badges at once', (tester) async {
-    await tester.pumpWidget(
-      _screen([
-        testArchive(
-          timelapsePath: 'archive/1/video.mp4',
-          photos: const ['finish.jpg', 'hand.jpg'],
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.movie), findsOneWidget);
-    expect(find.byIcon(Icons.photo_camera), findsOneWidget);
-  });
+      expect(find.byIcon(Icons.movie), movie ? findsOneWidget : findsNothing);
+      expect(
+        find.byIcon(Icons.photo_camera),
+        photo ? findsOneWidget : findsNothing,
+      );
+    });
+  }
 }

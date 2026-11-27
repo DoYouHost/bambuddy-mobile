@@ -7,6 +7,7 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/ams_filament_preset.dart';
 import '../core/models/k_profile.dart';
+import '../core/slicer/loaded_spool_match.dart';
 
 /// Everything the "configure AMS slot" flow reads and writes: the three preset
 /// sources, the printer-model registry, the slot→preset mapping, and the two
@@ -71,6 +72,39 @@ class AmsSlotConfigRepository {
         for (final MapEntry(:key, :value) in (json ?? const {}).entries)
           if (value is String && value.isNotEmpty) key: value,
       };
+    } on AppApiException {
+      return const {};
+    }
+  }
+
+  /// The name the server gives each of [ids] (filament ids, `tray_info_idx`), as
+  /// the web's slot rows use it: the caller's own cloud preset, an imported
+  /// profile or the built-in table. An id nothing resolved is left out.
+  ///
+  /// Decorates the dashboard's slot names only, so every API failure reads as no
+  /// names, a 401 included: here that is an API key from before per-user ownership,
+  /// not a session that ended.
+  Future<Map<String, String>> filamentNames(Iterable<String> ids) async {
+    final wanted = ids.where((id) => id.isNotEmpty).toSet().toList()..sort();
+    if (wanted.isEmpty) return const {};
+    try {
+      final json = await guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.cloudFilamentInfo,
+          data: wanted,
+          // Dio infers JSON for a map body but not for a list: without this the
+          // list goes out as text and the server answers 422 (a mock cannot see it).
+          options: Options(contentType: Headers.jsonContentType),
+        );
+        return res.data;
+      });
+      // The name is a preset's own, so it is cut the way a slot preset's is.
+      final names = {
+        for (final MapEntry(:key, :value) in (json ?? const {}).entries)
+          if (value is Map && value['name'] is String)
+            key: presetDisplayName(value['name'] as String),
+      };
+      return names..removeWhere((_, name) => name.isEmpty);
     } on AppApiException {
       return const {};
     }

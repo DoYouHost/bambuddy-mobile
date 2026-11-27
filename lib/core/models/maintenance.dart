@@ -240,5 +240,60 @@ class MaintenanceHistoryEntry {
   DateTime? get performedAtDate => dateTimeFromJson(performedAt);
 }
 
+/// One reset in a printer's maintenance log (`MaintenanceLogEntryResponse`,
+/// server #3557). The names are copies the server keeps: [printerId] and
+/// [maintenanceTypeId] go null when the printer or the custom task is deleted,
+/// and the names stay. [performedByUsername] is null when authentication was
+/// off, and "API key: …" for a key without an owner.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class MaintenanceLogEntry {
+  const MaintenanceLogEntry({
+    required this.id,
+    this.printerId,
+    this.printerName = '',
+    this.maintenanceTypeId,
+    this.maintenanceTypeName = '',
+    this.hoursAtMaintenance = 0,
+    this.notes,
+    this.performedById,
+    this.performedByUsername,
+    this.performedAt,
+  });
+
+  factory MaintenanceLogEntry.fromJson(Map<String, dynamic> json) =>
+      _$MaintenanceLogEntryFromJson(json);
+
+  final int id;
+  final int? printerId;
+
+  @JsonKey(defaultValue: '')
+  final String printerName;
+  final int? maintenanceTypeId;
+
+  @JsonKey(defaultValue: '')
+  final String maintenanceTypeName;
+
+  /// The printer's running hours when the task was reset.
+  @JsonKey(fromJson: toDouble)
+  final double hoursAtMaintenance;
+  final String? notes;
+  final int? performedById;
+  final String? performedByUsername;
+  final String? performedAt;
+
+  /// UTC, even where the server leaves the `Z` off.
+  DateTime? get performedAtDate => dateTimeFromJson(performedAt);
+}
+
+/// A page of the log: [total] entries match in all, and [received] rows came
+/// back, of which [items] are the ones that parsed. The next page starts after
+/// [received], not after [items], or one row that does not parse would be asked
+/// for again for ever.
+typedef MaintenanceLogPage = ({
+  List<MaintenanceLogEntry> items,
+  int total,
+  int received,
+});
+
 List<MaintenanceStatus> _maintenanceItemsFromJson(dynamic value) =>
     parseJsonList(value, MaintenanceStatus.fromJson);

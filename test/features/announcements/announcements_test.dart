@@ -5,6 +5,8 @@ import 'package:bambuddy_mobile/features/announcements/announcements_widgets.dar
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -41,16 +43,18 @@ void main() {
         (s) => s.reply(200, {'visible': visible, 'announcements': rows}),
       );
 
+  List<Override> overridesFor(AuthMode authMode) => [
+    fakeServerProfileOverride(authMode: authMode),
+    announcementsRepositoryProvider.overrideWithValue(
+      AnnouncementsRepository(dio),
+    ),
+  ];
+
   setUp(() {
     dio = testDio();
     server = mockServer(dio);
     log = captureRequests(dio);
-    overrides = [
-      fakeServerProfileOverride(authMode: AuthMode.jwt),
-      announcementsRepositoryProvider.overrideWithValue(
-        AnnouncementsRepository(dio),
-      ),
-    ];
+    overrides = overridesFor(AuthMode.jwt);
   });
 
   Widget drawerHost() => Scaffold(
@@ -63,20 +67,55 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('an API key session has no entry and no dot', (tester) async {
+  testWidgets('an API key session has the entry, without a dot or a count', (
+    tester,
+  ) async {
     inbox(false);
-    await pumpPhone(tester, drawerHost(), overrides: overrides);
+    await pumpPhone(
+      tester,
+      drawerHost(),
+      overrides: overridesFor(AuthMode.apiKey),
+    );
     await tester.pumpAndSettle();
-    expect(find.byType(Badge).evaluate().single.widget, isA<Badge>());
     expect(
       (tester.widget(find.byType(Badge)) as Badge).isLabelVisible,
       isFalse,
     );
     await openDrawer(tester);
-    expect(find.byIcon(Icons.campaign_outlined), findsNothing);
+    expect(find.byIcon(Icons.campaign_outlined), findsOneWidget);
+    final badges = tester.widgetList<Badge>(find.byType(Badge));
+    expect(badges.every((b) => !b.isLabelVisible), isTrue);
   });
 
-  testWidgets('an older server (404) has none either', (tester) async {
+  testWidgets('with an API key the entry opens the empty inbox', (
+    tester,
+  ) async {
+    inbox(false);
+    final router = GoRouter(
+      routes: [
+        GoRoute(path: '/', builder: (_, _) => drawerHost()),
+        GoRoute(
+          path: announcementsRoute,
+          builder: (_, _) => const AnnouncementsScreen(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        retry: neverRetry,
+        overrides: overridesFor(AuthMode.apiKey),
+        child: plRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await openDrawer(tester);
+    await tester.tap(find.byIcon(Icons.campaign_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text(pl.announcementsEmpty), findsOneWidget);
+  });
+
+  testWidgets('an older server (404) has the entry too', (tester) async {
     server.onGet(
       '/api/v1/announcements',
       (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -84,8 +123,28 @@ void main() {
     await pumpPhone(tester, drawerHost(), overrides: overrides);
     await tester.pumpAndSettle();
     await openDrawer(tester);
-    expect(find.byIcon(Icons.campaign_outlined), findsNothing);
+    expect(find.byIcon(Icons.campaign_outlined), findsOneWidget);
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets(
+      'without a server inbox the screen is just empty at $scale text',
+      (tester) async {
+        usePhoneWindow(tester);
+        inbox(false);
+        await pumpPhone(
+          tester,
+          const AnnouncementsScreen(),
+          overrides: overrides,
+          builder: textScaled(scale),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(pl.announcementsEmpty), findsOneWidget);
+        expect(find.text(pl.announcementsSource), findsNothing);
+        expect(find.byTooltip(pl.announcementsMarkAllRead), findsNothing);
+      },
+    );
+  }
 
   testWidgets('an empty inbox still has its entry, without a count', (
     tester,

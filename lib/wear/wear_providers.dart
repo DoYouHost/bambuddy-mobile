@@ -39,11 +39,13 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   /// later one compared against state the earlier had not written yet and could
   /// skip the change it carried.
   Future<void> adopt(WatchConfig config) => _adopts.run(() async {
-    // Before the profile, so a failed write never leaves a stored server whose CA
-    // or client certificate is missing. Each set skips what is unchanged.
+    // Before the profile, so a failed write never leaves a stored server whose CA,
+    // client certificate or Cloudflare credential is missing. Each part skips
+    // what is unchanged. The watch has no way to set the last one up itself, so
+    // the phone's is the only truth: none pushed clears it.
     await ref
         .read(tlsIdentityProvider.notifier)
-        .setBoth(config.ca, config.clientCert);
+        .setAll(config.ca, config.clientCert, config.edge);
     if (!ref.mounted) return;
     await ref.read(watchConfigSyncProvider).apply(config);
     if (!ref.mounted) return;

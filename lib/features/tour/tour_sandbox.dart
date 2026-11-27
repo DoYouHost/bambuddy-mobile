@@ -18,9 +18,9 @@ import 'tour_beacon.dart';
 /// does not override in the app's container, where it would read the user's
 /// real profile. Everything that could leave the process (preferences, secure
 /// storage, notifications, the background service) is swapped for a stand-in
-/// that forgets with the container. The home widget (`_publishWidget`) and
-/// the watch relay (the dashboard's lifecycle, its only reader on these
-/// screens) are skipped through [tourBeaconProvider].
+/// that forgets with the container. The home widget (`_publishWidget`) is
+/// skipped through [tourBeaconProvider]; the watch relay and the service
+/// hand-over belong to the app's container and never run in this one.
 ///
 /// The demo backend is process-wide, so the tour swaps in a fresh one and
 /// [TourSandbox.dispose] puts the previous one back — edits made during the tour
@@ -168,6 +168,9 @@ class _SilentNotifications implements NotificationService {
     bool quiet = false,
     bool silent = false,
   }) async {}
+
+  @override
+  Future<void> cancelAlert(int id) async {}
 
   @override
   Future<bool> isAlertActive(int id) async => false;

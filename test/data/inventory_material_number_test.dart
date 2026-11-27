@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -23,33 +24,28 @@ void main() {
     );
   });
 
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
-
   Spool row(Map<String, dynamic> extra) =>
       Spool.fromNative({'id': 1, 'material': 'PLA', ...extra});
 
   group('capability', () {
     test('the version decides before anything was seen', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       expect(await repo.materialNumberCapability.supported, isFalse);
     });
 
     test('a 1.2.6 daily is offered the field', () async {
-      replyVersion('1.2.6b1-daily.20260930');
+      stubServerVersion(adapter, '1.2.6b1-daily.20260930');
       expect(await repo.materialNumberCapability.supported, isTrue);
     });
 
     test('a row without the key settles it as absent', () async {
-      replyVersion('1.2.6b1-daily.20260920');
+      stubServerVersion(adapter, '1.2.6b1-daily.20260920');
       repo.observeSpools([row(const {})]);
       expect(await repo.materialNumberCapability.supported, isFalse);
     });
 
     test('a row with a null number settles it as present', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools([
         row(const {'material_number': null}),
       ]);
@@ -57,7 +53,7 @@ void main() {
     });
 
     test('an empty inventory settles nothing', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools(const []);
       expect(repo.materialNumberCapability.observedAnswer, isNull);
     });
@@ -67,7 +63,7 @@ void main() {
     const path = '/api/v1/inventory/stats/material-numbers';
 
     test('rows are parsed and the range goes out as calendar days', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         path,
         (s) => s.reply(200, [
@@ -95,7 +91,7 @@ void main() {
     });
 
     test('a 404 is an empty list and settles the gate as absent', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(path, (s) => s.reply(404, {'detail': 'Not Found'}));
 
       expect(await repo.fetchMaterialNumberStats(), isEmpty);
@@ -105,7 +101,7 @@ void main() {
     test(
       'a 403 on the aggregate does not hide a field the rows prove',
       () async {
-        replyVersion('1.2.6b1');
+        stubServerVersion(adapter, '1.2.6b1');
         repo.observeSpools([
           row(const {'material_number': null}),
         ]);
@@ -117,7 +113,7 @@ void main() {
     );
 
     test('Spoolman is never asked and settles nothing', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       final spoolman = InventoryRepository(
         SpoolmanInventorySource(dio),
         ServerVersionService(dio),

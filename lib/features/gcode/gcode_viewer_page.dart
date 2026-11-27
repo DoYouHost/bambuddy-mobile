@@ -11,6 +11,7 @@
 library;
 
 import 'dart:convert';
+import '../../core/models/value_equality.dart';
 
 /// Asset paths of the three parts of the document.
 const gcodeViewerShellAsset = 'assets/gcode/viewer.html';
@@ -132,7 +133,7 @@ enum GcodeViewerError {
 }
 
 /// What the page reported.
-class GcodeViewerReport {
+class GcodeViewerReport with ValueEquality {
   /// The page is up and showing its own progress — not finished, but far
   /// enough along that the app's spinner would only stack on top of the
   /// page's.
@@ -164,15 +165,7 @@ class GcodeViewerReport {
   final int? status;
 
   @override
-  bool operator ==(Object other) =>
-      other is GcodeViewerReport &&
-      other.ready == ready &&
-      other.alive == alive &&
-      other.error == error &&
-      other.status == status;
-
-  @override
-  int get hashCode => Object.hash(ready, alive, error, status);
+  List<Object?> get props => [ready, alive, error, status];
 
   @override
   String toString() => switch (error) {

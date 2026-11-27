@@ -11,13 +11,13 @@ import '../../core/models/print_log_entry.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/filament_dot.dart';
 import '../common/print_run_labels.dart';
 import '../slicer/slice_providers.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/app_context.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import 'archive_details.dart';
 import 'outcome_sheet.dart';
 import 'archive_providers.dart';
 import 'print_outcome.dart';
@@ -171,10 +171,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.archiveRunsTitle,
-            style: t.bodyBold.copyWith(color: t.textPrimary),
-          ),
+          Text(l10n.archiveRunsTitle, style: t.bodyBoldPrimary),
           if (multiPlate)
             Padding(
               padding: const EdgeInsets.only(top: DashSpace.sm),
@@ -367,7 +364,7 @@ class _RunTile extends ConsumerWidget {
                   runSpacing: DashSpace.xs,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    for (final hex in colours) FilamentDot(hex: hex),
+                    for (final hex in colours) FilamentDot.hex(hex),
                     if (types.isNotEmpty)
                       Text(types.join(', '), style: t.labelSoft),
                   ],
@@ -402,24 +399,13 @@ class _VerdictPill extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final verdict = run.userVerdict;
-    final (label, icon, accent, ink) = switch (verdict) {
-      PrintVerdict.good => (
-        l10n.outcomeGoodPart,
-        Icons.thumb_up_alt,
-        t.accentGreen,
-        t.accentGreenInk,
-      ),
-      PrintVerdict.reject => (
-        l10n.outcomeRejected,
-        Icons.thumb_down_alt,
-        t.danger,
-        t.dangerInk,
-      ),
+    final (:label, :icon, tone: accent, :ink) = switch (verdict) {
+      final verdict? => verdictLook(t, l10n, verdict),
       null => (
-        l10n.outcomeAwaiting,
-        Icons.help_outline,
-        t.accentOrange,
-        t.accentOrangeInk,
+        label: l10n.outcomeAwaiting,
+        icon: Icons.help_outline,
+        tone: t.accentOrange,
+        ink: t.accentOrangeInk,
       ),
     };
     final source = verdict == null

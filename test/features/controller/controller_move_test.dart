@@ -1,21 +1,17 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_move.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 const _phone = Size(844, 390);
 
@@ -42,39 +38,19 @@ void main() {
     BedJogConvention? convention,
     Size size = _phone,
   }) async {
-    useLogicalWindow(tester, size);
     commands = RecordingCommands();
-    SharedPreferences.setMockInitialValues({});
-    final sp = await SharedPreferences.getInstance();
-    await pumpPhone(
+    await pumpControllerPanel(
       tester,
-      const Scaffold(
-        body: Padding(
-          padding: EdgeInsets.all(16),
-          // Scaled as the screen scales its body.
-          child: ScaleToFit(child: ControllerMove(printerId: 1)),
-        ),
-      ),
+      scaledControllerBody(const ControllerMove(printerId: 1)),
+      status: status,
+      model: model,
+      size: size,
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(sp),
-        noServerProfileOverride,
         printerCommandsRepositoryProvider.overrideWithValue(commands),
         if (convention != null)
           bedJogConventionProvider.overrideWith((ref) async => convention),
-        fixedDashboardOverride(
-          DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: Printer(id: 1, name: 'P', model: model),
-                status: status,
-              ),
-            ],
-          ),
-        ),
-        inertStatusesOverride,
       ],
     );
-    await tester.pump();
   }
 
   Future<void> tap(WidgetTester tester, String id, {int index = 0}) async {

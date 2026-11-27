@@ -1417,6 +1417,7 @@
   "errClientCertRefused": "The server needs a valid client certificate",
   "errConnection": "Connection error",
   "errMalformedResponse": "Malformed server response",
+  "errNotBambuddy": "This address is not a Bambuddy server — check the port and remove any path after it.",
   "errInvalidCredentials": "Invalid username or password",
   "errTwoFactorUnsupported": "Account requires 2FA — not supported in this version. Use an API key (Settings → API Keys on the server).",
   "errTwoFactorCodeRejected": "Wrong code — check it and try again.",
@@ -1856,7 +1857,7 @@
   },
   "inventoryEmpty": "No spools in inventory",
   "inventoryNoMatches": "No filaments match your search",
-  "inventorySearchHint": "Search material, brand, color…",
+  "inventorySearchHint": "Search ID, material, brand, color…",
   "inventoryLowStock": "Low",
   "inventoryFilters": "Filters",
   "inventoryFilterStatus": "Status",
@@ -2422,6 +2423,149 @@
   "@inventoryLabelsStartSlot": {
     "placeholders": {
       "position": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetCustom": "Custom sheet",
+  "labelSheetCustomHint": "Your own page, label size and grid",
+  "labelSheetSavedTitle": "Saved templates",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} label} other{{count} labels}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Page",
+  "labelSheetLabelWidth": "Label width, mm",
+  "labelSheetLabelHeight": "Label height, mm",
+  "labelSheetColumns": "Columns",
+  "labelSheetRows": "Rows",
+  "labelSheetTopMargin": "Top margin, mm",
+  "labelSheetLeftMargin": "Left margin, mm",
+  "labelSheetColumnGap": "Column gap, mm",
+  "labelSheetRowGap": "Row gap, mm",
+  "labelSheetIncomplete": "Fill in every field with a number.",
+  "labelSheetTooSmall": "Labels must be at least {minWidth} mm wide and {minHeight} mm tall.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Sizes, margins and gaps can be at most {max} mm.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Columns must be a whole number from 1 to {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Rows must be a whole number from 1 to {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Margins and gaps must not be negative.",
+  "labelSheetTooWide": "The labels are {size} mm wide with the left margin, but the page is {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "The labels are {size} mm tall with the top margin, but the page is {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Use this sheet",
+  "labelSheetName": "Template name",
+  "labelSheetNameTaken": "A template with this name already exists.",
+  "labelSheetSaveAs": "Save as template",
+  "labelSheetSaveChanges": "Save changes",
+  "labelSheetDelete": "Delete template",
+  "labelSheetSaved": "Template “{name}” saved",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Template “{name}” deleted",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Delete “{name}”?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Labels already printed with it are unaffected.",
+  "labelSheetEdit": "Edit template",
+  "labelSheetSaveAsNew": "Save as new",
+  "labelPngTooLarge": "PNG is limited to {maxPages} sheet pages at {dpi} dpi, and this needs {pages}. Use PDF, a lower resolution or fewer spools.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
         "type": "int"
       }
     }
@@ -6933,7 +7077,7 @@
   },
   "announcementsNew": "New",
   "announcementsReadMore": "Read more",
-  "announcementsSource": "From the Bambuddy maintainers, fetched from GitHub.",
+  "announcementsSource": "Bambuddy entries come from its maintainers, fetched from GitHub.",
   "announcementLevelInfo": "Info",
   "announcementLevelImportant": "Important",
   "announcementLevelCritical": "Critical",
@@ -7489,5 +7633,518 @@
         "type": "int"
       }
     }
-  }
+  },
+  "serverSettingsWledSubtitle": "Light presets for printer states",
+  "wledTitle": "WLED",
+  "wledDescription": "Colours and effects are set in WLED. The server only switches to the preset mapped to the printer's state.",
+  "wledPrinter": "Printer",
+  "wledEnabled": "WLED integration",
+  "wledEnabledDesc": "Switch presets as this printer's state changes",
+  "wledUrl": "WLED address",
+  "wledUrlRequired": "Needed while the integration is on",
+  "wledLoadPresets": "Load presets",
+  "wledTestConnection": "Test connection",
+  "wledConnected": "Connected to {name}",
+  "@wledConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "wledConnectedVersion": "Connected to {name}, version {version}",
+  "@wledConnectedVersion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "wledUnreachable": "WLED did not answer",
+  "wledPresetsLoaded": "{count, plural, =0{WLED has no presets} =1{1 preset loaded} other{{count} presets loaded}}",
+  "@wledPresetsLoaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wledPresetsOffline": "WLED is unreachable. Saved presets are kept.",
+  "wledMappingHeader": "Preset per state",
+  "wledSegmentHint": "When you create a preset in WLED, select its segment and turn on “Checked segments only”.",
+  "wledNoPreset": "No preset",
+  "wledPresetSaved": "Saved preset {id}",
+  "@wledPresetSaved": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "wledPresetOption": "{name} ({id})",
+  "@wledPresetOption": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "wledTestPreset": "Test preset for {state}",
+  "@wledTestPreset": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "wledPresetTested": "Preset switched on",
+  "wledPresetTestFailed": "WLED did not switch the preset",
+  "wledFinishedTimeout": "Back to Idle after (seconds)",
+  "wledFinishedTimeoutHint": "Seconds after a print finishes before the Idle preset takes over. 0 turns this off.",
+  "wledFinishedTimeoutInvalid": "A whole number from 0 to 86400",
+  "wledSave": "Save",
+  "wledSaved": "WLED settings saved",
+  "wledRefused": "Not accepted: {reason}",
+  "@wledRefused": {
+    "description": "The server's own English reason for refusing the WLED address.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "wledNoPrinters": "No printers to set up",
+  "wledStateIdle": "Idle",
+  "wledStatePrepare": "Preparing",
+  "wledStatePrinting": "Printing",
+  "wledStatePaused": "Paused",
+  "wledStateFinished": "Finished",
+  "wledStateError": "Failed",
+  "wledStateQueueWaiting": "Waiting for the plate to be cleared",
+  "wledStateFilamentProblem": "Filament problem",
+  "wledStateHmsError": "HMS error",
+  "wledStateOffline": "Offline",
+  "fmMoveBlockedCurrent": "Already here",
+  "fmMoveBlockedSelf": "The folder being moved",
+  "fmMoveBlockedInside": "Inside the folder being moved",
+  "fmMoveBlockedExternal": "External folder",
+  "fmMoveBlockedNotWritable": "Not yours and not shared",
+  "fmMoveBlockedReadOnly": "Read-only folder",
+  "fmNotMoved": "File not moved",
+  "fmNotMovedReason": "File not moved: {reason}",
+  "@fmNotMovedReason": {
+    "description": "The server's own English reason for skipping the file.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionSafe": "Safe",
+  "@aiDetectionSafe": {
+    "description": "AI failure detection verdict on a printing card: nothing wrong seen."
+  },
+  "aiDetectionWarning": "Warning",
+  "@aiDetectionWarning": {
+    "description": "AI failure detection verdict on a printing card: a possible failure."
+  },
+  "aiDetectionFailure": "Failure",
+  "@aiDetectionFailure": {
+    "description": "AI failure detection verdict on a printing card: the print is failing."
+  },
+  "aiDetectionNotChecking": "Not checking",
+  "@aiDetectionNotChecking": {
+    "description": "AI failure detection state on a printing card: detection is on but its last check failed, so the print is not being watched."
+  },
+  "aiDetectionStarting": "Starting",
+  "@aiDetectionStarting": {
+    "description": "AI failure detection state on a printing card: no result has come back yet."
+  },
+  "aiDetectionTipStatus": "AI failure detection: {status}",
+  "@aiDetectionTipStatus": {
+    "description": "Tooltip and screen reader text of the AI detection item. status is one of the verdict labels.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionTipScore": "AI failure detection: {status} (score {score})",
+  "@aiDetectionTipScore": {
+    "description": "Tooltip and screen reader text of the AI detection item with Obico's failure score, a number like 0.012.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionTipQuality": "AI failure detection: {status} (print quality {quality}/10)",
+  "@aiDetectionTipQuality": {
+    "description": "Tooltip and screen reader text of the AI detection item with OctoEverywhere's print quality, 1 to 10.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "quality": {
+        "type": "int"
+      }
+    }
+  },
+  "aiDetectionTipError": "AI failure detection is not checking this print: {reason}",
+  "@aiDetectionTipError": {
+    "description": "Tooltip and screen reader text when detection's last check failed. reason is the server's own sentence.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDetectionTipErrorNoReason": "AI failure detection is not checking this print",
+  "@aiDetectionTipErrorNoReason": {
+    "description": "Tooltip and screen reader text when detection's last check failed and the server gives this session no reason."
+  },
+  "aiDetectionTipStarting": "AI failure detection: waiting for the first result",
+  "@aiDetectionTipStarting": {
+    "description": "Tooltip and screen reader text before detection's first result for this print."
+  },
+  "aiDetectionLimitReached": "usage limit reached",
+  "@aiDetectionLimitReached": {
+    "description": "The reason inserted into aiDetectionTipError when OctoEverywhere's free plan has run out. Follows a colon, so lower case."
+  },
+  "notifLowStockTitle": "Low filament below {percent}%",
+  "@notifLowStockTitle": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "notifLowStockDesc": "Set on the server for everyone. A spool's own threshold wins.",
+  "notifLowStockEdit": "Change the low filament threshold",
+  "notifLowStockInputLabel": "Percent of the label weight",
+  "notifLowStockInvalid": "Enter a number from 0.1 to 99.9.",
+  "pandaBreath": "Panda Breath",
+  "@pandaBreath": {
+    "description": "BIQU Panda Breath chamber heater, a product name"
+  },
+  "pandaBreathSent": "Sent to the Panda Breath",
+  "pandaBreathOffline": "Heater offline",
+  "pandaBreathTurnOn": "Turn on",
+  "pandaBreathTurnOff": "Turn off",
+  "pandaBreathMode": "Mode",
+  "pandaBreathModeOn": "Always on",
+  "pandaBreathModeDrying": "Drying",
+  "pandaBreathDryingLeft": "Drying, {minutes} min left",
+  "@pandaBreathDryingLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "pandaBreathTarget": "Target temperature 0–{max} °C",
+  "@pandaBreathTarget": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "queueSettingsDispatchLabel": "Printer for any-model jobs",
+  "queueSettingsDispatchDesc": "Which printer takes a job queued for a whole model. Busy or offline ones are skipped.",
+  "queueSettingsDispatchFewestHours": "Fewest print hours",
+  "queueSettingsDispatchMostHours": "Most print hours",
+  "queueSettingsDispatchLeastRecentlyUsed": "Idle the longest",
+  "queueSettingsDispatchPriority": "Printer priority",
+  "editPrinterDispatchPriority": "Priority for any-model jobs",
+  "editPrinterDispatchPriorityHelp": "Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.",
+  "editPrinterDispatchPriorityInvalid": "Enter a whole number from 0 to 100000",
+  "nozzleSheetTitle": "Position {position}",
+  "@nozzleSheetTitle": {
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "nozzleSectionTitle": "Nozzle",
+  "nozzleLabelDiameter": "Diameter",
+  "nozzleLabelType": "Type",
+  "nozzleLabelFlow": "Flow",
+  "nozzleLabelStatus": "Status",
+  "nozzleLabelWear": "Wear",
+  "nozzleLabelPrintTime": "Print time",
+  "nozzleLabelMaxTemp": "Max temp",
+  "nozzleLabelSerial": "Serial",
+  "nozzleLabelFilament": "Filament",
+  "nozzleMaterialStainless": "Stainless steel",
+  "nozzleMaterialHardened": "Hardened steel",
+  "nozzleMaterialTungsten": "Tungsten carbide",
+  "nozzleStatusDocked": "Docked",
+  "nozzleStatusMounted": "On the toolhead",
+  "nozzleWearValue": "{percent}%",
+  "@nozzleWearValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "nozzleMaxTempValue": "{degrees} °C",
+  "@nozzleMaxTempValue": {
+    "placeholders": {
+      "degrees": {
+        "type": "int",
+        "example": "300"
+      }
+    }
+  },
+  "nozzleDiameterValue": "{diameter} mm",
+  "@nozzleDiameterValue": {
+    "placeholders": {
+      "diameter": {
+        "type": "String",
+        "example": "0.4"
+      }
+    }
+  },
+  "errEdgeAccessRequired": "The server is behind Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access did not accept the saved credential",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Set up",
+  "edgeAccessServiceToken": "Service token",
+  "edgeAccessServiceTokenHint": "Works in the background, so alerts and the watch keep working.",
+  "edgeAccessClientId": "Client ID",
+  "edgeAccessClientSecret": "Client secret",
+  "edgeAccessFor": "For {host}",
+  "@edgeAccessFor": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "edgeAccessConfigured": "Service token for {host}",
+  "@edgeAccessConfigured": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "edgeAccessSave": "Save",
+  "edgeAccessRemove": "Remove",
+  "edgeAccessRemoveTitle": "Remove Cloudflare Access?",
+  "edgeAccessRemoveMessage": "The app cannot reach this server until you set it up again.",
+  "edgeAccessRecommended": "Recommended",
+  "edgeAccessBrowser": "Browser sign-in",
+  "edgeAccessBrowserHint": "Expires. You sign in again by hand.",
+  "edgeAccessSignIn": "Sign in",
+  "edgeAccessWarnTitle": "Browser sign-in expires",
+  "edgeAccessWarnMessage": "When the Cloudflare session ends, alerts, the ongoing notification, widgets and the watch stop working until you sign in again. A service token needs no sign-in. Some providers, Google among them, refuse sign-in in an embedded browser; use a service token then.",
+  "edgeAccessWarnConfirm": "Continue anyway",
+  "edgeAccessWarnUseToken": "Use service token",
+  "edgeAccessSignInFailed": "The page did not load.",
+  "edgeAccessConfiguredBrowser": "Browser sign-in for {host}",
+  "@edgeAccessConfiguredBrowser": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEdgeSessionTitle": "Cloudflare session expired",
+  "notifEdgeSessionBody": "Alerts are off. Sign in again to turn them back on.",
+  "notifEvtEdgeSession": "Cloudflare Access",
+  "notifEvtEdgeSessionDesc": "When Cloudflare stops accepting the app's sign-in or service token and alerts stop",
+  "edgeSessionBanner": "Cloudflare session expired",
+  "notifEdgeTokenTitle": "Cloudflare refused the service token",
+  "notifEdgeTokenBody": "Alerts are off. Replace the service token to turn them back on.",
+  "edgeTokenBanner": "Cloudflare refused the service token",
+  "amsUnloadAll": "Unload all",
+  "amsUnloadAllTitle": "Unload all slots?",
+  "amsUnloadAllMessage": "The printer unloads every loaded AMS 3H slot, one after another. When it asks, pull the filament back out of the AMS 3H by hand, so stay at the printer.",
+  "amsUnloadAllStarted": "Unloading all loaded slots. When the printer asks, pull the filament out of the AMS 3H by hand.",
+  "amsUnloadAllNoneLoaded": "No slot has its filament in a hotend",
+  "queueDuplicateAdded": "{count, plural, =1{Added 1 copy to the end of the queue} other{Added {count} copies to the end of the queue}}",
+  "@queueDuplicateAdded": {
+    "description": "Toast after duplicating queue jobs: the copies made",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueDuplicateSkipped": "{count, plural, =1{Added 1 copy} other{Added {count} copies}}; {skipped, plural, =1{1 job can't be duplicated} other{{skipped} jobs can't be duplicated}}",
+  "@queueDuplicateSkipped": {
+    "description": "Toast after duplicating queue jobs when the server left some out",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "queueDuplicateNone": "None of these can be duplicated",
+  "queueDuplicate": "Duplicate",
+  "@queueDuplicate": {
+    "description": "Row menu entry and selection-bar tooltip that queues another copy of the job (queue duplicate)."
+  },
+  "maintenanceLog": "Maintenance log",
+  "@maintenanceLog": {
+    "description": "Tooltip of the Maintenance app-bar icon that opens the log of resets."
+  },
+  "maintenanceLogTitle": "Log · {printer}",
+  "@maintenanceLogTitle": {
+    "description": "Title of the maintenance log screen: the printer whose log is shown.",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogEmpty": "No maintenance has been logged for this printer yet",
+  "maintenanceLogLoadMore": "Load more · {shown} of {total}",
+  "@maintenanceLogLoadMore": {
+    "description": "Button under the maintenance log: how many entries are shown of how many the server holds.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogHours": "{hours} h",
+  "@maintenanceLogHours": {
+    "description": "The printer's running hours when a task was reset, in a log row.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogExportPrinter": "Export CSV, this printer",
+  "maintenanceLogExportAll": "Export CSV, all printers",
+  "maintenanceLogCleanUpPrinter": "Clean up, this printer…",
+  "maintenanceLogCleanUpAll": "Clean up, all printers…",
+  "maintenanceLogSaved": "Log saved: {name}",
+  "@maintenanceLogSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogCleanUpTitle": "Delete old log entries?",
+  "maintenanceLogCleanUpMessage": "Permanently deletes the entries of {printer} older than the age you choose. The last day always stays, and the tasks' counters are not changed. Export the log first to keep a copy.",
+  "@maintenanceLogCleanUpMessage": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogCleanUpMessageAll": "Permanently deletes the entries of every printer you can see that are older than the age you choose. The last day always stays, and the tasks' counters are not changed. Export the log first to keep a copy.",
+  "maintenanceLogAge": "{days, plural, one{{days} day} other{{days} days}}",
+  "@maintenanceLogAge": {
+    "description": "A choice of how old log entries must be to be cleaned up.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogCleanedUp": "{count, plural, =0{No entries deleted} =1{Deleted 1 entry} other{Deleted {count} entries}}",
+  "@maintenanceLogCleanedUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "maintenanceLogDeleteEntryTitle": "Delete this log entry?",
+  "maintenanceLogDeleteEntryMessage": "“{task}” from {date} is permanently removed from the log. The task's last reset stays as it is: deleting the entry does not undo it.",
+  "@maintenanceLogDeleteEntryMessage": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogEntryDeleted": "Log entry deleted",
+  "maintenanceLogDelete": "Delete",
+  "maintenanceLogYear": "1 year",
+  "@maintenanceLogYear": {
+    "description": "The oldest choice of the log cleanup, one year in days."
+  },
+  "spoolScanTitle": "Scan a spool",
+  "@spoolScanTitle": {
+    "description": "Title of the spool scanner when it offers both the camera and NFC."
+  },
+  "spoolScanModeCamera": "Camera",
+  "@spoolScanModeCamera": {
+    "description": "Segment of the spool scanner's switch: read a QR code with the camera."
+  },
+  "spoolScanModeNfc": "NFC",
+  "@spoolScanModeNfc": {
+    "description": "Segment of the spool scanner's switch: read the spool's NFC tag."
+  },
+  "spoolScanNfcHint": "Hold the spool to the back of the phone",
+  "spoolScanNfcHelp": "Its tag is read where the NFC antenna is, usually near the camera.",
+  "spoolScanNfcOff": "NFC is off",
+  "spoolScanNfcOffHelp": "Turn it on in the system settings to scan tags.",
+  "spoolScanNfcOpenSettings": "Open settings",
+  "spoolScanTagUnknown": "No spool has this tag",
+  "spoolScanTagUnknownHelp": "Tag {tag} is not linked to any spool in Filaments. Link it with SpoolBuddy, then try again.",
+  "@spoolScanTagUnknownHelp": {
+    "description": "{tag} is the tag's number, upper-case hex.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "spoolScanOpening": "Opening {name}",
+  "@spoolScanOpening": {
+    "description": "Shown after a tag was read; {name} is the spool's name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceLogPrinter": "Printer",
+  "@maintenanceLogPrinter": {
+    "description": "Label of the printer select of the maintenance log, shown when there are too many printers for chips."
+  },
+  "compactAmsLayoutTitle": "Compact AMS tiles",
+  "compactAmsLayoutDesc": "Filament slots show as small tiles with colour, material and slot number. Any printer card can switch back to the detailed list.",
+  "amsViewCompact": "Compact view",
+  "amsViewDetailed": "Detailed view",
+  "externalSpoolShort": "E",
+  "announcementsSourceMobile": "Mobile app",
+  "appUpdateTitle": "New app version available",
+  "appUpdateBody": "Available on Google Play.",
+  "appUpdateDownloading": "Downloading…",
+  "appUpdateButton": "Update",
+  "appUpdateReady": "Update downloaded",
+  "appUpdateRestart": "Restart"
 }

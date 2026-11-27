@@ -43,6 +43,53 @@ first frame after the line to the server came up (`inTouchSince`), where nothing
 could contradict it. A frame with `connected == null` says nothing about
 reachability and is never read as offline.
 
+### The Panda Breath (#1466)
+
+A BIQU Panda Breath chamber heater bound to a printer arrives as `panda_breath`
+on its status. The server writes the key into every status, with `null` when no
+heater is bound, so the field is replaced on each frame, never inherited. An older
+server sends no key, so no heater shows and no `ServerFeature` gate is needed; the
+`POST /printers/{id}/panda-breath` route arrived together with the field.
+
+The heater runs without the printer, so it outlives the OFFLINE collapse. On a
+connected card it is the last tile of the temperature grid, as on the web. On the
+collapsed card the grid is gone, so it shows as a row with its own on/off switch.
+It appears in one of the two places at a time, never both. A heater the server
+reports `online: false` shows a dash, not its last reading, and offers no controls.
+The sheet sends one change per request, as the route accepts. Like the web, a
+command that goes through closes the sheet with "Sent", and the new state comes
+with the next frame. The server's `panda_breath_enabled` switch has no screen in
+the app: with it off, the server sends `null` and nothing shows.
+
+### The temperature tiles (#74)
+
+A tile names its sensor with a **pictogram** (`TempGlyph`, `assets/icons/temp_*.svg`) in place
+of a word, and the heat state (orange: heating or holding, blue: cooling or off, from
+`TempReading.gaugeInk`) tints **that pictogram only**. The digits, the setpoint and the bar are
+neutral. The same rule holds in the temperature sheet's header and on the controller's Heat
+and readings cards, where the pictogram stands beside the text name instead of replacing it.
+
+- **The air-duct mode is a drawing, not a colour.** The chamber icon has three: waves (duct
+  heating), a snowflake (cooling) and an empty box (a printer with no duct mode). That is the
+  flame and snowflake that used to sit before the digits; with it gone the digits are the
+  tile's widest part. Shape carries the mode and colour the heat state, so neither rests on
+  colour alone, and the pictogram speaks both (`ctrlAirduct: ctrlAirductHeating`).
+- **Two heads are the left and right letters, as the web writes them** (`NozzleBadge`,
+  `PrintersPage.tsx`; here `extruderLeftShort` and `extruderRightShort`, so L and P in Polish):
+  the plain `nozzle` key is the left head, `nozzle_2` the right. A rack printer (H3C) shows the
+  mounted nozzle's rack position beside the pictogram; a single hotend shows nothing. The
+  spoken name is the word, not the letter ("Nozzle 1" and "Nozzle 2", as on the controller),
+  so a screen reader gets the same name a sighted reader gets from the letter.
+- **A row of three** is taken only for exactly one nozzle, the bed and the chamber, with no
+  Panda Breath and no second head. `tempGridColumns` tries three (8 dp padding, `compact`),
+  then two, then one, and takes the first where the digits and each tile's first line fit,
+  measured with the text scale, so a larger text size steps down by itself. Four tiles never
+  make a row, so a card with a Panda Breath keeps two columns.
+- **The Panda Breath has a pictogram too** (`TempGlyph.panda`, an air-flow drawing), tinted by
+  its heat state, grey while the server cannot reach it. Its sheet has it in the header.
+- **A sensor the app does not know keeps its text name and the old colouring**: an unknown key
+  has no drawing to put in its place.
+
 ### A filament slot row (#64)
 
 The material alone cannot tell slots apart: most users load one material, and three
@@ -58,8 +105,12 @@ under 4.5:1, green and orange at 2.9:1.
   as the web's slot card leads with it, but only while `slotPresetDescribesTray`
   says it still describes the tray; else the spool assigned to the slot
   (`AssignedSpools.spoolOf`, the chain of `fillOf` without its weight conditions,
-  so a spool with no label weight still names it), else `tray_sub_brands`, else
-  `tray_type`. A spool the preset pushed out of the name gets a third line in the
+  so a spool with no label weight still names it), else **the server's name for the
+  tray's filament id** (`POST /cloud/filament-info`, the web's `cloudInfo`: one
+  request per card, `filamentNamesProvider`; so a slot with no sub-brand reads
+  "Bambu PETG HF" instead of "PETG", and one that reports "PLA Basic" reads "Bambu PLA
+  Basic"), else `tray_sub_brands`, else `tray_type`. Without a name from the server,
+  for any reason, the row falls back to the two last steps. A spool the preset pushed out of the name gets a third line in the
   colour's style, so "Generic PLA" in a slot holding an eSun spool shows both.
 - **Saving a preset** sends the slot's `tray_info_idx` with it. Without it the
   server records none, and a slot reconfigured on the printer keeps a name that
@@ -77,6 +128,96 @@ that do not tell the trays apart fall back to the position.
 The name is one line by decision: wrapped, a row at 200 % text turned into a block
 of text with no hierarchy. A material chip was tried and dropped: the name already
 carries the material.
+
+### Compact AMS tiles (PR #78)
+
+The same slots as a grid of tiles instead of rows, so a dual-nozzle machine's four
+AMS slots and two external spools fit one row on a wide phone instead of six rows.
+`_CompactSlotTile` takes the inputs of `_FilamentRow` and shows the material on the
+colour, the slot number (or `L`/`R`, or `E` for an external spool on a single
+nozzle) in a pill on the corner, and under it the colour's name, the percent, the
+grams and a bar. The material is centred in the swatch. The pill (and the dryer mark on
+the other corner) stands 8 dp out of it, so its inner half ends where a two-line name
+begins, and the swatch is never shorter than two lines plus that 8 dp on each side
+(the pill used to take 20 dp from the top and left the name 8 dp under the centre). The tile's name is `slotNaming(..., subBrandFirst: true).name` without
+the server's filament name: the printer's own `tray_sub_brands` leads, then the preset, the
+spool and the type, and the winner is read **from the slot's material on**
+(`fromMaterial`). The server writes a slot it configures as "brand material subtype"
+(`inventory.py`), so "Bambu PLA Matte" and "eSun PLA Matte" both read "PLA Matte" and
+"Professional Lab PETG" reads "PETG", with no list of brands. A name that does not hold
+the material, or reads "Support for PLA", is kept whole; the type has to be a whole word
+(a hyphen in it may be a space in the name). The row keeps the web's order and the brand, so the same slot
+reads "PLA Matte" in the tile and "Bambu PLA Matte" in the row, which is the maintainer's
+choice ([the deviation](server-contract-traps.md#deliberate-deviations-from-the-web)).
+A compact printer card does not ask the server for names at all.
+
+- **Switching**: the setting `compact_ams_layout` (Settings, Dashboard; off by
+  default, which is what every earlier version drew) and a switch in the filament
+  block's title row. The switch is per printer and lasts the session
+  (`printerCompactAmsProvider`, the shape of `printerCardCollapseProvider`);
+  changing the setting resets every printer to it. It governs all AMS units and the
+  external spools of the printer together. Its glyph is the view a tap leads to.
+  A rack printer keeps the list (its inputs are named by hotend) and a printer with
+  no AMS, or with nothing to draw, has no switch.
+- **Rows** (`compactBlockLayout`, pure and tested over every width and text size):
+  a visible tile is never narrower than 48 dp times the text scale, and the slot
+  adds a 4 dp gap. If the AMS tiles and the external spools fit one row at that
+  minimum they share it, with no heading; otherwise the whole external group moves
+  to rows of its own under the "External spool" heading. A group never splits
+  across rows apart from wrapping on its own; a group too long for one row splits
+  equally (2 + 2, not 3 + 1) and its tiles fill the rows. Only a single short row
+  (under four tiles) is capped, at the slot of a row of four, so one AMS HT is not a
+  slab. An external group below reuses the AMS tile width when it fits.
+- **Width**: the tile area is the phone minus 100 dp, measured off the real card
+  (2 × 16 of card margin, card padding and group padding, and two 1 dp borders each
+  of the card and the group card). A row of n tiles has n - 1 gaps, so six tiles in a
+  row need a 408 dp phone, five 356 dp, four 304 dp at 100 % text. Counting a gap per
+  tile (412 dp for six) left a 411.43 dp phone (1440 px at 560 dpi, a Galaxy S25
+  Ultra in QHD+, or 1080 px at 420 dpi) 0.57 dp short, in two rows. The layout adds
+  one gap to the width and the last tile of a row is drawn one gap narrower, so a full
+  row ends flush with the area. A 384 dp phone (the same Samsung in FHD+) fits five in
+  a row, so six split four and two.
+- **Header gaps**: the filament title row and the unit header are each a 48 dp tap
+  target (a 34 dp button, 19 dp of text), so the texts are already 29 dp apart with
+  no gap between the rows; none is added. The header sits 8 dp over the tiles, in the
+  detailed list too. The 48 dp rows cannot shrink without failing the tap-target
+  guideline.
+- **Spools**: they ride on the printer's last AMS unit, so they can share its row.
+  A last unit with no trays draws a dash, and the spools get a block of their own.
+- **Reading**: the tile is one merged node for a screen reader. The bar is outside
+  it (its own "66 %" would be read twice, and "0 %" on a slot with no reading), and
+  the dash or question mark on a blank slot is outside it too; the caption says it
+  in words.
+
+Not done on purpose: the row's fill ring and its percent-over-grams column become the
+bar and two lines; the compact tile has no ring.
+
+### Nozzle figures (#1908)
+
+A nozzle reports its own wear, print time (`p_t`), status code, temperature rating and
+serial in `nozzle_rack`, and the web lists them in a hover card. A phone has no hover, so
+two taps open the same rows (`NozzleFigures`, `printer_card_nozzle.dart`), in the web's
+order: diameter, type, flow, status, wear, print time, max temp, serial, filament.
+
+- **A rack chip opens a sheet** (`showNozzleSheet`). An empty dock is not a button: the web
+  shows a line for it, and there is nothing to show. The touch target is 48 dp, the chip's
+  40 plus half the old gap on each side, so the row is no wider than before.
+- **A hotend's temperature sheet ends with a "Nozzle" section** (`_NozzleSection`) of four
+  rows: diameter, flow, wear, print time. The tile's hardware index is the entry's id: 0 is
+  the right head (`nozzle_2`), 1 the left. The sheet already names the hotend, and its
+  status is the "Activate" control above, so the rest of the card is left out. A printer is
+  dual when it reports `nozzle_2` **or** lists a non-empty id 1: a frame can carry the list
+  before the temperature, and the one decision then drives the tile's target index, its
+  nozzle switch and its figures. An empty entry proves nothing (a stub), which is argued
+  from the H3C capture listing no id 1, not measured on a single-nozzle printer.
+- **A figure the nozzle did not report is not a row.** A null print time is older firmware
+  or a server before 1.3.1 (the key is absent, 1.3.0 measured), and "0h" would say the
+  nozzle never printed; a reported 0 is a row. Max temp 0 and an empty serial are "not set".
+- **Material and flow are ported from the web, not from `highFlowFromCode`.**
+  `nozzleMaterialOf` is `nozzleTypeName` and `nozzleHighFlowStated` is `nozzleFlowName`: a
+  code naming neither `HH` nor `HS` (`HT01`) has no flow row, where `highFlowFromCode` calls
+  it standard to rule a queue pick in or out. An unknown type is shown as the printer sent it.
+- **Reads only**, so an API key sees all of it (`PRINTERS_READ`).
 
 ### Smart plugs (`/api/v1/smart-plugs/`)
 
@@ -112,6 +253,57 @@ UI decisions, reached over several rounds; ask before changing them:
 Tests: a provider that polls needs an inert override (`_InertStatuses`,
 `_InertSmartPlugs` in `test/helpers.dart`, applied by the shared harness), or the
 test hangs on the timer.
+
+### AI failure detection (`/obico/printer-status`, `/octoeverywhere/printer-status`)
+
+The server watches a print through the camera with one of two providers, Obico
+(#1546) or OctoEverywhere (#3169), and the web shows the verdict as a badge on the
+printer card. Here it is one item of the print panel's meta row
+([ai_detection_item.dart](../lib/features/dashboard/widgets/ai_detection_item.dart)):
+an eye and one word, in the class's colour. Read only.
+
+- **Which provider answers is the web's rule** (`aiPrinterStatus` in `PrintersPage.tsx`):
+  OctoEverywhere when it is enabled, otherwise Obico. The server refuses to enable
+  both (`routes/settings.py`). A server from before OctoEverywhere (1.2.5.7 and
+  older) 404s that route and Obico answers alone; one from before Obico's
+  `printer-status` (1.2.5 and 1.2.5.1, which have only the `settings:read`
+  `/obico/status`) 404s both and the card shows nothing
+  (`AiDetectionRepository.fetch`).
+- **A feed, not a `capabilityGate`**, for the same reason as the linked apps: the
+  payload is the answer, and a 404 or a 403 on either route reads as "nothing to
+  show". Neither handler looks up a row by id.
+- **`printers:read` is enough**, which a key holds as `can_read_status`. The routes
+  were made for the cards and carry no configuration. Without `settings:read` the
+  server withholds the reason of an error (it can name a configured URL) and still
+  sends the `error` class, so "Not checking" shows either way and only the sentence
+  behind it loses its reason.
+- **An unknown class is "Starting", never "Safe".** Collapsing everything that is
+  not a failure into a green badge is what made a print nothing was looking at read
+  as healthy (server #2952). The same for the measurement: Obico's score and
+  OctoEverywhere's print quality are quoted only beside a verdict.
+- **The two providers are told apart by the `print_quality` key**, as the web does
+  (`'print_quality' in aiDetection`): OctoEverywhere sends it as null before its
+  first result, Obico never sends it.
+- **Polling follows what there is to see** (`aiDetectionProvider`). The print panels
+  are its only watchers, so it exists while something prints. Detection that is off
+  is asked about once, and again on regained contact and pull-to-refresh; detection
+  that is on is re-read every 10 s like the web, while the app is in the foreground
+  and the dashboard is the tab on screen (`dashboardWatchedProvider`, which the
+  smart-plug poll runs on too). That flag lives outside the notifier because the
+  notifier comes and goes with the prints, and one born while the user sits on
+  another tab has to start silent.
+- **Deviations from the web.** No grey "Idle" badge between prints: the card is
+  tall already and the item would say nothing. No detail dialog (frames analysed,
+  the settings link): a tap on the item shows the web badge's `title` sentence as a
+  tooltip, which is also what a screen reader says. Configuring a provider, its
+  history and its test-connection are settings and stay in the web UI. The collapsed
+  card, the controller and the watch do not show it.
+- Seen on 1.2.5 (neither route), 1.2.5.7 (Obico only) and `dev` at 1.3.2b1
+  (both): `ai_detection_contract_test.dart` passes on the last two and, on
+  1.2.5, runs only the test that the app reads nothing.
+  No print reached the detection loop there, so an entry of `per_printer` is
+  checked against the shapes `get_per_printer` builds in both services, not
+  against a live one.
 
 ## Edit printer and printer locations
 
@@ -185,6 +377,27 @@ restart and re-arms an item once it stops being due. After every print
 preferences. The "Mark done" notification button runs in the background through
 `handleMaintenanceAction`; how that isolate rebuilds its client and avoids losing the
 dedup set is in [notification-delivery.md](notification-delivery.md).
+
+**The log of resets (server 1.3.2, `maintenance_log_screen.dart`).** A history icon in the
+app bar (gate `maintenanceLog`) opens `/maintenance/log`: one chip per printer, that
+printer's entries newest first, 50 at a time. Which printer was open last is kept
+(`maintenance_log_printer`) and opens next time; an id that is gone falls back to the first
+printer, and a new server forgets it, as it does every other id. **The printers are chips
+while they fit in two rows and a select (`dashCombo`) once they would take a third**
+(`ChipsOrSelect`, `lib/features/common/chips_or_select.dart`): a fleet of 20 was six rows
+at 100% text and more than the screen at 200%. The edge is measured from the real layout,
+the chips' runs after they are laid out, never from a count, since the labels, the width and
+the text scale all move it. Both are built and both laid out, only one is painted,
+hit-tested, read by a screen reader and reachable with a keyboard (the render object says
+which is shown and a frame later the other gets `ExcludeFocus`), so a finder that means the
+visible one says `hitTestable()`. The ⋮ menu exports and
+cleans up this printer or all of them; a long press on a row deletes it. Cleanup and delete
+need `maintenance:delete` (an API key's `can_manage_maintenance`) and are absent without
+it, reading and exporting are not. The cleanup offers 30, 90, 180 days and a year and starts
+at the year, the age that takes the least; the web asks for a number of days and starts
+there too. The CSV is small, so it goes through `saveBytesToDevice`. The deleted entry's
+task keeps its last reset, which the confirmation says. Recordings: `maintenance_log_cleanup`
+and `maintenance_log_delete_entry`, replayed by `maintenance_log_contract_test.dart`.
 
 ## Statistics
 

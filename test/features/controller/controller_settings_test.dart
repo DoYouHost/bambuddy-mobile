@@ -1,58 +1,29 @@
-import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/settings/controller_prefs.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_providers.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/controller/controller_settings.dart';
-import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 void main() {
-  late SharedPreferences sp;
-
   Future<void> pump(
     WidgetTester tester, {
     Size size = const Size(844, 390),
   }) async {
-    useLogicalWindow(tester, size);
-    SharedPreferences.setMockInitialValues({});
-    sp = await SharedPreferences.getInstance();
-    await pumpPhone(
+    await pumpControllerPanel(
       tester,
-      const ControllerSaverHost(
+      ControllerSaverHost(
         printerId: 1,
-        child: Scaffold(
-          body: Padding(
-            padding: EdgeInsets.all(16),
-            child: ScaleToFit(child: ControllerSettings()),
-          ),
-        ),
+        child: scaledControllerBody(const ControllerSettings()),
       ),
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sp),
-        noServerProfileOverride,
-        fixedDashboardOverride(
-          const DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: Printer(id: 1, name: 'X1C'),
-                status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
-              ),
-            ],
-          ),
-        ),
-        inertStatusesOverride,
-      ],
+      name: 'X1C',
+      size: size,
     );
-    await tester.pump();
   }
 
   ControllerPrefs prefs(WidgetTester tester) => ProviderScope.containerOf(

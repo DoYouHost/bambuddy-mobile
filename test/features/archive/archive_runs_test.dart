@@ -180,12 +180,7 @@ void main() {
                 ),
               ),
             ),
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(textScale)),
-              child: child!,
-            ),
+            builder: textScaled(textScale),
           ),
         ),
       );

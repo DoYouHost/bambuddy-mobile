@@ -93,41 +93,68 @@ class LibraryFolder {
 List<LibraryFolder> _childrenFromJson(dynamic value) =>
     parseJsonList(value, LibraryFolder.fromJson);
 
-/// The folders [folder] may be moved into, as `FileManagerPage.tsx` offers them
-/// (`moveDisallowedFolderIds`, `isValidFolderMove`): not itself or anything
-/// below it, nothing external or below an external folder (a mount mirrors a
-/// path on disk), nothing the user may not write to, and not the parent it
-/// already has. The root is a separate entry, offered while
-/// `folder.parentId != null`. [all] is flat, so ancestry is read from
-/// `parentId` and a listing that arrives without nested children still works.
-List<LibraryFolder> folderMoveTargets(
-  List<LibraryFolder> all,
-  LibraryFolder folder,
-) {
-  // A mount stays where the scan put it (the server answers 400), so it has no
-  // target at all.
-  if (folder.isExternal) return const [];
-  // [folder] is seeded in case [all] was filtered and no longer lists it.
-  final byId = {for (final f in all) f.id: f, folder.id: folder};
-  bool blocked(LibraryFolder f) {
-    final seen = <int>{};
-    for (
-      LibraryFolder? c = f;
-      c != null && seen.add(c.id);
-      c = byId[c.parentId]
-    ) {
-      if (c.id == folder.id || c.isExternal) return true;
-    }
-    return false;
-  }
+/// Why a row of the move picker cannot be picked.
+enum MoveBlock { current, self, inside, external, readOnly, notWritable }
 
+/// One row of the move picker, [depth] levels below the root.
+typedef FolderRow = ({LibraryFolder folder, int depth});
+
+/// [all] in tree order, as [flattenFolders] gives it, as the rows of the web's
+/// `FolderTargetList` (`FileManagerPage.tsx`). Read along `parentId`, so a folder
+/// whose parent is not listed starts a tree of its own.
+List<FolderRow> folderRows(List<LibraryFolder> all) {
+  final rows = <int, FolderRow>{};
   return [
     for (final f in all)
-      if (f.canWrite && f.id != folder.parentId && !blocked(f)) f,
+      rows[f.id] = (folder: f, depth: (rows[f.parentId]?.depth ?? -1) + 1),
   ];
 }
 
-/// Every folder of [tree], each parent before its children.
+/// Why [folder] may not be moved into [target] (null is the root), as
+/// `FileManagerPage.tsx` decides it (`moveDisallowedFolderIds`,
+/// `isValidFolderMove`): the parent it already has, itself or anything below
+/// it, anything external or below an external folder (a mount mirrors a path on
+/// disk), a folder the user may not write to. Null where the move is allowed.
+/// Ancestry is read from `parentId`, so a listing without nested children works.
+MoveBlock? folderMoveBlock(
+  List<LibraryFolder> all,
+  LibraryFolder folder,
+  LibraryFolder? target,
+) {
+  // A mount stays where the scan put it (the server answers 400), so it has no
+  // target at all, the root included.
+  if (folder.isExternal) return MoveBlock.external;
+  if (target?.id == folder.parentId) return MoveBlock.current;
+  if (target == null) return null;
+  // [folder] is seeded in case [all] was filtered and no longer lists it.
+  final byId = {for (final f in all) f.id: f, folder.id: folder};
+  final seen = <int>{};
+  for (
+    LibraryFolder? c = target;
+    c != null && seen.add(c.id);
+    c = byId[c.parentId]
+  ) {
+    if (c.id == folder.id) {
+      return c.id == target.id ? MoveBlock.self : MoveBlock.inside;
+    }
+    if (c.isExternal) return MoveBlock.external;
+  }
+  return target.canWrite ? null : MoveBlock.notWritable;
+}
+
+/// Why a file in [currentId] (null is the root) may not be moved into
+/// [target]: it is there already, the user may not write to it, or it is a
+/// read-only mount — the two refusals of `library.py::move_files`. A writable
+/// mount takes the file's bytes, on every server from 1.2.5 on
+/// (`library_external_move_contract_test.dart`).
+MoveBlock? fileMoveBlock(int? currentId, LibraryFolder? target) =>
+    switch (target) {
+      _ when target?.id == currentId => MoveBlock.current,
+      final t? when !t.canWrite => MoveBlock.notWritable,
+      final t? when t.isExternal && t.externalReadonly => MoveBlock.readOnly,
+      _ => null,
+    };
+
 List<LibraryFolder> flattenFolders(List<LibraryFolder> tree) => [
   for (final f in tree) ...[f, ...flattenFolders(f.children)],
 ];

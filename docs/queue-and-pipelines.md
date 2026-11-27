@@ -202,6 +202,19 @@ resumed". A server older than the route never writes the reason, so the banner a
 the route arrive together. The demo's item 108 (any P1S) waits behind the same failed
 print; the contract test replays the banner's recorded write on the seeded X1C.
 
+## Duplicate (server 1.3.3)
+
+A row's ⋮ menu and the selection bar (`mayDuplicateQueueProvider`: the gate row
+`queueDuplicate` and `queue:create`) send `POST /queue/duplicate`; the entry is
+absent, not greyed as on the web, where it cannot work. The row offers it for what
+`QueueItem.canDuplicate` allows (queued or printing, not a printer-card upload), the bar
+sends the whole selection (and shows only while something picked can be copied; a user with `queue:create` alone can still pick, as on the web) and the notifier counts what it left out with what the server
+skipped. A selection holds queued jobs only, so a printing job is copied from its own row.
+`QueueNotifier.duplicating` drops a second tap while a request is in flight: two taps
+would add two sets of copies. The picks clear after a bulk copy that made one and stay after a refusal or a copy of none.
+The bar's write is recorded in `test/fixtures/sent/queue_duplicate.json` and replayed by
+the contract test.
+
 ## Slicer pipelines
 
 The routes are `/slicer-pipelines` and `/pipeline-runs`. Presence and permission are

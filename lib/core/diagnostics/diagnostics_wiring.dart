@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../auth/credentials_store.dart';
 import '../settings/settings_repository.dart';
@@ -22,6 +23,46 @@ class WsSessionListener implements DiagnosticSessionListener {
 
   @override
   void onSessionFlush() => WsProbe.flushAll();
+}
+
+/// What the last question to Google Play came to (`PlayUpdate.onAnswer`). Written
+/// again when a recording starts: Play is asked at start and on resume, and a
+/// recording may see neither.
+class PlayCheckProbe implements DiagnosticSessionListener {
+  const PlayCheckProbe();
+
+  static Map<String, Object?>? _last;
+
+  /// The recording [onSessionStart] has opened. The recorder takes records a
+  /// moment before that, and an answer landing then waits for it rather than
+  /// being written twice.
+  static LogStore? _open;
+
+  @visibleForTesting
+  static void forget() {
+    _last = null;
+    _open = null;
+  }
+
+  static void answered(Map<String, Object?> answer) {
+    _last = answer;
+    if (identical(DiagnosticRecorder.active, _open)) _record();
+  }
+
+  @override
+  void onSessionStart() {
+    _open = DiagnosticRecorder.active;
+    _record();
+  }
+
+  @override
+  void onSessionFlush() {}
+
+  static void _record() {
+    final last = _last;
+    if (last == null) return;
+    DiagnosticRecorder.active?.add(LogSource.app, 'play_check', fields: last);
+  }
 }
 
 /// `startBackground` for an isolate woken to do one job and gone a second later — a

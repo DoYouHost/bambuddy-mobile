@@ -23,7 +23,9 @@ Obtainium. `origin` is `DoYouHost/bambuddy-mobile` on GitHub; the recipes call
   between the push and the call. Pushing a tag and referring to it at once is a
   race, and it caused about six failed ships.
 - **A stable release goes out from `release/X.Y.Z` and nowhere else**
-  (`_require-release-branch`; the flow is in [branching.md](branching.md)). `_branch`
+  (`_require-release-branch`; the flow is in [branching.md](branching.md)), and only
+  when it contains `origin/master`: a branch cut from a `dev` that never got master
+  merged back would drop what the last release carried. `_branch`
   (one definition shared by both recipes) reads `git symbolic-ref` and refuses a
   detached HEAD. `_bump` fast-forwards onto `origin <that branch>` (`--ff-only`, a
   rebase would flatten the merge commits a release branch carries); it skips the

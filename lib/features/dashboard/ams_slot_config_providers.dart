@@ -154,6 +154,28 @@ final slotPresetsProvider = FutureProvider.autoDispose
           ref.watch(amsSlotConfigRepositoryProvider).slotPresets(printerId),
     );
 
+/// The server's name for each filament id in [idsKey], which is
+/// [filamentIdsKey] of one printer's trays — the web's `cloudInfo`, and the step
+/// between a slot's spool and its `tray_sub_brands` when a row is named. A key
+/// rather than a list so the family has the equality it needs. Empty when the
+/// server cannot say; auto-disposed like [slotPresetsProvider], so a panel that
+/// opens after a failure asks again.
+final filamentNamesProvider = FutureProvider.autoDispose
+    .family<Map<String, String>, String>(
+      (ref, idsKey) => ref
+          .watch(amsSlotConfigRepositoryProvider)
+          .filamentNames(idsKey.split(',')),
+    );
+
+/// The key [filamentNamesProvider] is asked with: the distinct, non-empty [ids],
+/// sorted, so the same trays in another order are the same request.
+String filamentIdsKey(Iterable<String?> ids) => ([
+  ...{
+    for (final id in ids)
+      if (id != null && id.isNotEmpty) id,
+  },
+]..sort()).join(',');
+
 /// The preset a slot was configured with, or null when it has none.
 ///
 /// Auto-disposed and per slot: unlike the catalogue this is state the user is

@@ -50,6 +50,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       trayChangeLog: _trayChangeLogOrNull(json['tray_change_log']),
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
       nextPause: nextPauseFromJson(json['next_pause']),
+      pandaBreath: pandaBreathFromJson(json['panda_breath']),
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
@@ -99,6 +100,11 @@ NozzleRackSlot _$NozzleRackSlotFromJson(Map<String, dynamic> json) =>
       filamentColor: json['filament_color'] as String?,
       filamentType: json['filament_type'] as String?,
       addrId: toIntOrNull(json['addr_id']),
+      wear: toIntOrNull(json['wear']),
+      printTimeS: toIntOrNull(json['print_time_s']),
+      stat: toIntOrNull(json['stat']),
+      maxTemp: toIntOrNull(json['max_temp']),
+      serialNumber: json['serial_number'] as String?,
     );
 
 FilaSwitch _$FilaSwitchFromJson(Map<String, dynamic> json) => FilaSwitch(

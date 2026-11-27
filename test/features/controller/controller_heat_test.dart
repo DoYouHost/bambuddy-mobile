@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 const _phone = Size(844, 390);
 
@@ -52,41 +53,21 @@ void main() {
     Size size = _phone,
     bool refused = false,
   }) async {
-    useLogicalWindow(tester, size);
     commands = RecordingCommands();
-    SharedPreferences.setMockInitialValues({});
-    final sp = await SharedPreferences.getInstance();
-    await pumpPhone(
+    await pumpControllerPanel(
       tester,
-      const Scaffold(
-        body: Padding(
-          padding: EdgeInsets.all(16),
-          // Scaled as the screen scales its body.
-          child: ScaleToFit(child: ControllerHeat(printerId: 1)),
-        ),
-      ),
+      scaledControllerBody(const ControllerHeat(printerId: 1)),
+      status: status,
+      model: model,
+      size: size,
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(sp),
-        noServerProfileOverride,
         printerCommandsRepositoryProvider.overrideWithValue(commands),
         if (refused)
           controlRefusedProvider(
             ControlPermission.control,
           ).overrideWithValue(true),
-        fixedDashboardOverride(
-          DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: Printer(id: 1, name: 'P', model: model),
-                status: status,
-              ),
-            ],
-          ),
-        ),
-        inertStatusesOverride,
       ],
     );
-    await tester.pump();
   }
 
   Future<void> tapStep(WidgetTester tester, String id, {int index = 0}) async {
@@ -149,21 +130,18 @@ void main() {
       expect(find.text(pl.ctrlOff), findsNWidgets(2), reason: 'bed, chamber');
     });
 
-    testWidgets('plus raises the nozzle by one step', (tester) async {
-      await pump(tester, _status());
+    testWidgets(
+      'plus raises the nozzle and minus lowers the bed, one step each',
+      (tester) async {
+        await pump(tester, _status());
 
-      await tapStep(tester, 'controller.heat_plus');
+        await tapStep(tester, 'controller.heat_plus');
+        expect(commands.calls, ['nozzle:1:225:0']);
 
-      expect(commands.calls, ['nozzle:1:225:0']);
-    });
-
-    testWidgets('minus lowers the bed by one step', (tester) async {
-      await pump(tester, _status());
-
-      await tapStep(tester, 'controller.heat_minus', index: 1);
-
-      expect(commands.calls, ['bed:1:55']);
-    });
+        await tapStep(tester, 'controller.heat_minus', index: 1);
+        expect(commands.calls, ['nozzle:1:225:0', 'bed:1:55']);
+      },
+    );
 
     testWidgets('at zero the target reads Off and cannot go lower', (
       tester,
@@ -551,12 +529,16 @@ void main() {
             size: size,
           );
 
-          // Nothing in a card is scaled to fit: a FittedBox is what made each
-          // card's text a size of its own.
+          // No text in a card is scaled to fit: a FittedBox around text is what
+          // made each card's text a size of its own. (The pictogram's SVG has a
+          // FittedBox of its own, with no text in it.)
           expect(
             find.descendant(
               of: find.byType(ControllerHeat),
-              matching: find.byType(FittedBox),
+              matching: find.ancestor(
+                of: find.byType(Text),
+                matching: find.byType(FittedBox),
+              ),
             ),
             findsNothing,
           );

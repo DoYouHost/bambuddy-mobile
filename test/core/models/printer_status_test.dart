@@ -1118,6 +1118,37 @@ void main() {
       expect(h3c(trayNow: 250).activeTray?.id, 250);
     });
 
+    test('a slot in its hotend is state 27, and only on an AMS 3H', () {
+      PrinterStatus unit({required int amsType, required int state}) =>
+          PrinterStatus.fromJson({
+            'id': 1,
+            'ams': [
+              {
+                'id': 32,
+                'ams_type': amsType,
+                'tray': [
+                  {'id': 0, 'tray_type': 'PLA', 'state': 26},
+                  {'id': 1, 'tray_type': 'PLA', 'state': state},
+                ],
+              },
+            ],
+          });
+
+      expect(
+        unit(amsType: 6, state: 27).ams!.single.hasAms3hSlotInHotend,
+        isTrue,
+      );
+      expect(
+        unit(amsType: 6, state: 26).ams!.single.hasAms3hSlotInHotend,
+        isFalse,
+      );
+      expect(
+        unit(amsType: 1, state: 27).ams!.single.hasAms3hSlotInHotend,
+        isFalse,
+      );
+      expect(h3c().ams!.single.hasAms3hSlotInHotend, isFalse);
+    });
+
     test('the AMS 3H dries with the AMS-HT presets', () {
       final unit = h3c().ams!.single;
       expect(unit.isAms3h, isTrue);

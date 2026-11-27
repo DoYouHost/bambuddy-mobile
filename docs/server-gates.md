@@ -412,7 +412,9 @@ the inventory backend from `/spoolman/status`). Nor the Manyfold tab of Model
 Sources (#1471): the screen needs `/manyfold/status`'s payload anyway — whether
 a connection exists decides the tab too — so that one read, made each time the
 screen opens, answers 404 (older server) and 403 (no `manyfold:view`) as "no
-tab", and no latch would learn anything it does not.
+tab", and no latch would learn anything it does not. The AI failure detection item on
+the print panel is the same kind of read (two routes, 404 and 403 as "nothing to
+show"); see [screens.md](screens.md).
 
 ### Why the path is shaped like this
 
@@ -710,3 +712,105 @@ spool listing. An empty inventory says nothing and the version row answers,
 which costs nothing: the date is written only to a spool that exists (neither
 create schema takes it), and that spool's own row has already settled the gate.
 Reading needs no gate: an older server never sends a date to show.
+
+### labelTemplates — 1.3.0 (server #3296, PR #3385, commit 9a92f7d)
+
+Custom label sheets: `GET/POST/PUT/DELETE /label-templates` for the saved list, and
+`template: "custom"` with a `layout` on the two label routes. Printing never reads the
+saved list — the layout travels with the request, so a saved sheet and a one-off one print
+the same way and anyone who may print may use either; saving, renaming and deleting need
+`inventory:update`.
+
+Not a silent drop: an older server answers **404** to the list and **422** to `custom`
+(measured on 1.2.5: its `template` is a `Literal` of the built-in names), so the listing
+settles `LabelTemplatesRepository.capability` — `treat404AsAbsent`, since the handler looks
+no row up — and nothing is ever sent to a server that would drop it. The label picker
+fetches that listing every time it opens, so no probe is needed.
+
+The commit landed on 1.3.1b1 dailies (2026-11-02) and is in the 1.3.0 release image, the
+same way the archive redesign is, so the row is 1.3.0: a 1.3.0b1 daily older than the
+commit is told yes and corrected by its 404. Being early costs the "Custom sheet" entry
+for the length of one request.
+
+Two things the 1.3.0 release and the dailies agree on, measured on both images
+(`label_templates_contract_test.dart`): a name clashes ignoring case (409, on create and on
+rename), and saving a template again under its own name is not a clash. The client's
+`SheetLayout.problem` is a mirror of the server's `SheetLayout.problem()`, one case per
+condition; the contract test posts each case and fails when the two disagree.
+
+### wled — 1.3.1 (server #1528, PR #3124, commit 0bf86c2)
+
+`wled_config` on a printer row and on `PATCH /printers/{id}`, and the three
+`POST /printers/{id}/wled/{presets|test-connection|test-preset}` routes: the server
+switches a WLED controller to the preset mapped to the printer's state. Measured on the
+images: 1.3.0 has none of the routes, the 1.3.1 release has them (the commit landed on
+1.3.2b1 dailies on 2026-11-08 and went into the release too).
+
+The write is a silent drop: `PrinterUpdate` forbids no extra fields, so an older server
+answers 200 and stores nothing. What settles `PrintersRepository.wledCapability` is the
+**key on the printer row**: `PrinterResponse` sends `wled_config`, null or not, from the
+commit on, and the dashboard lists printers anyway, so no probe is needed. An empty fleet
+settles nothing, and the version decides; the screen has nothing to offer then either.
+`saveWledConfig` reads the same key off the `PATCH` reply and throws when it is missing,
+so even a server downgraded mid-session cannot report a save that did not happen.
+
+The three routes settle nothing: a 404 there is a printer gone, a 403 a missing
+`printers:update` on that printer, and a 502 a WLED that did not answer. All four need
+`printers:update`, which no API key can hold, so the hub entry also reads
+`canUpdatePrintersProvider`. Being early costs a 1.3.1b1 daily older than the commit
+the hub entry until the first printer listing comes back without the key. On 1.2.5 the
+three routes answer 405, not 404 (a `GET` route takes the path); the app never calls
+them there, so nothing reads that status.
+
+### ams3hUnloadAll — 1.3.3 (server #3531, commit e45aead)
+
+`POST /printers/{id}/ams/unload-all`: unloads every AMS 3H slot of an H3C whose filament
+is in its hotend, one after another, as the printer's own Unload All. The commit landed
+on the 1.3.3b1 dailies on 2026-11-21, so the row is 1.3.3 and the release that carries it
+is not out yet. Measured on the images (`h3c_contract_test.dart`): 1.3.2 answers 404 or
+405 to the path, the 1.3.3b1 daily serves it. A refusal and not a silent drop, but the app
+sends nothing until the row says yes, so nothing is observed and the row decides. Being early costs one 404 shown after a tap, on a 1.3.3b1 daily older
+than the commit; being late hides the button, as every app version before this one did.
+The route's own refusals are 400 (no AMS 3H on the printer, or the printer not connected)
+and 409 (no slot has its filament in the hotend). The button's visibility rule (`state == 27`
+on a tray of the unit) and its lock while the printer is out of reach keep both from being
+common, but a frame that went stale between the render and the tap still gets a 409, which
+the button words (`amsUnloadAllNoneLoaded`).
+
+### queueDuplicate — 1.3.3 (server #3440, commit 42cd1fc)
+
+`POST /queue/duplicate` with `{item_ids}` (1 to 500): another copy of each queued or
+printing job at the end of the queue, cloned on the server so it keeps what the queue
+response cannot carry (project, rack pick, a virtual printer job's slicer mapping). The
+answer is `{created_ids, skipped_count}`: a job the caller may not see or queue, one that
+is not `pending` or `printing`, and a printer-card upload whose file goes when the
+original dispatches, are skipped and counted, never refused, so a 200 is not "all done".
+The commit landed on the 1.3.3b1 dailies on 2026-11-22, so the row is 1.3.3 and the release
+that carries it is not out yet. Measured on the images (`queue_duplicate_contract_test.dart`):
+1.3.2 answers 404 or 405 to the path, the 1.3.3b1 daily serves it. A refusal and not a
+silent drop, but the app sends nothing until the row says yes, so nothing is observed and
+the row decides. Being early costs one 404 shown after a tap, on a 1.3.3b1
+daily older than the commit; being late hides the action, as every app version before this
+one did. The request is cut into pieces of 500 ids, the route's own limit.
+
+### maintenanceLog — 1.3.2 (server #3557, commit fab0025)
+
+A log of every maintenance reset, with who made it, when, the printer's running hours and
+the comment: `GET /maintenance/printers/{id}/log` (pages of 1..500, newest first, `{items,
+total}`), the CSV of one printer (`.../log/export`) and of every printer
+(`/maintenance/log/export`), the cleanup of entries older than N days (`DELETE
+.../log?older_than_days=`, 1..36500, for one printer or all) and the delete of one entry
+(`DELETE /maintenance/log/{id}`, which does not undo the reset). The commit landed on the
+1.3.2b1 dailies on 2026-11-17 and is in the 1.3.2 release: measured on the images
+(`maintenance_log_contract_test.dart`), 1.3.2 and the 1.3.3b1 daily both serve it. A server
+before it was not measured; the routes are new, so 404 or 405 is the expectation. The app
+asks for nothing until the row says yes, so nothing is observed and the row decides; being
+early costs one 404 on a 1.3.2b1 daily older than the commit.
+
+What an API key can do, per surface: reading the log and both exports is `can_read_status`
+(full); the cleanup and the delete need `maintenance:delete`, which maps to
+`can_manage_maintenance` only. A key without it reads and exports but is refused (403) on
+the other two. The CSV starts with a byte order mark (so Excel reads UTF-8) and its text
+columns are written as text, never as formulas; the cleanup keeps at least the last day, and
+an age outside 1..36500 is a 422, not clamped.
+

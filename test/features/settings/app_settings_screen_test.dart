@@ -86,6 +86,32 @@ void main() {
     );
   });
 
+  testWidgets('the compact AMS switch starts off and saves what it is set to', (
+    tester,
+  ) async {
+    final container = await pumpScreen(tester);
+    Switch compactSwitch() => tester.widget<Switch>(
+      find.descendant(
+        of: byLogId('app_settings.compact_ams_layout'),
+        matching: find.byType(Switch),
+      ),
+    );
+
+    expect(compactSwitch().value, isFalse);
+
+    await tester.tap(find.text(pl.compactAmsLayoutTitle));
+    await tester.pumpAndSettle();
+
+    expect(compactSwitch().value, isTrue);
+    expect(container.read(compactAmsLayoutProvider), isTrue);
+    expect(
+      container.read(settingsRepositoryProvider).loadCompactAmsLayout(),
+      isTrue,
+    );
+    // The collapse setting beside it is a separate key and stays off.
+    expect(container.read(printerCardsCollapsedByDefaultProvider), isFalse);
+  });
+
   testWidgets(
     'the wall keep-awake switch starts on and saves what it is set to',
     (tester) async {
@@ -138,6 +164,7 @@ void main() {
         'app_settings.accent',
         'app_settings.theme_mode',
         'app_settings.collapse_printer_cards',
+        'app_settings.compact_ams_layout',
         'app_settings.wall_keep_awake',
         'app_settings.notifications',
         'app_settings.alarm',

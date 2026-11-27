@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/maintenance.dart';
+import 'package:bambuddy_mobile/features/maintenance/maintenance_log_screen.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_screen.dart';
@@ -15,7 +16,8 @@ import 'a11y_harness.dart';
 /// muted task, the perform dialog, the history sheet (empty, with an entry and
 /// failed), the empty and failed lists; and on the settings side the type list,
 /// the create and edit sheets with their errors and menus, the interval dialog
-/// and both confirmations. Deliberately not covered: the snackbars that report a
+/// and both confirmations; and the log of resets with its menu, cleanup dialog
+/// and delete confirmation. Deliberately not covered: the snackbars that report a
 /// write, which are transient.
 void main() {
   // The demo is process-wide and the performing and muting tests write to it.
@@ -124,6 +126,40 @@ void main() {
     ],
     home: () => const MaintenanceScreen(),
     shows: find.text(pl.retry),
+  );
+
+  // --- The log of resets ---
+
+  a11ySurface(
+    'maintenance log',
+    home: () => const MaintenanceLogScreen(),
+    shows: byLogId('maintenance_log.entry'),
+  );
+
+  a11ySurface(
+    'maintenance log, menu',
+    home: () => const MaintenanceLogScreen(),
+    arrange: (tester) => tester.tap(byLogId('maintenance_log.menu')),
+    shows: byLogId('maintenance_log.cleanup_all'),
+  );
+
+  a11ySurface(
+    'maintenance log, cleanup dialog',
+    home: () => const MaintenanceLogScreen(),
+    arrange: (tester) async {
+      await tester.tap(byLogId('maintenance_log.menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('maintenance_log.cleanup_printer'));
+    },
+    shows: byLogId('maintenance_log_cleanup.confirm'),
+  );
+
+  a11ySurface(
+    'maintenance log, delete confirmation',
+    home: () => const MaintenanceLogScreen(),
+    arrange: (tester) =>
+        tester.longPress(byLogId('maintenance_log.entry').first),
+    shows: byLogId('maintenance_log.delete_entry_confirm.confirm'),
   );
 
   // --- Settings ---

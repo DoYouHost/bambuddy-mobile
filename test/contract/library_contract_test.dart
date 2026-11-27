@@ -131,7 +131,6 @@ void main() {
           dio,
           recordedWrites('library_folder_move'),
           item: c.id,
-          itemIn: RegExp(r'(?<=/library/folders/)\d+'),
           ids: {'parent_id': b.id},
         )).single;
         expect(res.statusCode, 200);

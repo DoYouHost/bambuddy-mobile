@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_util/app_util.dart';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
@@ -8,6 +10,7 @@ import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/calibration_option.dart';
+import '../core/models/json_utils.dart';
 import '../core/models/queue_item.dart';
 
 /// Sentinel distinguishing "argument not passed" from an explicit `null` in
@@ -247,6 +250,11 @@ typedef QueueBulkResult = ({int updated, int skipped});
 /// again. Both zero means there was nothing to clear.
 typedef QueueResumeResult = ({int acknowledged, int restored});
 
+/// What `POST /queue/duplicate` did: the ids of the copies made, in the order
+/// asked, and how many jobs got none. A 200 with nothing created is a normal
+/// answer, not an error.
+typedef QueueDuplicateResult = ({List<int> created, int skipped});
+
 /// A page of the queue history: [total] rows match in all. Not [serverOrdered]
 /// when an older server sent the whole history, unsorted.
 typedef QueueHistoryPage = ({
@@ -287,6 +295,13 @@ class QueueRepository {
   /// drops it from a create or an update without a word, so unknown → hidden.
   late final outcomeCapability = ObservedCapability(
     ServerFeature.printOutcome,
+    _serverVersion,
+  );
+
+  /// Whether the server has `POST /queue/duplicate`. Never observed: the app
+  /// sends nothing until this says yes.
+  late final duplicateCapability = ObservedCapability(
+    ServerFeature.queueDuplicate,
     _serverVersion,
   );
 
@@ -587,6 +602,50 @@ class QueueRepository {
       );
     });
   }
+
+  /// POST /queue/duplicate — another copy of each of [itemIds] at the end of the
+  /// queue. The route takes 500 ids at most, so a longer list goes in pieces and
+  /// the answers are added up. The ids are made distinct first, as the server
+  /// does per request, so an id on both sides of a piece is not copied twice.
+  /// Keeps the detail of a 400: billing refuses a copy that would go over a cost
+  /// center's budget, and says so in the text.
+  Future<QueueDuplicateResult> duplicate(List<int> itemIds) async {
+    final ids = itemIds.toSet().toList();
+    final created = <int>[];
+    var skipped = 0;
+    for (var i = 0; i < ids.length; i += duplicateBatchLimit) {
+      final piece = ids.sublist(
+        i,
+        math.min(i + duplicateBatchLimit, ids.length),
+      );
+      await guardKeepingDetail(() async {
+        final res = await _dio.post<dynamic>(
+          Endpoints.queueDuplicate,
+          data: {'item_ids': piece},
+        );
+        final data = res.data;
+        // A 200 that is not the answer (a proxy's page, or an object without
+        // the two keys the model always has) is not "nothing was copied": the
+        // caller would clear its selection over it.
+        if (data is! Map ||
+            data['created_ids'] is! List ||
+            toIntOrNull(data['skipped_count']) == null) {
+          throw ApiException(
+            AppErrorCode.badResponse,
+            statusCode: res.statusCode,
+            method: 'POST',
+            path: Endpoints.queueDuplicate,
+          );
+        }
+        created.addAll(intListFromJson(data['created_ids']));
+        skipped += toIntOrNull(data['skipped_count'])!;
+      });
+    }
+    return (created: created, skipped: skipped);
+  }
+
+  /// The most ids one `POST /queue/duplicate` takes (`max_length` of its model).
+  static const duplicateBatchLimit = 500;
 
   /// POST /queue/printer/{id}/resume — clear the previous-print gate on
   /// [printerId] and restore the jobs it skipped. One atomic route on the server

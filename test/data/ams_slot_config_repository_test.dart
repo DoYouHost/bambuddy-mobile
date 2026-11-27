@@ -463,4 +463,118 @@ void main() {
       );
     });
   });
+
+  group('filamentNames', () {
+    test('asks once for the sorted, de-duplicated ids and keeps the names', () {
+      // The body is matched exactly: an unsorted or repeated list is no match.
+      adapter.onPost(
+        '/api/v1/cloud/filament-info',
+        (s) => s.reply(200, {
+          'GFA00': {'name': ' Bambu PLA Basic ', 'k': null},
+          'GFG02': {'name': 'Bambu PETG HF', 'k': 0.02},
+        }),
+        data: ['GFA00', 'GFG02'],
+        // A list body is not sent as JSON unless it says so, and the server
+        // answers 422 to text.
+        headers: {Headers.contentTypeHeader: Headers.jsonContentType},
+      );
+
+      expect(
+        repo.filamentNames(['GFG02', '', 'GFA00', 'GFG02']),
+        completion({'GFA00': 'Bambu PLA Basic', 'GFG02': 'Bambu PETG HF'}),
+      );
+    });
+
+    test('leaves out an id nothing resolved and a malformed entry', () {
+      // The server answers every id it was asked about, with an empty name
+      // for the ones it could not name.
+      adapter.onPost(
+        '/api/v1/cloud/filament-info',
+        (s) => s.reply(200, {
+          'GFA00': {'name': 'Bambu PLA Basic', 'k': null},
+          'GFX99': {'name': '', 'k': null},
+          'GFX98': {'name': '   '},
+          'GFX97': {'k': 0.02},
+          'GFX96': 'Bambu ABS',
+          'GFX95': {'name': 7},
+        }),
+        data: ['GFA00', 'GFX95', 'GFX96', 'GFX97', 'GFX98', 'GFX99'],
+      );
+
+      expect(
+        repo.filamentNames([
+          'GFA00',
+          'GFX99',
+          'GFX98',
+          'GFX97',
+          'GFX96',
+          'GFX95',
+        ]),
+        completion({'GFA00': 'Bambu PLA Basic'}),
+      );
+    });
+
+    test('cuts the printer a profile name was made for', () {
+      adapter.onPost(
+        '/api/v1/cloud/filament-info',
+        (s) => s.reply(200, {
+          'GFA00': {'name': 'Bambu PLA Basic @BBL X1C'},
+          'GFG02': {'name': 'Bambu PETG HF @BBL A1M 0.2 nozzle'},
+          // Only the last "@" starts the printer; an earlier one is the name's.
+          'GFX01': {'name': 'eSun PLA+ @220C @BBL X1C'},
+          'GFX02': {'name': '#'},
+        }),
+        data: ['GFA00', 'GFG02', 'GFX01', 'GFX02'],
+      );
+
+      expect(
+        repo.filamentNames(['GFA00', 'GFG02', 'GFX01', 'GFX02']),
+        completion({
+          'GFA00': 'Bambu PLA Basic',
+          'GFG02': 'Bambu PETG HF',
+          'GFX01': 'eSun PLA+ @220C',
+          // GFX02 is a clone prefix and nothing else, so it names nothing.
+        }),
+      );
+    });
+
+    test('asks for nothing and names nothing without an id', () async {
+      var requests = 0;
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            requests++;
+            handler.next(options);
+          },
+        ),
+      );
+
+      expect(await repo.filamentNames(const ['', '']), isEmpty);
+      expect(requests, 0);
+    });
+
+    for (final status in [401, 403, 404, 500]) {
+      test('a $status is no names, not an error', () {
+        // 401 is an API key from before per-user ownership, 403 one without the
+        // cloud scope, 404 a server without the route.
+        adapter.onPost(
+          '/api/v1/cloud/filament-info',
+          (s) => s.reply(status, {'detail': 'no'}),
+          data: ['GFA00'],
+        );
+
+        expect(repo.filamentNames(['GFA00']), completion(isEmpty));
+      });
+    }
+
+    test('a reply that is not an object is no names', () {
+      adapter.onPost(
+        '/api/v1/cloud/filament-info',
+        (s) => s.reply(200, ['GFA00']),
+        data: ['GFA00'],
+      );
+
+      expect(repo.filamentNames(['GFA00']), completion(isEmpty));
+    });
+  });
 }

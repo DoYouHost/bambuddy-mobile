@@ -1,0 +1,23 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/printers/2/panda-breath",
+    "body": {
+      "work_on": false
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/printers/2/panda-breath",
+    "body": {
+      "mode": "filament drying"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/printers/2/panda-breath",
+    "body": {
+      "target_temp": 46
+    }
+  }
+]

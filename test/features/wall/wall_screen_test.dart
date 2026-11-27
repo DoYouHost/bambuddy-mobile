@@ -563,13 +563,6 @@ void main() {
   });
 
   group('the panel', () {
-    testWidgets('starts as a rail on a phone', (tester) async {
-      await pumpDashboardWithWall(tester);
-
-      expect(byLogId('wall.panel_expand'), findsOneWidget);
-      expect(byLogId('wall.panel_collapse'), findsNothing);
-    });
-
     testWidgets('starts expanded on a tablet, and can collapse there too', (
       tester,
     ) async {
@@ -612,10 +605,11 @@ void main() {
       expect(byLogId('wall.panel_expand'), findsOneWidget);
     });
 
-    testWidgets('ends with settings, then the expand/collapse button', (
-      tester,
-    ) async {
+    testWidgets('starts as a rail on a phone, ending with settings, then the '
+        'expand/collapse button', (tester) async {
       await pumpDashboardWithWall(tester);
+      expect(byLogId('wall.panel_expand'), findsOneWidget);
+      expect(byLogId('wall.panel_collapse'), findsNothing);
       double top(String id) => tester.getTopLeft(byLogId(id)).dy;
       expect(top('wall.settings'), lessThan(top('wall.panel_expand')));
 

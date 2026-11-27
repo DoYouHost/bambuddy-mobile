@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -18,11 +19,6 @@ void main() {
     adapter = mockServer(dio);
     repo = LocationSensorsRepository(dio, ServerVersionService(dio));
   });
-
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
 
   group('listBindings', () {
     test(
@@ -189,7 +185,7 @@ void main() {
 
   group('sensorsCapability', () {
     test('the version answers until the listing does', () async {
-      replyVersion('1.2.5.4');
+      stubServerVersion(adapter, '1.2.5.4');
       expect(await repo.sensorsCapability.supported, isFalse);
 
       final newer = LocationSensorsRepository(dio, ServerVersionService(dio));
@@ -220,7 +216,7 @@ void main() {
     });
 
     test('a 404 outranks a version that claimed otherwise', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/location-ha-sensors/',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -233,7 +229,7 @@ void main() {
     });
 
     test('a 403 hides it too, which no version could have said', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/location-ha-sensors/',
         (s) => s.reply(403, {'detail': 'Missing required permissions'}),

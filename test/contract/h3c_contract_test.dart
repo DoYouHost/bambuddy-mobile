@@ -1,11 +1,14 @@
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,6 +42,9 @@ void main() {
 
     // The capture's nine hotends: slot 6's on the toolhead (id 0, addr_id 6),
     // 23 an empty high-temperature one.
+    //
+    // `p_t` is the nozzle's accumulated print time in seconds (#1908), which
+    // the capture's firmware sends for all but the empty one.
     Map<String, Object?> hotend(int id, int addr, String colour) => {
       'id': id,
       'addr_id': addr,
@@ -46,6 +52,11 @@ void main() {
       'diameter': 0.4,
       'color_m': colour,
       'fila_id': colour == '00000000' ? '' : 'GFL99',
+      'wear': id + 1,
+      if (id != 23) 'p_t': 3600 * (addr + 1) + 61,
+      'stat': addr == 6 ? 1 : 0,
+      'tm': 300,
+      'sn': 'SN-$id',
     };
 
     final report = <String, Object?>{
@@ -156,6 +167,33 @@ void main() {
 
     tearDownAll(() => dio.delete<void>('/api/v1/printers/$printerId'));
 
+    test('each nozzle\'s own figures reach the app, the print time where '
+        'the server has it', () async {
+      final rack = status.nozzleRack!;
+      final seventeen = rack.singleWhere((n) => n.id == 17);
+
+      expect(seventeen.wear, 18);
+      expect(seventeen.maxTemp, 300);
+      expect(seventeen.serialNumber, 'SN-17');
+      expect(rack.singleWhere((n) => n.id == 0).stat, 1);
+
+      final raw = (await dio.get<Map<String, dynamic>>(
+        '/api/v1/printers/$printerId/status',
+      )).data!;
+      final servesPrintTime = (raw['nozzle_rack'] as List).cast<Map>().every(
+        (n) => n.containsKey('print_time_s'),
+      );
+      if (!servesPrintTime) {
+        // A server before #1908: the key is absent, so the nozzle reports none.
+        expect(seventeen.printTimeS, isNull);
+        markTestSkipped('server predates nozzle print time (#1908)');
+        return;
+      }
+      // addr_id 1 reports 3600 * 2 + 61; the empty hotend reports none.
+      expect(seventeen.printTimeS, 7261);
+      expect(rack.singleWhere((n) => n.id == 23).printTimeS, isNull);
+    });
+
     test('the AMS 3H reaches the app numbered as on the web', () {
       final unit = status.ams!.singleWhere((u) => u.id == 32);
 
@@ -254,12 +292,7 @@ void main() {
       late List<Response<dynamic>> answers;
       final command = await firstRequest(
         serial,
-        () async => answers = await replayWrites(
-          dio,
-          sent,
-          item: printerId,
-          itemIn: RegExp(r'(?<=/printers/)\d+'),
-        ),
+        () async => answers = await replayWrites(dio, sent, item: printerId),
         where: (print) => print['command'] == 'ams_filament_drying',
       );
 
@@ -291,12 +324,7 @@ void main() {
         late List<Response<dynamic>> answers;
         final command = await firstRequest(
           serial,
-          () async => answers = await replayWrites(
-            dio,
-            sent,
-            item: printerId,
-            itemIn: RegExp(r'(?<=/printers/)\d+'),
-          ),
+          () async => answers = await replayWrites(dio, sent, item: printerId),
           where: (print) => print['command'] == 'ams_change_filament',
         );
 
@@ -311,6 +339,73 @@ void main() {
       });
     }
 
+    // `ams_unload_all` (#3531): one `multi_slot_ams_change_filament` listing
+    // every slot whose filament is in its hotend, as feeder 255 - slot.
+    test(
+      'ams3h_unload_all reaches the printer as its Unload All does',
+      () async {
+        if (!knowsH3c) {
+          return markTestSkipped('server predates the H3C (#3442)');
+        }
+        final served = (await contractServerVersion()).supports(
+          ServerFeature.ams3hUnloadAll,
+        );
+        // Recorded by the card's Unload all test in printer_card_test.dart.
+        final sent = recordedWrites('ams3h_unload_all');
+        late List<Response<dynamic>> answers;
+        if (!served) {
+          answers = await replayWrites(dio, sent, item: printerId);
+          expect(answers.single.statusCode, anyOf(404, 405));
+          return;
+        }
+        final command = await firstRequest(
+          serial,
+          () async => answers = await replayWrites(dio, sent, item: printerId),
+          where: (print) =>
+              print['command'] == 'multi_slot_ams_change_filament',
+        );
+
+        expect(
+          answers.single.statusCode,
+          200,
+          reason: '${answers.single.data}',
+        );
+        // The report's slots 0-6 and 8 are in their hotends (state 27); slot 7
+        // holds nothing (state 160).
+        const loaded = [0, 1, 2, 3, 4, 5, 6, 8];
+        expect((answers.single.data as Map)['count'], loaded.length);
+        expect(command['is_load'], isFalse);
+        expect(
+          [
+            for (final r in command['request_array'] as List)
+              ((r as Map)['ams_id'], r['slot_id']),
+          ],
+          [for (final slot in loaded) (32, 255 - slot)],
+        );
+      },
+    );
+
+    test('Unload all on a printer without an AMS 3H is a 400', () async {
+      if (!(await contractServerVersion()).supports(
+        ServerFeature.ams3hUnloadAll,
+      )) {
+        return markTestSkipped('the server predates Unload all');
+      }
+      final printers = (await dio.get<List<dynamic>>(Endpoints.printers)).data!;
+      final other =
+          printers.cast<Map<String, dynamic>>().firstWhere(
+                (p) => p['id'] != printerId,
+              )['id']
+              as int;
+
+      final answer = await dio.post<dynamic>(
+        Endpoints.amsUnloadAll(other),
+        options: Options(validateStatus: (_) => true),
+      );
+
+      expect(answer.statusCode, 400, reason: '${answer.data}');
+    });
+
     test('loading an AMS 3H slot that holds no filament is a 409', () async {
       if (!knowsH3c) {
         markTestSkipped('server predates the H3C (#3442)');
@@ -322,6 +417,40 @@ void main() {
         queryParameters: {'tray_id': 35},
         options: Options(validateStatus: (_) => true),
       );
+      expect(answer.statusCode, 409, reason: '${answer.data}');
+    });
+
+    // Last: it takes the filament out of every hotend of the report.
+    test('Unload all with no slot in a hotend is a 409', () async {
+      if (!(await contractServerVersion()).supports(
+        ServerFeature.ams3hUnloadAll,
+      )) {
+        return markTestSkipped('the server predates Unload all');
+      }
+      // The inlet is state 26; the same report with every slot held there.
+      final atInlet = jsonDecode(jsonEncode(report)) as Map<String, Object?>;
+      final unit = (((atInlet['ams'] as Map)['ams'] as List).single as Map);
+      for (final tray in unit['tray'] as List) {
+        (tray as Map)['state'] = 26;
+      }
+      final printers = PrintersRepository(dio);
+      await pollUntil(
+        'every slot at the inlet',
+        () async {
+          await publishReport(serial, atInlet);
+          final s = await printers.fetchStatus(printerId);
+          final slots = s?.ams?.where((u) => u.id == 32).firstOrNull;
+          return slots != null && !slots.hasAms3hSlotInHotend ? s : null;
+        },
+        within: const Duration(seconds: 30),
+        every: const Duration(seconds: 2),
+      );
+
+      final answer = await dio.post<dynamic>(
+        Endpoints.amsUnloadAll(printerId),
+        options: Options(validateStatus: (_) => true),
+      );
+
       expect(answer.statusCode, 409, reason: '${answer.data}');
     });
   });

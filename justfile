@@ -42,14 +42,20 @@ default:
 # on-device ones: the phone's integration_test/ and the watch's patrol_test/ on
 # both watch AVDs. A machine without them (CI, the Claude GitHub Action) runs
 # the host half and says the rest was skipped; it never passes silently.
-[doc('run unit and widget tests, plus on-device tests when an emulator is available')]
+[doc('run unit and widget tests (`test no` skips a11y), plus on-device tests when an emulator is available')]
 [group('1-develop')]
-test:
+test a11y='yes':
     #!/usr/bin/env bash
     set -euo pipefail
     # Piped (ship, ship-dev, an agent) the default reporter prints a line per
-    # test — ~5000 lines; this one prints failures and the summary.
-    flutter test -r failures-only
+    # test — ~5000 lines; this one prints failures and the summary. `no` leaves
+    # out test/a11y (most of the wall clock), as ship-dev does; ship keeps it.
+    if [ '{{a11y}}' = 'no' ]; then
+        mapfile -t files < <(find test -name '*_test.dart' -not -path 'test/a11y/*' | LC_ALL=C sort)
+        flutter test -r failures-only "${files[@]}"
+    else
+        flutter test -r failures-only
+    fi
     if ! command -v adb >/dev/null || [ ! -x "{{emulator_bin}}" ]; then
         echo "On-device tests SKIPPED: no adb or Android emulator on this machine." >&2
         exit 0
@@ -161,9 +167,12 @@ test-device avd=avd:
         adb -s "$serial" install -r -g "$apk" >/dev/null
         flutter test "$file" -d "$serial" --flavor mobile || failed=1
     done
-    # The print alarm's native half (PrintAlarm.kt), which no Dart test can see.
+    # The native halves no Dart test can see: the print alarm (PrintAlarm.kt) and the
+    # sign-in WebView's cookie store (EdgeCookies.kt) and what the native network stacks
+    # refuse (NativeTlsTest, why the loopback bridge exists).
+    pkg=page.codeberg.morganmlgman.bambuddy_mobile
     (cd android && ANDROID_SERIAL="$serial" ./gradlew -q :app:connectedMobileDebugAndroidTest \
-        -Pandroid.testInstrumentationRunnerArguments.class=page.codeberg.morganmlgman.bambuddy_mobile.PrintAlarmTest) \
+        -Pandroid.testInstrumentationRunnerArguments.class=$pkg.PrintAlarmTest,$pkg.EdgeCookiesTest,$pkg.NativeTlsTest) \
         || failed=1
     exit $failed
 
@@ -486,6 +495,15 @@ _require-release-branch ver:
         echo "ship {{ver}} runs from release/{{ver}}, not '$branch'. Start it with: just release-start {{ver}}" >&2
         exit 1
     fi
+    # Every released version lives on master. A release branch cut from a dev
+    # that never got master merged back silently drops whatever the last
+    # release carried that dev did not (a hotfix, a fix made on its branch).
+    git fetch --quiet origin master
+    if ! git merge-base --is-ancestor origin/master HEAD; then
+        echo "release/{{ver}} does not contain origin/master: the last release would be lost." >&2
+        echo "Merge it in first: git merge origin/master (and merge master back into dev)." >&2
+        exit 1
+    fi
 
 # Opens the draft PR into master for release/<ver>; a no-op when one is open.
 # Fails when the branch has no commit over master — `release-start` tolerates
@@ -785,7 +803,7 @@ ship-dev target='' bundles='yes':
         just play-internal
         exit 0
     fi
-    just test
+    just test no
     just build "$name" "$code"
     just build-wear "$name" "$code"
     # Renamed only here: unlike the bundles, these APKs are published as release

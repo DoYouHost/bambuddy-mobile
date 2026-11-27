@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/section_label.dart';
 import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
@@ -122,7 +123,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                   ).tagged('api_key_form.enabled'),
                 ],
                 const SizedBox(height: DashSpace.lg),
-                _SectionLabel(text: l10n.apiKeysScopesHeader),
+                SectionLabel(l10n.apiKeysScopesHeader),
                 const SizedBox(height: DashSpace.xs),
                 Text(l10n.apiKeysScopesHint, style: t.microSoft),
                 for (final scope in ApiKeyScope.values)
@@ -143,7 +144,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                     ).tagged('api_key_form.scope'),
                 if (printers.isNotEmpty) ...[
                   const SizedBox(height: DashSpace.lg),
-                  _SectionLabel(text: l10n.apiKeysPrintersHeader),
+                  SectionLabel(l10n.apiKeysPrintersHeader),
                   const SizedBox(height: DashSpace.xs),
                   SwitchListTile(
                     value: _printerIds == null,
@@ -173,7 +174,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                     ),
                 ],
                 const SizedBox(height: DashSpace.lg),
-                _SectionLabel(text: l10n.apiKeysExpiryHeader),
+                SectionLabel(l10n.apiKeysExpiryHeader),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.schedule, color: t.textSecondary),
@@ -276,21 +277,6 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
 
   bool _sameScopes(Set<ApiKeyScope> current) =>
       current.length == _scopes.length && current.containsAll(_scopes);
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Text(
-      text,
-      style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
-    );
-  }
 }
 
 /// Imperative entry: issue a key.

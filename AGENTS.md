@@ -124,7 +124,7 @@ do not stay silent because it was not part of the task.
   (`lib/wear/main_wear.dart`), reuses `lib/core` and `lib/data`.
 - `lib/data/` — repositories on top of the API client, shared by both flavors.
 - `lib/l10n/` — `app_en.arb` (the template) plus `app_pl.arb`, `app_de.arb`,
-  `app_es.arb` and `app_fr.arb`, and the generated
+  `app_es.arb`, `app_fr.arb` and `app_zh.arb`, and the generated
   `app_localizations*.dart` (committed). User-visible strings go through
   `AppLocalizations`, never hardcoded, and every string you add or change goes
   through `just l10n-check` before you hand the change over (see Conventions).
@@ -286,9 +286,9 @@ do not stay silent because it was not part of the task.
   locations.
 - [docs/android-platform.md](docs/android-platform.md) — the Android 16 Live Update,
   the camera stream and its ANR history, home-screen widgets, the overscroll
-  stutter, a server behind a private CA or mutual TLS. **Read it before touching
-  `OngoingNotificationHost`, the widgets, the camera stream, TLS trust or client
-  certificates.**
+  stutter, a server behind a private CA, mutual TLS or Cloudflare Access. **Read it
+  before touching `OngoingNotificationHost`, the widgets, the camera stream, TLS trust,
+  client certificates or `lib/core/api/edge_*`.**
 - [docs/wear-os.md](docs/wear-os.md) — the watch app: flavors and source sets,
   branded launch, cold start, text input, release builds. **Read it before touching
   the wear manifest, source sets or launch.**

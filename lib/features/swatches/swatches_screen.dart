@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../common/section_label.dart';
 import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
@@ -340,15 +341,7 @@ class _SectionHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Flexible(
-            child: SectionHeading(
-              label.toUpperCase(),
-              style: t.label.copyWith(
-                color: t.accentGreenInk,
-                letterSpacing: DashTracking.caps,
-              ),
-            ),
-          ),
+          Flexible(child: SectionLabel(label)),
           const SizedBox(width: DashSpace.sm),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),

@@ -10,6 +10,7 @@ import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_pl.dart';
+import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -102,6 +103,7 @@ abstract class AppLocalizations {
     Locale('es'),
     Locale('fr'),
     Locale('pl'),
+    Locale('zh'),
   ];
 
   /// Dashboard app bar title
@@ -3716,6 +3718,12 @@ abstract class AppLocalizations {
   /// **'Malformed server response'**
   String get errMalformedResponse;
 
+  /// No description provided for @errNotBambuddy.
+  ///
+  /// In en, this message translates to:
+  /// **'This address is not a Bambuddy server — check the port and remove any path after it.'**
+  String get errNotBambuddy;
+
   /// No description provided for @errInvalidCredentials.
   ///
   /// In en, this message translates to:
@@ -4745,7 +4753,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventorySearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search material, brand, color…'**
+  /// **'Search ID, material, brand, color…'**
   String get inventorySearchHint;
 
   /// No description provided for @inventoryLowStock.
@@ -6025,6 +6033,229 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Position {position}'**
   String inventoryLabelsStartSlot(int position);
+
+  /// No description provided for @labelSheetCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sheet'**
+  String get labelSheetCustom;
+
+  /// No description provided for @labelSheetCustomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own page, label size and grid'**
+  String get labelSheetCustomHint;
+
+  /// No description provided for @labelSheetSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved templates'**
+  String get labelSheetSavedTitle;
+
+  /// No description provided for @labelSheetSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{page} · {width} × {height} mm · {count, plural, one{{count} label} other{{count} labels}} ({columns} × {rows})'**
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  );
+
+  /// No description provided for @labelSheetPageA4.
+  ///
+  /// In en, this message translates to:
+  /// **'A4'**
+  String get labelSheetPageA4;
+
+  /// No description provided for @labelSheetPageLetter.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter'**
+  String get labelSheetPageLetter;
+
+  /// No description provided for @labelSheetPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get labelSheetPage;
+
+  /// No description provided for @labelSheetLabelWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Label width, mm'**
+  String get labelSheetLabelWidth;
+
+  /// No description provided for @labelSheetLabelHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Label height, mm'**
+  String get labelSheetLabelHeight;
+
+  /// No description provided for @labelSheetColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get labelSheetColumns;
+
+  /// No description provided for @labelSheetRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get labelSheetRows;
+
+  /// No description provided for @labelSheetTopMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Top margin, mm'**
+  String get labelSheetTopMargin;
+
+  /// No description provided for @labelSheetLeftMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Left margin, mm'**
+  String get labelSheetLeftMargin;
+
+  /// No description provided for @labelSheetColumnGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Column gap, mm'**
+  String get labelSheetColumnGap;
+
+  /// No description provided for @labelSheetRowGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Row gap, mm'**
+  String get labelSheetRowGap;
+
+  /// No description provided for @labelSheetIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in every field with a number.'**
+  String get labelSheetIncomplete;
+
+  /// No description provided for @labelSheetTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels must be at least {minWidth} mm wide and {minHeight} mm tall.'**
+  String labelSheetTooSmall(int minWidth, int minHeight);
+
+  /// No description provided for @labelSheetTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Sizes, margins and gaps can be at most {max} mm.'**
+  String labelSheetTooLong(int max);
+
+  /// No description provided for @labelSheetColumnsRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns must be a whole number from 1 to {max}.'**
+  String labelSheetColumnsRange(int max);
+
+  /// No description provided for @labelSheetRowsRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows must be a whole number from 1 to {max}.'**
+  String labelSheetRowsRange(int max);
+
+  /// No description provided for @labelSheetNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'Margins and gaps must not be negative.'**
+  String get labelSheetNegative;
+
+  /// No description provided for @labelSheetTooWide.
+  ///
+  /// In en, this message translates to:
+  /// **'The labels are {size} mm wide with the left margin, but the page is {page} mm.'**
+  String labelSheetTooWide(String size, String page);
+
+  /// No description provided for @labelSheetTooTall.
+  ///
+  /// In en, this message translates to:
+  /// **'The labels are {size} mm tall with the top margin, but the page is {page} mm.'**
+  String labelSheetTooTall(String size, String page);
+
+  /// No description provided for @labelSheetUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this sheet'**
+  String get labelSheetUse;
+
+  /// No description provided for @labelSheetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get labelSheetName;
+
+  /// No description provided for @labelSheetNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A template with this name already exists.'**
+  String get labelSheetNameTaken;
+
+  /// No description provided for @labelSheetSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get labelSheetSaveAs;
+
+  /// No description provided for @labelSheetSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get labelSheetSaveChanges;
+
+  /// No description provided for @labelSheetDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get labelSheetDelete;
+
+  /// No description provided for @labelSheetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Template “{name}” saved'**
+  String labelSheetSaved(String name);
+
+  /// No description provided for @labelSheetDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Template “{name}” deleted'**
+  String labelSheetDeleted(String name);
+
+  /// No description provided for @labelSheetDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String labelSheetDeleteTitle(String name);
+
+  /// No description provided for @labelSheetDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels already printed with it are unaffected.'**
+  String get labelSheetDeleteBody;
+
+  /// No description provided for @labelSheetEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get labelSheetEdit;
+
+  /// No description provided for @labelSheetSaveAsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new'**
+  String get labelSheetSaveAsNew;
+
+  /// No description provided for @labelPngTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG is limited to {maxPages} sheet pages at {dpi} dpi, and this needs {pages}. Use PDF, a lower resolution or fewer spools.'**
+  String labelPngTooLarge(int maxPages, int dpi, int pages);
 
   /// No description provided for @maintenanceEmpty.
   ///
@@ -16211,7 +16442,7 @@ abstract class AppLocalizations {
   /// No description provided for @announcementsSource.
   ///
   /// In en, this message translates to:
-  /// **'From the Bambuddy maintainers, fetched from GitHub.'**
+  /// **'Bambuddy entries come from its maintainers, fetched from GitHub.'**
   String get announcementsSource;
 
   /// No description provided for @announcementLevelInfo.
@@ -16843,6 +17074,1134 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}'**
   String archiveCalendarDay(String date, int count);
+
+  /// No description provided for @serverSettingsWledSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light presets for printer states'**
+  String get serverSettingsWledSubtitle;
+
+  /// No description provided for @wledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED'**
+  String get wledTitle;
+
+  /// No description provided for @wledDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Colours and effects are set in WLED. The server only switches to the preset mapped to the printer\'s state.'**
+  String get wledDescription;
+
+  /// No description provided for @wledPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get wledPrinter;
+
+  /// No description provided for @wledEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED integration'**
+  String get wledEnabled;
+
+  /// No description provided for @wledEnabledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch presets as this printer\'s state changes'**
+  String get wledEnabledDesc;
+
+  /// No description provided for @wledUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED address'**
+  String get wledUrl;
+
+  /// No description provided for @wledUrlRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed while the integration is on'**
+  String get wledUrlRequired;
+
+  /// No description provided for @wledLoadPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Load presets'**
+  String get wledLoadPresets;
+
+  /// No description provided for @wledTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get wledTestConnection;
+
+  /// No description provided for @wledConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}'**
+  String wledConnected(String name);
+
+  /// No description provided for @wledConnectedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}, version {version}'**
+  String wledConnectedVersion(String name, String version);
+
+  /// No description provided for @wledUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED did not answer'**
+  String get wledUnreachable;
+
+  /// No description provided for @wledPresetsLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{WLED has no presets} =1{1 preset loaded} other{{count} presets loaded}}'**
+  String wledPresetsLoaded(int count);
+
+  /// No description provided for @wledPresetsOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED is unreachable. Saved presets are kept.'**
+  String get wledPresetsOffline;
+
+  /// No description provided for @wledMappingHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset per state'**
+  String get wledMappingHeader;
+
+  /// No description provided for @wledSegmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When you create a preset in WLED, select its segment and turn on “Checked segments only”.'**
+  String get wledSegmentHint;
+
+  /// No description provided for @wledNoPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset'**
+  String get wledNoPreset;
+
+  /// No description provided for @wledPresetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved preset {id}'**
+  String wledPresetSaved(int id);
+
+  /// No description provided for @wledPresetOption.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({id})'**
+  String wledPresetOption(String name, int id);
+
+  /// No description provided for @wledTestPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Test preset for {state}'**
+  String wledTestPreset(String state);
+
+  /// No description provided for @wledPresetTested.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset switched on'**
+  String get wledPresetTested;
+
+  /// No description provided for @wledPresetTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED did not switch the preset'**
+  String get wledPresetTestFailed;
+
+  /// No description provided for @wledFinishedTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Idle after (seconds)'**
+  String get wledFinishedTimeout;
+
+  /// No description provided for @wledFinishedTimeoutHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Seconds after a print finishes before the Idle preset takes over. 0 turns this off.'**
+  String get wledFinishedTimeoutHint;
+
+  /// No description provided for @wledFinishedTimeoutInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'A whole number from 0 to 86400'**
+  String get wledFinishedTimeoutInvalid;
+
+  /// No description provided for @wledSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get wledSave;
+
+  /// No description provided for @wledSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'WLED settings saved'**
+  String get wledSaved;
+
+  /// The server's own English reason for refusing the WLED address.
+  ///
+  /// In en, this message translates to:
+  /// **'Not accepted: {reason}'**
+  String wledRefused(String reason);
+
+  /// No description provided for @wledNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers to set up'**
+  String get wledNoPrinters;
+
+  /// No description provided for @wledStateIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get wledStateIdle;
+
+  /// No description provided for @wledStatePrepare.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get wledStatePrepare;
+
+  /// No description provided for @wledStatePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get wledStatePrinting;
+
+  /// No description provided for @wledStatePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get wledStatePaused;
+
+  /// No description provided for @wledStateFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get wledStateFinished;
+
+  /// No description provided for @wledStateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get wledStateError;
+
+  /// No description provided for @wledStateQueueWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the plate to be cleared'**
+  String get wledStateQueueWaiting;
+
+  /// No description provided for @wledStateFilamentProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament problem'**
+  String get wledStateFilamentProblem;
+
+  /// No description provided for @wledStateHmsError.
+  ///
+  /// In en, this message translates to:
+  /// **'HMS error'**
+  String get wledStateHmsError;
+
+  /// No description provided for @wledStateOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get wledStateOffline;
+
+  /// No description provided for @fmMoveBlockedCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Already here'**
+  String get fmMoveBlockedCurrent;
+
+  /// No description provided for @fmMoveBlockedSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder being moved'**
+  String get fmMoveBlockedSelf;
+
+  /// No description provided for @fmMoveBlockedInside.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside the folder being moved'**
+  String get fmMoveBlockedInside;
+
+  /// No description provided for @fmMoveBlockedExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'External folder'**
+  String get fmMoveBlockedExternal;
+
+  /// No description provided for @fmMoveBlockedNotWritable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yours and not shared'**
+  String get fmMoveBlockedNotWritable;
+
+  /// No description provided for @fmMoveBlockedReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only folder'**
+  String get fmMoveBlockedReadOnly;
+
+  /// No description provided for @fmNotMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved'**
+  String get fmNotMoved;
+
+  /// The server's own English reason for skipping the file.
+  ///
+  /// In en, this message translates to:
+  /// **'File not moved: {reason}'**
+  String fmNotMovedReason(String reason);
+
+  /// AI failure detection verdict on a printing card: nothing wrong seen.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe'**
+  String get aiDetectionSafe;
+
+  /// AI failure detection verdict on a printing card: a possible failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get aiDetectionWarning;
+
+  /// AI failure detection verdict on a printing card: the print is failing.
+  ///
+  /// In en, this message translates to:
+  /// **'Failure'**
+  String get aiDetectionFailure;
+
+  /// AI failure detection state on a printing card: detection is on but its last check failed, so the print is not being watched.
+  ///
+  /// In en, this message translates to:
+  /// **'Not checking'**
+  String get aiDetectionNotChecking;
+
+  /// AI failure detection state on a printing card: no result has come back yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting'**
+  String get aiDetectionStarting;
+
+  /// Tooltip and screen reader text of the AI detection item. status is one of the verdict labels.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: {status}'**
+  String aiDetectionTipStatus(String status);
+
+  /// Tooltip and screen reader text of the AI detection item with Obico's failure score, a number like 0.012.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: {status} (score {score})'**
+  String aiDetectionTipScore(String status, String score);
+
+  /// Tooltip and screen reader text of the AI detection item with OctoEverywhere's print quality, 1 to 10.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: {status} (print quality {quality}/10)'**
+  String aiDetectionTipQuality(String status, int quality);
+
+  /// Tooltip and screen reader text when detection's last check failed. reason is the server's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection is not checking this print: {reason}'**
+  String aiDetectionTipError(String reason);
+
+  /// Tooltip and screen reader text when detection's last check failed and the server gives this session no reason.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection is not checking this print'**
+  String get aiDetectionTipErrorNoReason;
+
+  /// Tooltip and screen reader text before detection's first result for this print.
+  ///
+  /// In en, this message translates to:
+  /// **'AI failure detection: waiting for the first result'**
+  String get aiDetectionTipStarting;
+
+  /// The reason inserted into aiDetectionTipError when OctoEverywhere's free plan has run out. Follows a colon, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'usage limit reached'**
+  String get aiDetectionLimitReached;
+
+  /// No description provided for @notifLowStockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low filament below {percent}%'**
+  String notifLowStockTitle(String percent);
+
+  /// No description provided for @notifLowStockDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set on the server for everyone. A spool\'s own threshold wins.'**
+  String get notifLowStockDesc;
+
+  /// No description provided for @notifLowStockEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the low filament threshold'**
+  String get notifLowStockEdit;
+
+  /// No description provided for @notifLowStockInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Percent of the label weight'**
+  String get notifLowStockInputLabel;
+
+  /// No description provided for @notifLowStockInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from 0.1 to 99.9.'**
+  String get notifLowStockInvalid;
+
+  /// BIQU Panda Breath chamber heater, a product name
+  ///
+  /// In en, this message translates to:
+  /// **'Panda Breath'**
+  String get pandaBreath;
+
+  /// No description provided for @pandaBreathSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the Panda Breath'**
+  String get pandaBreathSent;
+
+  /// No description provided for @pandaBreathOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Heater offline'**
+  String get pandaBreathOffline;
+
+  /// No description provided for @pandaBreathTurnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get pandaBreathTurnOn;
+
+  /// No description provided for @pandaBreathTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get pandaBreathTurnOff;
+
+  /// No description provided for @pandaBreathMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get pandaBreathMode;
+
+  /// No description provided for @pandaBreathModeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Always on'**
+  String get pandaBreathModeOn;
+
+  /// No description provided for @pandaBreathModeDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying'**
+  String get pandaBreathModeDrying;
+
+  /// No description provided for @pandaBreathDryingLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying, {minutes} min left'**
+  String pandaBreathDryingLeft(int minutes);
+
+  /// No description provided for @pandaBreathTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target temperature 0–{max} °C'**
+  String pandaBreathTarget(int max);
+
+  /// No description provided for @queueSettingsDispatchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer for any-model jobs'**
+  String get queueSettingsDispatchLabel;
+
+  /// No description provided for @queueSettingsDispatchDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Which printer takes a job queued for a whole model. Busy or offline ones are skipped.'**
+  String get queueSettingsDispatchDesc;
+
+  /// No description provided for @queueSettingsDispatchFewestHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewest print hours'**
+  String get queueSettingsDispatchFewestHours;
+
+  /// No description provided for @queueSettingsDispatchMostHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Most print hours'**
+  String get queueSettingsDispatchMostHours;
+
+  /// No description provided for @queueSettingsDispatchLeastRecentlyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle the longest'**
+  String get queueSettingsDispatchLeastRecentlyUsed;
+
+  /// No description provided for @queueSettingsDispatchPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer priority'**
+  String get queueSettingsDispatchPriority;
+
+  /// No description provided for @editPrinterDispatchPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority for any-model jobs'**
+  String get editPrinterDispatchPriority;
+
+  /// No description provided for @editPrinterDispatchPriorityHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest number goes first, empty goes last. Applies when any-model jobs go by printer priority.'**
+  String get editPrinterDispatchPriorityHelp;
+
+  /// No description provided for @editPrinterDispatchPriorityInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from 0 to 100000'**
+  String get editPrinterDispatchPriorityInvalid;
+
+  /// No description provided for @nozzleSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}'**
+  String nozzleSheetTitle(int position);
+
+  /// No description provided for @nozzleSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle'**
+  String get nozzleSectionTitle;
+
+  /// No description provided for @nozzleLabelDiameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Diameter'**
+  String get nozzleLabelDiameter;
+
+  /// No description provided for @nozzleLabelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get nozzleLabelType;
+
+  /// No description provided for @nozzleLabelFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow'**
+  String get nozzleLabelFlow;
+
+  /// No description provided for @nozzleLabelStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get nozzleLabelStatus;
+
+  /// No description provided for @nozzleLabelWear.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear'**
+  String get nozzleLabelWear;
+
+  /// No description provided for @nozzleLabelPrintTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Print time'**
+  String get nozzleLabelPrintTime;
+
+  /// No description provided for @nozzleLabelMaxTemp.
+  ///
+  /// In en, this message translates to:
+  /// **'Max temp'**
+  String get nozzleLabelMaxTemp;
+
+  /// No description provided for @nozzleLabelSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial'**
+  String get nozzleLabelSerial;
+
+  /// No description provided for @nozzleLabelFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get nozzleLabelFilament;
+
+  /// No description provided for @nozzleMaterialStainless.
+  ///
+  /// In en, this message translates to:
+  /// **'Stainless steel'**
+  String get nozzleMaterialStainless;
+
+  /// No description provided for @nozzleMaterialHardened.
+  ///
+  /// In en, this message translates to:
+  /// **'Hardened steel'**
+  String get nozzleMaterialHardened;
+
+  /// No description provided for @nozzleMaterialTungsten.
+  ///
+  /// In en, this message translates to:
+  /// **'Tungsten carbide'**
+  String get nozzleMaterialTungsten;
+
+  /// No description provided for @nozzleStatusDocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Docked'**
+  String get nozzleStatusDocked;
+
+  /// No description provided for @nozzleStatusMounted.
+  ///
+  /// In en, this message translates to:
+  /// **'On the toolhead'**
+  String get nozzleStatusMounted;
+
+  /// No description provided for @nozzleWearValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String nozzleWearValue(int percent);
+
+  /// No description provided for @nozzleMaxTempValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{degrees} °C'**
+  String nozzleMaxTempValue(int degrees);
+
+  /// No description provided for @nozzleDiameterValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{diameter} mm'**
+  String nozzleDiameterValue(String diameter);
+
+  /// No description provided for @errEdgeAccessRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is behind Cloudflare Access'**
+  String get errEdgeAccessRequired;
+
+  /// No description provided for @errEdgeAccessRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Access did not accept the saved credential'**
+  String get errEdgeAccessRejected;
+
+  /// No description provided for @edgeAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Access'**
+  String get edgeAccessTitle;
+
+  /// No description provided for @edgeAccessSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up'**
+  String get edgeAccessSetUp;
+
+  /// No description provided for @edgeAccessServiceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Service token'**
+  String get edgeAccessServiceToken;
+
+  /// No description provided for @edgeAccessServiceTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Works in the background, so alerts and the watch keep working.'**
+  String get edgeAccessServiceTokenHint;
+
+  /// No description provided for @edgeAccessClientId.
+  ///
+  /// In en, this message translates to:
+  /// **'Client ID'**
+  String get edgeAccessClientId;
+
+  /// No description provided for @edgeAccessClientSecret.
+  ///
+  /// In en, this message translates to:
+  /// **'Client secret'**
+  String get edgeAccessClientSecret;
+
+  /// No description provided for @edgeAccessFor.
+  ///
+  /// In en, this message translates to:
+  /// **'For {host}'**
+  String edgeAccessFor(String host);
+
+  /// No description provided for @edgeAccessConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Service token for {host}'**
+  String edgeAccessConfigured(String host);
+
+  /// No description provided for @edgeAccessSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get edgeAccessSave;
+
+  /// No description provided for @edgeAccessRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get edgeAccessRemove;
+
+  /// No description provided for @edgeAccessRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Cloudflare Access?'**
+  String get edgeAccessRemoveTitle;
+
+  /// No description provided for @edgeAccessRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app cannot reach this server until you set it up again.'**
+  String get edgeAccessRemoveMessage;
+
+  /// No description provided for @edgeAccessRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get edgeAccessRecommended;
+
+  /// No description provided for @edgeAccessBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser sign-in'**
+  String get edgeAccessBrowser;
+
+  /// No description provided for @edgeAccessBrowserHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires. You sign in again by hand.'**
+  String get edgeAccessBrowserHint;
+
+  /// No description provided for @edgeAccessSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get edgeAccessSignIn;
+
+  /// No description provided for @edgeAccessWarnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser sign-in expires'**
+  String get edgeAccessWarnTitle;
+
+  /// No description provided for @edgeAccessWarnMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'When the Cloudflare session ends, alerts, the ongoing notification, widgets and the watch stop working until you sign in again. A service token needs no sign-in. Some providers, Google among them, refuse sign-in in an embedded browser; use a service token then.'**
+  String get edgeAccessWarnMessage;
+
+  /// No description provided for @edgeAccessWarnConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue anyway'**
+  String get edgeAccessWarnConfirm;
+
+  /// No description provided for @edgeAccessWarnUseToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Use service token'**
+  String get edgeAccessWarnUseToken;
+
+  /// No description provided for @edgeAccessSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The page did not load.'**
+  String get edgeAccessSignInFailed;
+
+  /// No description provided for @edgeAccessConfiguredBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser sign-in for {host}'**
+  String edgeAccessConfiguredBrowser(String host);
+
+  /// No description provided for @notifEdgeSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare session expired'**
+  String get notifEdgeSessionTitle;
+
+  /// No description provided for @notifEdgeSessionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts are off. Sign in again to turn them back on.'**
+  String get notifEdgeSessionBody;
+
+  /// No description provided for @notifEvtEdgeSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Access'**
+  String get notifEvtEdgeSession;
+
+  /// No description provided for @notifEvtEdgeSessionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When Cloudflare stops accepting the app\'s sign-in or service token and alerts stop'**
+  String get notifEvtEdgeSessionDesc;
+
+  /// No description provided for @edgeSessionBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare session expired'**
+  String get edgeSessionBanner;
+
+  /// No description provided for @notifEdgeTokenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare refused the service token'**
+  String get notifEdgeTokenTitle;
+
+  /// No description provided for @notifEdgeTokenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts are off. Replace the service token to turn them back on.'**
+  String get notifEdgeTokenBody;
+
+  /// No description provided for @edgeTokenBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare refused the service token'**
+  String get edgeTokenBanner;
+
+  /// No description provided for @amsUnloadAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload all'**
+  String get amsUnloadAll;
+
+  /// No description provided for @amsUnloadAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload all slots?'**
+  String get amsUnloadAllTitle;
+
+  /// No description provided for @amsUnloadAllMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer unloads every loaded AMS 3H slot, one after another. When it asks, pull the filament back out of the AMS 3H by hand, so stay at the printer.'**
+  String get amsUnloadAllMessage;
+
+  /// No description provided for @amsUnloadAllStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading all loaded slots. When the printer asks, pull the filament out of the AMS 3H by hand.'**
+  String get amsUnloadAllStarted;
+
+  /// No description provided for @amsUnloadAllNoneLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No slot has its filament in a hotend'**
+  String get amsUnloadAllNoneLoaded;
+
+  /// Toast after duplicating queue jobs: the copies made
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 copy to the end of the queue} other{Added {count} copies to the end of the queue}}'**
+  String queueDuplicateAdded(int count);
+
+  /// Toast after duplicating queue jobs when the server left some out
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 copy} other{Added {count} copies}}; {skipped, plural, =1{1 job can\'t be duplicated} other{{skipped} jobs can\'t be duplicated}}'**
+  String queueDuplicateSkipped(int count, int skipped);
+
+  /// No description provided for @queueDuplicateNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None of these can be duplicated'**
+  String get queueDuplicateNone;
+
+  /// Row menu entry and selection-bar tooltip that queues another copy of the job (queue duplicate).
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get queueDuplicate;
+
+  /// Tooltip of the Maintenance app-bar icon that opens the log of resets.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance log'**
+  String get maintenanceLog;
+
+  /// Title of the maintenance log screen: the printer whose log is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Log · {printer}'**
+  String maintenanceLogTitle(String printer);
+
+  /// No description provided for @maintenanceLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No maintenance has been logged for this printer yet'**
+  String get maintenanceLogEmpty;
+
+  /// Button under the maintenance log: how many entries are shown of how many the server holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more · {shown} of {total}'**
+  String maintenanceLogLoadMore(int shown, int total);
+
+  /// The printer's running hours when a task was reset, in a log row.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h'**
+  String maintenanceLogHours(int hours);
+
+  /// No description provided for @maintenanceLogExportPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV, this printer'**
+  String get maintenanceLogExportPrinter;
+
+  /// No description provided for @maintenanceLogExportAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV, all printers'**
+  String get maintenanceLogExportAll;
+
+  /// No description provided for @maintenanceLogCleanUpPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean up, this printer…'**
+  String get maintenanceLogCleanUpPrinter;
+
+  /// No description provided for @maintenanceLogCleanUpAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean up, all printers…'**
+  String get maintenanceLogCleanUpAll;
+
+  /// No description provided for @maintenanceLogSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Log saved: {name}'**
+  String maintenanceLogSaved(String name);
+
+  /// No description provided for @maintenanceLogCleanUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete old log entries?'**
+  String get maintenanceLogCleanUpTitle;
+
+  /// No description provided for @maintenanceLogCleanUpMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deletes the entries of {printer} older than the age you choose. The last day always stays, and the tasks\' counters are not changed. Export the log first to keep a copy.'**
+  String maintenanceLogCleanUpMessage(String printer);
+
+  /// No description provided for @maintenanceLogCleanUpMessageAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deletes the entries of every printer you can see that are older than the age you choose. The last day always stays, and the tasks\' counters are not changed. Export the log first to keep a copy.'**
+  String get maintenanceLogCleanUpMessageAll;
+
+  /// A choice of how old log entries must be to be cleaned up.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, one{{days} day} other{{days} days}}'**
+  String maintenanceLogAge(int days);
+
+  /// No description provided for @maintenanceLogCleanedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No entries deleted} =1{Deleted 1 entry} other{Deleted {count} entries}}'**
+  String maintenanceLogCleanedUp(int count);
+
+  /// No description provided for @maintenanceLogDeleteEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this log entry?'**
+  String get maintenanceLogDeleteEntryTitle;
+
+  /// No description provided for @maintenanceLogDeleteEntryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'“{task}” from {date} is permanently removed from the log. The task\'s last reset stays as it is: deleting the entry does not undo it.'**
+  String maintenanceLogDeleteEntryMessage(String task, String date);
+
+  /// No description provided for @maintenanceLogEntryDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Log entry deleted'**
+  String get maintenanceLogEntryDeleted;
+
+  /// No description provided for @maintenanceLogDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get maintenanceLogDelete;
+
+  /// The oldest choice of the log cleanup, one year in days.
+  ///
+  /// In en, this message translates to:
+  /// **'1 year'**
+  String get maintenanceLogYear;
+
+  /// Title of the spool scanner when it offers both the camera and NFC.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a spool'**
+  String get spoolScanTitle;
+
+  /// Segment of the spool scanner's switch: read a QR code with the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get spoolScanModeCamera;
+
+  /// Segment of the spool scanner's switch: read the spool's NFC tag.
+  ///
+  /// In en, this message translates to:
+  /// **'NFC'**
+  String get spoolScanModeNfc;
+
+  /// No description provided for @spoolScanNfcHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the spool to the back of the phone'**
+  String get spoolScanNfcHint;
+
+  /// No description provided for @spoolScanNfcHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Its tag is read where the NFC antenna is, usually near the camera.'**
+  String get spoolScanNfcHelp;
+
+  /// No description provided for @spoolScanNfcOff.
+  ///
+  /// In en, this message translates to:
+  /// **'NFC is off'**
+  String get spoolScanNfcOff;
+
+  /// No description provided for @spoolScanNfcOffHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it on in the system settings to scan tags.'**
+  String get spoolScanNfcOffHelp;
+
+  /// No description provided for @spoolScanNfcOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get spoolScanNfcOpenSettings;
+
+  /// No description provided for @spoolScanTagUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'No spool has this tag'**
+  String get spoolScanTagUnknown;
+
+  /// {tag} is the tag's number, upper-case hex.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag} is not linked to any spool in Filaments. Link it with SpoolBuddy, then try again.'**
+  String spoolScanTagUnknownHelp(String tag);
+
+  /// Shown after a tag was read; {name} is the spool's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening {name}'**
+  String spoolScanOpening(String name);
+
+  /// Label of the printer select of the maintenance log, shown when there are too many printers for chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get maintenanceLogPrinter;
+
+  /// No description provided for @compactAmsLayoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact AMS tiles'**
+  String get compactAmsLayoutTitle;
+
+  /// No description provided for @compactAmsLayoutDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament slots show as small tiles with colour, material and slot number. Any printer card can switch back to the detailed list.'**
+  String get compactAmsLayoutDesc;
+
+  /// No description provided for @amsViewCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact view'**
+  String get amsViewCompact;
+
+  /// No description provided for @amsViewDetailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed view'**
+  String get amsViewDetailed;
+
+  /// No description provided for @externalSpoolShort.
+  ///
+  /// In en, this message translates to:
+  /// **'E'**
+  String get externalSpoolShort;
+
+  /// No description provided for @announcementsSourceMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile app'**
+  String get announcementsSourceMobile;
+
+  /// No description provided for @appUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New app version available'**
+  String get appUpdateTitle;
+
+  /// No description provided for @appUpdateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Available on Google Play.'**
+  String get appUpdateBody;
+
+  /// No description provided for @appUpdateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get appUpdateDownloading;
+
+  /// No description provided for @appUpdateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get appUpdateButton;
+
+  /// No description provided for @appUpdateReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Update downloaded'**
+  String get appUpdateReady;
+
+  /// No description provided for @appUpdateRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get appUpdateRestart;
 }
 
 class _AppLocalizationsDelegate
@@ -16855,8 +18214,14 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['de', 'en', 'es', 'fr', 'pl'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'de',
+    'en',
+    'es',
+    'fr',
+    'pl',
+    'zh',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -16875,6 +18240,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsFr();
     case 'pl':
       return AppLocalizationsPl();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -18,11 +19,6 @@ void main() {
     adapter = mockServer(dio);
     repo = ScheduledDryingRepository(dio, ServerVersionService(dio));
   });
-
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
 
   Map<String, dynamic> row({
     int id = 7,
@@ -244,7 +240,7 @@ void main() {
 
   group('whether to offer scheduling at all', () {
     test('the version decides until a request has', () async {
-      replyVersion('1.2.5.3');
+      stubServerVersion(adapter, '1.2.5.3');
       expect(await repo.schedulingCapability.supported, isFalse);
 
       final newer = ScheduledDryingRepository(dio, ServerVersionService(dio));
@@ -272,7 +268,7 @@ void main() {
     });
 
     test('a 404 outranks a version that claimed otherwise', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/scheduled-dryings',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -290,7 +286,7 @@ void main() {
       // between the list refresh and the tap — and reading that as "this
       // server has no scheduling" took the Later modes out of the drying sheet
       // for the rest of the session.
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onDelete(
         '/api/v1/scheduled-dryings/7',
         (s) => s.reply(404, {'detail': 'Scheduled drying not found'}),
@@ -305,7 +301,7 @@ void main() {
     });
 
     test('a 403 hides it too, which no version could have said', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/scheduled-dryings',
         (s) => s.reply(403, {'detail': 'nope'}),
@@ -317,7 +313,7 @@ void main() {
     });
 
     test('a listing that arrives outranks a version that said no', () async {
-      replyVersion('1.2.5.3');
+      stubServerVersion(adapter, '1.2.5.3');
       adapter.onGet(
         '/api/v1/scheduled-dryings',
         (s) => s.reply(200, <Object>[]),
@@ -330,7 +326,7 @@ void main() {
     });
 
     test('a 500 says nothing about the route either way', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/scheduled-dryings',
         (s) => s.reply(500, {'detail': 'boom'}),

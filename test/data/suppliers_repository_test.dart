@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -21,24 +22,19 @@ void main() {
     repo = SuppliersRepository(dio, ServerVersionService(dio));
   });
 
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
-
   group('capability', () {
     test('the version decides before anything was seen', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       expect(await repo.capability.supported, isFalse);
     });
 
     test('a 1.2.6 daily is offered suppliers', () async {
-      replyVersion('1.2.6b1-daily.20260929');
+      stubServerVersion(adapter, '1.2.6b1-daily.20260929');
       expect(await repo.capability.supported, isTrue);
     });
 
     test('a spool row without the key settles it as absent', () async {
-      replyVersion('1.2.6b1-daily.20260920');
+      stubServerVersion(adapter, '1.2.6b1-daily.20260920');
       repo.observeSpools([
         Spool.fromNative(const {'id': 1, 'material': 'PLA'}),
       ]);
@@ -46,7 +42,7 @@ void main() {
     });
 
     test('a spool row with an empty list settles it as present', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools([
         Spool.fromNative(const {'id': 1, 'material': 'PLA', 'suppliers': []}),
       ]);
@@ -54,14 +50,14 @@ void main() {
     });
 
     test('an empty inventory settles nothing', () async {
-      replyVersion('1.2.5.6');
+      stubServerVersion(adapter, '1.2.5.6');
       repo.observeSpools(const []);
       expect(repo.capability.observedAnswer, isNull);
     });
 
     test('a 404 on the listing hides it on a server the version '
         'would have offered it to', () async {
-      replyVersion('1.2.6b1');
+      stubServerVersion(adapter, '1.2.6b1');
       adapter.onGet(
         '/api/v1/inventory/suppliers',
         (s) => s.reply(404, {'detail': 'Not Found'}),

@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
+import 'package:bambuddy_mobile/core/models/ai_detection.dart';
 import 'package:bambuddy_mobile/core/models/ams_history.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
@@ -90,6 +91,28 @@ void main() {
     shows: find.text(pl.ctrlForbidden),
   );
 
+  // The demo's own cards show a safe and a warned print (printers 1 and 6);
+  // these are the other three colours of the detection item.
+  for (final (cls, label) in [
+    (AiDetectionClass.failure, pl.aiDetectionFailure),
+    (AiDetectionClass.error, pl.aiDetectionNotChecking),
+    (AiDetectionClass.unknown, pl.aiDetectionStarting),
+  ]) {
+    _card(
+      'card, AI detection ${cls.name}',
+      overrides: [
+        aiDetectionOverride(
+          AiDetectionStatus(
+            enabled: true,
+            perPrinter: {1: AiDetection(cls: cls)},
+          ),
+        ),
+      ],
+      status: _status(1, {}),
+      shows: find.text(label),
+    );
+  }
+
   for (final (name, connected) in [('online', true), ('offline', false)]) {
     _card(
       'card, plate waiting, $name',
@@ -150,6 +173,25 @@ void main() {
       shows: byLogId('printer.details_toggle'),
     );
   }
+
+  // The H3C's rack with its details open, and one nozzle's sheet over it: the
+  // chips are buttons now, and the sheet is a label/value list that has to stay
+  // readable at every text size.
+  _card(
+    'card details, H3C rack',
+    demoId: 7,
+    arrange: _openDetails,
+    shows: byLogId('printer.rack_nozzle').first,
+  );
+  _card(
+    'nozzle sheet, H3C rack position',
+    demoId: 7,
+    arrange: (tester) async {
+      await _openDetails(tester);
+      await a11yTap(tester, byLogId('printer.rack_nozzle').first);
+    },
+    shows: find.text(pl.nozzleSheetTitle(1)),
+  );
 
   // --- temperature sheet ----------------------------------------------------------
 

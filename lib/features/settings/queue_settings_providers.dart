@@ -99,9 +99,6 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
     if (confirmed == null || !confirmed.known.contains(setting)) {
       return ActionOutcome.ok;
     }
-    // What to put back if this one write fails — read from the confirmed block
-    // rather than from [state], which a drag has already moved.
-    final previous = confirmed.values[setting];
     preview(setting, value);
     // Read now: the answer is adopted after a request, when this controller may
     // be gone, and the server's word still belongs in the shared settings.
@@ -122,6 +119,11 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
     if (!outcome.isOk) {
       // Only this row goes back. Reverting the whole block would undo a
       // neighbouring write that succeeded while this one was in flight.
+      // What to put back is read now, from the block the server last confirmed
+      // rather than from [state], which a drag has already moved — and not at
+      // the start of the write: a second write to the same row may have been
+      // confirmed meanwhile, and its value is the one the server holds.
+      final previous = _confirmed?.values[setting];
       final current = ref.mounted ? state.value : null;
       if (previous != null && current != null) {
         state = AsyncValue.data(current.withValue(setting, previous));

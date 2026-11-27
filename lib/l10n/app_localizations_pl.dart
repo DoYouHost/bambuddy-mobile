@@ -2274,6 +2274,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get errMalformedResponse => 'Nieprawidłowa odpowiedź serwera';
 
   @override
+  String get errNotBambuddy =>
+      'Pod tym adresem nie ma serwera Bambuddy — sprawdź port i usuń ewentualną ścieżkę za nim.';
+
+  @override
   String get errInvalidCredentials => 'Nieprawidłowy login lub hasło';
 
   @override
@@ -2893,7 +2897,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryNoMatches => 'Brak filamentów pasujących do wyszukiwania';
 
   @override
-  String get inventorySearchHint => 'Szukaj: materiał, marka, kolor…';
+  String get inventorySearchHint => 'Szukaj: ID, materiał, marka, kolor…';
 
   @override
   String get inventoryLowStock => 'Mało';
@@ -3746,6 +3750,152 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String inventoryLabelsStartSlot(int position) {
     return 'Pozycja $position';
+  }
+
+  @override
+  String get labelSheetCustom => 'Własny arkusz';
+
+  @override
+  String get labelSheetCustomHint => 'Własna strona, rozmiar etykiety i siatka';
+
+  @override
+  String get labelSheetSavedTitle => 'Zapisane szablony';
+
+  @override
+  String labelSheetSummary(
+    String page,
+    String width,
+    String height,
+    int count,
+    int columns,
+    int rows,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count etykiety',
+      many: '$count etykiet',
+      few: '$count etykiety',
+      one: '$count etykieta',
+    );
+    return '$page · $width × $height mm · $_temp0 ($columns × $rows)';
+  }
+
+  @override
+  String get labelSheetPageA4 => 'A4';
+
+  @override
+  String get labelSheetPageLetter => 'Letter';
+
+  @override
+  String get labelSheetPage => 'Strona';
+
+  @override
+  String get labelSheetLabelWidth => 'Szerokość etykiety, mm';
+
+  @override
+  String get labelSheetLabelHeight => 'Wysokość etykiety, mm';
+
+  @override
+  String get labelSheetColumns => 'Kolumny';
+
+  @override
+  String get labelSheetRows => 'Wiersze';
+
+  @override
+  String get labelSheetTopMargin => 'Margines górny, mm';
+
+  @override
+  String get labelSheetLeftMargin => 'Margines lewy, mm';
+
+  @override
+  String get labelSheetColumnGap => 'Odstęp między kolumnami, mm';
+
+  @override
+  String get labelSheetRowGap => 'Odstęp między wierszami, mm';
+
+  @override
+  String get labelSheetIncomplete => 'Wpisz liczbę w każde pole.';
+
+  @override
+  String labelSheetTooSmall(int minWidth, int minHeight) {
+    return 'Etykieta musi mieć co najmniej $minWidth mm szerokości i $minHeight mm wysokości.';
+  }
+
+  @override
+  String labelSheetTooLong(int max) {
+    return 'Rozmiary, marginesy i odstępy mogą mieć najwyżej $max mm.';
+  }
+
+  @override
+  String labelSheetColumnsRange(int max) {
+    return 'Liczba kolumn musi być całkowita, od 1 do $max.';
+  }
+
+  @override
+  String labelSheetRowsRange(int max) {
+    return 'Liczba wierszy musi być całkowita, od 1 do $max.';
+  }
+
+  @override
+  String get labelSheetNegative => 'Marginesy i odstępy nie mogą być ujemne.';
+
+  @override
+  String labelSheetTooWide(String size, String page) {
+    return 'Etykiety razem z lewym marginesem mają $size mm szerokości, a strona tylko $page mm.';
+  }
+
+  @override
+  String labelSheetTooTall(String size, String page) {
+    return 'Etykiety razem z górnym marginesem mają $size mm wysokości, a strona tylko $page mm.';
+  }
+
+  @override
+  String get labelSheetUse => 'Użyj tego arkusza';
+
+  @override
+  String get labelSheetName => 'Nazwa szablonu';
+
+  @override
+  String get labelSheetNameTaken => 'Szablon o tej nazwie już istnieje.';
+
+  @override
+  String get labelSheetSaveAs => 'Zapisz jako szablon';
+
+  @override
+  String get labelSheetSaveChanges => 'Zapisz zmiany';
+
+  @override
+  String get labelSheetDelete => 'Usuń szablon';
+
+  @override
+  String labelSheetSaved(String name) {
+    return 'Zapisano szablon „$name”';
+  }
+
+  @override
+  String labelSheetDeleted(String name) {
+    return 'Usunięto szablon „$name”';
+  }
+
+  @override
+  String labelSheetDeleteTitle(String name) {
+    return 'Usunąć „$name”?';
+  }
+
+  @override
+  String get labelSheetDeleteBody =>
+      'Etykiety wydrukowane wcześniej zostają bez zmian.';
+
+  @override
+  String get labelSheetEdit => 'Edytuj szablon';
+
+  @override
+  String get labelSheetSaveAsNew => 'Zapisz jako nowy';
+
+  @override
+  String labelPngTooLarge(int maxPages, int dpi, int pages) {
+    return 'PNG ma limit $maxPages stron arkusza przy $dpi dpi, a ten wydruk potrzebuje $pages. Użyj PDF, niższej rozdzielczości albo mniej szpul.';
   }
 
   @override
@@ -9869,7 +10019,8 @@ class AppLocalizationsPl extends AppLocalizations {
   String get announcementsReadMore => 'Czytaj więcej';
 
   @override
-  String get announcementsSource => 'Od twórców Bambuddy, pobierane z GitHuba.';
+  String get announcementsSource =>
+      'Wpisy Bambuddy pochodzą od jego twórców i są pobierane z GitHuba.';
 
   @override
   String get announcementLevelInfo => 'Informacja';
@@ -10318,4 +10469,714 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return '$date: $_temp0';
   }
+
+  @override
+  String get serverSettingsWledSubtitle =>
+      'Presety oświetlenia dla stanów drukarki';
+
+  @override
+  String get wledTitle => 'WLED';
+
+  @override
+  String get wledDescription =>
+      'Kolory i efekty ustawiasz w WLED. Serwer tylko przełącza na preset przypisany do stanu drukarki.';
+
+  @override
+  String get wledPrinter => 'Drukarka';
+
+  @override
+  String get wledEnabled => 'Integracja z WLED';
+
+  @override
+  String get wledEnabledDesc =>
+      'Przełączaj presety wraz ze zmianą stanu drukarki';
+
+  @override
+  String get wledUrl => 'Adres WLED';
+
+  @override
+  String get wledUrlRequired => 'Wymagany, gdy integracja jest włączona';
+
+  @override
+  String get wledLoadPresets => 'Wczytaj presety';
+
+  @override
+  String get wledTestConnection => 'Testuj połączenie';
+
+  @override
+  String wledConnected(String name) {
+    return 'Połączono z $name';
+  }
+
+  @override
+  String wledConnectedVersion(String name, String version) {
+    return 'Połączono z $name, wersja $version';
+  }
+
+  @override
+  String get wledUnreachable => 'WLED nie odpowiada';
+
+  @override
+  String wledPresetsLoaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Wczytano $count presetu',
+      many: 'Wczytano $count presetów',
+      few: 'Wczytano $count presety',
+      one: 'Wczytano 1 preset',
+      zero: 'WLED nie ma presetów',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wledPresetsOffline =>
+      'WLED jest nieosiągalny. Zapisane presety zostają.';
+
+  @override
+  String get wledMappingHeader => 'Preset dla stanu';
+
+  @override
+  String get wledSegmentHint =>
+      'Tworząc preset w WLED, zaznacz jego segment i włącz „Checked segments only”.';
+
+  @override
+  String get wledNoPreset => 'Bez presetu';
+
+  @override
+  String wledPresetSaved(int id) {
+    return 'Zapisany preset $id';
+  }
+
+  @override
+  String wledPresetOption(String name, int id) {
+    return '$name ($id)';
+  }
+
+  @override
+  String wledTestPreset(String state) {
+    return 'Testuj preset dla stanu $state';
+  }
+
+  @override
+  String get wledPresetTested => 'Preset włączony';
+
+  @override
+  String get wledPresetTestFailed => 'WLED nie przełączył presetu';
+
+  @override
+  String get wledFinishedTimeout => 'Powrót do „Bezczynna” po (sekundach)';
+
+  @override
+  String get wledFinishedTimeoutHint =>
+      'Tyle sekund po końcu wydruku włącza się preset stanu „Bezczynna”. 0 wyłącza powrót.';
+
+  @override
+  String get wledFinishedTimeoutInvalid => 'Liczba całkowita od 0 do 86400';
+
+  @override
+  String get wledSave => 'Zapisz';
+
+  @override
+  String get wledSaved => 'Zapisano ustawienia WLED';
+
+  @override
+  String wledRefused(String reason) {
+    return 'Nie przyjęto: $reason';
+  }
+
+  @override
+  String get wledNoPrinters => 'Brak drukarek do skonfigurowania';
+
+  @override
+  String get wledStateIdle => 'Bezczynna';
+
+  @override
+  String get wledStatePrepare => 'Przygotowanie';
+
+  @override
+  String get wledStatePrinting => 'Drukuje';
+
+  @override
+  String get wledStatePaused => 'Wstrzymana';
+
+  @override
+  String get wledStateFinished => 'Zakończone';
+
+  @override
+  String get wledStateError => 'Błąd';
+
+  @override
+  String get wledStateQueueWaiting => 'Czeka na zdjęcie wydruku';
+
+  @override
+  String get wledStateFilamentProblem => 'Problem z filamentem';
+
+  @override
+  String get wledStateHmsError => 'Błąd HMS';
+
+  @override
+  String get wledStateOffline => 'Offline';
+
+  @override
+  String get fmMoveBlockedCurrent => 'Już tutaj';
+
+  @override
+  String get fmMoveBlockedSelf => 'Przenoszony folder';
+
+  @override
+  String get fmMoveBlockedInside => 'Wewnątrz przenoszonego folderu';
+
+  @override
+  String get fmMoveBlockedExternal => 'Folder zewnętrzny';
+
+  @override
+  String get fmMoveBlockedNotWritable => 'Nie twój i nieudostępniony';
+
+  @override
+  String get fmMoveBlockedReadOnly => 'Folder tylko do odczytu';
+
+  @override
+  String get fmNotMoved => 'Nie przeniesiono pliku';
+
+  @override
+  String fmNotMovedReason(String reason) {
+    return 'Nie przeniesiono pliku: $reason';
+  }
+
+  @override
+  String get aiDetectionSafe => 'Bezpieczny';
+
+  @override
+  String get aiDetectionWarning => 'Ostrzeżenie';
+
+  @override
+  String get aiDetectionFailure => 'Awaria';
+
+  @override
+  String get aiDetectionNotChecking => 'Nie sprawdza';
+
+  @override
+  String get aiDetectionStarting => 'Uruchamianie';
+
+  @override
+  String aiDetectionTipStatus(String status) {
+    return 'Wykrywanie awarii AI: $status';
+  }
+
+  @override
+  String aiDetectionTipScore(String status, String score) {
+    return 'Wykrywanie awarii AI: $status (wynik $score)';
+  }
+
+  @override
+  String aiDetectionTipQuality(String status, int quality) {
+    return 'Wykrywanie awarii AI: $status (jakość wydruku $quality/10)';
+  }
+
+  @override
+  String aiDetectionTipError(String reason) {
+    return 'Wykrywanie awarii AI nie sprawdza tego wydruku: $reason';
+  }
+
+  @override
+  String get aiDetectionTipErrorNoReason =>
+      'Wykrywanie awarii AI nie sprawdza tego wydruku';
+
+  @override
+  String get aiDetectionTipStarting =>
+      'Wykrywanie awarii AI: oczekiwanie na pierwszy wynik';
+
+  @override
+  String get aiDetectionLimitReached => 'osiągnięto limit użycia';
+
+  @override
+  String notifLowStockTitle(String percent) {
+    return 'Niski filament poniżej $percent%';
+  }
+
+  @override
+  String get notifLowStockDesc =>
+      'Ustawiane na serwerze dla wszystkich. Własny próg szpuli ma pierwszeństwo.';
+
+  @override
+  String get notifLowStockEdit => 'Zmień próg niskiego filamentu';
+
+  @override
+  String get notifLowStockInputLabel => 'Procent wagi z etykiety';
+
+  @override
+  String get notifLowStockInvalid => 'Podaj liczbę od 0,1 do 99,9.';
+
+  @override
+  String get pandaBreath => 'Panda Breath';
+
+  @override
+  String get pandaBreathSent => 'Wysłano do grzałki Panda Breath';
+
+  @override
+  String get pandaBreathOffline => 'Grzałka offline';
+
+  @override
+  String get pandaBreathTurnOn => 'Włącz';
+
+  @override
+  String get pandaBreathTurnOff => 'Wyłącz';
+
+  @override
+  String get pandaBreathMode => 'Tryb';
+
+  @override
+  String get pandaBreathModeOn => 'Zawsze włączona';
+
+  @override
+  String get pandaBreathModeDrying => 'Suszenie';
+
+  @override
+  String pandaBreathDryingLeft(int minutes) {
+    return 'Suszenie, zostało $minutes min';
+  }
+
+  @override
+  String pandaBreathTarget(int max) {
+    return 'Temperatura docelowa 0–$max °C';
+  }
+
+  @override
+  String get queueSettingsDispatchLabel =>
+      'Drukarka dla zadań na dowolny model';
+
+  @override
+  String get queueSettingsDispatchDesc =>
+      'Która drukarka dostaje zadanie z kolejki na cały model. Zajęte i offline są pomijane.';
+
+  @override
+  String get queueSettingsDispatchFewestHours => 'Najmniej godzin druku';
+
+  @override
+  String get queueSettingsDispatchMostHours => 'Najwięcej godzin druku';
+
+  @override
+  String get queueSettingsDispatchLeastRecentlyUsed => 'Nieużywana najdłużej';
+
+  @override
+  String get queueSettingsDispatchPriority => 'Priorytet drukarki';
+
+  @override
+  String get editPrinterDispatchPriority =>
+      'Priorytet dla zadań na dowolny model';
+
+  @override
+  String get editPrinterDispatchPriorityHelp =>
+      'Najniższy numer idzie pierwszy, puste na koniec. Działa, gdy zadania na dowolny model idą według priorytetu drukarki.';
+
+  @override
+  String get editPrinterDispatchPriorityInvalid =>
+      'Wpisz liczbę całkowitą od 0 do 100000';
+
+  @override
+  String nozzleSheetTitle(int position) {
+    return 'Pozycja $position';
+  }
+
+  @override
+  String get nozzleSectionTitle => 'Dysza';
+
+  @override
+  String get nozzleLabelDiameter => 'Średnica';
+
+  @override
+  String get nozzleLabelType => 'Typ';
+
+  @override
+  String get nozzleLabelFlow => 'Przepływ';
+
+  @override
+  String get nozzleLabelStatus => 'Stan';
+
+  @override
+  String get nozzleLabelWear => 'Zużycie';
+
+  @override
+  String get nozzleLabelPrintTime => 'Czas druku';
+
+  @override
+  String get nozzleLabelMaxTemp => 'Maks. temp.';
+
+  @override
+  String get nozzleLabelSerial => 'Numer seryjny';
+
+  @override
+  String get nozzleLabelFilament => 'Filament';
+
+  @override
+  String get nozzleMaterialStainless => 'Stal nierdzewna';
+
+  @override
+  String get nozzleMaterialHardened => 'Stal hartowana';
+
+  @override
+  String get nozzleMaterialTungsten => 'Węglik wolframu';
+
+  @override
+  String get nozzleStatusDocked => 'W magazynie';
+
+  @override
+  String get nozzleStatusMounted => 'Na głowicy';
+
+  @override
+  String nozzleWearValue(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String nozzleMaxTempValue(int degrees) {
+    return '$degrees °C';
+  }
+
+  @override
+  String nozzleDiameterValue(String diameter) {
+    return '$diameter mm';
+  }
+
+  @override
+  String get errEdgeAccessRequired => 'Serwer jest za Cloudflare Access';
+
+  @override
+  String get errEdgeAccessRejected =>
+      'Cloudflare Access nie przyjął zapisanych danych dostępu';
+
+  @override
+  String get edgeAccessTitle => 'Cloudflare Access';
+
+  @override
+  String get edgeAccessSetUp => 'Skonfiguruj';
+
+  @override
+  String get edgeAccessServiceToken => 'Token usługi';
+
+  @override
+  String get edgeAccessServiceTokenHint =>
+      'Działa w tle, więc powiadomienia i zegarek nadal działają.';
+
+  @override
+  String get edgeAccessClientId => 'Identyfikator klienta';
+
+  @override
+  String get edgeAccessClientSecret => 'Sekret klienta';
+
+  @override
+  String edgeAccessFor(String host) {
+    return 'Dla $host';
+  }
+
+  @override
+  String edgeAccessConfigured(String host) {
+    return 'Token usługi dla $host';
+  }
+
+  @override
+  String get edgeAccessSave => 'Zapisz';
+
+  @override
+  String get edgeAccessRemove => 'Usuń';
+
+  @override
+  String get edgeAccessRemoveTitle => 'Usunąć Cloudflare Access?';
+
+  @override
+  String get edgeAccessRemoveMessage =>
+      'Aplikacja nie połączy się z tym serwerem, dopóki nie skonfigurujesz go ponownie.';
+
+  @override
+  String get edgeAccessRecommended => 'Zalecane';
+
+  @override
+  String get edgeAccessBrowser => 'Logowanie w przeglądarce';
+
+  @override
+  String get edgeAccessBrowserHint => 'Wygasa. Logujesz się ponownie ręcznie.';
+
+  @override
+  String get edgeAccessSignIn => 'Zaloguj';
+
+  @override
+  String get edgeAccessWarnTitle => 'Logowanie w przeglądarce wygasa';
+
+  @override
+  String get edgeAccessWarnMessage =>
+      'Gdy sesja Cloudflare się skończy, powiadomienia, stałe powiadomienie, widżety i zegarek przestaną działać do ponownego zalogowania. Token usługi nie wymaga logowania. Niektórzy dostawcy, w tym Google, odmawiają logowania w osadzonej przeglądarce; wtedy użyj tokenu usługi.';
+
+  @override
+  String get edgeAccessWarnConfirm => 'Kontynuuj mimo to';
+
+  @override
+  String get edgeAccessWarnUseToken => 'Użyj tokenu usługi';
+
+  @override
+  String get edgeAccessSignInFailed => 'Strona się nie załadowała.';
+
+  @override
+  String edgeAccessConfiguredBrowser(String host) {
+    return 'Logowanie w przeglądarce dla $host';
+  }
+
+  @override
+  String get notifEdgeSessionTitle => 'Sesja Cloudflare wygasła';
+
+  @override
+  String get notifEdgeSessionBody =>
+      'Powiadomienia są wyłączone. Zaloguj się ponownie, aby je włączyć.';
+
+  @override
+  String get notifEvtEdgeSession => 'Cloudflare Access';
+
+  @override
+  String get notifEvtEdgeSessionDesc =>
+      'Gdy Cloudflare przestanie przyjmować logowanie lub token usługi aplikacji i powiadomienia ustaną';
+
+  @override
+  String get edgeSessionBanner => 'Sesja Cloudflare wygasła';
+
+  @override
+  String get notifEdgeTokenTitle => 'Cloudflare odrzucił token usługi';
+
+  @override
+  String get notifEdgeTokenBody =>
+      'Powiadomienia są wyłączone. Wymień token usługi, aby je włączyć.';
+
+  @override
+  String get edgeTokenBanner => 'Cloudflare odrzucił token usługi';
+
+  @override
+  String get amsUnloadAll => 'Wyładuj wszystko';
+
+  @override
+  String get amsUnloadAllTitle => 'Wyładować wszystkie sloty?';
+
+  @override
+  String get amsUnloadAllMessage =>
+      'Drukarka wyładuje po kolei każdy załadowany slot AMS 3H. Gdy o to poprosi, wyciągnij filament z AMS 3H ręcznie, więc zostań przy drukarce.';
+
+  @override
+  String get amsUnloadAllStarted =>
+      'Wyładowywanie wszystkich załadowanych slotów. Gdy drukarka o to poprosi, wyciągnij filament z AMS 3H ręcznie.';
+
+  @override
+  String get amsUnloadAllNoneLoaded => 'Żaden slot nie ma filamentu w dyszy';
+
+  @override
+  String queueDuplicateAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dodano $count kopii na koniec kolejki',
+      many: 'Dodano $count kopii na koniec kolejki',
+      few: 'Dodano $count kopie na koniec kolejki',
+      one: 'Dodano 1 kopię na koniec kolejki',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueDuplicateSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dodano $count kopii',
+      many: 'Dodano $count kopii',
+      few: 'Dodano $count kopie',
+      one: 'Dodano 1 kopię',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped elementów nie można skopiować',
+      many: '$skipped elementów nie można skopiować',
+      few: '$skipped elementów nie można skopiować',
+      one: '1 elementu nie można skopiować',
+    );
+    return '$_temp0; $_temp1';
+  }
+
+  @override
+  String get queueDuplicateNone => 'Żadnego z nich nie można skopiować';
+
+  @override
+  String get queueDuplicate => 'Duplikuj';
+
+  @override
+  String get maintenanceLog => 'Dziennik konserwacji';
+
+  @override
+  String maintenanceLogTitle(String printer) {
+    return 'Dziennik · $printer';
+  }
+
+  @override
+  String get maintenanceLogEmpty =>
+      'Nie zapisano jeszcze żadnej konserwacji tej drukarki';
+
+  @override
+  String maintenanceLogLoadMore(int shown, int total) {
+    return 'Pokaż więcej · $shown z $total';
+  }
+
+  @override
+  String maintenanceLogHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get maintenanceLogExportPrinter => 'Eksportuj CSV, ta drukarka';
+
+  @override
+  String get maintenanceLogExportAll => 'Eksportuj CSV, wszystkie drukarki';
+
+  @override
+  String get maintenanceLogCleanUpPrinter => 'Wyczyść, ta drukarka…';
+
+  @override
+  String get maintenanceLogCleanUpAll => 'Wyczyść, wszystkie drukarki…';
+
+  @override
+  String maintenanceLogSaved(String name) {
+    return 'Zapisano dziennik: $name';
+  }
+
+  @override
+  String get maintenanceLogCleanUpTitle => 'Usunąć stare wpisy?';
+
+  @override
+  String maintenanceLogCleanUpMessage(String printer) {
+    return 'Trwale usuwa wpisy starsze niż wybrany wiek z dziennika drukarki $printer. Ostatni dzień zawsze zostaje, a liczniki zadań się nie zmieniają. Najpierw wyeksportuj dziennik, jeśli chcesz mieć kopię.';
+  }
+
+  @override
+  String get maintenanceLogCleanUpMessageAll =>
+      'Trwale usuwa wpisy wszystkich widocznych dla Ciebie drukarek, starsze niż wybrany wiek. Ostatni dzień zawsze zostaje, a liczniki zadań się nie zmieniają. Najpierw wyeksportuj dziennik, jeśli chcesz mieć kopię.';
+
+  @override
+  String maintenanceLogAge(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days dnia',
+      many: '$days dni',
+      few: '$days dni',
+      one: '$days dzień',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String maintenanceLogCleanedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunięto $count wpisu',
+      many: 'Usunięto $count wpisów',
+      few: 'Usunięto $count wpisy',
+      one: 'Usunięto 1 wpis',
+      zero: 'Nie usunięto żadnych wpisów',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get maintenanceLogDeleteEntryTitle => 'Usunąć ten wpis?';
+
+  @override
+  String maintenanceLogDeleteEntryMessage(String task, String date) {
+    return '„$task” z $date zostanie trwale usunięty z dziennika. Ostatni reset zadania pozostaje bez zmian: usunięcie wpisu go nie cofa.';
+  }
+
+  @override
+  String get maintenanceLogEntryDeleted => 'Usunięto wpis';
+
+  @override
+  String get maintenanceLogDelete => 'Usuń';
+
+  @override
+  String get maintenanceLogYear => '1 rok';
+
+  @override
+  String get spoolScanTitle => 'Skanuj szpulę';
+
+  @override
+  String get spoolScanModeCamera => 'Aparat';
+
+  @override
+  String get spoolScanModeNfc => 'NFC';
+
+  @override
+  String get spoolScanNfcHint => 'Przyłóż szpulę do tylnej ścianki telefonu';
+
+  @override
+  String get spoolScanNfcHelp =>
+      'Tag jest odczytywany tam, gdzie leży antena NFC, zwykle przy aparacie.';
+
+  @override
+  String get spoolScanNfcOff => 'NFC jest wyłączone';
+
+  @override
+  String get spoolScanNfcOffHelp =>
+      'Włącz je w ustawieniach systemu, aby skanować tagi.';
+
+  @override
+  String get spoolScanNfcOpenSettings => 'Otwórz ustawienia';
+
+  @override
+  String get spoolScanTagUnknown => 'Żadna szpula nie ma tego tagu';
+
+  @override
+  String spoolScanTagUnknownHelp(String tag) {
+    return 'Tag $tag nie jest powiązany z żadną szpulą w Filamentach. Powiąż go w SpoolBuddy i spróbuj ponownie.';
+  }
+
+  @override
+  String spoolScanOpening(String name) {
+    return 'Otwieram $name';
+  }
+
+  @override
+  String get maintenanceLogPrinter => 'Drukarka';
+
+  @override
+  String get compactAmsLayoutTitle => 'Kompaktowe kafelki AMS';
+
+  @override
+  String get compactAmsLayoutDesc =>
+      'Sloty filamentu jako małe kafelki z kolorem, materiałem i numerem slotu. Każdą kartę drukarki można przełączyć na szczegółową listę.';
+
+  @override
+  String get amsViewCompact => 'Widok kompaktowy';
+
+  @override
+  String get amsViewDetailed => 'Widok szczegółowy';
+
+  @override
+  String get externalSpoolShort => 'Z';
+
+  @override
+  String get announcementsSourceMobile => 'Aplikacja mobilna';
+
+  @override
+  String get appUpdateTitle => 'Dostępna nowa wersja aplikacji';
+
+  @override
+  String get appUpdateBody => 'Do pobrania z Google Play.';
+
+  @override
+  String get appUpdateDownloading => 'Pobieranie…';
+
+  @override
+  String get appUpdateButton => 'Aktualizuj';
+
+  @override
+  String get appUpdateReady => 'Aktualizacja pobrana';
+
+  @override
+  String get appUpdateRestart => 'Restartuj';
 }

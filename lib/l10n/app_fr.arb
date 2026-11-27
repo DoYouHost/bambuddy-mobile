@@ -1072,6 +1072,7 @@
   "errClientCertRefused": "Le serveur exige un certificat client valide",
   "errConnection": "Erreur de connexion",
   "errMalformedResponse": "Réponse du serveur malformée",
+  "errNotBambuddy": "Cette adresse n'est pas un serveur Bambuddy — vérifiez le port et supprimez le chemin qui le suit, s'il y en a un.",
   "errInvalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",
   "errTwoFactorUnsupported": "Ce compte nécessite l'authentification 2FA — non prise en charge dans cette version. Utilisez une clé API (Paramètres → Clés API sur le serveur).",
   "errTwoFactorCodeRejected": "Code incorrect — vérifiez-le et réessayez.",
@@ -1416,7 +1417,7 @@
   "navFilaments": "Filaments",
   "inventoryEmpty": "Aucune bobine dans l'inventaire",
   "inventoryNoMatches": "Aucun filament ne correspond à votre recherche",
-  "inventorySearchHint": "Rechercher un matériau, une marque, une couleur…",
+  "inventorySearchHint": "Rechercher un ID, un matériau, une marque, une couleur…",
   "inventoryLowStock": "Faible",
   "inventoryFilters": "Filtres",
   "inventoryFilterStatus": "Statut",
@@ -1880,6 +1881,149 @@
   "@inventoryLabelsStartSlot": {
     "placeholders": {
       "position": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetCustom": "Planche personnalisée",
+  "labelSheetCustomHint": "Votre propre page, la taille des étiquettes et la grille",
+  "labelSheetSavedTitle": "Modèles enregistrés",
+  "labelSheetSummary": "{page} · {width} × {height} mm · {count, plural, one{{count} étiquette} other{{count} étiquettes}} ({columns} × {rows})",
+  "@labelSheetSummary": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "width": {
+        "type": "String"
+      },
+      "height": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetPageA4": "A4",
+  "labelSheetPageLetter": "Letter",
+  "labelSheetPage": "Page",
+  "labelSheetLabelWidth": "Largeur de l’étiquette, mm",
+  "labelSheetLabelHeight": "Hauteur de l’étiquette, mm",
+  "labelSheetColumns": "Colonnes",
+  "labelSheetRows": "Lignes",
+  "labelSheetTopMargin": "Marge supérieure, mm",
+  "labelSheetLeftMargin": "Marge gauche, mm",
+  "labelSheetColumnGap": "Espace entre colonnes, mm",
+  "labelSheetRowGap": "Espace entre lignes, mm",
+  "labelSheetIncomplete": "Saisissez un nombre dans chaque champ.",
+  "labelSheetTooSmall": "Les étiquettes doivent mesurer au moins {minWidth} mm de large et {minHeight} mm de haut.",
+  "@labelSheetTooSmall": {
+    "placeholders": {
+      "minWidth": {
+        "type": "int"
+      },
+      "minHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetTooLong": "Les tailles, marges et espaces ne peuvent pas dépasser {max} mm.",
+  "@labelSheetTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetColumnsRange": "Le nombre de colonnes doit être un entier de 1 à {max}.",
+  "@labelSheetColumnsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetRowsRange": "Le nombre de lignes doit être un entier de 1 à {max}.",
+  "@labelSheetRowsRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "labelSheetNegative": "Les marges et les espaces ne peuvent pas être négatifs.",
+  "labelSheetTooWide": "Avec la marge gauche, les étiquettes font {size} mm de large, mais la page ne fait que {page} mm.",
+  "@labelSheetTooWide": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetTooTall": "Avec la marge supérieure, les étiquettes font {size} mm de haut, mais la page ne fait que {page} mm.",
+  "@labelSheetTooTall": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetUse": "Utiliser cette planche",
+  "labelSheetName": "Nom du modèle",
+  "labelSheetNameTaken": "Un modèle portant ce nom existe déjà.",
+  "labelSheetSaveAs": "Enregistrer comme modèle",
+  "labelSheetSaveChanges": "Enregistrer les modifications",
+  "labelSheetDelete": "Supprimer le modèle",
+  "labelSheetSaved": "Modèle « {name} » enregistré",
+  "@labelSheetSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleted": "Modèle « {name} » supprimé",
+  "@labelSheetDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteTitle": "Supprimer « {name} » ?",
+  "@labelSheetDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "labelSheetDeleteBody": "Les étiquettes déjà imprimées ne changent pas.",
+  "labelSheetEdit": "Modifier le modèle",
+  "labelSheetSaveAsNew": "Enregistrer comme nouveau",
+  "labelPngTooLarge": "Le PNG est limité à {maxPages} pages de planche à {dpi} dpi, et cette impression en demande {pages}. Utilisez le PDF, une résolution plus basse ou moins de bobines.",
+  "@labelPngTooLarge": {
+    "placeholders": {
+      "maxPages": {
+        "type": "int"
+      },
+      "dpi": {
+        "type": "int"
+      },
+      "pages": {
         "type": "int"
       }
     }
@@ -4508,7 +4652,7 @@
   "announcementsEarlier": "Précédentes ({count})",
   "announcementsNew": "Nouveau",
   "announcementsReadMore": "En savoir plus",
-  "announcementsSource": "Des développeurs de Bambuddy, récupérées depuis GitHub.",
+  "announcementsSource": "Les entrées Bambuddy viennent de ses développeurs et sont récupérées depuis GitHub.",
   "announcementLevelInfo": "Information",
   "announcementLevelImportant": "Importante",
   "announcementLevelCritical": "Critique",
@@ -4749,5 +4893,193 @@
         "type": "int"
       }
     }
-  }
+  },
+  "serverSettingsWledSubtitle": "Préréglages lumineux selon l'état de l'imprimante",
+  "wledTitle": "WLED",
+  "wledDescription": "Les couleurs et les effets se règlent dans WLED. Le serveur bascule seulement sur le préréglage associé à l'état de l'imprimante.",
+  "wledPrinter": "Imprimante",
+  "wledEnabled": "Intégration WLED",
+  "wledEnabledDesc": "Changer de préréglage quand l'état de l'imprimante change",
+  "wledUrl": "Adresse WLED",
+  "wledUrlRequired": "Requise tant que l'intégration est active",
+  "wledLoadPresets": "Charger les préréglages",
+  "wledTestConnection": "Tester la connexion",
+  "wledConnected": "Connecté à {name}",
+  "wledConnectedVersion": "Connecté à {name}, version {version}",
+  "wledUnreachable": "WLED ne répond pas",
+  "wledPresetsLoaded": "{count, plural, =0{WLED n'a aucun préréglage} =1{1 préréglage chargé} other{{count} préréglages chargés}}",
+  "wledPresetsOffline": "WLED est injoignable. Les préréglages enregistrés sont conservés.",
+  "wledMappingHeader": "Préréglage par état",
+  "wledSegmentHint": "En créant un préréglage dans WLED, sélectionnez son segment et activez « Checked segments only ».",
+  "wledNoPreset": "Aucun préréglage",
+  "wledPresetSaved": "Préréglage enregistré {id}",
+  "wledPresetOption": "{name} ({id})",
+  "wledTestPreset": "Tester le préréglage {state}",
+  "wledPresetTested": "Préréglage activé",
+  "wledPresetTestFailed": "WLED n'a pas changé de préréglage",
+  "wledFinishedTimeout": "Retour à « Inactive » après (secondes)",
+  "wledFinishedTimeoutHint": "Secondes après la fin d'une impression avant le préréglage « Inactive ». 0 le désactive.",
+  "wledFinishedTimeoutInvalid": "Un nombre entier de 0 à 86400",
+  "wledSave": "Enregistrer",
+  "wledSaved": "Réglages WLED enregistrés",
+  "wledRefused": "Refusé : {reason}",
+  "wledNoPrinters": "Aucune imprimante à configurer",
+  "wledStateIdle": "Inactive",
+  "wledStatePrepare": "Préparation",
+  "wledStatePrinting": "En impression",
+  "wledStatePaused": "En pause",
+  "wledStateFinished": "Terminée",
+  "wledStateError": "Erreur",
+  "wledStateQueueWaiting": "Plateau à libérer",
+  "wledStateFilamentProblem": "Problème de filament",
+  "wledStateHmsError": "Erreur HMS",
+  "wledStateOffline": "Hors ligne",
+  "fmMoveBlockedCurrent": "Déjà ici",
+  "fmMoveBlockedSelf": "Le dossier déplacé",
+  "fmMoveBlockedInside": "Dans le dossier déplacé",
+  "fmMoveBlockedExternal": "Dossier externe",
+  "fmMoveBlockedNotWritable": "Ni à vous ni partagé",
+  "fmMoveBlockedReadOnly": "Dossier en lecture seule",
+  "fmNotMoved": "Fichier non déplacé",
+  "fmNotMovedReason": "Fichier non déplacé : {reason}",
+  "aiDetectionSafe": "Sûr",
+  "aiDetectionWarning": "Avertissement",
+  "aiDetectionFailure": "Échec",
+  "aiDetectionNotChecking": "Ne vérifie pas",
+  "aiDetectionStarting": "Démarrage",
+  "aiDetectionTipStatus": "Détection d'échec par IA : {status}",
+  "aiDetectionTipScore": "Détection d'échec par IA : {status} (score {score})",
+  "aiDetectionTipQuality": "Détection d'échec par IA : {status} (qualité d'impression {quality}/10)",
+  "aiDetectionTipError": "La détection d'échec par IA ne vérifie pas cette impression : {reason}",
+  "aiDetectionTipErrorNoReason": "La détection d'échec par IA ne vérifie pas cette impression",
+  "aiDetectionTipStarting": "Détection d'échec par IA : en attente du premier résultat",
+  "aiDetectionLimitReached": "limite d'utilisation atteinte",
+  "notifLowStockTitle": "Filament bas en dessous de {percent} %",
+  "notifLowStockDesc": "Défini sur le serveur pour tous. Le seuil propre à une bobine prévaut.",
+  "notifLowStockEdit": "Modifier le seuil de filament bas",
+  "notifLowStockInputLabel": "Pourcentage du poids de l'étiquette",
+  "notifLowStockInvalid": "Saisissez un nombre de 0,1 à 99,9.",
+  "pandaBreath": "Panda Breath",
+  "pandaBreathSent": "Envoyé au Panda Breath",
+  "pandaBreathOffline": "Chauffage hors ligne",
+  "pandaBreathTurnOn": "Allumer",
+  "pandaBreathTurnOff": "Éteindre",
+  "pandaBreathMode": "Mode",
+  "pandaBreathModeOn": "Toujours allumé",
+  "pandaBreathModeDrying": "Séchage",
+  "pandaBreathDryingLeft": "Séchage, encore {minutes} min",
+  "pandaBreathTarget": "Température cible 0–{max} °C",
+  "queueSettingsDispatchLabel": "Imprimante pour les travaux de modèle quelconque",
+  "queueSettingsDispatchDesc": "Quelle imprimante reçoit un travail mis en file pour tout un modèle. Les imprimantes occupées ou hors ligne sont passées.",
+  "queueSettingsDispatchFewestHours": "Le moins d'heures d'impression",
+  "queueSettingsDispatchMostHours": "Le plus d'heures d'impression",
+  "queueSettingsDispatchLeastRecentlyUsed": "Inactive depuis le plus longtemps",
+  "queueSettingsDispatchPriority": "Priorité de l'imprimante",
+  "editPrinterDispatchPriority": "Priorité pour les travaux de modèle quelconque",
+  "editPrinterDispatchPriorityHelp": "Le plus petit nombre passe en premier, vide en dernier. S'applique quand les travaux de modèle quelconque suivent la priorité des imprimantes.",
+  "editPrinterDispatchPriorityInvalid": "Saisissez un nombre entier de 0 à 100000",
+  "nozzleSheetTitle": "Position {position}",
+  "nozzleSectionTitle": "Buse",
+  "nozzleLabelDiameter": "Diamètre",
+  "nozzleLabelType": "Type",
+  "nozzleLabelFlow": "Débit",
+  "nozzleLabelStatus": "État",
+  "nozzleLabelWear": "Usure",
+  "nozzleLabelPrintTime": "Temps d'impression",
+  "nozzleLabelMaxTemp": "Temp. max.",
+  "nozzleLabelSerial": "N° de série",
+  "nozzleLabelFilament": "Filament",
+  "nozzleMaterialStainless": "Acier inoxydable",
+  "nozzleMaterialHardened": "Acier trempé",
+  "nozzleMaterialTungsten": "Carbure de tungstène",
+  "nozzleStatusDocked": "Dans le rack",
+  "nozzleStatusMounted": "Sur la tête d'outil",
+  "nozzleWearValue": "{percent} %",
+  "nozzleMaxTempValue": "{degrees} °C",
+  "nozzleDiameterValue": "{diameter} mm",
+  "errEdgeAccessRequired": "Le serveur est protégé par Cloudflare Access",
+  "errEdgeAccessRejected": "Cloudflare Access n'a pas accepté l'identifiant enregistré",
+  "edgeAccessTitle": "Cloudflare Access",
+  "edgeAccessSetUp": "Configurer",
+  "edgeAccessServiceToken": "Jeton de service",
+  "edgeAccessServiceTokenHint": "Fonctionne en arrière-plan, donc les alertes et la montre continuent de marcher.",
+  "edgeAccessClientId": "Identifiant client",
+  "edgeAccessClientSecret": "Secret client",
+  "edgeAccessFor": "Pour {host}",
+  "edgeAccessConfigured": "Jeton de service pour {host}",
+  "edgeAccessSave": "Enregistrer",
+  "edgeAccessRemove": "Retirer",
+  "edgeAccessRemoveTitle": "Retirer Cloudflare Access ?",
+  "edgeAccessRemoveMessage": "L'app ne pourra plus joindre ce serveur tant que vous ne l'aurez pas reconfiguré.",
+  "edgeAccessRecommended": "Recommandé",
+  "edgeAccessBrowser": "Connexion par le navigateur",
+  "edgeAccessBrowserHint": "Expire. Vous vous reconnectez à la main.",
+  "edgeAccessSignIn": "Se connecter",
+  "edgeAccessWarnTitle": "La connexion par navigateur expire",
+  "edgeAccessWarnMessage": "Quand la session Cloudflare se termine, les alertes, la notification en cours, les widgets et la montre cessent de fonctionner jusqu'à une nouvelle connexion. Un jeton de service n'exige aucune connexion. Certains fournisseurs, dont Google, refusent la connexion dans un navigateur intégré ; utilisez alors un jeton de service.",
+  "edgeAccessWarnConfirm": "Continuer quand même",
+  "edgeAccessWarnUseToken": "Utiliser un jeton de service",
+  "edgeAccessSignInFailed": "La page ne s'est pas chargée.",
+  "edgeAccessConfiguredBrowser": "Connexion par navigateur pour {host}",
+  "notifEdgeSessionTitle": "Session Cloudflare expirée",
+  "notifEdgeSessionBody": "Les alertes sont coupées. Reconnectez-vous pour les réactiver.",
+  "notifEvtEdgeSession": "Cloudflare Access",
+  "notifEvtEdgeSessionDesc": "Quand Cloudflare n'accepte plus la connexion ou le jeton de service de l'app et que les alertes s'arrêtent",
+  "edgeSessionBanner": "Session Cloudflare expirée",
+  "notifEdgeTokenTitle": "Cloudflare a refusé le jeton de service",
+  "notifEdgeTokenBody": "Les alertes sont coupées. Remplacez le jeton de service pour les réactiver.",
+  "edgeTokenBanner": "Cloudflare a refusé le jeton de service",
+  "amsUnloadAll": "Tout décharger",
+  "amsUnloadAllTitle": "Décharger tous les emplacements ?",
+  "amsUnloadAllMessage": "L'imprimante décharge tous les emplacements chargés de l'AMS 3H, l'un après l'autre. Quand elle le demande, retirez le filament de l'AMS 3H à la main : restez près de l'imprimante.",
+  "amsUnloadAllStarted": "Déchargement de tous les emplacements chargés. Quand l'imprimante le demande, retirez le filament de l'AMS 3H à la main.",
+  "amsUnloadAllNoneLoaded": "Aucun emplacement n'a son filament dans un hotend",
+  "queueDuplicateAdded": "{count, plural, =1{1 copie ajoutée à la fin de la file d'attente} other{{count} copies ajoutées à la fin de la file d'attente}}",
+  "queueDuplicateSkipped": "{count, plural, =1{1 copie ajoutée} other{{count} copies ajoutées}} ; {skipped, plural, =1{1 élément ne peut pas être dupliqué} other{{skipped} éléments ne peuvent pas être dupliqués}}",
+  "queueDuplicateNone": "Aucun ne peut être dupliqué",
+  "queueDuplicate": "Dupliquer",
+  "maintenanceLog": "Journal de maintenance",
+  "maintenanceLogTitle": "Journal · {printer}",
+  "maintenanceLogEmpty": "Aucune maintenance n'a encore été consignée pour cette imprimante",
+  "maintenanceLogLoadMore": "Charger plus · {shown} sur {total}",
+  "maintenanceLogHours": "{hours} h",
+  "maintenanceLogExportPrinter": "Exporter en CSV, cette imprimante",
+  "maintenanceLogExportAll": "Exporter en CSV, toutes les imprimantes",
+  "maintenanceLogCleanUpPrinter": "Nettoyer, cette imprimante…",
+  "maintenanceLogCleanUpAll": "Nettoyer, toutes les imprimantes…",
+  "maintenanceLogSaved": "Journal enregistré : {name}",
+  "maintenanceLogCleanUpTitle": "Supprimer les anciennes entrées ?",
+  "maintenanceLogCleanUpMessage": "Supprime définitivement les entrées de {printer} plus anciennes que l'âge choisi. Le dernier jour reste toujours et les compteurs des tâches ne changent pas. Exportez d'abord le journal pour en garder une copie.",
+  "maintenanceLogCleanUpMessageAll": "Supprime définitivement les entrées de toutes les imprimantes que vous pouvez voir, plus anciennes que l'âge choisi. Le dernier jour reste toujours et les compteurs des tâches ne changent pas. Exportez d'abord le journal pour en garder une copie.",
+  "maintenanceLogAge": "{days, plural, one{{days} jour} other{{days} jours}}",
+  "maintenanceLogCleanedUp": "{count, plural, =0{Aucune entrée supprimée} one{1 entrée supprimée} other{{count} entrées supprimées}}",
+  "maintenanceLogDeleteEntryTitle": "Supprimer cette entrée du journal ?",
+  "maintenanceLogDeleteEntryMessage": "« {task} » du {date} est définitivement retirée du journal. La dernière réinitialisation de la tâche reste en place : supprimer l'entrée ne l'annule pas.",
+  "maintenanceLogEntryDeleted": "Entrée supprimée",
+  "maintenanceLogDelete": "Supprimer",
+  "maintenanceLogYear": "1 an",
+  "spoolScanTitle": "Scanner une bobine",
+  "spoolScanModeCamera": "Caméra",
+  "spoolScanModeNfc": "NFC",
+  "spoolScanNfcHint": "Approchez la bobine de l'arrière du téléphone",
+  "spoolScanNfcHelp": "Le tag est lu là où se trouve l'antenne NFC, en général près de l'appareil photo.",
+  "spoolScanNfcOff": "Le NFC est désactivé",
+  "spoolScanNfcOffHelp": "Activez-le dans les réglages du système pour scanner des tags.",
+  "spoolScanNfcOpenSettings": "Ouvrir les réglages",
+  "spoolScanTagUnknown": "Aucune bobine n'a ce tag",
+  "spoolScanTagUnknownHelp": "Le tag {tag} n'est lié à aucune bobine dans Filaments. Liez-le dans SpoolBuddy, puis réessayez.",
+  "spoolScanOpening": "Ouverture de {name}",
+  "maintenanceLogPrinter": "Imprimante",
+  "compactAmsLayoutTitle": "Tuiles AMS compactes",
+  "compactAmsLayoutDesc": "Les emplacements de filament s'affichent en petites tuiles avec couleur, matière et numéro. Chaque carte d'imprimante peut revenir à la liste détaillée.",
+  "amsViewCompact": "Vue compacte",
+  "amsViewDetailed": "Vue détaillée",
+  "externalSpoolShort": "E",
+  "announcementsSourceMobile": "Application mobile",
+  "appUpdateTitle": "Nouvelle version de l’application disponible",
+  "appUpdateBody": "Disponible sur Google Play.",
+  "appUpdateDownloading": "Téléchargement…",
+  "appUpdateButton": "Mettre à jour",
+  "appUpdateReady": "Mise à jour téléchargée",
+  "appUpdateRestart": "Redémarrer"
 }

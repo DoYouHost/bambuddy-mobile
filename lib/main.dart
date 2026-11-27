@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/api/client_cert.dart';
+import 'core/api/edge_access.dart';
 import 'core/api/tls_overrides.dart';
 import 'core/demo/demo_backend.dart';
 import 'core/theme/appearance_providers.dart';
@@ -16,6 +17,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/wear_relay_engine.dart';
 import 'core/app_context.dart';
+import 'core/notifications/edge_session_alert.dart';
 import 'providers.dart';
 import 'features/alarm/alarm_screen.dart';
 import 'features/bug_report/report_wiring.dart';
@@ -29,7 +31,8 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   await SettingsRepository(prefs).settleTourForExistingInstall();
   final clientCert = await loadClientCert(SettingsRepository(prefs));
-  useTls(SettingsRepository(prefs).loadCustomCa(), clientCert);
+  final edgeAccess = await loadEdgeAccess(SettingsRepository(prefs));
+  useTls(SettingsRepository(prefs).loadCustomCa(), clientCert, edgeAccess);
   // The demo's printer count, before anything can ask the demo for a status.
   // Read here rather than from the provider that owns the setting: nothing
   // watches that provider until the settings screen is opened, so on a cold
@@ -40,6 +43,12 @@ Future<void> main() async {
   ).loadDemoPrintingCount();
   final notifications = LocalNotificationService();
   await notifications.init();
+  // Told when Cloudflare stops accepting the browser session; the foreground
+  // service and the isolates behind a notification button set their own.
+  EdgeSessionAlert(
+    settings: SettingsRepository.opened,
+    notifications: notifications,
+  ).listen();
   // The alarm outlives the service's engine when the app comes back while it
   // rings; then this engine is the one its stop is reported to.
   AlarmRinger.recordReports();
@@ -84,6 +93,7 @@ Future<void> main() async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialSystemSchemesProvider.overrideWithValue(systemSchemes),
         initialClientCertProvider.overrideWithValue(clientCert),
+        initialEdgeAccessProvider.overrideWithValue(edgeAccess),
         notificationServiceProvider.overrideWithValue(notifications),
         reportBindingsOverride,
       ],

@@ -217,7 +217,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
   Future<void> _pick(List<SlicerPipeline> pipelines) async {
     // Read before the sheet so a row can name its printer rather than its id,
     // the way the pipeline list does.
-    final printers = ref.read(pipelineTargetPrintersProvider).value;
+    final printers = ref.read(printerListProvider).value;
     final picked = await pickPipeline(
       context,
       pipelines: pipelines,

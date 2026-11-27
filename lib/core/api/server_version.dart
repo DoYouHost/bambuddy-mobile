@@ -122,6 +122,29 @@ enum ServerFeature {
   /// `/archives/prints`: every print that ended in a date range, the archive
   /// calendar's source. An older server answers 422 (path capture as above).
   archiveCalendar,
+
+  /// `/label-templates` and `template: "custom"` with a `layout` on the two
+  /// label routes: a sheet of the user's own measures, saved under a name. An
+  /// older server answers 404 to the first and 422 to the second.
+  labelTemplates,
+
+  /// `wled_config` on a printer and the `/printers/{id}/wled/*` routes: WLED
+  /// presets switched by printer state. `PrinterUpdate` takes and ignores the
+  /// field below it; the routes 404.
+  wled,
+
+  /// `POST /printers/{id}/ams/unload-all`: every loaded AMS 3H slot of an H3C
+  /// at once, as its touchscreen's Unload All. An older server answers 404.
+  ams3hUnloadAll,
+
+  /// `POST /queue/duplicate`: another copy of queued or printing jobs at the end
+  /// of the queue. An older server answers 404 or 405.
+  queueDuplicate,
+
+  /// `GET /maintenance/printers/{id}/log` and its export, cleanup and delete
+  /// routes: a log of every reset, with who, when and a comment. An older server
+  /// answers 404 or 405.
+  maintenanceLog,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -237,6 +260,11 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.archiveRuns: (1, 3, 0, 0),
     ServerFeature.archiveMerge: (1, 3, 0, 0),
     ServerFeature.archiveCalendar: (1, 3, 0, 0),
+    ServerFeature.labelTemplates: (1, 3, 0, 0),
+    ServerFeature.wled: (1, 3, 1, 0),
+    ServerFeature.ams3hUnloadAll: (1, 3, 3, 0),
+    ServerFeature.queueDuplicate: (1, 3, 3, 0),
+    ServerFeature.maintenanceLog: (1, 3, 2, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

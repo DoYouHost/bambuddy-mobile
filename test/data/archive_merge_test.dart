@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers.dart';
+import '../helpers/server_version_stub.dart';
 
 void main() {
   late Dio dio;
@@ -21,14 +22,9 @@ void main() {
     repo = ArchiveRepository(dio, ServerVersionService(dio));
   });
 
-  void replyVersion(String version) => adapter.onGet(
-    '/api/v1/updates/version',
-    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-  );
-
   group('mergeCount', () {
     test('reads the groups and settles the latch on', () async {
-      replyVersion('1.2.6');
+      stubServerVersion(adapter, '1.2.6');
       adapter.onGet(
         '/api/v1/archives/merge-count',
         (s) => s.reply(200, {'groups': 3}),
@@ -39,7 +35,7 @@ void main() {
     });
 
     test('an older server\'s 404 is no merge, not an error', () async {
-      replyVersion('1.3.1');
+      stubServerVersion(adapter, '1.3.1');
       adapter.onGet(
         '/api/v1/archives/merge-count',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -51,7 +47,7 @@ void main() {
 
     // `/archives/{archive_id}` takes the path there and refuses the id.
     test('an older server\'s 422 is no merge either', () async {
-      replyVersion('1.3.1');
+      stubServerVersion(adapter, '1.3.1');
       adapter.onGet(
         '/api/v1/archives/merge-count',
         (s) => s.reply(422, {
@@ -69,7 +65,7 @@ void main() {
     });
 
     test('once seen missing, the count is not asked again', () async {
-      replyVersion('1.2.5.7');
+      stubServerVersion(adapter, '1.2.5.7');
       adapter.onGet(
         '/api/v1/archives/merge-count',
         (s) => s.reply(422, {'detail': []}),
@@ -85,7 +81,7 @@ void main() {
     });
 
     test('a session without both rights is no merge either', () async {
-      replyVersion('1.3.1');
+      stubServerVersion(adapter, '1.3.1');
       adapter.onGet(
         '/api/v1/archives/merge-count',
         (s) => s.reply(403, {'detail': 'Missing required permissions'}),

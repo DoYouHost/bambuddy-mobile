@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 8 November 2026_
+_Last updated: 27 November 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -19,8 +19,9 @@ whole path is described under [Sending a report](#sending-a-report).
 ## Who the app talks to
 
 - **Your bambuddy server** — the self-hosted address you enter during setup. While you
-  use the app, this is the only server it talks to. There is no cloud backend, no
-  analytics service and no advertising SDK.
+  use the app, this is the only server it talks to, apart from the update check below.
+  There is no cloud backend, no analytics service and no advertising SDK.
+- **Google Play, for app updates** — a phone app installed from Google Play asks the Play Store on your device whether a newer version of the app exists, when it opens and when you return to it, using Google's Play In-App Updates library. If you tap Update, Google Play downloads and installs it. For this Google processes device metadata, the app version and the list of installed app modules, under the Google Play Terms of Service. The developer receives none of it. A build installed from GitHub never asks, and neither does the watch app.
 - **The report relay and GitHub** — contacted **only** when you open the report screen
   and choose to publish a report. The relay (`app-relay.morganmlg.com`) is a small
   Cloudflare Worker operated by the developer; it exists so that you can file a report
@@ -37,6 +38,10 @@ whole path is described under [Sending a report](#sending-a-report).
   local app storage. A client certificate, with its private key and password, is kept in
   the same Keystore-backed encrypted storage as your credentials and is shown only to a
   server that asks for one when the app connects.
+- **A Cloudflare Access credential**, if your server sits behind Cloudflare Access: a
+  service token you enter, or the sign-in cookie that Cloudflare sets when you sign in
+  through the app. Either is kept in the same Keystore-backed encrypted storage and is
+  sent only to your own server's host.
 - **App settings and notification preferences**, stored in local app storage.
 - **A random installation identifier** — a UUID the app makes up for itself the first
   time you open the report form. It is not a device identifier and is not derived from
@@ -79,7 +84,8 @@ minutes, or sooner if it reaches 20 MB.
 
 Such a log describes what the app did: screens you opened, controls you pressed, requests
 to your server and the status codes that came back, live-view connection events, what the
-background service decided about notifications, and crashes. It never contains your API
+background service decided about notifications, where the app was installed from and what
+Google Play answered about updates, and crashes. It never contains your API
 key, your password, or **any text you type into the app**. Your server address is reduced
 to its shape — whether it is http or https, a name or an IP, and the port — file, model
 and spool names are left out, and a control you press is recorded under an internal name

@@ -77,15 +77,7 @@ void main() {
           archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
           archiveMergeSupportedProvider.overrideWithValue(AsyncData(supported)),
         ],
-        child: plApp(
-          Scaffold(body: child),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(textScale)),
-            child: child!,
-          ),
-        ),
+        child: plApp(Scaffold(body: child), builder: textScaled(textScale)),
       ),
     );
     await tester.pumpAndSettle();

@@ -30,12 +30,7 @@ void main() {
     await pumpPhone(
       tester,
       const ExternalLinksScreen(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(scale)),
-        child: child!,
-      ),
+      builder: textScaled(scale),
       overrides: [
         noServerProfileOverride,
         externalLinksProvider.overrideWith((ref) async => links),
