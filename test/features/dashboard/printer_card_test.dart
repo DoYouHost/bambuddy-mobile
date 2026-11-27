@@ -6130,6 +6130,55 @@ void main() {
       expect(find.textContaining('Asystent'), findsNothing);
     });
 
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the folded fault panel is its header target, edge to edge, '
+          'at text scale $scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(411, 3000),
+            ),
+            child: _cardWithProviders(itemWith(const [_runoutWithActions])),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final header = byLogId('printer.hms_expand').first;
+        final panel = find
+            .ancestor(
+              of: header,
+              matching: find.byWidgetPredicate(
+                (w) =>
+                    w is Container &&
+                    w.decoration is BoxDecoration &&
+                    (w.decoration! as BoxDecoration).border != null,
+              ),
+            )
+            .first;
+        // Inside the 1 dp border, nothing of the panel is outside the target.
+        expect(tester.getRect(header), tester.getRect(panel).deflate(1));
+        expect(tester.getSize(header).height, greaterThanOrEqualTo(48));
+        final content = tester.getRect(
+          find.descendant(of: header, matching: find.byType(Row)).first,
+        );
+        expect(
+          content.top - tester.getRect(header).top,
+          greaterThanOrEqualTo(DashSpace.xs),
+        );
+
+        // A tap on the top edge, where the old padding used to swallow it.
+        await tester.tapAt(
+          tester.getRect(panel).topCenter + const Offset(0, 3),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(pl.hmsDismissAll), findsOneWidget);
+      });
+    }
+
     for (final scale in [1.0, 2.0]) {
       testWidgets('the fault panel is made of 48 dp targets at text scale '
           '$scale', (tester) async {

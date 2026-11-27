@@ -89,15 +89,19 @@ class LocationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    final showActions = canEdit && !selecting;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: DashSpace.gutter,
         vertical: DashSpace.xs,
       ),
-      child: DecoratedBox(
+      // The card has no padding of its own: the header's sits inside the
+      // InkWell, so the collapsed card is all target with no dead band.
+      child: Container(
+        clipBehavior: Clip.antiAlias,
         decoration: t.cardBox,
-        child: Padding(
-          padding: const EdgeInsets.all(DashSpace.md),
+        child: Material(
+          type: MaterialType.transparency,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -109,11 +113,16 @@ class LocationCard extends StatelessWidget {
                       selected: selecting ? picked : null,
                       expanded: selecting ? null : expanded,
                       InkWell(
-                        borderRadius: BorderRadius.circular(DashRadius.lg),
                         onTap: onTap,
-                        child: ConstrainedBox(
+                        child: Container(
                           constraints: const BoxConstraints(
                             minHeight: kMinInteractiveDimension,
+                          ),
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                            DashSpace.md,
+                            DashSpace.xs,
+                            showActions ? 0 : DashSpace.md,
+                            DashSpace.xs,
                           ),
                           child: Row(
                             children: [
@@ -157,7 +166,7 @@ class LocationCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (canEdit && !selecting) ...[
+                  if (showActions) ...[
                     IconButton(
                       tooltip: l10n.printerLocationsEditTitle,
                       onPressed: busy ? null : onEdit,
@@ -172,20 +181,34 @@ class LocationCard extends StatelessWidget {
                   ],
                 ],
               ),
-              if (expanded) ...[
-                const Divider(height: DashSpace.xl),
-                if (children.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
-                    child: Text(
-                      l10n.printerLocationsNoPrinters,
-                      textAlign: TextAlign.center,
-                      style: t.bodyPlain.copyWith(color: t.textSecondary),
-                    ),
-                  )
-                else
-                  ...children,
-              ],
+              if (expanded)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    DashSpace.md,
+                    0,
+                    DashSpace.md,
+                    DashSpace.md,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Divider(height: DashSpace.xl),
+                      if (children.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: DashSpace.lg,
+                          ),
+                          child: Text(
+                            l10n.printerLocationsNoPrinters,
+                            textAlign: TextAlign.center,
+                            style: t.bodyPlain.copyWith(color: t.textSecondary),
+                          ),
+                        )
+                      else
+                        ...children,
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

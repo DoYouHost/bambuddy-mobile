@@ -163,9 +163,11 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         .pendingFor(widget.printerId)
         .inFlight
         .contains(ControlAction.hms);
+    // The header's padding sits inside the InkWell, so the collapsed panel is
+    // exactly its 48 dp target with no dead band around it.
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(DashSpace.md),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: scheme.error.withValues(alpha: DashAlpha.faint),
         borderRadius: BorderRadius.circular(DashRadius.lg),
@@ -173,73 +175,97 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
           color: scheme.error.withValues(alpha: DashAlpha.scrim),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Container(
-              constraints: const BoxConstraints(
-                minHeight: kMinInteractiveDimension,
-              ),
-              alignment: Alignment.center,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: DashIcon.md,
-                    color: scheme.error,
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.hmsErrorsCount(widget.errors.length),
-                      style: DashTokens.of(
-                        context,
-                      ).bodyBold.copyWith(color: scheme.error),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: kMinInteractiveDimension,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.md,
+                  vertical: DashSpace.xs,
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: DashIcon.md,
+                      color: scheme.error,
                     ),
-                  ),
-                  Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
-                    size: DashIcon.md,
-                    color: scheme.error,
-                  ),
-                ],
-              ),
-            ),
-          ).tagged('printer.hms_expand'),
-          if (_expanded) ...[
-            for (final e in widget.errors)
-              // Keyed by the fault, not by position: a frame arriving while a
-              // command is in the air (the server holds the request 2.5s
-              // waiting for the printer) can drop an error from the middle of
-              // the list, and an unkeyed card would keep its neighbour's
-              // in-flight spinner.
-              HmsErrorCard(
-                key: ValueKey(e.fullCode ?? e.displayCode),
-                printerId: widget.printerId,
-                printerName: widget.printerName,
-                error: e,
-                busy: busy,
-              ),
-            const SizedBox(height: DashSpace.xs),
-            Align(
-              alignment: Alignment.centerRight,
-              child: logTag(
-                'printer.hms_dismiss_all',
-                TextButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () =>
-                            dismissAllHmsErrors(context, ref, widget.printerId),
-                  icon: const Icon(Icons.done_all, size: DashIcon.md),
-                  label: Text(l10n.hmsDismissAll),
-                  style: TextButton.styleFrom(foregroundColor: scheme.error),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        l10n.hmsErrorsCount(widget.errors.length),
+                        style: DashTokens.of(
+                          context,
+                        ).bodyBold.copyWith(color: scheme.error),
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: DashIcon.md,
+                      color: scheme.error,
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ).tagged('printer.hms_expand'),
+            if (_expanded)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  DashSpace.md,
+                  0,
+                  DashSpace.md,
+                  DashSpace.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final e in widget.errors)
+                      // Keyed by the fault, not by position: a frame arriving
+                      // while a command is in the air (the server holds the
+                      // request 2.5s waiting for the printer) can drop an
+                      // error from the middle of the list, and an unkeyed card
+                      // would keep its neighbour's in-flight spinner.
+                      HmsErrorCard(
+                        key: ValueKey(e.fullCode ?? e.displayCode),
+                        printerId: widget.printerId,
+                        printerName: widget.printerName,
+                        error: e,
+                        busy: busy,
+                      ),
+                    const SizedBox(height: DashSpace.xs),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: logTag(
+                        'printer.hms_dismiss_all',
+                        TextButton.icon(
+                          onPressed: busy
+                              ? null
+                              : () => dismissAllHmsErrors(
+                                  context,
+                                  ref,
+                                  widget.printerId,
+                                ),
+                          icon: const Icon(Icons.done_all, size: DashIcon.md),
+                          label: Text(l10n.hmsDismissAll),
+                          style: TextButton.styleFrom(
+                            foregroundColor: scheme.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
-        ],
+        ),
       ),
     );
   }
