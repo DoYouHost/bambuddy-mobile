@@ -16442,7 +16442,7 @@ abstract class AppLocalizations {
   /// No description provided for @announcementsSource.
   ///
   /// In en, this message translates to:
-  /// **'From the Bambuddy maintainers, fetched from GitHub.'**
+  /// **'Bambuddy entries come from its maintainers, fetched from GitHub.'**
   String get announcementsSource;
 
   /// No description provided for @announcementLevelInfo.
@@ -18160,6 +18160,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'E'**
   String get externalSpoolShort;
+
+  /// No description provided for @announcementsSourceMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile app'**
+  String get announcementsSourceMobile;
+
+  /// No description provided for @appUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New app version available'**
+  String get appUpdateTitle;
+
+  /// No description provided for @appUpdateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Available on Google Play.'**
+  String get appUpdateBody;
+
+  /// No description provided for @appUpdateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get appUpdateDownloading;
+
+  /// No description provided for @appUpdateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get appUpdateButton;
+
+  /// No description provided for @appUpdateReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Update downloaded'**
+  String get appUpdateReady;
+
+  /// No description provided for @appUpdateRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get appUpdateRestart;
 }
 
 class _AppLocalizationsDelegate

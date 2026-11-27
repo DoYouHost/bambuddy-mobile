@@ -497,3 +497,22 @@ config (`WatchConfigCodec`, one JSON string under `edge`), as it does the certif
 watch's. The codec binds it to the profile's server on both ends (`https` and the same
 host) and takes a session's expiry from its cookie again on decode. The phone re-pushes
 whenever the identity changes, a re-sign-in included.
+
+## Google Play in-app updates
+
+The check, the download and the install are `app_update` in app-shared; the entry
+on the Announcements screen and the dashboard's restart banner are
+`lib/features/announcements/app_update.dart`. The entry is the app's own and never
+reaches the server: the maintainers' feed is signed, and the server has no route
+that adds to it.
+
+- **Which version is offered is Play's choice** and the API does not name the track:
+  production users hear of production releases, a tester of the track they are on.
+  Internal testers hear of a `play-internal` upload before it is promoted.
+- **Only a Play install asks** (`installerStore`). It cannot be tried from a local
+  build; use [internal app sharing](https://developer.android.com/guide/playcore/in-app-updates/test).
+- **The watch has no in-app updates.** `in_app_update` and Play Core are still in
+  its APK, because the generated plugin registrant names the plugin in both flavors
+  and catches only `Exception`, so excluding the library is not an option. Nothing
+  calls it there. Its activity is stripped in the wear manifest. It adds no
+  permission; the release APK grew by 33 KB when it came in.

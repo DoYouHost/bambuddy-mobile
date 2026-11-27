@@ -88,6 +88,7 @@ FORBIDDEN_COMPONENTS = [
     "androidx.glance.appwidget.action.ActionCallbackBroadcastReceiver",
     "androidx.camera.core.impl.MetadataHolderService",
     "androidx.core.widget.RemoteViewsCompatService",
+    "com.google.android.play.core.common.PlayCoreDialogWrapperActivity",
     "com.pravera.flutter_foreground_task.service.ForegroundService",
     "com.pravera.flutter_foreground_task.service.RebootReceiver",
     "page.codeberg.morganmlgman.bambuddy_mobile.BambuddyWidgetProvider",

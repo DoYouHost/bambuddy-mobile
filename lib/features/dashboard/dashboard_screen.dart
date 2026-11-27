@@ -1,5 +1,6 @@
 import '../../core/printers/printer_bucket.dart';
 import '../announcements/announcements_widgets.dart';
+import '../announcements/app_update.dart';
 import 'package:app_util/app_util.dart';
 import 'dart:async';
 
@@ -526,6 +527,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         body: Column(
           children: [
             const EdgeSessionBanner(),
+            const AppUpdateReadyBanner(),
             if (state.stale)
               ConnectionBanner(message: l10n.serverUnreachableStale)
             // WS resuming connection, but polling still provides fresh data —

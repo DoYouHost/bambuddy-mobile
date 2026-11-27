@@ -7077,7 +7077,7 @@
   },
   "announcementsNew": "New",
   "announcementsReadMore": "Read more",
-  "announcementsSource": "From the Bambuddy maintainers, fetched from GitHub.",
+  "announcementsSource": "Bambuddy entries come from its maintainers, fetched from GitHub.",
   "announcementLevelInfo": "Info",
   "announcementLevelImportant": "Important",
   "announcementLevelCritical": "Critical",
@@ -8139,5 +8139,12 @@
   "compactAmsLayoutDesc": "Filament slots show as small tiles with colour, material and slot number. Any printer card can switch back to the detailed list.",
   "amsViewCompact": "Compact view",
   "amsViewDetailed": "Detailed view",
-  "externalSpoolShort": "E"
+  "externalSpoolShort": "E",
+  "announcementsSourceMobile": "Mobile app",
+  "appUpdateTitle": "New app version available",
+  "appUpdateBody": "Available on Google Play.",
+  "appUpdateDownloading": "Downloading…",
+  "appUpdateButton": "Update",
+  "appUpdateReady": "Update downloaded",
+  "appUpdateRestart": "Restart"
 }

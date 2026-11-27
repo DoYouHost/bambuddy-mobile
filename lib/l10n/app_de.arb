@@ -4652,7 +4652,7 @@
   "announcementsEarlier": "Frühere ({count})",
   "announcementsNew": "Neu",
   "announcementsReadMore": "Mehr erfahren",
-  "announcementsSource": "Von den Bambuddy-Entwicklern, über GitHub bereitgestellt.",
+  "announcementsSource": "Bambuddy-Einträge stammen von den Entwicklern und werden über GitHub bereitgestellt.",
   "announcementLevelInfo": "Hinweis",
   "announcementLevelImportant": "Wichtig",
   "announcementLevelCritical": "Kritisch",
@@ -5074,5 +5074,12 @@
   "compactAmsLayoutDesc": "Filamentslots erscheinen als kleine Kacheln mit Farbe, Material und Slotnummer. Jede Druckerkarte lässt sich auf die Detailliste umstellen.",
   "amsViewCompact": "Kompakte Ansicht",
   "amsViewDetailed": "Detailansicht",
-  "externalSpoolShort": "E"
+  "externalSpoolShort": "E",
+  "announcementsSourceMobile": "Mobile App",
+  "appUpdateTitle": "Neue App-Version verfügbar",
+  "appUpdateBody": "Bei Google Play erhältlich.",
+  "appUpdateDownloading": "Wird heruntergeladen…",
+  "appUpdateButton": "Aktualisieren",
+  "appUpdateReady": "Update heruntergeladen",
+  "appUpdateRestart": "Neustart"
 }

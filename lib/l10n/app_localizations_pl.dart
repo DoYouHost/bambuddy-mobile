@@ -10019,7 +10019,8 @@ class AppLocalizationsPl extends AppLocalizations {
   String get announcementsReadMore => 'Czytaj więcej';
 
   @override
-  String get announcementsSource => 'Od twórców Bambuddy, pobierane z GitHuba.';
+  String get announcementsSource =>
+      'Wpisy Bambuddy pochodzą od jego twórców i są pobierane z GitHuba.';
 
   @override
   String get announcementLevelInfo => 'Informacja';
@@ -11157,4 +11158,25 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get externalSpoolShort => 'Z';
+
+  @override
+  String get announcementsSourceMobile => 'Aplikacja mobilna';
+
+  @override
+  String get appUpdateTitle => 'Dostępna nowa wersja aplikacji';
+
+  @override
+  String get appUpdateBody => 'Do pobrania z Google Play.';
+
+  @override
+  String get appUpdateDownloading => 'Pobieranie…';
+
+  @override
+  String get appUpdateButton => 'Aktualizuj';
+
+  @override
+  String get appUpdateReady => 'Aktualizacja pobrana';
+
+  @override
+  String get appUpdateRestart => 'Restartuj';
 }

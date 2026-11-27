@@ -23,7 +23,7 @@
     <div class="container">
       <h1 class="page-title">Privacy Policy</h1>
       <div class="card">
-        <p class="updated">Last updated: 8 November 2026</p>
+        <p class="updated">Last updated: 27 November 2026</p>
 
         <p>Bambuddy mobile is an unofficial, open-source Android companion app for a <strong>self-hosted bambuddy server</strong> that manages Bambu Lab 3D printers. It is <strong>not affiliated with, endorsed by, or connected to Bambu Lab.</strong></p>
         <p>This policy explains what data the app handles. In short: the app has <strong>no analytics, no advertising and no account you create with the developer</strong>, and everything it does while you use it stays between your device and the bambuddy server address <strong>you</strong> configure.</p>
@@ -31,7 +31,8 @@
 
         <h2 id="who-the-app-talks-to">Who the app talks to</h2>
         <ul>
-          <li><strong>Your bambuddy server</strong> — the self-hosted address you enter during setup. While you use the app, this is the only server it talks to. There is no cloud backend, no analytics service and no advertising SDK.</li>
+          <li><strong>Your bambuddy server</strong> — the self-hosted address you enter during setup. While you use the app, this is the only server it talks to, apart from the update check below. There is no cloud backend, no analytics service and no advertising SDK.</li>
+          <li><strong>Google Play, for app updates</strong> — a phone app installed from Google Play asks the Play Store on your device whether a newer version of the app exists, when it opens and when you return to it, using Google's Play In-App Updates library. If you tap Update, Google Play downloads and installs it. For this Google processes device metadata, the app version and the list of installed app modules, under the Google Play Terms of Service. The developer receives none of it. A build installed from GitHub never asks, and neither does the watch app.</li>
           <li><strong>The report relay and GitHub</strong> — contacted <strong>only</strong> when you open the report screen and choose to publish a report. The relay (<code>app-relay.morganmlg.com</code>) is a small Cloudflare Worker operated by the developer; it exists so that you can file a report without having a GitHub account. If you never send a report, the app never contacts either of them.</li>
         </ul>
 

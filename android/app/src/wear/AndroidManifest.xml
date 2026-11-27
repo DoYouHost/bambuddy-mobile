@@ -160,6 +160,13 @@
             android:name="androidx.camera.core.impl.MetadataHolderService"
             tools:node="remove" />
 
+        <!-- Play Core's dialog host for in-app updates, which Wear OS does not
+             have. The library itself has to stay: the generated plugin
+             registrant names in_app_update in both flavors. -->
+        <activity
+            android:name="com.google.android.play.core.common.PlayCoreDialogWrapperActivity"
+            tools:node="remove" />
+
         <!-- flutter_foreground_task's restart hooks. The watch strips the
              service itself above, so these two receivers are wired to nothing;
              RECEIVE_BOOT_COMPLETED is already removed, which leaves RebootReceiver

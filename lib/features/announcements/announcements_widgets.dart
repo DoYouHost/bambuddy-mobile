@@ -6,6 +6,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'announcements_providers.dart';
+import 'app_update.dart';
+
+/// Unread entries of both sources: the server's, and the app's own update.
+int watchUnreadCount(WidgetRef ref) =>
+    (ref.watch(announcementsProvider).value?.unreadCount ?? 0) +
+    (ref.watch(appUpdateProvider).unread ? 1 : 0);
 
 const announcementsRoute = '/announcements';
 
@@ -17,7 +23,7 @@ class AnnouncementsDrawerButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final unread = ref.watch(announcementsProvider).value?.unreadCount ?? 0;
+    final unread = watchUnreadCount(ref);
     return Badge(
       isLabelVisible: unread > 0,
       smallSize: 8,
@@ -30,7 +36,8 @@ class AnnouncementsDrawerButton extends ConsumerWidget {
 
 /// The inbox entry in the drawer header. Absent while the server says this
 /// session gets no announcements — an API key, an older server, or a
-/// non-admin before the admin shares them.
+/// non-admin before the admin shares them — unless the app has an update of
+/// its own to show there.
 class AnnouncementsHeaderButton extends ConsumerWidget {
   const AnnouncementsHeaderButton({super.key});
 
@@ -38,9 +45,11 @@ class AnnouncementsHeaderButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final feed = ref.watch(announcementsProvider).value;
-    if (feed == null || !feed.visible) return const SizedBox.shrink();
-    final unread = feed.unreadCount;
+    final server = ref.watch(announcementsProvider).value?.visible ?? false;
+    final unread = watchUnreadCount(ref);
+    if (!server && !ref.watch(appUpdateProvider).offered) {
+      return const SizedBox.shrink();
+    }
     return IconButton(
       tooltip: unread > 0
           ? l10n.announcementsUnread(unread)

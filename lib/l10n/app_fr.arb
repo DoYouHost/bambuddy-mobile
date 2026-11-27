@@ -4652,7 +4652,7 @@
   "announcementsEarlier": "Précédentes ({count})",
   "announcementsNew": "Nouveau",
   "announcementsReadMore": "En savoir plus",
-  "announcementsSource": "Des développeurs de Bambuddy, récupérées depuis GitHub.",
+  "announcementsSource": "Les entrées Bambuddy viennent de ses développeurs et sont récupérées depuis GitHub.",
   "announcementLevelInfo": "Information",
   "announcementLevelImportant": "Importante",
   "announcementLevelCritical": "Critique",
@@ -5074,5 +5074,12 @@
   "compactAmsLayoutDesc": "Les emplacements de filament s'affichent en petites tuiles avec couleur, matière et numéro. Chaque carte d'imprimante peut revenir à la liste détaillée.",
   "amsViewCompact": "Vue compacte",
   "amsViewDetailed": "Vue détaillée",
-  "externalSpoolShort": "E"
+  "externalSpoolShort": "E",
+  "announcementsSourceMobile": "Application mobile",
+  "appUpdateTitle": "Nouvelle version de l’application disponible",
+  "appUpdateBody": "Disponible sur Google Play.",
+  "appUpdateDownloading": "Téléchargement…",
+  "appUpdateButton": "Mettre à jour",
+  "appUpdateReady": "Mise à jour téléchargée",
+  "appUpdateRestart": "Redémarrer"
 }

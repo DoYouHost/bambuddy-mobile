@@ -9848,7 +9848,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get announcementsSource =>
-      'From the Bambuddy maintainers, fetched from GitHub.';
+      'Bambuddy entries come from its maintainers, fetched from GitHub.';
 
   @override
   String get announcementLevelInfo => 'Info';
@@ -10955,4 +10955,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get externalSpoolShort => 'E';
+
+  @override
+  String get announcementsSourceMobile => 'Mobile app';
+
+  @override
+  String get appUpdateTitle => 'New app version available';
+
+  @override
+  String get appUpdateBody => 'Available on Google Play.';
+
+  @override
+  String get appUpdateDownloading => 'Downloading…';
+
+  @override
+  String get appUpdateButton => 'Update';
+
+  @override
+  String get appUpdateReady => 'Update downloaded';
+
+  @override
+  String get appUpdateRestart => 'Restart';
 }

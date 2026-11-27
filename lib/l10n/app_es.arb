@@ -4652,7 +4652,7 @@
   "announcementsEarlier": "Anteriores ({count})",
   "announcementsNew": "Nuevo",
   "announcementsReadMore": "Leer más",
-  "announcementsSource": "De los desarrolladores de Bambuddy, obtenidos de GitHub.",
+  "announcementsSource": "Las entradas de Bambuddy son de sus desarrolladores y se obtienen de GitHub.",
   "announcementLevelInfo": "Aviso",
   "announcementLevelImportant": "Importante",
   "announcementLevelCritical": "Crítico",
@@ -5074,5 +5074,12 @@
   "compactAmsLayoutDesc": "Las ranuras de filamento se muestran como mosaicos pequeños con color, material y número. Cualquier tarjeta de impresora puede volver a la lista detallada.",
   "amsViewCompact": "Vista compacta",
   "amsViewDetailed": "Vista detallada",
-  "externalSpoolShort": "E"
+  "externalSpoolShort": "E",
+  "announcementsSourceMobile": "App móvil",
+  "appUpdateTitle": "Nueva versión de la app disponible",
+  "appUpdateBody": "Disponible en Google Play.",
+  "appUpdateDownloading": "Descargando…",
+  "appUpdateButton": "Actualizar",
+  "appUpdateReady": "Actualización descargada",
+  "appUpdateRestart": "Reiniciar"
 }

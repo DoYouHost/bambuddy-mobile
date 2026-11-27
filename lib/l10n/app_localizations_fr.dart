@@ -10057,7 +10057,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get announcementsSource =>
-      'Des développeurs de Bambuddy, récupérées depuis GitHub.';
+      'Les entrées Bambuddy viennent de ses développeurs et sont récupérées depuis GitHub.';
 
   @override
   String get announcementLevelInfo => 'Information';
@@ -11179,4 +11179,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get externalSpoolShort => 'E';
+
+  @override
+  String get announcementsSourceMobile => 'Application mobile';
+
+  @override
+  String get appUpdateTitle => 'Nouvelle version de l’application disponible';
+
+  @override
+  String get appUpdateBody => 'Disponible sur Google Play.';
+
+  @override
+  String get appUpdateDownloading => 'Téléchargement…';
+
+  @override
+  String get appUpdateButton => 'Mettre à jour';
+
+  @override
+  String get appUpdateReady => 'Mise à jour téléchargée';
+
+  @override
+  String get appUpdateRestart => 'Redémarrer';
 }

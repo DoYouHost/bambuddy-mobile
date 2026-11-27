@@ -2721,7 +2721,7 @@
   "announcementsEarlier": "更早（{count}）",
   "announcementsNew": "新",
   "announcementsReadMore": "阅读全文",
-  "announcementsSource": "来自 Bambuddy 维护团队，从 GitHub 获取。",
+  "announcementsSource": "Bambuddy 的条目来自其维护团队，从 GitHub 获取。",
   "announcementLevelInfo": "信息",
   "announcementLevelImportant": "重要",
   "announcementLevelCritical": "严重",
@@ -3056,5 +3056,12 @@
   "compactAmsLayoutDesc": "耗材槽以小磁贴显示颜色、材质和槽位编号。任何打印机卡片都可以切换回详细列表。",
   "amsViewCompact": "紧凑视图",
   "amsViewDetailed": "详细视图",
-  "externalSpoolShort": "外"
+  "externalSpoolShort": "外",
+  "announcementsSourceMobile": "移动应用",
+  "appUpdateTitle": "应用有新版本可用",
+  "appUpdateBody": "可从 Google Play 获取。",
+  "appUpdateDownloading": "正在下载…",
+  "appUpdateButton": "更新",
+  "appUpdateReady": "更新已下载",
+  "appUpdateRestart": "重启"
 }

@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 8 November 2026_
+_Last updated: 27 November 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -19,8 +19,9 @@ whole path is described under [Sending a report](#sending-a-report).
 ## Who the app talks to
 
 - **Your bambuddy server** — the self-hosted address you enter during setup. While you
-  use the app, this is the only server it talks to. There is no cloud backend, no
-  analytics service and no advertising SDK.
+  use the app, this is the only server it talks to, apart from the update check below.
+  There is no cloud backend, no analytics service and no advertising SDK.
+- **Google Play, for app updates** — a phone app installed from Google Play asks the Play Store on your device whether a newer version of the app exists, when it opens and when you return to it, using Google's Play In-App Updates library. If you tap Update, Google Play downloads and installs it. For this Google processes device metadata, the app version and the list of installed app modules, under the Google Play Terms of Service. The developer receives none of it. A build installed from GitHub never asks, and neither does the watch app.
 - **The report relay and GitHub** — contacted **only** when you open the report screen
   and choose to publish a report. The relay (`app-relay.morganmlg.com`) is a small
   Cloudflare Worker operated by the developer; it exists so that you can file a report

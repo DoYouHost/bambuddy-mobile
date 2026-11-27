@@ -3963,7 +3963,7 @@
   "announcementsEarlier": "Wcześniejsze ({count})",
   "announcementsNew": "Nowe",
   "announcementsReadMore": "Czytaj więcej",
-  "announcementsSource": "Od twórców Bambuddy, pobierane z GitHuba.",
+  "announcementsSource": "Wpisy Bambuddy pochodzą od jego twórców i są pobierane z GitHuba.",
   "announcementLevelInfo": "Informacja",
   "announcementLevelImportant": "Ważne",
   "announcementLevelCritical": "Krytyczne",
@@ -4385,5 +4385,12 @@
   "compactAmsLayoutDesc": "Sloty filamentu jako małe kafelki z kolorem, materiałem i numerem slotu. Każdą kartę drukarki można przełączyć na szczegółową listę.",
   "amsViewCompact": "Widok kompaktowy",
   "amsViewDetailed": "Widok szczegółowy",
-  "externalSpoolShort": "Z"
+  "externalSpoolShort": "Z",
+  "announcementsSourceMobile": "Aplikacja mobilna",
+  "appUpdateTitle": "Dostępna nowa wersja aplikacji",
+  "appUpdateBody": "Do pobrania z Google Play.",
+  "appUpdateDownloading": "Pobieranie…",
+  "appUpdateButton": "Aktualizuj",
+  "appUpdateReady": "Aktualizacja pobrana",
+  "appUpdateRestart": "Restartuj"
 }

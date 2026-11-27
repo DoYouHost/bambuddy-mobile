@@ -9445,7 +9445,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get announcementsReadMore => '阅读全文';
 
   @override
-  String get announcementsSource => '来自 Bambuddy 维护团队，从 GitHub 获取。';
+  String get announcementsSource => 'Bambuddy 的条目来自其维护团队，从 GitHub 获取。';
 
   @override
   String get announcementLevelInfo => '信息';
@@ -10501,4 +10501,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get externalSpoolShort => '外';
+
+  @override
+  String get announcementsSourceMobile => '移动应用';
+
+  @override
+  String get appUpdateTitle => '应用有新版本可用';
+
+  @override
+  String get appUpdateBody => '可从 Google Play 获取。';
+
+  @override
+  String get appUpdateDownloading => '正在下载…';
+
+  @override
+  String get appUpdateButton => '更新';
+
+  @override
+  String get appUpdateReady => '更新已下载';
+
+  @override
+  String get appUpdateRestart => '重启';
 }
