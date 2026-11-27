@@ -84,7 +84,8 @@ minutes, or sooner if it reaches 20 MB.
 
 Such a log describes what the app did: screens you opened, controls you pressed, requests
 to your server and the status codes that came back, live-view connection events, what the
-background service decided about notifications, and crashes. It never contains your API
+background service decided about notifications, where the app was installed from and what
+Google Play answered about updates, and crashes. It never contains your API
 key, your password, or **any text you type into the app**. Your server address is reduced
 to its shape — whether it is http or https, a name or an IP, and the port — file, model
 and spool names are left out, and a control you press is recorded under an internal name

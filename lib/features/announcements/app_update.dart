@@ -5,6 +5,7 @@ import 'package:app_update/app_update.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/diagnostics/diagnostics_wiring.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../dashboard/widgets/connection_banner.dart';
@@ -36,6 +37,7 @@ class AppUpdateNotifier extends Notifier<AppUpdate> {
         'play_update_error',
         fields: {'code': e.code, 'message': e.message},
       ),
+      onAnswer: PlayCheckProbe.answered,
     );
     play.addListener(_publish);
     // Play is asked again on every resume: that is how a download finished in

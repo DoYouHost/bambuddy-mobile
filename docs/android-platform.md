@@ -511,6 +511,9 @@ that adds to it.
   Internal testers hear of a `play-internal` upload before it is promoted.
 - **Only a Play install asks** (`installerStore`). It cannot be tried from a local
   build; use [internal app sharing](https://developer.android.com/guide/playcore/in-app-updates/test).
+- **A missing entry is explained by `play_check`** in the diagnostic log: the
+  installer and, for a Play install, what Play answered. The last one is written
+  again when a recording starts.
 - **The watch has no in-app updates.** `in_app_update` and Play Core are still in
   its APK, because the generated plugin registrant names the plugin in both flavors
   and catches only `Exception`, so excluding the library is not an option. Nothing

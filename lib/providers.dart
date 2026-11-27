@@ -242,9 +242,9 @@ final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
     loadFacts: ref.watch(sessionFactsProvider),
     sessionDuration: recordingLimit,
     sessionBytes: recordingSizeLimit,
-    // The socket probe is bambuddy's own, so the recorder cannot know to open
-    // and flush it; it is handed over here instead.
-    listeners: const [WsSessionListener()],
+    // bambuddy's own probes, which the recorder cannot know to open and flush;
+    // they are handed over here instead.
+    listeners: const [WsSessionListener(), PlayCheckProbe()],
   ),
 );
 
