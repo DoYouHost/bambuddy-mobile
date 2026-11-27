@@ -495,6 +495,15 @@ _require-release-branch ver:
         echo "ship {{ver}} runs from release/{{ver}}, not '$branch'. Start it with: just release-start {{ver}}" >&2
         exit 1
     fi
+    # Every released version lives on master. A release branch cut from a dev
+    # that never got master merged back silently drops whatever the last
+    # release carried that dev did not (a hotfix, a fix made on its branch).
+    git fetch --quiet origin master
+    if ! git merge-base --is-ancestor origin/master HEAD; then
+        echo "release/{{ver}} does not contain origin/master: the last release would be lost." >&2
+        echo "Merge it in first: git merge origin/master (and merge master back into dev)." >&2
+        exit 1
+    fi
 
 # Opens the draft PR into master for release/<ver>; a no-op when one is open.
 # Fails when the branch has no commit over master — `release-start` tolerates
